@@ -217,7 +217,7 @@ body {
   transition: filter .12s, background .12s, border-color .12s; cursor: pointer;
   letter-spacing: -0.005em;
 }
-.btn-primary { background: var(--black); color: var(--white); }
+.btn-primary { background: #1A1A1A !important; color: #ffffff !important; border: 1px solid #333 !important; }
 .btn-primary:hover { background: var(--black-2); }
 .btn-ghost { background: var(--surface); color: var(--ink-2); border-color: var(--border); }
 .btn-ghost:hover { background: var(--surface-2); border-color: var(--border-strong); }
