@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 
-// GET /api/asistencia?year=2026&month=5
+// GET /api/asistencia?year=2026&month=5&limit=200
 router.get('/', async (req, res) => {
   try {
-    const { year, month } = req.query;
+    const { year, month, limit } = req.query;
     let query = 'SELECT * FROM asistencia';
     const params = [];
 
@@ -18,10 +18,17 @@ router.get('/', async (req, res) => {
     }
 
     query += ' ORDER BY fecha DESC';
+
+    if (limit) {
+      params.push(parseInt(limit, 10));
+      query += ` LIMIT $${params.length}`;
+    }
+
     const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[GET /api/asistencia] ERROR:', err);
+    res.status(500).json({ error: err.message, detail: err.detail, code: err.code });
   }
 });
 
