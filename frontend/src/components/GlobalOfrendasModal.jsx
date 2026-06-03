@@ -20,7 +20,7 @@ function formatDateLong(date) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-const EMPTY = { efectivo: '', tarjeta: '', cantidad: '' };
+const EMPTY = { efectivo: '', tarjeta: '', sobres: '', terminalCnt: '' };
 
 export default function GlobalOfrendasModal() {
   const { open, closeModal } = useOfrendasModal();
@@ -35,10 +35,12 @@ export default function GlobalOfrendasModal() {
   const [saved, setSaved]         = useState(false);
   const [savedData, setSavedData] = useState(null);
 
-  const efectivo  = parseFloat(form.efectivo)  || 0;
-  const tarjeta   = parseFloat(form.tarjeta)   || 0;
-  const cantidad  = parseInt(form.cantidad, 10) || 0;
-  const total     = efectivo + tarjeta;
+  const efectivo    = parseFloat(form.efectivo)      || 0;
+  const tarjeta     = parseFloat(form.tarjeta)       || 0;
+  const sobres      = parseInt(form.sobres, 10)      || 0;
+  const terminalCnt = parseInt(form.terminalCnt, 10) || 0;
+  const total       = efectivo + tarjeta;
+  const cantidad    = sobres + terminalCnt;
   const participacion = asistentes && asistentes > 0 && cantidad > 0
     ? ((cantidad / asistentes) * 100).toFixed(1)
     : null;
@@ -82,15 +84,16 @@ export default function GlobalOfrendasModal() {
     setSaving(true);
     try {
       await ofrendasApi.create({
-        fecha:         fechaISO,
-        efectivo:      efectivo,
-        terminal:      tarjeta,
-        total_ofrenda: total,
-        ofrendas:      cantidad,
-        participacion: participacion ? parseFloat(participacion) : 0,
-        ofrenda_especial: 0,
+        fecha:             fechaISO,
+        efectivo:          efectivo,
+        terminal:          tarjeta,
+        total_ofrenda:     total,
+        ofrendas_sobres:   sobres,
+        ofrendas_terminal: terminalCnt,
+        participacion:     participacion ? parseFloat(participacion) : 0,
+        ofrenda_especial:  0,
       });
-      setSavedData({ total, efectivo, tarjeta, cantidad, participacion });
+      setSavedData({ total, efectivo, tarjeta, sobres, terminalCnt, cantidad, participacion });
       setSaved(true);
       setTimeout(() => { setSaved(false); closeModal(); }, 2500);
     } finally {
@@ -115,9 +118,10 @@ export default function GlobalOfrendasModal() {
               <span>Total registrado</span>
               <strong>${savedData?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong>
             </div>
-            {savedData?.participacion && (
+            {savedData?.cantidad > 0 && (
               <div style={{ marginTop: 8, fontSize: 13, color: 'var(--muted)' }}>
-                {savedData.cantidad} ofrendantes · {savedData.participacion}% de participación
+                {savedData.sobres} sobres · {savedData.terminalCnt} terminal
+                {savedData.participacion ? ` · ${savedData.participacion}% participación` : ''}
               </div>
             )}
           </div>
@@ -194,27 +198,58 @@ export default function GlobalOfrendasModal() {
                 </span>
               </div>
 
-              {/* Cantidad de ofrendas */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Cantidad de ofrendas
-                  <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 400, color: 'var(--muted)', textTransform: 'none', letterSpacing: 0 }}>
-                    personas / sobres
-                  </span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="0"
-                  value={form.cantidad}
-                  onChange={e => setForm(f => ({ ...f, cantidad: e.target.value }))}
-                  style={{
-                    width: '100%', padding: '10px 12px', borderRadius: 10,
-                    border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
-                    outline: 'none', boxSizing: 'border-box',
-                  }}
-                />
+              {/* Sobres y Tarjeta/Terminal — conteos */}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Sobres
+                    <span style={{ marginLeft: 5, fontSize: 11, fontWeight: 400, color: 'var(--muted)', textTransform: 'none', letterSpacing: 0 }}>efectivo</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={form.sobres}
+                    onChange={e => setForm(f => ({ ...f, sobres: e.target.value }))}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: 10,
+                      border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Tarjeta
+                    <span style={{ marginLeft: 5, fontSize: 11, fontWeight: 400, color: 'var(--muted)', textTransform: 'none', letterSpacing: 0 }}>transacciones</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={form.terminalCnt}
+                    onChange={e => setForm(f => ({ ...f, terminalCnt: e.target.value }))}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: 10,
+                      border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Total ofrendas auto */}
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '9px 14px', borderRadius: 10, background: 'var(--surface)',
+                border: '1px solid var(--border)',
+              }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>Total ofrendas</span>
+                <span style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-mono)', color: cantidad > 0 ? 'var(--ink)' : 'var(--muted)' }}>
+                  {cantidad > 0 ? cantidad : '—'}
+                </span>
               </div>
 
               {/* Participación */}
