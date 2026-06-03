@@ -6,22 +6,18 @@ const pool = require('../db/pool');
 router.get('/', async (req, res) => {
   try {
     const { year, month } = req.query;
-    let query = `
-      SELECT g.*, c.nombre AS categoria_nombre
-      FROM gastos g
-      LEFT JOIN categorias c ON g.categoria_id = c.id
-    `;
+    let query = 'SELECT * FROM gastos';
     const params = [];
 
     if (year && month) {
-      query += ' WHERE EXTRACT(YEAR FROM g.fecha) = $1 AND EXTRACT(MONTH FROM g.fecha) = $2';
+      query += ' WHERE EXTRACT(YEAR FROM fecha)=$1 AND EXTRACT(MONTH FROM fecha)=$2';
       params.push(year, month);
     } else if (year) {
-      query += ' WHERE EXTRACT(YEAR FROM g.fecha) = $1';
+      query += ' WHERE EXTRACT(YEAR FROM fecha)=$1';
       params.push(year);
     }
 
-    query += ' ORDER BY g.fecha DESC';
+    query += ' ORDER BY fecha DESC';
     const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
@@ -32,16 +28,11 @@ router.get('/', async (req, res) => {
 // GET /api/gastos/resumen-anual?year=2026
 router.get('/resumen-anual', async (req, res) => {
   try {
-    const { year } = req.query;
-    const y = year || new Date().getFullYear();
+    const y = req.query.year || new Date().getFullYear();
     const { rows } = await pool.query(`
-      SELECT
-        EXTRACT(MONTH FROM fecha)::INT AS mes,
-        SUM(monto) AS total
-      FROM gastos
-      WHERE EXTRACT(YEAR FROM fecha) = $1
-      GROUP BY mes
-      ORDER BY mes
+      SELECT EXTRACT(MONTH FROM fecha)::INT AS mes, SUM(monto) AS total
+      FROM gastos WHERE EXTRACT(YEAR FROM fecha)=$1
+      GROUP BY mes ORDER BY mes
     `, [y]);
     res.json(rows);
   } catch (err) {
@@ -55,19 +46,17 @@ router.get('/por-categoria', async (req, res) => {
     const { year, month } = req.query;
     const y = year || new Date().getFullYear();
     let query = `
-      SELECT c.nombre AS categoria, SUM(g.monto) AS total
-      FROM gastos g
-      LEFT JOIN categorias c ON g.categoria_id = c.id
-      WHERE EXTRACT(YEAR FROM g.fecha) = $1
+      SELECT categoria, SUM(monto) AS total
+      FROM gastos WHERE EXTRACT(YEAR FROM fecha)=$1
     `;
     const params = [y];
 
     if (month) {
-      query += ' AND EXTRACT(MONTH FROM g.fecha) = $2';
+      query += ' AND EXTRACT(MONTH FROM fecha)=$2';
       params.push(month);
     }
 
-    query += ' GROUP BY c.nombre ORDER BY total DESC';
+    query += ' GROUP BY categoria ORDER BY total DESC';
     const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
@@ -78,12 +67,7 @@ router.get('/por-categoria', async (req, res) => {
 // GET /api/gastos/:id
 router.get('/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT g.*, c.nombre AS categoria_nombre FROM gastos g
-       LEFT JOIN categorias c ON g.categoria_id = c.id
-       WHERE g.id = $1`,
-      [req.params.id]
-    );
+    const { rows } = await pool.query('SELECT * FROM gastos WHERE id=$1', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
   } catch (err) {
@@ -94,14 +78,13 @@ router.get('/:id', async (req, res) => {
 // POST /api/gastos
 router.post('/', async (req, res) => {
   try {
-    const { concepto, monto, fecha, categoria_id, notas } = req.body;
-    if (!concepto || !monto || !fecha) {
-      return res.status(400).json({ error: 'concepto, monto y fecha son requeridos' });
+    const { fecha, concepto, categoria, monto } = req.body;
+    if (!fecha || !concepto || !categoria || !monto) {
+      return res.status(400).json({ error: 'fecha, concepto, categoria y monto son requeridos' });
     }
     const { rows } = await pool.query(
-      `INSERT INTO gastos (concepto, monto, fecha, categoria_id, notas)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [concepto, monto, fecha, categoria_id || null, notas || null]
+      'INSERT INTO gastos (fecha, concepto, categoria, monto) VALUES ($1,$2,$3,$4) RETURNING *',
+      [fecha, concepto, categoria, monto]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -112,11 +95,10 @@ router.post('/', async (req, res) => {
 // PUT /api/gastos/:id
 router.put('/:id', async (req, res) => {
   try {
-    const { concepto, monto, fecha, categoria_id, notas } = req.body;
+    const { fecha, concepto, categoria, monto } = req.body;
     const { rows } = await pool.query(
-      `UPDATE gastos SET concepto=$1, monto=$2, fecha=$3, categoria_id=$4, notas=$5
-       WHERE id=$6 RETURNING *`,
-      [concepto, monto, fecha, categoria_id || null, notas || null, req.params.id]
+      'UPDATE gastos SET fecha=$1, concepto=$2, categoria=$3, monto=$4 WHERE id=$5 RETURNING *',
+      [fecha, concepto, categoria, monto, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);

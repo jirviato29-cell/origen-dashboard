@@ -1,0 +1,5 @@
+{
+  "execMap": {
+    "js": "node --dns-result-order=ipv4first --no-network-family-autoselection"
+  }
+}

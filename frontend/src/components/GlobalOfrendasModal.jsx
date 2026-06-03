@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { asistenciaApi, ingresosApi } from '../services/api';
+import { asistenciaApi, ofrendasApi } from '../services/api';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
 import { I } from './Icons';
 
@@ -81,11 +81,14 @@ export default function GlobalOfrendasModal() {
     if (total <= 0) return;
     setSaving(true);
     try {
-      await ingresosApi.create({
-        concepto: `Ofrenda domingo ${fechaISO}`,
-        monto: total,
-        fecha: fechaISO,
-        notas: `Efectivo: $${efectivo.toFixed(2)} | Tarjeta: $${tarjeta.toFixed(2)} | Ofrendantes: ${cantidad}${participacion ? ` | Participación: ${participacion}%` : ''}`,
+      await ofrendasApi.create({
+        fecha:         fechaISO,
+        efectivo:      efectivo,
+        terminal:      tarjeta,
+        total_ofrenda: total,
+        ofrendas:      cantidad,
+        participacion: participacion ? parseFloat(participacion) : 0,
+        ofrenda_especial: 0,
       });
       setSavedData({ total, efectivo, tarjeta, cantidad, participacion });
       setSaved(true);

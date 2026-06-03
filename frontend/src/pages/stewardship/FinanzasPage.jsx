@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ingresosApi, gastosApi } from '../../services/api';
+import { ofrendasApi, gastosApi } from '../../services/api';
 import { I } from '../../components/Icons';
 
 const CATEGORIAS_GASTO = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'Decoración'];
@@ -45,7 +45,7 @@ export default function FinanzasPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [ri, rg] = await Promise.all([ingresosApi.getAll(), gastosApi.getAll()]);
+      const [ri, rg] = await Promise.all([ofrendasApi.getAll(), gastosApi.getAll()]);
       setIngresos(ri.data);
       setGastos(rg.data);
     } finally {
@@ -67,8 +67,8 @@ export default function FinanzasPage() {
   // Month-filtered data (used for stat cards and base for cat filter)
   const ingresosMes = ingresos.filter(i => i.fecha?.startsWith(mesFilter));
   const gastosMes   = gastos.filter(g => g.fecha?.startsWith(mesFilter));
-  const totalIngMes = ingresosMes.reduce((s, i) => s + i.monto, 0);
-  const totalGasMes = gastosMes.reduce((s, g) => s + g.monto, 0);
+  const totalIngMes = ingresosMes.reduce((s, i) => s + parseFloat(i.total_ofrenda || i.monto || 0), 0);
+  const totalGasMes = gastosMes.reduce((s, g) => s + parseFloat(g.monto || 0), 0);
   const balance     = totalIngMes - totalGasMes;
 
   // Category breakdown for this month
@@ -101,9 +101,9 @@ export default function FinanzasPage() {
     setSaving(true);
     try {
       if (modal === 'ingreso') {
-        await ingresosApi.create({ concepto: form.concepto, monto: parseFloat(form.monto), fecha: form.fecha, notas: form.notas || null });
+        await ofrendasApi.create({ fecha: form.fecha, total_ofrenda: parseFloat(form.monto), efectivo: 0, terminal: 0 });
       } else {
-        await gastosApi.create({ concepto: form.concepto, monto: parseFloat(form.monto), fecha: form.fecha, notas: form.notas || null, categoria_nombre: form.categoria_nombre });
+        await gastosApi.create({ concepto: form.concepto, monto: parseFloat(form.monto), fecha: form.fecha, categoria: form.categoria_nombre || 'Operación' });
       }
       setModal(null);
       await load();
