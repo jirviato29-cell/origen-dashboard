@@ -67,6 +67,8 @@ router.post('/', async (req, res) => {
     const sobres   = ofrendas_sobres   || 0;
     const termCnt  = ofrendas_terminal || 0;
     const ofrendas = sobres + termCnt;
+    console.log('[POST /api/ofrendas] body:', req.body);
+    console.log('[POST /api/ofrendas] params:', [fecha, efectivo||0, terminal||0, total_ofrenda||0, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0]);
     const { rows } = await pool.query(
       `INSERT INTO ofrendas (fecha, efectivo, terminal, total_ofrenda, ofrendas, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
@@ -74,7 +76,8 @@ router.post('/', async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[POST /api/ofrendas] ERROR:', err);
+    res.status(500).json({ error: err.message, detail: err.detail, code: err.code });
   }
 });
 
@@ -94,7 +97,8 @@ router.put('/:id', async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[PUT /api/ofrendas/:id] ERROR:', err);
+    res.status(500).json({ error: err.message, detail: err.detail, code: err.code });
   }
 });
 
