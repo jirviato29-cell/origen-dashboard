@@ -15,15 +15,17 @@ CREATE TABLE IF NOT EXISTS asistencia (
 );
 
 CREATE TABLE IF NOT EXISTS ofrendas (
-  id               SERIAL PRIMARY KEY,
-  fecha            DATE    NOT NULL,
-  efectivo         DECIMAL DEFAULT 0,
-  terminal         DECIMAL DEFAULT 0,
-  total_ofrenda    DECIMAL DEFAULT 0,
-  ofrendas         INT     DEFAULT 0,
-  participacion    DECIMAL DEFAULT 0,
-  ofrenda_especial DECIMAL DEFAULT 0,
-  created_at       TIMESTAMP DEFAULT NOW()
+  id                 SERIAL PRIMARY KEY,
+  fecha              DATE    NOT NULL,
+  efectivo           DECIMAL DEFAULT 0,
+  terminal           DECIMAL DEFAULT 0,  -- monto en pesos pagado con terminal
+  total_ofrenda      DECIMAL DEFAULT 0,
+  ofrendas           INT     DEFAULT 0,  -- conteo total (ofrendas_sobres + ofrendas_terminal)
+  participacion      DECIMAL DEFAULT 0,
+  ofrenda_especial   DECIMAL DEFAULT 0,
+  created_at         TIMESTAMP DEFAULT NOW(),
+  ofrendas_sobres    INT     DEFAULT 0,  -- conteo de sobres de efectivo
+  ofrendas_terminal  INT     DEFAULT 0   -- conteo de transacciones con terminal
 );
 
 CREATE TABLE IF NOT EXISTS gastos (
