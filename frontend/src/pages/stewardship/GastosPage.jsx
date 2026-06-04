@@ -10,19 +10,19 @@ const ORANGE = '#F97316';
 const CATEGORIAS = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'Decoración'];
 
 const CAT_COLORS = {
-  'Operación':  '#00B4D8',
-  'Alimentos':  '#FF6B2B',
-  'Materiales': '#1A1A1A',
-  'Eventos':    '#6B6B6B',
-  'Decoración': '#A3A3A3',
+  'Operación':  '#0EA5E9',
+  'Alimentos':  '#F97316',
+  'Materiales': '#8B5CF6',
+  'Eventos':    '#10B981',
+  'Decoración': '#F59E0B',
 };
 
 const CAT_BG = {
-  'Operación':  'rgba(0,180,216,0.12)',
-  'Alimentos':  'rgba(255,107,43,0.12)',
-  'Materiales': 'rgba(26,26,26,0.08)',
-  'Eventos':    'rgba(107,107,107,0.12)',
-  'Decoración': 'rgba(163,163,163,0.15)',
+  'Operación':  'rgba(14,165,233,0.12)',
+  'Alimentos':  'rgba(249,115,22,0.12)',
+  'Materiales': 'rgba(139,92,246,0.12)',
+  'Eventos':    'rgba(16,185,129,0.12)',
+  'Decoración': 'rgba(245,158,11,0.12)',
 };
 
 // ── Formatters ────────────────────────────────────────────────────────────────
