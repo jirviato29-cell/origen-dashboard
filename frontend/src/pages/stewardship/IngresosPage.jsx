@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { dataMaestra, mockGastos } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { ofrendasApi, gastosApi } from '../../services/api';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -32,17 +32,25 @@ const PAD = { left: 78, right: 24, top: 28, bottom: 54 };
 function LineChart({ data }) {
   const [hovered, setHovered] = useState(null);
 
+  if (!data || data.length < 2) {
+    return (
+      <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
+        Sin suficientes datos para mostrar la gráfica
+      </div>
+    );
+  }
+
   const chartW = VW - PAD.left - PAD.right;
   const chartH = VH - PAD.top - PAD.bottom;
 
-  const maxVal = Math.max(...data.map(d => d.total_ofrenda));
-  const yMax   = Math.ceil(maxVal / 5000) * 5000;
+  const maxVal = Math.max(...data.map(d => Number(d.total_ofrenda)));
+  const yMax   = Math.ceil(maxVal / 5000) * 5000 || 5000;
   const yTicks = Array.from({ length: Math.round(yMax / 5000) + 1 }, (_, i) => i * 5000);
 
   const toX = i => PAD.left + (i / (data.length - 1)) * chartW;
   const toY = v => PAD.top + chartH - (v / yMax) * chartH;
 
-  const pts = data.map((d, i) => ({ x: toX(i), y: toY(d.total_ofrenda), d }));
+  const pts = data.map((d, i) => ({ x: toX(i), y: toY(Number(d.total_ofrenda)), d }));
 
   const linePath = pts
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
@@ -168,11 +176,11 @@ function LineChart({ data }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20 }}>
                 <span style={{ opacity: 0.6, fontSize: 12 }}>Efectivo</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(d.efectivo)}</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(Number(d.efectivo))}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20 }}>
                 <span style={{ opacity: 0.6, fontSize: 12 }}>Terminal</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(d.terminal)}</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(Number(d.terminal))}</span>
               </div>
               <div style={{
                 display: 'flex', justifyContent: 'space-between', gap: 20,
@@ -181,7 +189,7 @@ function LineChart({ data }) {
               }}>
                 <span style={{ fontWeight: 700 }}>Total</span>
                 <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#90d4a8' }}>
-                  {fmt(d.total_ofrenda)}
+                  {fmt(Number(d.total_ofrenda))}
                 </span>
               </div>
             </div>
@@ -195,42 +203,81 @@ function LineChart({ data }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function IngresosPage() {
+  const [ofrendas, setOfrendas] = useState([]);
+  const [gastos,   setGastos]   = useState([]);
+  const [loading,  setLoading]  = useState(true);
+
+  const year = new Date().getFullYear();
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [ro, rg] = await Promise.all([
+          ofrendasApi.getAll({ year }),
+          gastosApi.getAll({ year }),
+        ]);
+        setOfrendas(ro.data);
+        setGastos(rg.data);
+      } catch (e) {
+        console.error('IngresosPage load error:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [year]);
+
   const hoy = new Date();
   const mes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
   const mesLabelCap = hoy.toLocaleDateString('es-MX', { month: 'long' })
     .replace(/^\w/, c => c.toUpperCase());
 
-  const sorted         = [...dataMaestra].sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const ultimoDomingo  = sorted[0];
+  const sorted        = [...ofrendas].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const ultimoDomingo = sorted[0];
 
-  const ofrendasMes    = dataMaestra.filter(d => d.fecha.startsWith(mes));
-  const totalMes       = ofrendasMes.reduce((s, d) => s + d.total_ofrenda, 0);
+  const ofrendasMes   = ofrendas.filter(d => d.fecha.startsWith(mes));
+  const totalMes      = ofrendasMes.reduce((s, d) => s + Number(d.total_ofrenda), 0);
 
-  const acumuladoAnio  = dataMaestra.reduce((s, d) => s + d.total_ofrenda, 0);
-  const totalGastos    = mockGastos.reduce((s, g) => s + g.monto, 0);
-  const balance        = acumuladoAnio - totalGastos;
+  const acumuladoAnio = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
+  const totalGastos   = gastos.reduce((s, g) => s + Number(g.monto), 0);
+  const balance       = acumuladoAnio - totalGastos;
 
-  const totalEfectivo  = dataMaestra.reduce((s, d) => s + d.efectivo, 0);
-  const totalTerminal  = dataMaestra.reduce((s, d) => s + d.terminal, 0);
+  const totalEfectivo  = ofrendas.reduce((s, d) => s + Number(d.efectivo), 0);
+  const totalTerminal  = ofrendas.reduce((s, d) => s + Number(d.terminal), 0);
   const totalCombinado = totalEfectivo + totalTerminal;
   const pctEfectivo    = totalCombinado > 0 ? Math.round((totalEfectivo / totalCombinado) * 100) : 0;
   const pctTerminal    = 100 - pctEfectivo;
 
-  const chartData = [...dataMaestra].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const chartData = [...ofrendas].sort((a, b) => a.fecha.localeCompare(b.fecha));
 
-  // ── Tabla ──
   const [mesTabla, setMesTabla] = useState('todos');
 
-  const mesesDisponibles = [...new Set(dataMaestra.map(d => d.fecha.slice(0, 7)))].sort();
-  const promedioAnio     = acumuladoAnio / dataMaestra.length;
+  const mesesDisponibles = [...new Set(ofrendas.map(d => d.fecha.slice(0, 7)))].sort();
+  const promedioAnio     = ofrendas.length > 0 ? acumuladoAnio / ofrendas.length : 0;
 
-  const tablaData = [...dataMaestra]
+  const tablaData = [...ofrendas]
     .filter(d => mesTabla === 'todos' || d.fecha.startsWith(mesTabla))
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 
-  const tablaEfectivo = tablaData.reduce((s, d) => s + d.efectivo, 0);
-  const tablaTerminal = tablaData.reduce((s, d) => s + d.terminal, 0);
-  const tablaTotal    = tablaData.reduce((s, d) => s + d.total_ofrenda, 0);
+  const tablaEfectivo = tablaData.reduce((s, d) => s + Number(d.efectivo), 0);
+  const tablaTerminal = tablaData.reduce((s, d) => s + Number(d.terminal), 0);
+  const tablaTotal    = tablaData.reduce((s, d) => s + Number(d.total_ofrenda), 0);
+
+  if (loading) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+        Cargando registros…
+      </div>
+    );
+  }
+
+  if (!ultimoDomingo) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+        Sin registros de ofrendas para {year}.
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -244,16 +291,16 @@ export default function IngresosPage() {
             Último domingo
           </div>
           <div style={{ fontSize: 27, fontWeight: 800, color: 'var(--chart-primary)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(ultimoDomingo.total_ofrenda)}
+            {fmt(Number(ultimoDomingo.total_ofrenda))}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{fmtFecha(ultimoDomingo.fecha)}</div>
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', gap: 10, fontSize: 11.5 }}>
             <span style={{ color: 'var(--muted)' }}>
-              Efvo: <strong style={{ color: 'var(--ink)' }}>{fmt(ultimoDomingo.efectivo)}</strong>
+              Efvo: <strong style={{ color: 'var(--ink)' }}>{fmt(Number(ultimoDomingo.efectivo))}</strong>
             </span>
             <span style={{ color: 'var(--border)' }}>·</span>
             <span style={{ color: 'var(--muted)' }}>
-              Term: <strong style={{ color: 'var(--ink)' }}>{fmt(ultimoDomingo.terminal)}</strong>
+              Term: <strong style={{ color: 'var(--ink)' }}>{fmt(Number(ultimoDomingo.terminal))}</strong>
             </span>
           </div>
         </div>
@@ -280,7 +327,7 @@ export default function IngresosPage() {
             {fmt(acumuladoAnio)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            {dataMaestra.length} domingos · 2026
+            {ofrendas.length} domingos · {year}
           </div>
         </div>
 
@@ -364,9 +411,9 @@ export default function IngresosPage() {
       <div className="card" style={{ padding: '20px 20px 16px' }}>
         <div className="card-head" style={{ marginBottom: 20 }}>
           <div>
-            <h3 className="card-title">Ingresos por domingo 2026</h3>
+            <h3 className="card-title">Ingresos por domingo {year}</h3>
             <div className="card-sub">
-              {dataMaestra.length} domingos · pasa el mouse sobre cada punto para ver el detalle
+              {ofrendas.length} domingos · pasa el mouse sobre cada punto para ver el detalle
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -423,19 +470,20 @@ export default function IngresosPage() {
             </thead>
             <tbody>
               {tablaData.map(d => {
-                const diff   = d.total_ofrenda - promedioAnio;
+                const total  = Number(d.total_ofrenda);
+                const diff   = total - promedioAnio;
                 const arriba = diff >= 0;
                 return (
                   <tr key={d.fecha}>
                     <td style={{ fontWeight: 500 }}>{fmtFecha(d.fecha)}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                      {fmt(d.efectivo)}
+                      {fmt(Number(d.efectivo))}
                     </td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                      {fmt(d.terminal)}
+                      {fmt(Number(d.terminal))}
                     </td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                      {fmt(d.total_ofrenda)}
+                      {fmt(total)}
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <span style={{
