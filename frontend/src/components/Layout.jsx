@@ -112,7 +112,7 @@ export default function Layout() {
                 <I.plus size={15} /> Registrar Asistencia
               </button>
             )}
-            {isStewardship && (
+            {isStewardship && location.pathname !== '/stewardship/balance' && (
               <button className="btn btn-primary" onClick={openOfrendasModal}>
                 <I.plus size={15} /> Registrar Ofrenda
               </button>

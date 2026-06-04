@@ -33,6 +33,22 @@ function fmtFechaShort(iso) {
 
 // ── Pre-compute weekly running totals ─────────────────────────────────────────
 
+function buildMonthlyData(weeklyData) {
+  const byMonth = {};
+  for (const row of weeklyData) {
+    const mes = row.fecha.slice(0, 7);
+    byMonth[mes] = row;
+  }
+  return Object.entries(byMonth).map(([mes, row]) => ({
+    mes,
+    label: new Date(mes + '-01T00:00:00').toLocaleDateString('es-MX', { month: 'long' })
+      .replace(/^\w/, c => c.toUpperCase()),
+    cumIngresos: row.cumIngresos,
+    cumGastos:   row.cumGastos,
+    balance:     row.balance,
+  }));
+}
+
 function buildWeeklyData() {
   const chronological = [...dataMaestra].sort((a, b) => a.fecha.localeCompare(b.fecha));
   let cumIngresos = 0, cumGastos = 0;
@@ -267,6 +283,9 @@ export default function BalancePage() {
   }));
   const topCat = [...catTotales].sort((a, b) => b.total - a.total)[0];
 
+  // ── Resumen por mes (acumulados al cierre de cada mes) ──
+  const monthlyData = buildMonthlyData(weeklyData);
+
   // ── Tabla (most recent first) ──
   const tablaData = [...weeklyData].reverse();
   const totalBalanceSemana = weeklyData.reduce((s, r) => s + r.balanceSemana, 0);
@@ -417,32 +436,74 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {/* ── Gráfica ── */}
-      <div className="card" style={{ padding: '20px 20px 16px' }}>
-        <div className="card-head" style={{ marginBottom: 20 }}>
-          <div>
-            <h3 className="card-title">Balance acumulado 2026 — semana a semana</h3>
-            <div className="card-sub">
-              {dataMaestra.length} domingos · hover para ver acumulados y balance
+      {/* ── Resumen por mes + Gráfica ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
+
+        {/* Resumen por mes */}
+        <div className="card" style={{ padding: '20px 20px 16px' }}>
+          <div className="card-head" style={{ marginBottom: 16 }}>
+            <div>
+              <h3 className="card-title">Resumen por mes</h3>
+              <div className="card-sub">Acumulados al cierre de cada mes · 2026</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 22, height: 3, borderRadius: 99, background: '#00B4D8' }} />
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Ingresos acum.</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 22, height: 3, borderRadius: 99, background: '#FF6B2B', opacity: 0.8,
-                backgroundImage: 'repeating-linear-gradient(90deg, #FF6B2B 0 7px, transparent 7px 11px)' }} />
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Gastos acum.</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 14, height: 10, borderRadius: 3, background: 'rgba(0,180,216,0.15)' }} />
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Superávit</span>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {monthlyData.map(r => (
+              <div
+                key={r.mes}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '11px 12px', borderRadius: 8,
+                  background: 'transparent',
+                }}
+              >
+                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{r.label}</span>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#00B4D8' }}>
+                    Ing: {fmt(r.cumIngresos)}
+                  </div>
+                  <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>
+                    Gas: {fmt(r.cumGastos)}
+                  </div>
+                  <div style={{
+                    fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 800,
+                    color: r.balance >= 0 ? 'var(--good)' : 'var(--danger)',
+                  }}>
+                    {r.balance >= 0 ? '+' : ''}{fmt(r.balance)}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-        <BalanceChart data={weeklyData} />
+
+        {/* Gráfica */}
+        <div className="card" style={{ padding: '20px 20px 16px' }}>
+          <div className="card-head" style={{ marginBottom: 20 }}>
+            <div>
+              <h3 className="card-title" style={{ fontSize: 13 }}>Balance acumulado 2026 — semana a semana</h3>
+              <div className="card-sub">
+                {dataMaestra.length} domingos · hover para ver acumulados
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 18, height: 3, borderRadius: 99, background: '#00B4D8' }} />
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Ingresos acum.</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 18, height: 3, borderRadius: 99, background: '#FF6B2B', opacity: 0.8,
+                  backgroundImage: 'repeating-linear-gradient(90deg, #FF6B2B 0 7px, transparent 7px 11px)' }} />
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Gastos acum.</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 12, height: 8, borderRadius: 3, background: 'rgba(0,180,216,0.15)' }} />
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Superávit</span>
+              </div>
+            </div>
+          </div>
+          <BalanceChart data={weeklyData} />
+        </div>
       </div>
 
       {/* ── Tabla semana a semana ── */}
