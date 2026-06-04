@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { gastosApi, ofrendasApi } from '../../services/api';
 import { useGastosModal } from '../../context/GastosModalContext';
 import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -335,6 +336,7 @@ export default function GastosPage() {
   const [totalIngresos, setTotalIngresos] = useState(0);
   const [loading, setLoading]             = useState(true);
   const [mesSeleccionado, setMesSelec]    = useState(null);
+  const isMobile = useIsMobile();
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
@@ -421,9 +423,10 @@ export default function GastosPage() {
   const chartTitle = mesSeleccionado
     ? `Gastos por categoría — ${mesNombre(mesSeleccionado)} ${year}`
     : `Gastos por mes ${year}`;
+  const hint = isMobile ? 'toca para ver el detalle' : 'hover para detalles';
   const chartSub = mesSeleccionado
-    ? `${catDataForMes.length} ${catDataForMes.length === 1 ? 'categoría' : 'categorías'} con gastos · hover para detalles`
-    : 'Barras apiladas por categoría · hover para detalles';
+    ? `${catDataForMes.length} ${catDataForMes.length === 1 ? 'categoría' : 'categorías'} con gastos · ${hint}`
+    : `Barras apiladas por categoría · ${hint}`;
 
   // ── Tabla ──
   const [mesTabla, setMesTabla] = useState('todos');
@@ -628,7 +631,7 @@ export default function GastosPage() {
 
         {/* Gráfica */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
-          <div className="card-head" style={{ marginBottom: 20 }}>
+          <div className="card-head chart-head" style={{ marginBottom: 20 }}>
             <div>
               <h3 className="card-title">{chartTitle}</h3>
               <div className="card-sub">{chartSub}</div>

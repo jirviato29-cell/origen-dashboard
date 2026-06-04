@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ofrendasApi, gastosApi } from '../../services/api';
 import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -143,6 +144,7 @@ export default function IngresosPage() {
   const [gastos,   setGastos]          = useState([]);
   const [loading,  setLoading]         = useState(true);
   const [mesSeleccionado, setMesSelec] = useState(null);
+  const isMobile = useIsMobile();
 
   const year = new Date().getFullYear();
 
@@ -213,9 +215,10 @@ export default function IngresosPage() {
     ? `Ingresos por domingo — ${mesNombre(mesSeleccionado)} ${year}`
     : `Ingresos por mes ${year}`;
 
+  const hint = isMobile ? 'toca cada punto para ver el detalle' : 'pasa el mouse sobre cada punto';
   const chartSub = mesSeleccionado
-    ? `${chartData.length} ${chartData.length === 1 ? 'domingo' : 'domingos'} · pasa el mouse sobre cada punto`
-    : `${chartData.length} ${chartData.length === 1 ? 'mes' : 'meses'} · pasa el mouse sobre cada punto`;
+    ? `${chartData.length} ${chartData.length === 1 ? 'domingo' : 'domingos'} · ${hint}`
+    : `${chartData.length} ${chartData.length === 1 ? 'mes' : 'meses'} · ${hint}`;
 
   const chartLegend = mesSeleccionado ? 'Total por domingo' : 'Total mensual';
 
@@ -366,7 +369,7 @@ export default function IngresosPage() {
 
         {/* Gráfica */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
-          <div className="card-head" style={{ marginBottom: 20 }}>
+          <div className="card-head chart-head" style={{ marginBottom: 20 }}>
             <div>
               <h3 className="card-title">{chartTitle}</h3>
               <div className="card-sub">{chartSub}</div>

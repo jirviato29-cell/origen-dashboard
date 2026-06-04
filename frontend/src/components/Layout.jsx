@@ -114,17 +114,17 @@ export default function Layout() {
           <div className="topbar-right">
             {isAnfitriones && (
               <button className="btn btn-primary" onClick={openModal}>
-                <I.plus size={15} /> Registrar Asistencia
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Asistencia</span>
               </button>
             )}
             {isStewardship && !isGastos && (
               <button className="btn btn-primary" onClick={openOfrendasModal}>
-                <I.plus size={15} /> Registrar Ofrenda
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Ofrenda</span>
               </button>
             )}
             {isStewardship && isGastos && (
               <button className="btn btn-primary" onClick={openGastosModal}>
-                <I.plus size={15} /> Registrar Gasto
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Gasto</span>
               </button>
             )}
             <button className="icon-btn" aria-label="Notificaciones">

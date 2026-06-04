@@ -603,5 +603,30 @@ body {
   .finance-summary { grid-template-columns: 1fr; }
 }
 
+/* ─── Mobile (≤ 639px) ───────────────────────────────────────────────────── */
+
+@media (max-width: 639px) {
+  /* Topbar: padding reducido, breadcrumb oculto, título más compacto */
+  .topbar { padding: 10px 14px; gap: 8px; }
+  .crumbs { display: none; }
+  .page-title { font-size: 21px; }
+
+  /* Botón "Registrar": solo el ícono "+" en móvil, sin texto */
+  .topbar-btn-label { display: none; }
+  .topbar .btn-primary { padding: 8px 10px !important; }
+
+  /* Contenido: padding lateral más ajustado */
+  .page { padding: 16px 14px 24px; gap: 14px; }
+
+  /* Cabecera de gráfica: apila título + controles en columna */
+  .chart-head {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px;
+  }
+  .chart-head .card-title { font-size: 14px; }
+  .chart-head .card-sub   { font-size: 11.5px; }
+}
+
 /* ─── visually-hidden helper ─────────────────────────────────────────────── */
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
