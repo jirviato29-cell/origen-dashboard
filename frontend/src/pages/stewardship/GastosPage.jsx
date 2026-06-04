@@ -189,7 +189,7 @@ function GastosBarChart({ barData, yMax }) {
 
 // ── Simple Bar Chart — por categoría (mes seleccionado) ──────────────────────
 
-function GatosCatBarChart({ catData }) {
+function GastosCatBarChart({ catData }) {
   const [hovered, setHovered] = useState(null);
 
   if (catData.length === 0) {
@@ -663,7 +663,7 @@ export default function GastosPage() {
             </div>
           </div>
           {mesSeleccionado
-            ? <GatosCatBarChart catData={catDataForMes} />
+            ? <GastosCatBarChart catData={catDataForMes} />
             : <GastosBarChart barData={barData} yMax={yMax} />
           }
         </div>
