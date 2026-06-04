@@ -271,21 +271,49 @@ export default function IngresosPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* ── Fila 1: 3 tarjetas principales ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+      {/* ── Banner: Último Domingo ── */}
+      <div className="card" style={{ padding: '28px 32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
 
-        <div className="card" style={{ padding: '18px 20px' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Último domingo</div>
-          <div style={{ fontSize: 27, fontWeight: 800, color: 'var(--ink)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(Number(ultimoDomingo.total_ofrenda))}
+          {/* Monto principal */}
+          <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted)', marginBottom: 6 }}>
+              Último domingo
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 16 }}>
+              {fmtFecha(ultimoDomingo.fecha)}
+            </div>
+            <div style={{ fontSize: 54, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.03em', color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>
+              {fmt(Number(ultimoDomingo.total_ofrenda))}
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{fmtFecha(ultimoDomingo.fecha)}</div>
-          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', gap: 10, fontSize: 11.5 }}>
-            <span style={{ color: 'var(--muted)' }}>Efvo: <strong style={{ color: 'var(--ink)' }}>{fmt(Number(ultimoDomingo.efectivo))}</strong></span>
-            <span style={{ color: 'var(--border)' }}>·</span>
-            <span style={{ color: 'var(--muted)' }}>Term: <strong style={{ color: 'var(--ink)' }}>{fmt(Number(ultimoDomingo.terminal))}</strong></span>
+
+          {/* Desglose */}
+          <div style={{ display: 'flex', borderLeft: '1px solid var(--border)', flex: '1 1 280px' }}>
+            {[
+              { label: 'Efectivo', value: fmt(Number(ultimoDomingo.efectivo)) },
+              { label: 'Terminal', value: fmt(Number(ultimoDomingo.terminal)) },
+              { label: 'Sobres',   value: Number(ultimoDomingo.ofrendas_sobres ?? 0) },
+            ].map(({ label, value }, idx) => (
+              <div key={label} style={{
+                flex: 1, padding: '0 22px',
+                borderRight: idx < 2 ? '1px solid var(--border)' : 'none',
+              }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 10 }}>
+                  {label}
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                  {value}
+                </div>
+              </div>
+            ))}
           </div>
+
         </div>
+      </div>
+
+      {/* ── Fila 1: Mes actual + Acumulado ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
 
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Mes actual ({mesLabelCap})</div>
