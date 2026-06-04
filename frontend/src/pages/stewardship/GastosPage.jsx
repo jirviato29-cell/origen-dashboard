@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { gastosApi, ofrendasApi } from '../../services/api';
 import { useGastosModal } from '../../context/GastosModalContext';
 import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
-import { useIsMobile } from '../../utils/useIsMobile';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -36,288 +35,97 @@ function catLabel(g) {
   return g.categoria_nombre ?? g.categoria ?? '—';
 }
 
-// ── Shared chart dimensions ───────────────────────────────────────────────────
+// ── Horizontal Bar Chart — por categoría ─────────────────────────────────────
 
-const VW = 900, VH = 260;
-const PAD = { left: 72, right: 20, top: 20, bottom: 44 };
-
-// ── Stacked Bar Chart — todos los meses ──────────────────────────────────────
-
-function GastosBarChart({ barData, yMax }) {
-  const [hovered, setHovered] = useState(null);
-
-  const chartW  = VW - PAD.left - PAD.right;
-  const chartH  = VH - PAD.top  - PAD.bottom;
-  const baseY   = PAD.top + chartH;
-  const groupW  = chartW / barData.length;
-  const barW    = Math.round(groupW * 0.58);
-  const barOffX = (groupW - barW) / 2;
-
-  const toX = i => PAD.left + i * groupW + barOffX;
-  const toH = v => (v / yMax) * chartH;
-
-  const yTicks = Array.from({ length: Math.round(yMax / 5000) + 1 }, (_, i) => i * 5000);
-
-  return (
-    <div style={{ position: 'relative' }}>
-      <svg
-        viewBox={`0 0 ${VW} ${VH}`}
-        style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
-        onMouseLeave={() => setHovered(null)}
-      >
-        {yTicks.map(v => (
-          <g key={v}>
-            <line
-              x1={PAD.left} x2={VW - PAD.right}
-              y1={baseY - toH(v)} y2={baseY - toH(v)}
-              stroke="#ddd5c8" strokeWidth={v === 0 ? 1.2 : 0.65}
-              strokeDasharray={v === 0 ? '' : '3 3'}
-            />
-            <text
-              x={PAD.left - 10} y={baseY - toH(v) + 4}
-              textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="var(--font-mono)"
-            >
-              {v === 0 ? '$0' : `$${(v / 1000).toFixed(0)}k`}
-            </text>
-          </g>
-        ))}
-
-        {barData.map((bar, i) => {
-          const bx = toX(i);
-          return (
-            <g key={i}>
-              {(() => {
-                let stack = 0;
-                return CATEGORIAS.map(cat => {
-                  const monto = bar.cats[cat] || 0;
-                  if (monto === 0) return null;
-                  const h  = toH(monto);
-                  const ry = baseY - stack - h;
-                  stack += h;
-                  return (
-                    <rect
-                      key={cat}
-                      x={bx} y={ry} width={barW} height={h}
-                      fill={CAT_COLORS[cat]}
-                      opacity={hovered === null || hovered === i ? 1 : 0.3}
-                      style={{ transition: 'opacity 0.14s' }}
-                    />
-                  );
-                });
-              })()}
-
-              {hovered === i && bar.total > 0 && (
-                <text
-                  x={bx + barW / 2} y={baseY - toH(bar.total) - 7}
-                  textAnchor="middle" fontSize={10} fontWeight="700"
-                  fill="var(--ink)" fontFamily="var(--font-mono)"
-                >
-                  {fmt(bar.total)}
-                </text>
-              )}
-
-              <rect
-                x={bx} y={PAD.top} width={barW} height={chartH}
-                fill="transparent" style={{ cursor: 'pointer' }}
-                onMouseEnter={() => setHovered(i)}
-              />
-
-              <text
-                x={bx + barW / 2} y={baseY + 19}
-                textAnchor="middle" fontSize={10.5}
-                fill={hovered === i ? '#3a2a1a' : '#b0a090'}
-                fontWeight={hovered === i ? '600' : '400'}
-              >
-                {mesNombre(bar.mes)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-
-      {hovered !== null && (() => {
-        const bar  = barData[hovered];
-        const bx   = toX(hovered);
-        const lPct = (bx + barW / 2) / VW * 100;
-        const tPct = bar.total > 0 ? (baseY - toH(bar.total)) / VH * 100 : 10;
-        const tx   = lPct > 72 ? '-94%' : lPct < 20 ? '6%' : '-50%';
-        return (
-          <div
-            style={{
-              position: 'absolute',
-              left: `${lPct}%`, top: `${tPct}%`,
-              transform: `translate(${tx}, -114%)`,
-              pointerEvents: 'none',
-              background: '#1A1A1A', color: 'white',
-              borderRadius: 10, padding: '11px 15px',
-              fontSize: 12.5, lineHeight: 1.8,
-              boxShadow: '0 6px 24px rgba(0,0,0,0.28)',
-              whiteSpace: 'nowrap', zIndex: 20,
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
-              {mesNombre(bar.mes)}
-            </div>
-            {CATEGORIAS.map(cat => {
-              const monto = bar.cats[cat] || 0;
-              if (monto === 0) return null;
-              return (
-                <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', gap: 20 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{
-                      width: 8, height: 8, borderRadius: 2,
-                      background: CAT_COLORS[cat], display: 'inline-block', flexShrink: 0,
-                    }} />
-                    <span style={{ opacity: 0.72, fontSize: 12 }}>{cat}</span>
-                  </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fmt(monto)}</span>
-                </div>
-              );
-            })}
-            <div style={{
-              borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 6, paddingTop: 6,
-              display: 'flex', justifyContent: 'space-between', gap: 20,
-            }}>
-              <span style={{ fontWeight: 700 }}>Total</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#f4a070' }}>{fmt(bar.total)}</span>
-            </div>
-          </div>
-        );
-      })()}
-    </div>
-  );
-}
-
-// ── Simple Bar Chart — por categoría (mes seleccionado) ──────────────────────
-
-function GastosCatBarChart({ catData }) {
-  const [hovered, setHovered] = useState(null);
-
+function GastosCatHBarChart({ catData }) {
   if (catData.length === 0) {
     return (
       <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
-        Sin gastos registrados en este mes.
+        Sin gastos registrados.
       </div>
     );
   }
 
-  const chartW  = VW - PAD.left - PAD.right;
-  const chartH  = VH - PAD.top  - PAD.bottom;
-  const baseY   = PAD.top + chartH;
-  const groupW  = chartW / catData.length;
-  const barW    = Math.round(groupW * 0.54);
-  const barOffX = (groupW - barW) / 2;
+  const HVW = 900, HVH = 260;
+  const HPAD = { left: 112, right: 110, top: 28, bottom: 8 };
+  const chartW = HVW - HPAD.left - HPAD.right;
+  const chartH = HVH - HPAD.top  - HPAD.bottom;
 
-  const maxMonto = Math.max(...catData.map(c => c.monto));
-  const yMax     = Math.max(Math.ceil(maxMonto / 5000) * 5000, 5000);
-  const yTicks   = Array.from({ length: Math.round(yMax / 5000) + 1 }, (_, i) => i * 5000);
+  const sorted    = [...catData].sort((a, b) => b.monto - a.monto);
+  const maxMonto  = Math.max(...sorted.map(c => c.monto));
+  const xMax      = Math.max(Math.ceil(maxMonto / 5000) * 5000, 5000);
+  const xTicks    = Array.from({ length: Math.round(xMax / 5000) + 1 }, (_, i) => i * 5000);
 
-  const toX = i => PAD.left + i * groupW + barOffX;
-  const toH = v => (v / yMax) * chartH;
+  const n       = sorted.length;
+  const rowH    = chartH / n;
+  const barH    = Math.min(Math.round(rowH * 0.58), 40);
+  const barOffY = (rowH - barH) / 2;
+
+  const toW = v => (v / xMax) * chartW;
 
   return (
-    <div style={{ position: 'relative' }}>
-      <svg
-        viewBox={`0 0 ${VW} ${VH}`}
-        style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
-        onMouseLeave={() => setHovered(null)}
-      >
-        {yTicks.map(v => (
+    <svg
+      viewBox={`0 0 ${HVW} ${HVH}`}
+      style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
+    >
+      {xTicks.map(v => {
+        const x = HPAD.left + toW(v);
+        return (
           <g key={v}>
             <line
-              x1={PAD.left} x2={VW - PAD.right}
-              y1={baseY - toH(v)} y2={baseY - toH(v)}
-              stroke="#ddd5c8" strokeWidth={v === 0 ? 1.2 : 0.65}
+              x1={x} x2={x}
+              y1={HPAD.top} y2={HPAD.top + chartH}
+              stroke="#ddd5c8"
+              strokeWidth={v === 0 ? 1.2 : 0.65}
               strokeDasharray={v === 0 ? '' : '3 3'}
             />
             <text
-              x={PAD.left - 10} y={baseY - toH(v) + 4}
-              textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="var(--font-mono)"
+              x={x} y={HPAD.top - 8}
+              textAnchor="middle" fontSize={9.5} fill="#b0a090"
+              fontFamily="var(--font-mono)"
             >
               {v === 0 ? '$0' : `$${(v / 1000).toFixed(0)}k`}
             </text>
           </g>
-        ))}
-
-        {catData.map(({ cat, monto }, i) => {
-          const bx = toX(i);
-          const h  = toH(monto);
-          return (
-            <g key={cat}>
-              <rect
-                x={bx} y={baseY - h} width={barW} height={h}
-                fill={CAT_COLORS[cat]}
-                opacity={hovered === null || hovered === i ? 1 : 0.3}
-                style={{ transition: 'opacity 0.14s' }}
-              />
-              {hovered === i && (
-                <text
-                  x={bx + barW / 2} y={baseY - h - 7}
-                  textAnchor="middle" fontSize={10} fontWeight="700"
-                  fill="var(--ink)" fontFamily="var(--font-mono)"
-                >
-                  {fmt(monto)}
-                </text>
-              )}
-              <rect
-                x={bx} y={PAD.top} width={barW} height={chartH}
-                fill="transparent" style={{ cursor: 'pointer' }}
-                onMouseEnter={() => setHovered(i)}
-              />
-              <text
-                x={bx + barW / 2} y={baseY + 19}
-                textAnchor="middle" fontSize={10.5}
-                fill={hovered === i ? '#3a2a1a' : '#b0a090'}
-                fontWeight={hovered === i ? '600' : '400'}
-              >
-                {cat}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-
-      {hovered !== null && catData[hovered] && (() => {
-        const { cat, monto } = catData[hovered];
-        const bx   = toX(hovered);
-        const lPct = (bx + barW / 2) / VW * 100;
-        const tPct = (baseY - toH(monto)) / VH * 100;
-        const tx   = lPct > 72 ? '-94%' : lPct < 20 ? '6%' : '-50%';
-        return (
-          <div
-            style={{
-              position: 'absolute',
-              left: `${lPct}%`, top: `${tPct}%`,
-              transform: `translate(${tx}, -114%)`,
-              pointerEvents: 'none',
-              background: '#1A1A1A', color: 'white',
-              borderRadius: 10, padding: '11px 15px',
-              fontSize: 12.5, lineHeight: 1.8,
-              boxShadow: '0 6px 24px rgba(0,0,0,0.28)',
-              whiteSpace: 'nowrap', zIndex: 20,
-            }}
-          >
-            <div style={{
-              fontWeight: 700, marginBottom: 6, fontSize: 13,
-              color: 'rgba(255,255,255,0.9)',
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: 2,
-                background: CAT_COLORS[cat], display: 'inline-block', flexShrink: 0,
-              }} />
-              {cat}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20 }}>
-              <span style={{ opacity: 0.7, fontSize: 12 }}>Gasto</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#f4a070' }}>
-                {fmt(monto)}
-              </span>
-            </div>
-          </div>
         );
-      })()}
-    </div>
+      })}
+
+      {sorted.map(({ cat, monto }, i) => {
+        const barY = HPAD.top + i * rowH + barOffY;
+        const barW = toW(monto);
+        return (
+          <g key={cat}>
+            <text
+              x={HPAD.left - 10}
+              y={barY + barH / 2 + 4}
+              textAnchor="end"
+              fontSize={11.5}
+              fill="#3a2a1a"
+              fontWeight="500"
+            >
+              {cat}
+            </text>
+            <rect
+              x={HPAD.left} y={barY}
+              width={barW} height={barH}
+              fill={CAT_COLORS[cat]}
+              rx={3}
+            />
+            <text
+              x={HPAD.left + barW + 8}
+              y={barY + barH / 2 + 4}
+              textAnchor="start"
+              fontSize={11}
+              fill="#3a2a1a"
+              fontFamily="var(--font-mono)"
+              fontWeight="700"
+            >
+              {fmt(monto)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
@@ -336,7 +144,6 @@ export default function GastosPage() {
   const [totalIngresos, setTotalIngresos] = useState(0);
   const [loading, setLoading]             = useState(true);
   const [mesSeleccionado, setMesSelec]    = useState(null);
-  const isMobile = useIsMobile();
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
@@ -394,21 +201,14 @@ export default function GastosPage() {
     })
     .filter(r => r.count > 0);
 
-  // ── Datos para la gráfica ──
-  const barData = MESES_BAR.map(m => {
-    const mGastos = gastos.filter(g => g.fecha.startsWith(m));
-    const cats = {};
-    CATEGORIAS.forEach(cat => {
-      cats[cat] = mGastos.filter(g => catLabel(g) === cat).reduce((s, g) => s + Number(g.monto), 0);
-    });
-    return { mes: m, total: mGastos.reduce((s, g) => s + Number(g.monto), 0), cats };
-  });
-  const yMax = Math.max(
-    Math.ceil(Math.max(...barData.map(b => b.total), 0) / 5000) * 5000,
-    5000
-  );
+  // Datos de categorías: anual y por mes seleccionado
+  const catDataAnual = CATEGORIAS
+    .map(cat => ({
+      cat,
+      monto: gastos.filter(g => catLabel(g) === cat).reduce((s, g) => s + Number(g.monto), 0),
+    }))
+    .filter(c => c.monto > 0);
 
-  // Datos de categorías para el mes seleccionado
   const catDataForMes = mesSeleccionado
     ? CATEGORIAS
         .map(cat => ({
@@ -422,11 +222,10 @@ export default function GastosPage() {
 
   const chartTitle = mesSeleccionado
     ? `Gastos por categoría — ${mesNombre(mesSeleccionado)} ${year}`
-    : `Gastos por mes ${year}`;
-  const hint = isMobile ? 'toca para ver el detalle' : 'hover para detalles';
+    : `Gastos por categoría — ${year}`;
   const chartSub = mesSeleccionado
-    ? `${catDataForMes.length} ${catDataForMes.length === 1 ? 'categoría' : 'categorías'} con gastos · ${hint}`
-    : `Barras apiladas por categoría · ${hint}`;
+    ? `${catDataForMes.length} ${catDataForMes.length === 1 ? 'categoría' : 'categorías'} con gastos`
+    : `Barras horizontales · de mayor a menor`;
 
   // ── Tabla ──
   const [mesTabla, setMesTabla] = useState('todos');
@@ -665,10 +464,7 @@ export default function GastosPage() {
               )}
             </div>
           </div>
-          {mesSeleccionado
-            ? <GastosCatBarChart catData={catDataForMes} />
-            : <GastosBarChart barData={barData} yMax={yMax} />
-          }
+          <GastosCatHBarChart catData={mesSeleccionado ? catDataForMes : catDataAnual} />
         </div>
       </div>
 
