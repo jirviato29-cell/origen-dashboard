@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { dataMaestra, mockGastos } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { gastosApi, ofrendasApi } from '../../services/api';
+import { useGastosModal } from '../../context/GastosModalContext';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -20,8 +21,6 @@ const CAT_BG = {
   'Eventos':    'rgba(107,107,107,0.12)',
   'Decoración': 'rgba(163,163,163,0.15)',
 };
-
-const MESES_BAR = ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05'];
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -100,7 +99,6 @@ function GastosBarChart({ barData, yMax }) {
           const bx = toX(i);
           return (
             <g key={i}>
-              {/* Stacked segments (IIFE to accumulate stack height) */}
               {(() => {
                 let stack = 0;
                 return CATEGORIAS.map(cat => {
@@ -121,7 +119,6 @@ function GastosBarChart({ barData, yMax }) {
                 });
               })()}
 
-              {/* Total label above bar when hovered */}
               {hovered === i && bar.total > 0 && (
                 <text
                   x={bx + barW / 2} y={baseY - toH(bar.total) - 7}
@@ -132,14 +129,12 @@ function GastosBarChart({ barData, yMax }) {
                 </text>
               )}
 
-              {/* Transparent hover target (full column height) */}
               <rect
                 x={bx} y={PAD.top} width={barW} height={chartH}
                 fill="transparent" style={{ cursor: 'pointer' }}
                 onMouseEnter={() => setHovered(i)}
               />
 
-              {/* X axis label */}
               <text
                 x={bx + barW / 2} y={baseY + 19}
                 textAnchor="middle" fontSize={10.5}
@@ -175,7 +170,7 @@ function GastosBarChart({ barData, yMax }) {
             }}
           >
             <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
-              {mesNombre(bar.mes)} 2026
+              {mesNombre(bar.mes)}
             </div>
             {CATEGORIAS.map(cat => {
               const monto = bar.cats[cat] || 0;
@@ -211,49 +206,89 @@ function GastosBarChart({ barData, yMax }) {
 
 export default function GastosPage() {
   const hoy = new Date();
-  const mes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  const year = hoy.getFullYear();
+  const mes  = `${year}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
   const mesLabelCap = hoy.toLocaleDateString('es-MX', { month: 'long' })
     .replace(/^\w/, c => c.toUpperCase());
 
+  const { refreshKey } = useGastosModal();
+
+  const [gastos, setGastos]             = useState([]);
+  const [totalIngresos, setTotalIngresos] = useState(0);
+  const [loading, setLoading]           = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      gastosApi.getAll({ year }),
+      ofrendasApi.resumenAnual(year),
+    ]).then(([gRes, oRes]) => {
+      if (cancelled) return;
+      setGastos(gRes.data || []);
+      const ing = (oRes.data || []).reduce((s, r) => s + Number(r.total || 0), 0);
+      setTotalIngresos(ing);
+    }).catch(() => {
+      if (!cancelled) { setGastos([]); setTotalIngresos(0); }
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [year, refreshKey]);
+
   // ── Fila 1 ──
-  const ultimoGasto   = [...mockGastos].sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
-  const gastosMesArr  = mockGastos.filter(g => g.fecha.startsWith(mes));
-  const totalMes      = gastosMesArr.reduce((s, g) => s + g.monto, 0);
-  const acumuladoAnio = mockGastos.reduce((s, g) => s + g.monto, 0);
-  const totalIngresos = dataMaestra.reduce((s, d) => s + d.total_ofrenda, 0);
+  const ultimoGasto   = gastos.length > 0
+    ? [...gastos].sort((a, b) => b.fecha.localeCompare(a.fecha))[0]
+    : null;
+  const gastosMesArr  = gastos.filter(g => g.fecha.startsWith(mes));
+  const totalMes      = gastosMesArr.reduce((s, g) => s + Number(g.monto), 0);
+  const acumuladoAnio = gastos.reduce((s, g) => s + Number(g.monto), 0);
   const balance       = totalIngresos - acumuladoAnio;
 
   // ── Fila 2 — por categoría ──
   const catTotals = CATEGORIAS.map(cat => ({
     cat,
-    total: mockGastos
-      .filter(g => catLabel(g) === cat)
-      .reduce((s, g) => s + g.monto, 0),
+    total: gastos.filter(g => catLabel(g) === cat).reduce((s, g) => s + Number(g.monto), 0),
   }));
 
-  // ── Barras por mes ──
+  // ── Barras por mes (meses del año hasta el actual) ──
+  const curMesNum = hoy.getMonth() + 1;
+  const MESES_BAR = Array.from({ length: curMesNum }, (_, i) =>
+    `${year}-${String(i + 1).padStart(2, '0')}`
+  );
   const barData = MESES_BAR.map(m => {
-    const gastos = mockGastos.filter(g => g.fecha.startsWith(m));
+    const mGastos = gastos.filter(g => g.fecha.startsWith(m));
     const cats = {};
     CATEGORIAS.forEach(cat => {
-      cats[cat] = gastos.filter(g => catLabel(g) === cat).reduce((s, g) => s + g.monto, 0);
+      cats[cat] = mGastos.filter(g => catLabel(g) === cat).reduce((s, g) => s + Number(g.monto), 0);
     });
-    return { mes: m, total: gastos.reduce((s, g) => s + g.monto, 0), cats };
+    return { mes: m, total: mGastos.reduce((s, g) => s + Number(g.monto), 0), cats };
   });
-  const yMax = Math.max(Math.ceil(Math.max(...barData.map(b => b.total)) / 5000) * 5000, 5000);
+  const yMax = Math.max(
+    Math.ceil(Math.max(...barData.map(b => b.total), 0) / 5000) * 5000,
+    5000
+  );
 
   // ── Tabla ──
   const [mesTabla, setMesTabla] = useState('todos');
   const [catTabla, setCatTabla] = useState('todos');
 
-  const mesesDisponibles = [...new Set(mockGastos.map(g => g.fecha.slice(0, 7)))].sort();
+  const mesesDisponibles = [...new Set(gastos.map(g => g.fecha.slice(0, 7)))].sort();
 
-  const tablaData = [...mockGastos]
+  const tablaData = [...gastos]
     .filter(g => mesTabla === 'todos' || g.fecha.startsWith(mesTabla))
     .filter(g => catTabla === 'todos' || catLabel(g) === catTabla)
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 
-  const tablaTotal = tablaData.reduce((s, g) => s + g.monto, 0);
+  const tablaTotal = tablaData.reduce((s, g) => s + Number(g.monto), 0);
+
+  if (loading) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+        Cargando gastos…
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -266,25 +301,31 @@ export default function GastosPage() {
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Último gasto
           </div>
-          <div style={{ fontSize: 27, fontWeight: 800, color: 'var(--danger)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(ultimoGasto.monto)}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{fmtFecha(ultimoGasto.fecha)}</div>
-          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 500, lineHeight: 1.4 }}>
-              {ultimoGasto.concepto.length > 34
-                ? ultimoGasto.concepto.slice(0, 34) + '…'
-                : ultimoGasto.concepto}
-            </div>
-            <span style={{
-              display: 'inline-block', marginTop: 6,
-              fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 99,
-              background: CAT_BG[catLabel(ultimoGasto)] || 'rgba(0,0,0,0.08)',
-              color: CAT_COLORS[catLabel(ultimoGasto)] || 'var(--muted)',
-            }}>
-              {catLabel(ultimoGasto)}
-            </span>
-          </div>
+          {ultimoGasto ? (
+            <>
+              <div style={{ fontSize: 27, fontWeight: 800, color: 'var(--danger)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                {fmt(Number(ultimoGasto.monto))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{fmtFecha(ultimoGasto.fecha)}</div>
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 500, lineHeight: 1.4 }}>
+                  {ultimoGasto.concepto.length > 34
+                    ? ultimoGasto.concepto.slice(0, 34) + '…'
+                    : ultimoGasto.concepto}
+                </div>
+                <span style={{
+                  display: 'inline-block', marginTop: 6,
+                  fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 99,
+                  background: CAT_BG[catLabel(ultimoGasto)] || 'rgba(0,0,0,0.08)',
+                  color: CAT_COLORS[catLabel(ultimoGasto)] || 'var(--muted)',
+                }}>
+                  {catLabel(ultimoGasto)}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 10 }}>Sin gastos registrados</div>
+          )}
         </div>
 
         {/* Mes actual */}
@@ -309,7 +350,7 @@ export default function GastosPage() {
             {fmt(acumuladoAnio)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            {mockGastos.length} gastos · 2026
+            {gastos.length} gastos · {year}
           </div>
         </div>
 
@@ -372,7 +413,7 @@ export default function GastosPage() {
       <div className="card" style={{ padding: '20px 20px 16px' }}>
         <div className="card-head" style={{ marginBottom: 20 }}>
           <div>
-            <h3 className="card-title">Gastos por mes 2026</h3>
+            <h3 className="card-title">Gastos por mes {year}</h3>
             <div className="card-sub">Barras apiladas por categoría · hover para detalles</div>
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -456,7 +497,7 @@ export default function GastosPage() {
                         </span>
                       </td>
                       <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
-                        {fmt(g.monto)}
+                        {fmt(Number(g.monto))}
                       </td>
                     </tr>
                   );

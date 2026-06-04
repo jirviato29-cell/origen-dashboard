@@ -3,9 +3,11 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
+import { useGastosModal } from '../context/GastosModalContext';
 import Sidebar from './Sidebar';
 import GlobalAsistenciaModal from './GlobalAsistenciaModal';
 import GlobalOfrendasModal from './GlobalOfrendasModal';
+import GlobalGastosModal from './GlobalGastosModal';
 import { I } from './Icons';
 
 const ROUTE_INFO = {
@@ -35,8 +37,11 @@ export default function Layout() {
   const { role, userName } = useAuth();
   const { openModal } = useRegistrarModal();
   const { openModal: openOfrendasModal } = useOfrendasModal();
+  const { openModal: openGastosModal }   = useGastosModal();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+
+  const isGastos = location.pathname.endsWith('/gastos');
 
   if (!role) return <Navigate to="/" replace />;
 
@@ -112,9 +117,14 @@ export default function Layout() {
                 <I.plus size={15} /> Registrar Asistencia
               </button>
             )}
-            {isStewardship && (
+            {isStewardship && !isGastos && (
               <button className="btn btn-primary" onClick={openOfrendasModal}>
                 <I.plus size={15} /> Registrar Ofrenda
+              </button>
+            )}
+            {isStewardship && isGastos && (
+              <button className="btn btn-primary" onClick={openGastosModal}>
+                <I.plus size={15} /> Registrar Gasto
               </button>
             )}
             <button className="icon-btn" aria-label="Notificaciones">
@@ -131,6 +141,7 @@ export default function Layout() {
 
       <GlobalAsistenciaModal />
       <GlobalOfrendasModal />
+      <GlobalGastosModal />
     </div>
   );
 }
