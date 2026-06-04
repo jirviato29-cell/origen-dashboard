@@ -88,7 +88,7 @@ function GastosBarChart({ barData, yMax }) {
             />
             <text
               x={PAD.left - 10} y={baseY - toH(v) + 4}
-              textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="monospace"
+              textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="var(--font-mono)"
             >
               {v === 0 ? '$0' : `$${(v / 1000).toFixed(0)}k`}
             </text>
@@ -126,7 +126,7 @@ function GastosBarChart({ barData, yMax }) {
                 <text
                   x={bx + barW / 2} y={baseY - toH(bar.total) - 7}
                   textAnchor="middle" fontSize={10} fontWeight="700"
-                  fill="var(--ink)" fontFamily="monospace"
+                  fill="var(--ink)" fontFamily="var(--font-mono)"
                 >
                   {fmt(bar.total)}
                 </text>
@@ -189,7 +189,7 @@ function GastosBarChart({ barData, yMax }) {
                     }} />
                     <span style={{ opacity: 0.72, fontSize: 12 }}>{cat}</span>
                   </span>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(monto)}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fmt(monto)}</span>
                 </div>
               );
             })}
@@ -198,7 +198,7 @@ function GastosBarChart({ barData, yMax }) {
               display: 'flex', justifyContent: 'space-between', gap: 20,
             }}>
               <span style={{ fontWeight: 700 }}>Total</span>
-              <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#f4a070' }}>{fmt(bar.total)}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#f4a070' }}>{fmt(bar.total)}</span>
             </div>
           </div>
         );

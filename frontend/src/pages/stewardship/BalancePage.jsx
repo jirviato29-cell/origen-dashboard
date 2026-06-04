@@ -102,7 +102,7 @@ function BalanceChart({ data }) {
             />
             <text
               x={PAD.left - 10} y={toY(v) + 4}
-              textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="monospace"
+              textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="var(--font-mono)"
             >
               {v === 0 ? '$0' : `$${(v / 1000).toFixed(0)}k`}
             </text>
@@ -124,14 +124,14 @@ function BalanceChart({ data }) {
         <text
           x={ptsIng[ptsIng.length - 1].x + 6}
           y={ptsIng[ptsIng.length - 1].y + 4}
-          fontSize={9.5} fill="#00B4D8" fontWeight="700" fontFamily="monospace"
+          fontSize={9.5} fill="#00B4D8" fontWeight="700" fontFamily="var(--font-mono)"
         >
           {fmt(data[data.length - 1].cumIngresos)}
         </text>
         <text
           x={ptsGas[ptsGas.length - 1].x + 6}
           y={ptsGas[ptsGas.length - 1].y + 4}
-          fontSize={9.5} fill="#FF6B2B" fontWeight="700" fontFamily="monospace"
+          fontSize={9.5} fill="#FF6B2B" fontWeight="700" fontFamily="var(--font-mono)"
         >
           {fmt(data[data.length - 1].cumGastos)}
         </text>
@@ -209,14 +209,14 @@ function BalanceChart({ data }) {
                   <span style={{ width: 10, height: 3, background: '#00B4D8', display: 'inline-block', borderRadius: 2 }} />
                   <span style={{ opacity: 0.65, fontSize: 12 }}>Ing. acumulados</span>
                 </span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#00B4D8' }}>{fmt(d.cumIngresos)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#00B4D8' }}>{fmt(d.cumIngresos)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 10, height: 3, background: '#FF6B2B', display: 'inline-block', borderRadius: 2, opacity: 0.85 }} />
                   <span style={{ opacity: 0.65, fontSize: 12 }}>Gas. acumulados</span>
                 </span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#FF6B2B' }}>{fmt(d.cumGastos)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#FF6B2B' }}>{fmt(d.cumGastos)}</span>
               </div>
               <div style={{
                 display: 'flex', justifyContent: 'space-between', gap: 24,
@@ -224,7 +224,7 @@ function BalanceChart({ data }) {
               }}>
                 <span style={{ fontWeight: 700 }}>Balance</span>
                 <span style={{
-                  fontFamily: 'monospace', fontWeight: 800,
+                  fontFamily: 'var(--font-mono)', fontWeight: 800,
                   color: bal >= 0 ? '#90d4a8' : '#f4a070',
                 }}>
                   {bal >= 0 ? '+' : ''}{fmt(bal)}

@@ -91,7 +91,7 @@ function LineChart({ data }) {
               stroke="#ddd5c8" strokeWidth={v === 0 ? 1.2 : 0.65}
               strokeDasharray={v === 0 ? '' : '3 3'}
             />
-            <text x={PAD.left - 10} y={toY(v) + 4} textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="monospace">
+            <text x={PAD.left - 10} y={toY(v) + 4} textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="var(--font-mono)">
               {v === 0 ? '$0' : `$${(v / 1000).toFixed(0)}k`}
             </text>
           </g>
@@ -148,15 +148,15 @@ function LineChart({ data }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20 }}>
                 <span style={{ opacity: 0.6, fontSize: 12 }}>Efectivo</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(d.efectivo)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fmt(d.efectivo)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20 }}>
                 <span style={{ opacity: 0.6, fontSize: 12 }}>Terminal</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(d.terminal)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fmt(d.terminal)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 5, paddingTop: 5 }}>
                 <span style={{ fontWeight: 700 }}>Total</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#fdba74' }}>{fmt(d.total)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#fdba74' }}>{fmt(d.total)}</span>
               </div>
             </div>
           </div>
