@@ -38,9 +38,10 @@ function mesNombre(isoMes) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-// ── SVG Line Chart mensual ────────────────────────────────────────────────────
-// Cada punto en `data` = { label, total, efectivo, terminal, count }
+// ── SVG Line Chart ────────────────────────────────────────────────────────────
+// Datos esperados: [{ label, total, efectivo, terminal, count }]
 
+const ORANGE = '#F97316';
 const VW = 900, VH = 300;
 const PAD = { left: 78, right: 24, top: 28, bottom: 54 };
 
@@ -85,8 +86,7 @@ function LineChart({ data }) {
         {yTicks.map(v => (
           <g key={v}>
             <line
-              x1={PAD.left} x2={VW - PAD.right}
-              y1={toY(v)} y2={toY(v)}
+              x1={PAD.left} x2={VW - PAD.right} y1={toY(v)} y2={toY(v)}
               stroke="#ddd5c8" strokeWidth={v === 0 ? 1.2 : 0.65}
               strokeDasharray={v === 0 ? '' : '3 3'}
             />
@@ -98,26 +98,28 @@ function LineChart({ data }) {
 
         <line x1={PAD.left} x2={VW - PAD.right} y1={PAD.top + chartH} y2={PAD.top + chartH} stroke="#ddd5c8" strokeWidth={1} />
 
-        {/* X axis: nombre del mes abreviado */}
         {pts.map((p, i) => (
           <text key={i} x={p.x} y={PAD.top + chartH + 18} textAnchor="middle" fontSize={10} fill="#b0a090">
-            {p.d.label.slice(0, 3)}
+            {p.d.label}
           </text>
         ))}
 
-        <path d={areaPath} fill="var(--chart-primary)" opacity={0.1} />
-        <path d={linePath} fill="none" stroke="var(--chart-primary)" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+        <path d={areaPath} fill={ORANGE} opacity={0.12} />
+        <path d={linePath} fill="none" stroke={ORANGE} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
 
         {hovered !== null && (
-          <line x1={pts[hovered].x} x2={pts[hovered].x} y1={PAD.top} y2={PAD.top + chartH}
-            stroke="var(--chart-primary)" strokeWidth={1} strokeDasharray="4 3" opacity={0.4} />
+          <line
+            x1={pts[hovered].x} x2={pts[hovered].x} y1={PAD.top} y2={PAD.top + chartH}
+            stroke={ORANGE} strokeWidth={1} strokeDasharray="4 3" opacity={0.4}
+          />
         )}
 
         {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y}
+          <circle
+            key={i} cx={p.x} cy={p.y}
             r={hovered === i ? 6.5 : 4}
-            fill={hovered === i ? 'var(--chart-primary)' : 'white'}
-            stroke="var(--chart-primary)" strokeWidth={2}
+            fill={hovered === i ? ORANGE : 'white'}
+            stroke={ORANGE} strokeWidth={2}
             style={{ cursor: 'pointer' }}
             onMouseEnter={() => setHovered(i)}
           />
@@ -140,7 +142,7 @@ function LineChart({ data }) {
             boxShadow: '0 6px 24px rgba(0,0,0,0.28)', whiteSpace: 'nowrap', zIndex: 20,
           }}>
             <div style={{ fontWeight: 700, marginBottom: 5, fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
-              {d.label} · {d.count} {d.count === 1 ? 'domingo' : 'domingos'}
+              {d.label}{d.count > 1 ? ` · ${d.count} domingos` : ''}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20 }}>
@@ -153,7 +155,7 @@ function LineChart({ data }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 5, paddingTop: 5 }}>
                 <span style={{ fontWeight: 700 }}>Total</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#90d4a8' }}>{fmt(d.total)}</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#fdba74' }}>{fmt(d.total)}</span>
               </div>
             </div>
           </div>
@@ -209,7 +211,7 @@ export default function IngresosPage() {
   const pctEfectivo       = totalCombinado > 0 ? Math.round((totalEfectivo / totalCombinado) * 100) : 0;
   const pctTerminal       = 100 - pctEfectivo;
 
-  // Resumen mensual — usado tanto en la lista como en la gráfica
+  // Resumen mensual
   const mesesDisponibles = [...new Set(ofrendas.map(d => d.fecha.slice(0, 7)))].sort();
   const resumenMeses = mesesDisponibles.map(m => {
     const rows = ofrendas.filter(d => d.fecha.startsWith(m));
@@ -223,11 +225,31 @@ export default function IngresosPage() {
     };
   });
 
-  // Gráfica siempre mensual (un punto por mes)
-  const chartData  = resumenMeses;
-  const chartTitle = `Ingresos por mes ${year}`;
+  // Gráfica: mensual por defecto; por domingo cuando hay mes seleccionado
+  const chartData = mesSeleccionado
+    ? [...ofrendas]
+        .filter(d => d.fecha.startsWith(mesSeleccionado))
+        .sort((a, b) => a.fecha.localeCompare(b.fecha))
+        .map(d => ({
+          label:    fmtFechaShort(d.fecha),
+          total:    Number(d.total_ofrenda),
+          efectivo: Number(d.efectivo),
+          terminal: Number(d.terminal),
+          count:    1,
+        }))
+    : resumenMeses;
 
-  // Tabla del acordeón (detalle por domingo del mes seleccionado)
+  const chartTitle = mesSeleccionado
+    ? `Ingresos por domingo — ${mesNombre(mesSeleccionado)} ${year}`
+    : `Ingresos por mes ${year}`;
+
+  const chartSub = mesSeleccionado
+    ? `${chartData.length} ${chartData.length === 1 ? 'domingo' : 'domingos'} · pasa el mouse sobre cada punto`
+    : `${chartData.length} ${chartData.length === 1 ? 'mes' : 'meses'} · pasa el mouse sobre cada punto`;
+
+  const chartLegend = mesSeleccionado ? 'Total por domingo' : 'Total mensual';
+
+  // Tabla del acordeón
   const tablaData = mesSeleccionado
     ? [...ofrendas]
         .filter(d => d.fecha.startsWith(mesSeleccionado))
@@ -254,7 +276,7 @@ export default function IngresosPage() {
 
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Último domingo</div>
-          <div style={{ fontSize: 27, fontWeight: 800, color: 'var(--chart-primary)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+          <div style={{ fontSize: 27, fontWeight: 800, color: ORANGE, marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
             {fmt(Number(ultimoDomingo.total_ofrenda))}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{fmtFecha(ultimoDomingo.fecha)}</div>
@@ -316,10 +338,10 @@ export default function IngresosPage() {
         </div>
       </div>
 
-      {/* ── Fila 3: Resumen por mes (izq) + Gráfica mensual (der) ── */}
+      {/* ── Fila 3: Resumen por mes (izq) + Gráfica (der) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
 
-        {/* Resumen por mes — izquierda */}
+        {/* Resumen por mes */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
           <div className="card-head" style={{ marginBottom: 16 }}>
             <div>
@@ -362,18 +384,16 @@ export default function IngresosPage() {
           </div>
         </div>
 
-        {/* Gráfica mensual — derecha */}
+        {/* Gráfica */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
           <div className="card-head" style={{ marginBottom: 20 }}>
             <div>
               <h3 className="card-title">{chartTitle}</h3>
-              <div className="card-sub">
-                {chartData.length} {chartData.length === 1 ? 'mes' : 'meses'} · pasa el mouse sobre cada punto
-              </div>
+              <div className="card-sub">{chartSub}</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 28, height: 3, borderRadius: 99, background: 'var(--chart-primary)', opacity: 0.85 }} />
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Total mensual</span>
+              <div style={{ width: 28, height: 3, borderRadius: 99, background: ORANGE, opacity: 0.85 }} />
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{chartLegend}</span>
             </div>
           </div>
           <LineChart data={chartData} />
@@ -399,7 +419,7 @@ export default function IngresosPage() {
         )}
       </div>
 
-      {/* ── Acordeón: detalle por domingo del mes seleccionado ── */}
+      {/* ── Acordeón: detalle por domingo ── */}
       {mesSeleccionado && (
         <div className="card">
           <div className="card-head" style={{ marginBottom: 16 }}>
@@ -435,7 +455,7 @@ export default function IngresosPage() {
                   </td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaEfectivo)}</td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaTerminal)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--chart-primary)', fontSize: 14 }}>{fmt(tablaTotal)}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: ORANGE, fontSize: 14 }}>{fmt(tablaTotal)}</td>
                 </tr>
               </tbody>
             </table>
