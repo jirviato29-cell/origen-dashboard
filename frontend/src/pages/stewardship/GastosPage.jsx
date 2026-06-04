@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { gastosApi, ofrendasApi } from '../../services/api';
 import { useGastosModal } from '../../context/GastosModalContext';
+import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -26,23 +27,6 @@ const CAT_BG = {
 
 function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
-}
-
-function fmtFecha(iso) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('es-MX', {
-    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-  }).replace(/^\w/, c => c.toUpperCase());
-}
-
-function fmtFechaShort(iso) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('es-MX', {
-    day: '2-digit', month: 'short',
-  });
-}
-
-function mesNombre(isoMes) {
-  return new Date(isoMes + '-01T00:00:00').toLocaleDateString('es-MX', { month: 'long' })
-    .replace(/^\w/, c => c.toUpperCase());
 }
 
 function catLabel(g) {
@@ -226,7 +210,7 @@ export default function GastosPage() {
     ]).then(([gRes, oRes]) => {
       if (cancelled) return;
       setGastos(gRes.data || []);
-      const ing = (oRes.data || []).reduce((s, r) => s + Number(r.total || 0), 0);
+      const ing = (oRes.data || []).reduce((s, r) => s + Number(r.total_ofrenda || 0), 0);
       setTotalIngresos(ing);
     }).catch(() => {
       if (!cancelled) { setGastos([]); setTotalIngresos(0); }
