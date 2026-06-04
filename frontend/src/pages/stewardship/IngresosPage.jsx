@@ -43,7 +43,7 @@ function mesNombre(isoMes) {
 
 const ORANGE = '#F97316';
 const VW = 900, VH = 300;
-const PAD = { left: 78, right: 24, top: 28, bottom: 54 };
+const PAD = { left: 92, right: 24, top: 28, bottom: 54 };
 
 function LineChart({ data }) {
   const [hovered, setHovered] = useState(null);
@@ -60,8 +60,9 @@ function LineChart({ data }) {
   const chartH = VH - PAD.top - PAD.bottom;
 
   const maxVal = Math.max(...data.map(d => d.total));
-  const yMax   = Math.ceil(maxVal / 5000) * 5000 || 5000;
-  const yTicks = Array.from({ length: Math.round(yMax / 5000) + 1 }, (_, i) => i * 5000);
+  const yStep  = maxVal > 20000 ? 10000 : 5000;
+  const yMax   = Math.ceil(maxVal / yStep) * yStep || yStep;
+  const yTicks = Array.from({ length: Math.floor(yMax / yStep) + 1 }, (_, i) => i * yStep);
 
   const toX = i => PAD.left + (i / (data.length - 1)) * chartW;
   const toY = v => PAD.top + chartH - (v / yMax) * chartH;
@@ -204,7 +205,6 @@ export default function IngresosPage() {
   const totalMesActual    = ofrendasMesActual.reduce((s, d) => s + Number(d.total_ofrenda), 0);
   const acumuladoAnio     = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
   const totalGastos       = gastos.reduce((s, g) => s + Number(g.monto), 0);
-  const balance           = acumuladoAnio - totalGastos;
   const totalEfectivo     = ofrendas.reduce((s, d) => s + Number(d.efectivo), 0);
   const totalTerminal     = ofrendas.reduce((s, d) => s + Number(d.terminal), 0);
   const totalCombinado    = totalEfectivo + totalTerminal;
@@ -271,12 +271,12 @@ export default function IngresosPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* ── Fila 1: 4 tarjetas ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14 }}>
+      {/* ── Fila 1: 3 tarjetas principales ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
 
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Último domingo</div>
-          <div style={{ fontSize: 27, fontWeight: 800, color: ORANGE, marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+          <div style={{ fontSize: 27, fontWeight: 800, color: 'var(--ink)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
             {fmt(Number(ultimoDomingo.total_ofrenda))}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{fmtFecha(ultimoDomingo.fecha)}</div>
@@ -291,7 +291,9 @@ export default function IngresosPage() {
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Mes actual ({mesLabelCap})</div>
           <div style={{ fontSize: 27, fontWeight: 800, color: '#5C7A6F', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{fmt(totalMesActual)}</div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            {ofrendasMesActual.length} {ofrendasMesActual.length === 1 ? 'domingo' : 'domingos'} registrados
+            {ofrendasMesActual.length === 0
+              ? `${mesLabelCap} aún sin registros`
+              : `${ofrendasMesActual.length} ${ofrendasMesActual.length === 1 ? 'domingo' : 'domingos'} registrados`}
           </div>
         </div>
 
@@ -301,13 +303,6 @@ export default function IngresosPage() {
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{ofrendas.length} domingos · {year}</div>
         </div>
 
-        <div className="card" style={{ padding: '18px 20px', background: balance >= 0 ? 'rgba(79,138,91,0.08)' : 'rgba(180,74,58,0.08)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Balance neto</div>
-          <div style={{ fontSize: 27, fontWeight: 800, marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1, color: balance >= 0 ? 'var(--good)' : 'var(--danger)' }}>
-            {balance >= 0 ? '+' : ''}{fmt(balance)}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{balance >= 0 ? 'Superávit' : 'Déficit'} · egresos {fmt(totalGastos)}</div>
-        </div>
       </div>
 
       {/* ── Fila 2: efectivo + terminal ── */}
