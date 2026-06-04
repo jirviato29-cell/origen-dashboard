@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { gastosApi, ofrendasApi } from '../../services/api';
+import { gastosApi } from '../../services/api';
 import { useGastosModal } from '../../context/GastosModalContext';
 import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
 
@@ -140,29 +140,19 @@ export default function GastosPage() {
 
   const { refreshKey } = useGastosModal();
 
-  const [gastos, setGastos]               = useState([]);
-  const [totalIngresos, setTotalIngresos] = useState(0);
-  const [loading, setLoading]             = useState(true);
-  const [mesSeleccionado, setMesSelec]    = useState(null);
+  const [gastos, setGastos]            = useState([]);
+  const [loading, setLoading]          = useState(true);
+  const [mesSeleccionado, setMesSelec] = useState(null);
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      gastosApi.getAll({ year }),
-      ofrendasApi.resumenAnual(year),
-    ]).then(([gRes, oRes]) => {
-      if (cancelled) return;
-      setGastos(gRes.data || []);
-      const ing = (oRes.data || []).reduce((s, r) => s + Number(r.total_ofrenda || 0), 0);
-      setTotalIngresos(ing);
-    }).catch(() => {
-      if (!cancelled) { setGastos([]); setTotalIngresos(0); }
-    }).finally(() => {
-      if (!cancelled) setLoading(false);
-    });
+    gastosApi.getAll({ year })
+      .then(res => { if (!cancelled) setGastos(res.data || []); })
+      .catch(() => { if (!cancelled) setGastos([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [year, refreshKey]);
 
@@ -173,7 +163,6 @@ export default function GastosPage() {
   const gastosMesArr  = gastos.filter(g => g.fecha.startsWith(mes));
   const totalMes      = gastosMesArr.reduce((s, g) => s + Number(g.monto), 0);
   const acumuladoAnio = gastos.reduce((s, g) => s + Number(g.monto), 0);
-  const balance       = totalIngresos - acumuladoAnio;
 
   // ── Fila 2 — por categoría ──
   const catTotals = CATEGORIAS.map(cat => ({
@@ -251,7 +240,7 @@ export default function GastosPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* ── Fila 1: 4 tarjetas ── */}
+      {/* ── Fila 1: 3 tarjetas ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14 }}>
 
         <div className="card" style={{ padding: '18px 20px' }}>
@@ -309,27 +298,6 @@ export default function GastosPage() {
           </div>
         </div>
 
-        <div
-          className="card"
-          style={{
-            padding: '18px 20px',
-            background: balance >= 0 ? 'rgba(79,138,91,0.08)' : 'rgba(180,74,58,0.08)',
-          }}
-        >
-          <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Balance neto
-          </div>
-          <div style={{
-            fontSize: 27, fontWeight: 800, marginTop: 10,
-            fontFamily: 'var(--font-mono)', lineHeight: 1,
-            color: balance >= 0 ? 'var(--good)' : 'var(--danger)',
-          }}>
-            {balance >= 0 ? '+' : ''}{fmt(balance)}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            {balance >= 0 ? 'Superávit' : 'Déficit'} · ingresos {fmt(totalIngresos)}
-          </div>
-        </div>
       </div>
 
       {/* ── Fila 2: 5 tarjetas por categoría ── */}
