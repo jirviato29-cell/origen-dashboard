@@ -353,23 +353,25 @@ export default function IngresosPage() {
                   onClick={() => toggleMes(r.mes)}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '11px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                    background: activo ? 'var(--black)' : 'transparent',
-                    color: activo ? 'white' : 'var(--ink)',
-                    transition: 'background 0.15s',
+                    padding: '10px 12px 10px 10px', borderRadius: 8, cursor: 'pointer',
+                    background: activo ? 'rgba(249,115,22,0.07)' : 'transparent',
+                    color: 'var(--ink)',
+                    border: 'none',
+                    borderLeft: activo ? `3px solid ${ORANGE}` : '3px solid transparent',
+                    transition: 'background 0.15s, border-left-color 0.15s',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 15, fontWeight: 600 }}>{r.label}</span>
-                    <span style={{ fontSize: 12, color: activo ? 'rgba(255,255,255,0.55)' : 'var(--muted)' }}>
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>
                       {r.count} dom.
                     </span>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: activo ? ORANGE : 'var(--ink)' }}>
                       {fmt(r.total)}
                     </div>
-                    <div style={{ fontSize: 12, color: activo ? 'rgba(255,255,255,0.55)' : 'var(--muted)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
                       Efvo {fmt(r.efectivo)} · Term {fmt(r.terminal)}
                     </div>
                   </div>
@@ -395,25 +397,6 @@ export default function IngresosPage() {
         </div>
       </div>
 
-      {/* ── Botones de mes ── */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginRight: 4 }}>Detalle:</span>
-        {mesesDisponibles.map(m => (
-          <button
-            key={m}
-            className={`chip${mesSeleccionado === m ? ' active' : ''}`}
-            onClick={() => toggleMes(m)}
-          >
-            {mesNombre(m)}
-          </button>
-        ))}
-        {mesSeleccionado && (
-          <button className="chip" onClick={() => setMesSelec(null)} style={{ opacity: 0.6 }}>
-            ✕ Cerrar
-          </button>
-        )}
-      </div>
-
       {/* ── Acordeón: detalle por domingo ── */}
       {mesSeleccionado && (
         <div className="card">
@@ -422,6 +405,16 @@ export default function IngresosPage() {
               <h3 className="card-title">Detalle de ingresos — {mesNombre(mesSeleccionado)}</h3>
               <div className="card-sub">{tablaData.length} {tablaData.length === 1 ? 'domingo' : 'domingos'}</div>
             </div>
+            <button
+              onClick={() => setMesSelec(null)}
+              style={{
+                background: 'none', border: '1px solid var(--border)', borderRadius: 6,
+                padding: '5px 12px', fontSize: 12.5, color: 'var(--muted)', cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              ✕ Cerrar
+            </button>
           </div>
           <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
             <table className="table anf-table">
