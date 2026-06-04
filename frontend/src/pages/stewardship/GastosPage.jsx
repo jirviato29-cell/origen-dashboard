@@ -5,6 +5,8 @@ import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+const ORANGE = '#F97316';
+
 const CATEGORIAS = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'Decoración'];
 
 const CAT_COLORS = {
@@ -33,10 +35,12 @@ function catLabel(g) {
   return g.categoria_nombre ?? g.categoria ?? '—';
 }
 
-// ── Stacked Bar Chart ─────────────────────────────────────────────────────────
+// ── Shared chart dimensions ───────────────────────────────────────────────────
 
 const VW = 900, VH = 260;
 const PAD = { left: 72, right: 20, top: 20, bottom: 44 };
+
+// ── Stacked Bar Chart — todos los meses ──────────────────────────────────────
 
 function GastosBarChart({ barData, yMax }) {
   const [hovered, setHovered] = useState(null);
@@ -60,7 +64,6 @@ function GastosBarChart({ barData, yMax }) {
         style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
         onMouseLeave={() => setHovered(null)}
       >
-        {/* Grid + Y labels */}
         {yTicks.map(v => (
           <g key={v}>
             <line
@@ -78,7 +81,6 @@ function GastosBarChart({ barData, yMax }) {
           </g>
         ))}
 
-        {/* Bars */}
         {barData.map((bar, i) => {
           const bx = toX(i);
           return (
@@ -132,7 +134,6 @@ function GastosBarChart({ barData, yMax }) {
         })}
       </svg>
 
-      {/* Floating tooltip */}
       {hovered !== null && (() => {
         const bar  = barData[hovered];
         const bx   = toX(hovered);
@@ -186,10 +187,143 @@ function GastosBarChart({ barData, yMax }) {
   );
 }
 
+// ── Simple Bar Chart — por categoría (mes seleccionado) ──────────────────────
+
+function GatosCatBarChart({ catData }) {
+  const [hovered, setHovered] = useState(null);
+
+  if (catData.length === 0) {
+    return (
+      <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
+        Sin gastos registrados en este mes.
+      </div>
+    );
+  }
+
+  const chartW  = VW - PAD.left - PAD.right;
+  const chartH  = VH - PAD.top  - PAD.bottom;
+  const baseY   = PAD.top + chartH;
+  const groupW  = chartW / catData.length;
+  const barW    = Math.round(groupW * 0.54);
+  const barOffX = (groupW - barW) / 2;
+
+  const maxMonto = Math.max(...catData.map(c => c.monto));
+  const yMax     = Math.max(Math.ceil(maxMonto / 5000) * 5000, 5000);
+  const yTicks   = Array.from({ length: Math.round(yMax / 5000) + 1 }, (_, i) => i * 5000);
+
+  const toX = i => PAD.left + i * groupW + barOffX;
+  const toH = v => (v / yMax) * chartH;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <svg
+        viewBox={`0 0 ${VW} ${VH}`}
+        style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
+        onMouseLeave={() => setHovered(null)}
+      >
+        {yTicks.map(v => (
+          <g key={v}>
+            <line
+              x1={PAD.left} x2={VW - PAD.right}
+              y1={baseY - toH(v)} y2={baseY - toH(v)}
+              stroke="#ddd5c8" strokeWidth={v === 0 ? 1.2 : 0.65}
+              strokeDasharray={v === 0 ? '' : '3 3'}
+            />
+            <text
+              x={PAD.left - 10} y={baseY - toH(v) + 4}
+              textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="var(--font-mono)"
+            >
+              {v === 0 ? '$0' : `$${(v / 1000).toFixed(0)}k`}
+            </text>
+          </g>
+        ))}
+
+        {catData.map(({ cat, monto }, i) => {
+          const bx = toX(i);
+          const h  = toH(monto);
+          return (
+            <g key={cat}>
+              <rect
+                x={bx} y={baseY - h} width={barW} height={h}
+                fill={CAT_COLORS[cat]}
+                opacity={hovered === null || hovered === i ? 1 : 0.3}
+                style={{ transition: 'opacity 0.14s' }}
+              />
+              {hovered === i && (
+                <text
+                  x={bx + barW / 2} y={baseY - h - 7}
+                  textAnchor="middle" fontSize={10} fontWeight="700"
+                  fill="var(--ink)" fontFamily="var(--font-mono)"
+                >
+                  {fmt(monto)}
+                </text>
+              )}
+              <rect
+                x={bx} y={PAD.top} width={barW} height={chartH}
+                fill="transparent" style={{ cursor: 'pointer' }}
+                onMouseEnter={() => setHovered(i)}
+              />
+              <text
+                x={bx + barW / 2} y={baseY + 19}
+                textAnchor="middle" fontSize={10.5}
+                fill={hovered === i ? '#3a2a1a' : '#b0a090'}
+                fontWeight={hovered === i ? '600' : '400'}
+              >
+                {cat}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+
+      {hovered !== null && catData[hovered] && (() => {
+        const { cat, monto } = catData[hovered];
+        const bx   = toX(hovered);
+        const lPct = (bx + barW / 2) / VW * 100;
+        const tPct = (baseY - toH(monto)) / VH * 100;
+        const tx   = lPct > 72 ? '-94%' : lPct < 20 ? '6%' : '-50%';
+        return (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${lPct}%`, top: `${tPct}%`,
+              transform: `translate(${tx}, -114%)`,
+              pointerEvents: 'none',
+              background: '#1A1A1A', color: 'white',
+              borderRadius: 10, padding: '11px 15px',
+              fontSize: 12.5, lineHeight: 1.8,
+              boxShadow: '0 6px 24px rgba(0,0,0,0.28)',
+              whiteSpace: 'nowrap', zIndex: 20,
+            }}
+          >
+            <div style={{
+              fontWeight: 700, marginBottom: 6, fontSize: 13,
+              color: 'rgba(255,255,255,0.9)',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: 2,
+                background: CAT_COLORS[cat], display: 'inline-block', flexShrink: 0,
+              }} />
+              {cat}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20 }}>
+              <span style={{ opacity: 0.7, fontSize: 12 }}>Gasto</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#f4a070' }}>
+                {fmt(monto)}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function GastosPage() {
-  const hoy = new Date();
+  const hoy  = new Date();
   const year = hoy.getFullYear();
   const mes  = `${year}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
   const mesLabelCap = hoy.toLocaleDateString('es-MX', { month: 'long' })
@@ -197,9 +331,12 @@ export default function GastosPage() {
 
   const { refreshKey } = useGastosModal();
 
-  const [gastos, setGastos]             = useState([]);
+  const [gastos, setGastos]               = useState([]);
   const [totalIngresos, setTotalIngresos] = useState(0);
-  const [loading, setLoading]           = useState(true);
+  const [loading, setLoading]             = useState(true);
+  const [mesSeleccionado, setMesSelec]    = useState(null);
+
+  const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
   useEffect(() => {
     let cancelled = false;
@@ -235,11 +372,27 @@ export default function GastosPage() {
     total: gastos.filter(g => catLabel(g) === cat).reduce((s, g) => s + Number(g.monto), 0),
   }));
 
-  // ── Barras por mes (meses del año hasta el actual) ──
+  // ── Meses del año hasta el actual ──
   const curMesNum = hoy.getMonth() + 1;
   const MESES_BAR = Array.from({ length: curMesNum }, (_, i) =>
     `${year}-${String(i + 1).padStart(2, '0')}`
   );
+
+  // ── Resumen por mes (izquierda) ──
+  const resumenMeses = MESES_BAR
+    .map(m => {
+      const mGastos = gastos.filter(g => g.fecha.startsWith(m));
+      const total   = mGastos.reduce((s, g) => s + Number(g.monto), 0);
+      const cats    = {};
+      CATEGORIAS.forEach(cat => {
+        const v = mGastos.filter(g => catLabel(g) === cat).reduce((s, g) => s + Number(g.monto), 0);
+        if (v > 0) cats[cat] = v;
+      });
+      return { mes: m, label: mesNombre(m), total, cats, count: mGastos.length };
+    })
+    .filter(r => r.count > 0);
+
+  // ── Datos para la gráfica ──
   const barData = MESES_BAR.map(m => {
     const mGastos = gastos.filter(g => g.fecha.startsWith(m));
     const cats = {};
@@ -252,6 +405,25 @@ export default function GastosPage() {
     Math.ceil(Math.max(...barData.map(b => b.total), 0) / 5000) * 5000,
     5000
   );
+
+  // Datos de categorías para el mes seleccionado
+  const catDataForMes = mesSeleccionado
+    ? CATEGORIAS
+        .map(cat => ({
+          cat,
+          monto: gastos
+            .filter(g => g.fecha.startsWith(mesSeleccionado) && catLabel(g) === cat)
+            .reduce((s, g) => s + Number(g.monto), 0),
+        }))
+        .filter(c => c.monto > 0)
+    : [];
+
+  const chartTitle = mesSeleccionado
+    ? `Gastos por categoría — ${mesNombre(mesSeleccionado)} ${year}`
+    : `Gastos por mes ${year}`;
+  const chartSub = mesSeleccionado
+    ? `${catDataForMes.length} ${catDataForMes.length === 1 ? 'categoría' : 'categorías'} con gastos · hover para detalles`
+    : 'Barras apiladas por categoría · hover para detalles';
 
   // ── Tabla ──
   const [mesTabla, setMesTabla] = useState('todos');
@@ -280,7 +452,6 @@ export default function GastosPage() {
       {/* ── Fila 1: 4 tarjetas ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14 }}>
 
-        {/* Último gasto */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Último gasto
@@ -312,7 +483,6 @@ export default function GastosPage() {
           )}
         </div>
 
-        {/* Mes actual */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Mes actual ({mesLabelCap})
@@ -325,7 +495,6 @@ export default function GastosPage() {
           </div>
         </div>
 
-        {/* Acumulado año */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Acumulado del año
@@ -338,7 +507,6 @@ export default function GastosPage() {
           </div>
         </div>
 
-        {/* Balance */}
         <div
           className="card"
           style={{
@@ -393,26 +561,112 @@ export default function GastosPage() {
         })}
       </div>
 
-      {/* ── Gráfica ── */}
-      <div className="card" style={{ padding: '20px 20px 16px' }}>
-        <div className="card-head" style={{ marginBottom: 20 }}>
-          <div>
-            <h3 className="card-title">Gastos por mes {year}</h3>
-            <div className="card-sub">Barras apiladas por categoría · hover para detalles</div>
+      {/* ── Fila 3: Resumen por mes (izq) + Gráfica (der) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
+
+        {/* Resumen por mes */}
+        <div className="card" style={{ padding: '20px 20px 16px' }}>
+          <div className="card-head" style={{ marginBottom: 16 }}>
+            <div>
+              <h3 className="card-title">Resumen por mes</h3>
+              <div className="card-sub">{year} · haz clic en un mes para ver el desglose</div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-            {CATEGORIAS.map(cat => (
-              <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{
-                  width: 10, height: 10, borderRadius: 2,
-                  background: CAT_COLORS[cat], display: 'inline-block', flexShrink: 0,
-                }} />
-                <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{cat}</span>
-              </div>
-            ))}
-          </div>
+
+          {resumenMeses.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--muted)', fontSize: 13 }}>
+              Sin gastos registrados en {year}.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {resumenMeses.map(r => {
+                const activo = mesSeleccionado === r.mes;
+                return (
+                  <button
+                    key={r.mes}
+                    onClick={() => toggleMes(r.mes)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '10px 12px 10px 10px', borderRadius: 8, cursor: 'pointer',
+                      background: activo ? 'rgba(249,115,22,0.07)' : 'transparent',
+                      color: 'var(--ink)', border: 'none',
+                      borderLeft: activo ? `3px solid ${ORANGE}` : '3px solid transparent',
+                      width: '100%', textAlign: 'left',
+                      transition: 'background 0.15s, border-left-color 0.15s',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 15, fontWeight: 600 }}>{r.label}</span>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                          {r.count} {r.count === 1 ? 'gasto' : 'gastos'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 3, lineHeight: 1.5 }}>
+                        {Object.entries(r.cats).map(([cat, val], idx, arr) => (
+                          <span key={cat}>
+                            <span style={{ color: CAT_COLORS[cat], fontWeight: 600 }}>{cat}</span>
+                            {' '}{fmt(val)}{idx < arr.length - 1 ? ' · ' : ''}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
+                      <div style={{
+                        fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)',
+                        color: activo ? ORANGE : 'var(--danger)',
+                      }}>
+                        {fmt(r.total)}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-        <GastosBarChart barData={barData} yMax={yMax} />
+
+        {/* Gráfica */}
+        <div className="card" style={{ padding: '20px 20px 16px' }}>
+          <div className="card-head" style={{ marginBottom: 20 }}>
+            <div>
+              <h3 className="card-title">{chartTitle}</h3>
+              <div className="card-sub">{chartSub}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {mesSeleccionado ? (
+                <button
+                  onClick={() => setMesSelec(null)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    background: 'none', border: '1px solid var(--border)',
+                    borderRadius: 6, padding: '4px 10px',
+                    fontSize: 12, color: 'var(--muted)', cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  ← Ver todos los meses
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {CATEGORIAS.map(cat => (
+                    <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{
+                        width: 10, height: 10, borderRadius: 2,
+                        background: CAT_COLORS[cat], display: 'inline-block', flexShrink: 0,
+                      }} />
+                      <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{cat}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          {mesSeleccionado
+            ? <GatosCatBarChart catData={catDataForMes} />
+            : <GastosBarChart barData={barData} yMax={yMax} />
+          }
+        </div>
       </div>
 
       {/* ── Tabla detallada ── */}
@@ -424,7 +678,6 @@ export default function GastosPage() {
           </div>
         </div>
 
-        {/* Filtros */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 600, flexShrink: 0 }}>Mes</span>
