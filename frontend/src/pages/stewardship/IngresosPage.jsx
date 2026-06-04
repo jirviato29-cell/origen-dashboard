@@ -7,13 +7,31 @@ function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
 }
 
-function fmtFecha(iso) {
+// Normaliza cualquier formato de fecha a YYYY-MM-DD para pasarlo a new Date()
+function toISODate(raw) {
+  if (!raw) return null;
+  const s = String(raw);
+  // DD/MM/YYYY → YYYY-MM-DD
+  const ddmmyyyy = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+  // Timestamp completo (2026-01-04T00:00:00.000Z) → tomar solo los primeros 10 chars
+  if (s.length > 10) return s.slice(0, 10);
+  // Ya está en YYYY-MM-DD
+  return s;
+}
+
+function fmtFecha(raw) {
+  console.log('[fmtFecha] raw:', raw);
+  const iso = toISODate(raw);
+  if (!iso) return 'Sin fecha';
   return new Date(iso + 'T00:00:00').toLocaleDateString('es-MX', {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
   }).replace(/^\w/, c => c.toUpperCase());
 }
 
-function fmtFechaShort(iso) {
+function fmtFechaShort(raw) {
+  const iso = toISODate(raw);
+  if (!iso) return '—';
   return new Date(iso + 'T00:00:00').toLocaleDateString('es-MX', {
     day: '2-digit', month: 'short',
   });
