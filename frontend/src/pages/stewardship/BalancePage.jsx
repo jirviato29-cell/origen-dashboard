@@ -291,7 +291,7 @@ export default function BalancePage() {
           background: cajaChica >= 0 ? 'rgba(79,138,91,0.07)' : 'rgba(180,74,58,0.07)',
         }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Caja chica actual
+            Efectivo en caja
           </div>
           <div style={{
             fontSize: 27, fontWeight: 800, marginTop: 10,
@@ -299,9 +299,6 @@ export default function BalancePage() {
             color: cajaChica >= 0 ? 'var(--good)' : 'var(--danger)',
           }}>
             {cajaChica >= 0 ? '+' : ''}{fmt(cajaChica)}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            Inicial {fmt(SALDO_INICIAL_CAJA)} + efectivo {fmt(totalEfectivo)} − gastos {fmt(totalGastos)}
           </div>
         </div>
 
