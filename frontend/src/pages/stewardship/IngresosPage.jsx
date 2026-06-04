@@ -38,7 +38,8 @@ function mesNombre(isoMes) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-// ── SVG Line Chart ────────────────────────────────────────────────────────────
+// ── SVG Line Chart mensual ────────────────────────────────────────────────────
+// Cada punto en `data` = { label, total, efectivo, terminal, count }
 
 const VW = 900, VH = 300;
 const PAD = { left: 78, right: 24, top: 28, bottom: 54 };
@@ -57,14 +58,14 @@ function LineChart({ data }) {
   const chartW = VW - PAD.left - PAD.right;
   const chartH = VH - PAD.top - PAD.bottom;
 
-  const maxVal = Math.max(...data.map(d => Number(d.total_ofrenda)));
+  const maxVal = Math.max(...data.map(d => d.total));
   const yMax   = Math.ceil(maxVal / 5000) * 5000 || 5000;
   const yTicks = Array.from({ length: Math.round(yMax / 5000) + 1 }, (_, i) => i * 5000);
 
   const toX = i => PAD.left + (i / (data.length - 1)) * chartW;
   const toY = v => PAD.top + chartH - (v / yMax) * chartH;
 
-  const pts = data.map((d, i) => ({ x: toX(i), y: toY(Number(d.total_ofrenda)), d }));
+  const pts = data.map((d, i) => ({ x: toX(i), y: toY(d.total), d }));
 
   const linePath = pts
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
@@ -97,14 +98,12 @@ function LineChart({ data }) {
 
         <line x1={PAD.left} x2={VW - PAD.right} y1={PAD.top + chartH} y2={PAD.top + chartH} stroke="#ddd5c8" strokeWidth={1} />
 
-        {pts.map((p, i) => {
-          if (i % 3 !== 0 && i !== pts.length - 1) return null;
-          return (
-            <text key={i} x={p.x} y={PAD.top + chartH + 18} textAnchor="middle" fontSize={9.5} fill="#b0a090">
-              {fmtFechaShort(p.d.fecha)}
-            </text>
-          );
-        })}
+        {/* X axis: nombre del mes abreviado */}
+        {pts.map((p, i) => (
+          <text key={i} x={p.x} y={PAD.top + chartH + 18} textAnchor="middle" fontSize={10} fill="#b0a090">
+            {p.d.label.slice(0, 3)}
+          </text>
+        ))}
 
         <path d={areaPath} fill="var(--chart-primary)" opacity={0.1} />
         <path d={linePath} fill="none" stroke="var(--chart-primary)" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
@@ -126,12 +125,12 @@ function LineChart({ data }) {
       </svg>
 
       {hovered !== null && (() => {
-        const p = pts[hovered];
-        const d = p.d;
+        const p    = pts[hovered];
+        const d    = p.d;
         const lPct = (p.x / VW) * 100;
         const tPct = (p.y / VH) * 100;
-        const tx = lPct > 72 ? '-92%' : lPct < 20 ? '8%' : '-50%';
-        const ty = tPct < 30 ? '14%' : '-115%';
+        const tx   = lPct > 72 ? '-92%' : lPct < 20 ? '8%' : '-50%';
+        const ty   = tPct < 30 ? '14%' : '-115%';
         return (
           <div style={{
             position: 'absolute', left: `${lPct}%`, top: `${tPct}%`,
@@ -141,20 +140,20 @@ function LineChart({ data }) {
             boxShadow: '0 6px 24px rgba(0,0,0,0.28)', whiteSpace: 'nowrap', zIndex: 20,
           }}>
             <div style={{ fontWeight: 700, marginBottom: 5, fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
-              {fmtFecha(d.fecha)}
+              {d.label} · {d.count} {d.count === 1 ? 'domingo' : 'domingos'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20 }}>
                 <span style={{ opacity: 0.6, fontSize: 12 }}>Efectivo</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(Number(d.efectivo))}</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(d.efectivo)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20 }}>
                 <span style={{ opacity: 0.6, fontSize: 12 }}>Terminal</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(Number(d.terminal))}</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(d.terminal)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 5, paddingTop: 5 }}>
                 <span style={{ fontWeight: 700 }}>Total</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#90d4a8' }}>{fmt(Number(d.total_ofrenda))}</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#90d4a8' }}>{fmt(d.total)}</span>
               </div>
             </div>
           </div>
@@ -167,10 +166,10 @@ function LineChart({ data }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function IngresosPage() {
-  const [ofrendas, setOfrendas]           = useState([]);
-  const [gastos,   setGastos]             = useState([]);
-  const [loading,  setLoading]            = useState(true);
-  const [mesSeleccionado, setMesSelec]    = useState(null);
+  const [ofrendas, setOfrendas]        = useState([]);
+  const [gastos,   setGastos]          = useState([]);
+  const [loading,  setLoading]         = useState(true);
+  const [mesSeleccionado, setMesSelec] = useState(null);
 
   const year = new Date().getFullYear();
 
@@ -210,7 +209,7 @@ export default function IngresosPage() {
   const pctEfectivo       = totalCombinado > 0 ? Math.round((totalEfectivo / totalCombinado) * 100) : 0;
   const pctTerminal       = 100 - pctEfectivo;
 
-  // Resumen por mes (desglose lado derecho)
+  // Resumen mensual — usado tanto en la lista como en la gráfica
   const mesesDisponibles = [...new Set(ofrendas.map(d => d.fecha.slice(0, 7)))].sort();
   const resumenMeses = mesesDisponibles.map(m => {
     const rows = ofrendas.filter(d => d.fecha.startsWith(m));
@@ -224,17 +223,11 @@ export default function IngresosPage() {
     };
   });
 
-  // Gráfica: responde al mes seleccionado
-  const chartData = (mesSeleccionado
-    ? ofrendas.filter(d => d.fecha.startsWith(mesSeleccionado))
-    : ofrendas
-  ).slice().sort((a, b) => a.fecha.localeCompare(b.fecha));
+  // Gráfica siempre mensual (un punto por mes)
+  const chartData  = resumenMeses;
+  const chartTitle = `Ingresos por mes ${year}`;
 
-  const chartTitle = mesSeleccionado
-    ? `Ingresos por domingo — ${mesNombre(mesSeleccionado)} ${year}`
-    : `Ingresos por domingo ${year}`;
-
-  // Tabla del acordeón
+  // Tabla del acordeón (detalle por domingo del mes seleccionado)
   const tablaData = mesSeleccionado
     ? [...ofrendas]
         .filter(d => d.fecha.startsWith(mesSeleccionado))
@@ -323,27 +316,10 @@ export default function IngresosPage() {
         </div>
       </div>
 
-      {/* ── Fila 3: Gráfica (izq) + Desglose por mes (der) ── */}
+      {/* ── Fila 3: Resumen por mes (izq) + Gráfica mensual (der) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
 
-        {/* Gráfica */}
-        <div className="card" style={{ padding: '20px 20px 16px' }}>
-          <div className="card-head" style={{ marginBottom: 20 }}>
-            <div>
-              <h3 className="card-title">{chartTitle}</h3>
-              <div className="card-sub">
-                {chartData.length} {chartData.length === 1 ? 'domingo' : 'domingos'} · pasa el mouse sobre cada punto
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 28, height: 3, borderRadius: 99, background: 'var(--chart-primary)', opacity: 0.85 }} />
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Ofrenda total</span>
-            </div>
-          </div>
-          <LineChart data={chartData} />
-        </div>
-
-        {/* Desglose por mes */}
+        {/* Resumen por mes — izquierda */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
           <div className="card-head" style={{ marginBottom: 16 }}>
             <div>
@@ -360,23 +336,23 @@ export default function IngresosPage() {
                   onClick={() => toggleMes(r.mes)}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '10px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    padding: '11px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
                     background: activo ? 'var(--black)' : 'transparent',
                     color: activo ? 'white' : 'var(--ink)',
                     transition: 'background 0.15s',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{r.label}</span>
-                    <span style={{ fontSize: 11, color: activo ? 'rgba(255,255,255,0.55)' : 'var(--muted)' }}>
+                    <span style={{ fontSize: 15, fontWeight: 600 }}>{r.label}</span>
+                    <span style={{ fontSize: 12, color: activo ? 'rgba(255,255,255,0.55)' : 'var(--muted)' }}>
                       {r.count} dom.
                     </span>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
                       {fmt(r.total)}
                     </div>
-                    <div style={{ fontSize: 10.5, color: activo ? 'rgba(255,255,255,0.55)' : 'var(--muted)', marginTop: 1 }}>
+                    <div style={{ fontSize: 12, color: activo ? 'rgba(255,255,255,0.55)' : 'var(--muted)', marginTop: 2 }}>
                       Efvo {fmt(r.efectivo)} · Term {fmt(r.terminal)}
                     </div>
                   </div>
@@ -384,6 +360,23 @@ export default function IngresosPage() {
               );
             })}
           </div>
+        </div>
+
+        {/* Gráfica mensual — derecha */}
+        <div className="card" style={{ padding: '20px 20px 16px' }}>
+          <div className="card-head" style={{ marginBottom: 20 }}>
+            <div>
+              <h3 className="card-title">{chartTitle}</h3>
+              <div className="card-sub">
+                {chartData.length} {chartData.length === 1 ? 'mes' : 'meses'} · pasa el mouse sobre cada punto
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 28, height: 3, borderRadius: 99, background: 'var(--chart-primary)', opacity: 0.85 }} />
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Total mensual</span>
+            </div>
+          </div>
+          <LineChart data={chartData} />
         </div>
       </div>
 
@@ -400,17 +393,13 @@ export default function IngresosPage() {
           </button>
         ))}
         {mesSeleccionado && (
-          <button
-            className="chip"
-            onClick={() => setMesSelec(null)}
-            style={{ opacity: 0.6 }}
-          >
+          <button className="chip" onClick={() => setMesSelec(null)} style={{ opacity: 0.6 }}>
             ✕ Cerrar
           </button>
         )}
       </div>
 
-      {/* ── Acordeón: tabla del mes seleccionado ── */}
+      {/* ── Acordeón: detalle por domingo del mes seleccionado ── */}
       {mesSeleccionado && (
         <div className="card">
           <div className="card-head" style={{ marginBottom: 16 }}>
