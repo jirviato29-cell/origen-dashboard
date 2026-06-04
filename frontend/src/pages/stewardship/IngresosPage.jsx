@@ -372,7 +372,7 @@ export default function IngresosPage() {
                       {fmt(r.total)}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                      Efvo {fmt(r.efectivo)} · Term {fmt(r.terminal)}
+                      Efectivo {fmt(r.efectivo)} · Terminal {fmt(r.terminal)}
                     </div>
                   </div>
                 </button>
@@ -388,9 +388,25 @@ export default function IngresosPage() {
               <h3 className="card-title">{chartTitle}</h3>
               <div className="card-sub">{chartSub}</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 28, height: 3, borderRadius: 99, background: ORANGE, opacity: 0.85 }} />
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{chartLegend}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {mesSeleccionado && (
+                <button
+                  onClick={() => setMesSelec(null)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    background: 'none', border: '1px solid var(--border)',
+                    borderRadius: 6, padding: '4px 10px',
+                    fontSize: 12, color: 'var(--muted)', cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  ← Ver todos los meses
+                </button>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <div style={{ width: 28, height: 3, borderRadius: 99, background: ORANGE, opacity: 0.85 }} />
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>{chartLegend}</span>
+              </div>
             </div>
           </div>
           <LineChart data={chartData} />
