@@ -1,17 +1,6 @@
 import { useState } from 'react';
 import { dataMaestra, mockGastos, saldoInicialCaja } from '../../data/mockData';
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const CATEGORIAS = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'Decoración'];
-
-const CAT_COLORS = {
-  'Operación':  '#00B4D8',
-  'Alimentos':  '#FF6B2B',
-  'Materiales': '#1A1A1A',
-  'Eventos':    '#6B6B6B',
-  'Decoración': '#A3A3A3',
-};
+import { CATEGORIAS, CAT_COLORS } from '../../utils/categorias';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
