@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ofrendasApi, gastosApi } from '../../services/api';
+import { ofrendasApi, gastosApi, asistenciaApi } from '../../services/api';
 import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
 import { useIsMobile } from '../../utils/useIsMobile';
 
@@ -7,6 +7,13 @@ import { useIsMobile } from '../../utils/useIsMobile';
 
 function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
+}
+
+function fmtParticipSub(fecha) {
+  if (!fecha) return '—';
+  const d = new Date(fecha.slice(0, 10) + 'T00:00:00');
+  return d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
+    .replace(/\.$/, '').replace(/\. /, ', ').replace(/^\w/, c => c.toUpperCase());
 }
 
 // ── SVG Line Chart ────────────────────────────────────────────────────────────
@@ -140,9 +147,10 @@ function LineChart({ data }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function IngresosPage() {
-  const [ofrendas, setOfrendas]        = useState([]);
-  const [gastos,   setGastos]          = useState([]);
-  const [loading,  setLoading]         = useState(true);
+  const [ofrendas,   setOfrendas]   = useState([]);
+  const [gastos,     setGastos]     = useState([]);
+  const [asistencia, setAsistencia] = useState([]);
+  const [loading,    setLoading]    = useState(true);
   const [mesSeleccionado, setMesSelec] = useState(null);
   const isMobile = useIsMobile();
 
@@ -151,12 +159,14 @@ export default function IngresosPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [ro, rg] = await Promise.all([
+        const [ro, rg, ra] = await Promise.all([
           ofrendasApi.getAll({ year }),
           gastosApi.getAll({ year }),
+          asistenciaApi.getAll({ year }),
         ]);
         setOfrendas(ro.data);
         setGastos(rg.data);
+        setAsistencia(ra.data);
       } catch (e) {
         console.error('IngresosPage load error:', e);
       } finally {
@@ -172,6 +182,26 @@ export default function IngresosPage() {
 
   const sorted        = [...ofrendas].sort((a, b) => b.fecha.localeCompare(a.fecha));
   const ultimoDomingo = sorted[0];
+
+  // Participación: sobres ÷ (adultos + voluntarios) × 100
+  const asistByFecha = Object.fromEntries(asistencia.map(r => [r.fecha?.slice(0, 10), r]));
+  const uSobres = Number(ultimoDomingo?.ofrendas_sobres ?? 0);
+  const uAsist  = asistByFecha[ultimoDomingo?.fecha?.slice(0, 10)];
+  const uDenom  = (uAsist?.adultos ?? 0) + (uAsist?.voluntarios ?? 0);
+  const participacionUltimo = (uSobres > 0 && uDenom > 0)
+    ? Math.round(uSobres / uDenom * 100)
+    : null;
+  const participacionesAnio = ofrendas
+    .filter(d => Number(d.ofrendas_sobres ?? 0) > 0)
+    .map(d => {
+      const a   = asistByFecha[d.fecha?.slice(0, 10)];
+      const den = (a?.adultos ?? 0) + (a?.voluntarios ?? 0);
+      return den > 0 ? Math.round(Number(d.ofrendas_sobres) / den * 100) : null;
+    })
+    .filter(v => v !== null);
+  const promedioParticipacion = participacionesAnio.length > 0
+    ? Math.round(participacionesAnio.reduce((s, v) => s + v, 0) / participacionesAnio.length)
+    : null;
 
   const ofrendasMesActual = ofrendas.filter(d => d.fecha.startsWith(mesActual));
   const totalMesActual    = ofrendasMesActual.reduce((s, d) => s + Number(d.total_ofrenda), 0);
@@ -271,6 +301,24 @@ export default function IngresosPage() {
               Sobres <strong style={{ color: 'var(--ink)' }}>{Number(ultimoDomingo.ofrendas_sobres ?? 0)}</strong>
             </span>
           </div>
+        </div>
+
+        {/* Participación */}
+        <div className="card" style={{ padding: '18px 20px' }}>
+          <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            Participación
+          </div>
+          <div style={{ fontSize: 31, fontWeight: 800, color: 'var(--ink)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+            {participacionUltimo !== null ? `${participacionUltimo}%` : '—'}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 7 }}>
+            {fmtParticipSub(ultimoDomingo.fecha)} · {uSobres} sobres / {uDenom > 0 ? uDenom : '—'}
+          </div>
+          {promedioParticipacion !== null && (
+            <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--muted)' }}>
+              Promedio del año: <strong style={{ color: 'var(--ink)' }}>{promedioParticipacion}%</strong>
+            </div>
+          )}
         </div>
 
         <div className="card" style={{ padding: '18px 20px' }}>
