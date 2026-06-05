@@ -10,26 +10,35 @@ function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
 }
 
-// ── Weekly data builder ───────────────────────────────────────────────────────
-// Una fila por domingo (ofrenda). Los gastos se asignan al domingo cuyo
-// período los contiene (prevDomingo < fecha_gasto <= domingo_actual).
-
-function buildMonthlyData(weeklyData) {
-  const byMonth = {};
-  for (const row of weeklyData) {
-    const mes = row.fecha.slice(0, 7);
-    byMonth[mes] = row;
-  }
-  return Object.entries(byMonth).map(([mes, row]) => ({
-    mes,
-    label: new Date(mes + '-01T00:00:00').toLocaleDateString('es-MX', { month: 'long' })
-      .replace(/^\w/, c => c.toUpperCase()),
-    cumIngresos: row.cumIngresos,
-    cumGastos:   row.cumGastos,
-    balance:     row.balance,
-  }));
+function mesNombre(isoMes) {
+  return new Date(isoMes + '-01T00:00:00').toLocaleDateString('es-MX', { month: 'long' })
+    .replace(/^\w/, c => c.toUpperCase());
 }
 
+// ── Data builders ─────────────────────────────────────────────────────────────
+
+// Suma los valores del mes directamente desde los registros crudos.
+function buildMonthlyData(ofrendas, gastos) {
+  const meses = [...new Set(ofrendas.map(d => d.fecha.slice(0, 7)))].sort();
+  return meses.map(mes => {
+    const ingMes = ofrendas
+      .filter(d => d.fecha.startsWith(mes))
+      .reduce((s, d) => s + Number(d.total_ofrenda), 0);
+    const gasMes = gastos
+      .filter(g => g.fecha.startsWith(mes))
+      .reduce((s, g) => s + Number(g.monto), 0);
+    return {
+      mes,
+      label:    mesNombre(mes),
+      ingresos: ingMes,
+      gastos:   gasMes,
+      balance:  ingMes - gasMes,
+    };
+  });
+}
+
+// Una fila por domingo. Los gastos se asignan al período
+// (prevDomingo < fecha_gasto <= domingo_actual).
 function buildWeeklyData(ofrendas, gastos) {
   if (ofrendas.length === 0) return [];
   const sorted = [...ofrendas].sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -53,6 +62,16 @@ function buildWeeklyData(ofrendas, gastos) {
   });
 }
 
+// Reinicia los acumulados desde 0 para una tajada mensual del weekly data.
+function rebaseCumulative(slice) {
+  let cumIngresos = 0, cumGastos = 0;
+  return slice.map(row => {
+    cumIngresos += row.ingresos;
+    cumGastos   += row.gastos;
+    return { ...row, cumIngresos, cumGastos, balance: cumIngresos - cumGastos };
+  });
+}
+
 // ── Dual-line Chart ───────────────────────────────────────────────────────────
 
 const VW = 900, VH = 320;
@@ -72,7 +91,7 @@ function BalanceChart({ data }) {
   const chartW = VW - PAD.left - PAD.right;
   const chartH = VH - PAD.top  - PAD.bottom;
 
-  const yMax = Math.ceil(Math.max(...data.map(d => d.cumIngresos)) / 25000) * 25000;
+  const yMax = Math.ceil(Math.max(...data.map(d => d.cumIngresos)) / 25000) * 25000 || 25000;
   const tickInterval = yMax > 80000 ? 25000 : 10000;
   const yTicks = Array.from({ length: Math.floor(yMax / tickInterval) + 1 }, (_, i) => i * tickInterval);
 
@@ -237,9 +256,10 @@ function BalanceChart({ data }) {
 export default function BalancePage() {
   const year = new Date().getFullYear();
 
-  const [ofrendas, setOfrendas] = useState([]);
-  const [gastos,   setGastos]   = useState([]);
-  const [loading,  setLoading]  = useState(true);
+  const [ofrendas,        setOfrendas]  = useState([]);
+  const [gastos,          setGastos]    = useState([]);
+  const [loading,         setLoading]   = useState(true);
+  const [mesSeleccionado, setMesSelec]  = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -288,8 +308,23 @@ export default function BalancePage() {
       .reduce((s, g) => s + Number(g.monto), 0),
   }));
 
-  // ── Resumen por mes (acumulados al cierre de cada mes) ──
-  const monthlyData = buildMonthlyData(weeklyData);
+  // ── Resumen mensual (valores del mes, no acumulados) ──
+  const monthlyData = buildMonthlyData(ofrendas, gastos);
+
+  // ── Datos para la gráfica ──
+  const chartData = mesSeleccionado
+    ? rebaseCumulative(weeklyData.filter(r => r.fecha.startsWith(mesSeleccionado)))
+    : weeklyData;
+
+  const chartTitle = mesSeleccionado
+    ? `Balance ${mesNombre(mesSeleccionado)} ${year} — semana a semana`
+    : `Balance acumulado ${year} — semana a semana`;
+
+  const chartSub = mesSeleccionado
+    ? `${chartData.length} ${chartData.length === 1 ? 'domingo' : 'domingos'} · hover para ver detalle`
+    : `${ofrendas.length} domingos · hover para ver acumulados`;
+
+  const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
   // ── Tabla ──
   const tablaData          = [...weeklyData].reverse();
@@ -302,7 +337,6 @@ export default function BalancePage() {
       {/* ── Fila 1: 4 tarjetas ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14 }}>
 
-        {/* Caja chica */}
         <div className="card" style={{
           padding: '18px 20px',
           background: cajaChica >= 0 ? 'rgba(79,138,91,0.07)' : 'rgba(180,74,58,0.07)',
@@ -319,7 +353,6 @@ export default function BalancePage() {
           </div>
         </div>
 
-        {/* Acumulado ingresos */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Acumulado ingresos
@@ -332,7 +365,6 @@ export default function BalancePage() {
           </div>
         </div>
 
-        {/* Total gastos */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Total gastos del año
@@ -345,7 +377,6 @@ export default function BalancePage() {
           </div>
         </div>
 
-        {/* Balance neto */}
         <div className="card" style={{
           padding: '18px 20px',
           background: balanceNeto >= 0 ? 'rgba(79,138,91,0.10)' : 'rgba(180,74,58,0.10)',
@@ -370,7 +401,6 @@ export default function BalancePage() {
       {/* ── Fila 2: 3 tarjetas secundarias ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 14 }}>
 
-        {/* Efectivo */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
@@ -392,7 +422,6 @@ export default function BalancePage() {
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>Del total de ofrendas del año</div>
         </div>
 
-        {/* Terminal */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
@@ -414,7 +443,6 @@ export default function BalancePage() {
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>Del total de ofrendas del año</div>
         </div>
 
-        {/* Gastos por categoría */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
             Gastos por categoría
@@ -442,70 +470,91 @@ export default function BalancePage() {
       {/* ── Resumen por mes + Gráfica ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
 
-        {/* Resumen por mes */}
+        {/* Resumen por mes — interactivo */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
           <div className="card-head" style={{ marginBottom: 16 }}>
             <div>
               <h3 className="card-title">Resumen por mes</h3>
-              <div className="card-sub">Acumulados al cierre de cada mes · {year}</div>
+              <div className="card-sub">{year} · haz clic en un mes para ver su detalle</div>
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {monthlyData.map(r => (
-              <div
-                key={r.mes}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '11px 12px', borderRadius: 8,
-                  background: 'transparent',
-                }}
-              >
-                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{r.label}</span>
-                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#00B4D8' }}>
-                    Ing: {fmt(r.cumIngresos)}
+            {monthlyData.map(r => {
+              const activo = mesSeleccionado === r.mes;
+              return (
+                <button
+                  key={r.mes}
+                  onClick={() => toggleMes(r.mes)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '11px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    background: activo ? 'var(--black)' : 'transparent',
+                    color: activo ? 'white' : 'var(--ink)',
+                    transition: 'background 0.15s',
+                    textAlign: 'left', width: '100%',
+                  }}
+                >
+                  <span style={{ fontSize: 15, fontWeight: 600 }}>{r.label}</span>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, color: activo ? 'rgba(255,255,255,0.8)' : '#00B4D8' }}>
+                      Ing: {fmt(r.ingresos)}
+                    </div>
+                    <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: activo ? 'rgba(255,255,255,0.65)' : 'var(--danger)' }}>
+                      Gas: {fmt(r.gastos)}
+                    </div>
+                    <div style={{
+                      fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 800,
+                      color: activo
+                        ? (r.balance >= 0 ? '#90d4a8' : '#f4a070')
+                        : (r.balance >= 0 ? 'var(--good)' : 'var(--danger)'),
+                    }}>
+                      {r.balance >= 0 ? '+' : ''}{fmt(r.balance)}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>
-                    Gas: {fmt(r.cumGastos)}
-                  </div>
-                  <div style={{
-                    fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 800,
-                    color: r.balance >= 0 ? 'var(--good)' : 'var(--danger)',
-                  }}>
-                    {r.balance >= 0 ? '+' : ''}{fmt(r.balance)}
-                  </div>
-                </div>
-              </div>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Gráfica */}
+        {/* Gráfica — cambia según mes seleccionado */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
           <div className="card-head" style={{ marginBottom: 20 }}>
-            <div>
-              <h3 className="card-title" style={{ fontSize: 13 }}>Balance acumulado {year} — semana a semana</h3>
-              <div className="card-sub">
-                {ofrendas.length} domingos · hover para ver acumulados
-              </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 className="card-title" style={{ fontSize: 13 }}>{chartTitle}</h3>
+              <div className="card-sub">{chartSub}</div>
             </div>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 18, height: 3, borderRadius: 99, background: '#00B4D8' }} />
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Ingresos acum.</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 18, height: 3, borderRadius: 99, background: '#FF6B2B', opacity: 0.8,
-                  backgroundImage: 'repeating-linear-gradient(90deg, #FF6B2B 0 7px, transparent 7px 11px)' }} />
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Gastos acum.</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 12, height: 8, borderRadius: 3, background: 'rgba(0,180,216,0.15)' }} />
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Superávit</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
+              {mesSeleccionado && (
+                <button
+                  onClick={() => setMesSelec(null)}
+                  style={{
+                    fontSize: 11.5, fontWeight: 600, color: 'var(--muted)',
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                    textDecoration: 'underline', textUnderlineOffset: 3,
+                  }}
+                >
+                  ← Ver todo el año
+                </button>
+              )}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 18, height: 3, borderRadius: 99, background: '#00B4D8' }} />
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Ingresos acum.</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 18, height: 3, borderRadius: 99, background: '#FF6B2B', opacity: 0.8,
+                    backgroundImage: 'repeating-linear-gradient(90deg, #FF6B2B 0 7px, transparent 7px 11px)' }} />
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Gastos acum.</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 12, height: 8, borderRadius: 3, background: 'rgba(0,180,216,0.15)' }} />
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Superávit</span>
+                </div>
               </div>
             </div>
           </div>
-          <BalanceChart data={weeklyData} />
+          <BalanceChart data={chartData} />
         </div>
       </div>
 
