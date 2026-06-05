@@ -12,8 +12,9 @@ function fmt(n) {
 function fmtParticipSub(fecha) {
   if (!fecha) return '—';
   const d = new Date(fecha.slice(0, 10) + 'T00:00:00');
-  return d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
-    .replace(/\.$/, '').replace(/\. /, ', ').replace(/^\w/, c => c.toUpperCase());
+  return d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+    .replace(/\./g, '').replace(/\s{2,}/g, ' ').trim()
+    .replace(/^\w/, c => c.toUpperCase());
 }
 
 // ── SVG Line Chart ────────────────────────────────────────────────────────────
@@ -240,8 +241,7 @@ export default function IngresosPage() {
     };
   });
 
-  const mesUltimo         = ultimoDomingo?.fecha?.slice(0, 7);
-  const participMesUltimo = resumenMeses.find(r => r.mes === mesUltimo)?.participMes ?? null;
+  const totalOfrendasAnio = ofrendas.reduce((s, d) => s + Number(d.ofrendas ?? 0), 0);
 
   // Gráfica: mensual por defecto; por domingo cuando hay mes seleccionado
   const chartData = mesSeleccionado
@@ -328,18 +328,18 @@ export default function IngresosPage() {
             {participacionUltimo !== null ? `${participacionUltimo}%` : '—'}
           </div>
           <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 7 }}>
-            {fmtParticipSub(ultimoDomingo.fecha)} · {uSobres} sobres / {uDenom > 0 ? uDenom : '—'}
+            {fmtParticipSub(ultimoDomingo.fecha)}
           </div>
-          {participMesUltimo !== null && (
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 5 }}>
-              {mesNombre(mesUltimo)}: <strong style={{ color: 'var(--ink)' }}>{participMesUltimo}%</strong>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {promedioParticipacion !== null && (
+              <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                Promedio del año: <strong style={{ color: 'var(--ink)' }}>{promedioParticipacion}%</strong>
+              </div>
+            )}
+            <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+              Total de ofrendas del año: <strong style={{ color: 'var(--ink)' }}>{totalOfrendasAnio}</strong>
             </div>
-          )}
-          {promedioParticipacion !== null && (
-            <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--muted)' }}>
-              Promedio del año: <strong style={{ color: 'var(--ink)' }}>{promedioParticipacion}%</strong>
-            </div>
-          )}
+          </div>
         </div>
 
         <div className="card" style={{ padding: '18px 20px' }}>
