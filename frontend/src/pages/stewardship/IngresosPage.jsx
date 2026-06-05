@@ -428,6 +428,14 @@ export default function IngresosPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 110 }}>
                     <span style={{ fontSize: 15, fontWeight: 600 }}>{r.label}</span>
                     <span style={{ fontSize: 12, color: 'var(--muted)' }}>{r.count} dom.</span>
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, flexShrink: 0,
+                      background: activo ? ORANGE : 'var(--border)',
+                      color: activo ? 'white' : 'var(--muted)',
+                      transition: 'background 0.15s, color 0.15s',
+                    }}>
+                      {activo ? 'Ocultar' : 'Ver detalle'}
+                    </span>
                   </div>
 
                   {/* Centro */}
