@@ -128,11 +128,6 @@ export default function Layout() {
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Ofrenda</span>
               </button>
             )}
-            {isStewardship && isGastos && (
-              <button className="btn btn-primary" onClick={() => openGastosModal()}>
-                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Gasto</span>
-              </button>
-            )}
             {isStewardship && isGastosPorPagar && (
               <button className="btn btn-primary" onClick={() => openGastosModal(false)}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar gasto por pagar</span>
