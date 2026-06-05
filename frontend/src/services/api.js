@@ -73,6 +73,15 @@ const realEventosApi = {
   remove:   (id)     => http.delete(`/eventos/${id}`),
 };
 
+// ─── Comprobantes ─────────────────────────────────────────────────────────────
+const realComprobanteApi = {
+  upload: (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return http.post('/comprobantes', fd);
+  },
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;
 export const ofrendasApi   = USE_MOCK ? mock.ingresosApi   : realOfrendasApi;
@@ -80,4 +89,5 @@ export const gastosApi     = USE_MOCK ? mock.gastosApi     : realGastosApi;
 export const categoriasApi = USE_MOCK ? mock.categoriasApi : realCategoriasApi;
 export const dashboardApi  = USE_MOCK ? mock.dashboardApi  : realDashboardApi;
 export const asistenciaApi = USE_MOCK ? mock.asistenciaApi : realAsistenciaApi;
-export const eventosApi    = USE_MOCK ? null               : realEventosApi;
+export const eventosApi      = USE_MOCK ? null               : realEventosApi;
+export const comprobanteApi  = realComprobanteApi;

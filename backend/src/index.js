@@ -3,13 +3,14 @@ require('dns').setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
 
-const ingresosRouter    = require('./routes/ingresos');
-const gastosRouter      = require('./routes/gastos');
-const categoriasRouter  = require('./routes/categorias');
-const dashboardRouter   = require('./routes/dashboard');
-const asistenciaRouter  = require('./routes/asistencia');
-const ofrendasRouter    = require('./routes/ofrendas');
-const eventosRouter     = require('./routes/eventos');
+const ingresosRouter      = require('./routes/ingresos');
+const gastosRouter        = require('./routes/gastos');
+const categoriasRouter    = require('./routes/categorias');
+const dashboardRouter     = require('./routes/dashboard');
+const asistenciaRouter    = require('./routes/asistencia');
+const ofrendasRouter      = require('./routes/ofrendas');
+const eventosRouter       = require('./routes/eventos');
+const comprobantesRouter  = require('./routes/comprobantes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,7 +26,8 @@ app.use('/api/categorias', categoriasRouter);
 app.use('/api/dashboard',  dashboardRouter);
 app.use('/api/asistencia', asistenciaRouter);
 app.use('/api/ofrendas',   ofrendasRouter);
-app.use('/api/eventos',    eventosRouter);
+app.use('/api/eventos',        eventosRouter);
+app.use('/api/comprobantes',  comprobantesRouter);
 
 app.use((err, req, res, _next) => {
   console.error(err.stack);

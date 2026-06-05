@@ -84,13 +84,13 @@ router.get('/:id', async (req, res) => {
 // POST /api/gastos
 router.post('/', async (req, res) => {
   try {
-    const { fecha, concepto, categoria, monto, pagado = true } = req.body;
+    const { fecha, concepto, categoria, monto, pagado = true, comprobante_url = null } = req.body;
     if (!fecha || !concepto || !categoria || !monto) {
       return res.status(400).json({ error: 'fecha, concepto, categoria y monto son requeridos' });
     }
     const { rows } = await pool.query(
-      'INSERT INTO gastos (fecha, concepto, categoria, monto, pagado) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-      [fecha, concepto, categoria, monto, pagado]
+      'INSERT INTO gastos (fecha, concepto, categoria, monto, pagado, comprobante_url) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+      [fecha, concepto, categoria, monto, pagado, comprobante_url]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -101,15 +101,13 @@ router.post('/', async (req, res) => {
 // PUT /api/gastos/:id
 router.put('/:id', async (req, res) => {
   try {
-    const { fecha, concepto, categoria, monto, pagado } = req.body;
-    let query, params;
-    if (pagado !== undefined) {
-      query  = 'UPDATE gastos SET fecha=$1, concepto=$2, categoria=$3, monto=$4, pagado=$5 WHERE id=$6 RETURNING *';
-      params = [fecha, concepto, categoria, monto, pagado, req.params.id];
-    } else {
-      query  = 'UPDATE gastos SET fecha=$1, concepto=$2, categoria=$3, monto=$4 WHERE id=$5 RETURNING *';
-      params = [fecha, concepto, categoria, monto, req.params.id];
-    }
+    const { fecha, concepto, categoria, monto, pagado, comprobante_url } = req.body;
+    const sets   = ['fecha=$1', 'concepto=$2', 'categoria=$3', 'monto=$4'];
+    const params = [fecha, concepto, categoria, monto];
+    if (pagado !== undefined)        { sets.push(`pagado=$${params.length+1}`);        params.push(pagado); }
+    if (comprobante_url !== undefined){ sets.push(`comprobante_url=$${params.length+1}`); params.push(comprobante_url); }
+    params.push(req.params.id);
+    const query = `UPDATE gastos SET ${sets.join(', ')} WHERE id=$${params.length} RETURNING *`;
     const { rows } = await pool.query(query, params);
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);

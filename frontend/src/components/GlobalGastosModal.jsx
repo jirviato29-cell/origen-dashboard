@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react';
-import { gastosApi } from '../services/api';
+import { gastosApi, comprobanteApi } from '../services/api';
 import { useGastosModal } from '../context/GastosModalContext';
 import { I } from './Icons';
 
 const CATEGORIAS = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'Decoración'];
+const MAX_BYTES  = 10 * 1024 * 1024;
 
 function toISODate(d) { return d.toISOString().slice(0, 10); }
-
-function todayISO() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return toISODate(d);
-}
+function todayISO() { const d = new Date(); d.setHours(0, 0, 0, 0); return toISODate(d); }
 
 function formatDateLong(iso) {
   return new Date(iso + 'T00:00:00')
@@ -21,20 +17,38 @@ function formatDateLong(iso) {
 
 const makeEmpty = () => ({ fecha: todayISO(), concepto: '', categoria: '', monto: '' });
 
+// ── Shared input style ────────────────────────────────────────────────────────
+const inputStyle = {
+  width: '100%', padding: '10px 12px', borderRadius: 10,
+  border: '1.5px solid var(--border)', fontSize: 15,
+  outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-ui)',
+};
+
 export default function GlobalGastosModal() {
   const { open, pagado, closeModal, triggerRefresh } = useGastosModal();
 
-  const [form, setForm]       = useState(makeEmpty);
-  const [error, setError]     = useState('');
-  const [saving, setSaving]   = useState(false);
-  const [saved, setSaved]     = useState(false);
-  const [savedData, setSavedData] = useState(null);
+  const [form,        setForm]        = useState(makeEmpty);
+  const [error,       setError]       = useState('');
+  const [saving,      setSaving]      = useState(false);
+  const [saved,       setSaved]       = useState(false);
+  const [savedData,   setSavedData]   = useState(null);
+  const [uploading,   setUploading]   = useState(false);
+
+  // File / comprobante state
+  const [archivo,      setArchivo]      = useState(null);
+  const [preview,      setPreview]      = useState(null);
+  const [archivoError, setArchivoError] = useState('');
+  const [fileKey,      setFileKey]      = useState(0);
 
   const monto   = parseFloat(form.monto) || 0;
   const canSave = form.fecha && form.concepto.trim() && form.categoria && monto > 0;
 
   useEffect(() => {
-    if (open) { setSaved(false); setForm(makeEmpty()); setError(''); }
+    if (open) {
+      setSaved(false); setForm(makeEmpty()); setError('');
+      setArchivo(null); setPreview(null); setArchivoError('');
+      setFileKey(k => k + 1);
+    }
   }, [open]);
 
   useEffect(() => {
@@ -43,20 +57,60 @@ export default function GlobalGastosModal() {
     return () => window.removeEventListener('keydown', handler);
   }, [closeModal, saved]);
 
+  // ── File handlers ────────────────────────────────────────────────────────────
+
+  const handleArchivoChange = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > MAX_BYTES) {
+      setArchivoError('El archivo supera el límite de 10 MB.');
+      setArchivo(null); setPreview(null);
+      return;
+    }
+    setArchivoError('');
+    setArchivo(f);
+    setPreview(f.type.startsWith('image/') ? URL.createObjectURL(f) : null);
+  };
+
+  const handleRemoveArchivo = () => {
+    setArchivo(null); setPreview(null); setArchivoError('');
+    setFileKey(k => k + 1);
+  };
+
+  // ── Save ─────────────────────────────────────────────────────────────────────
+
   const handleSave = async () => {
-    if (!form.fecha)            { setError('La fecha es requerida.'); return; }
-    if (!form.concepto.trim())  { setError('El concepto es requerido.'); return; }
-    if (!form.categoria)        { setError('Selecciona una categoría.'); return; }
-    if (monto <= 0)             { setError('El monto debe ser mayor a cero.'); return; }
+    if (!form.fecha)           { setError('La fecha es requerida.'); return; }
+    if (!form.concepto.trim()) { setError('El concepto es requerido.'); return; }
+    if (!form.categoria)       { setError('Selecciona una categoría.'); return; }
+    if (monto <= 0)            { setError('El monto debe ser mayor a cero.'); return; }
     setError('');
+
+    // 1) Upload comprobante if present
+    let comprobanteUrl = null;
+    if (archivo) {
+      setUploading(true);
+      try {
+        const res = await comprobanteApi.upload(archivo);
+        comprobanteUrl = res.data.url;
+      } catch (err) {
+        setError('Error al subir el comprobante. Los demás datos no se perdieron, inténtalo de nuevo.');
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+
+    // 2) Create gasto
     setSaving(true);
     try {
       await gastosApi.create({
-        fecha:     form.fecha,
-        concepto:  form.concepto.trim(),
-        categoria: form.categoria,
+        fecha:           form.fecha,
+        concepto:        form.concepto.trim(),
+        categoria:       form.categoria,
         monto,
         pagado,
+        comprobante_url: comprobanteUrl,
       });
       setSavedData({ fecha: form.fecha, concepto: form.concepto.trim(), categoria: form.categoria, monto });
       setSaved(true);
@@ -70,6 +124,8 @@ export default function GlobalGastosModal() {
   };
 
   if (!open) return null;
+
+  const isBusy = saving || uploading;
 
   return (
     <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget && !saved) closeModal(); }}>
@@ -111,55 +167,27 @@ export default function GlobalGastosModal() {
 
               {/* Fecha */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Fecha
-                </label>
-                <input
-                  type="date"
-                  value={form.fecha}
+                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Fecha</label>
+                <input type="date" value={form.fecha}
                   onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))}
-                  style={{
-                    width: '100%', padding: '10px 12px', borderRadius: 10,
-                    border: '1.5px solid var(--border)', fontSize: 15,
-                    outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-ui)',
-                  }}
-                />
+                  style={inputStyle} />
               </div>
 
               {/* Concepto */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Concepto
-                </label>
-                <input
-                  type="text"
-                  placeholder="ej. Compra de materiales para el servicio"
+                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Concepto</label>
+                <input type="text" placeholder="ej. Compra de materiales para el servicio"
                   value={form.concepto}
                   onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))}
-                  style={{
-                    width: '100%', padding: '10px 12px', borderRadius: 10,
-                    border: '1.5px solid var(--border)', fontSize: 15,
-                    outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-ui)',
-                  }}
-                />
+                  style={inputStyle} />
               </div>
 
               {/* Categoría */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Categoría
-                </label>
-                <select
-                  value={form.categoria}
+                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Categoría</label>
+                <select value={form.categoria}
                   onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}
-                  style={{
-                    width: '100%', padding: '10px 12px', borderRadius: 10,
-                    border: '1.5px solid var(--border)', fontSize: 15,
-                    outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-ui)',
-                    background: 'white', color: form.categoria ? 'var(--ink)' : 'var(--muted)',
-                    cursor: 'pointer',
-                  }}
-                >
+                  style={{ ...inputStyle, background: 'white', color: form.categoria ? 'var(--ink)' : 'var(--muted)', cursor: 'pointer' }}>
                   <option value="" disabled>Seleccionar categoría…</option>
                   {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -167,25 +195,75 @@ export default function GlobalGastosModal() {
 
               {/* Monto */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Monto
-                </label>
+                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Monto</label>
                 <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontWeight: 600 }}>$</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
+                  <input type="number" min="0" step="0.01" placeholder="0.00"
                     value={form.monto}
                     onChange={e => setForm(f => ({ ...f, monto: e.target.value }))}
-                    style={{
-                      width: '100%', padding: '10px 12px 10px 26px', borderRadius: 10,
-                      border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
-                      outline: 'none', boxSizing: 'border-box',
-                    }}
-                  />
+                    style={{ ...inputStyle, padding: '10px 12px 10px 26px', fontFamily: 'var(--font-mono)', fontSize: 16 }} />
                 </div>
+              </div>
+
+              {/* Comprobante */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Comprobante
+                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
+                </label>
+
+                {!archivo ? (
+                  <label style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    padding: '10px 14px', borderRadius: 10, border: '1.5px dashed var(--border)',
+                    cursor: 'pointer', color: 'var(--muted)', fontSize: 13.5, fontWeight: 500,
+                    background: 'var(--surface)', transition: 'border-color 0.15s',
+                  }}>
+                    <I.download size={15} />
+                    Seleccionar imagen o PDF
+                    <input
+                      key={fileKey}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleArchivoChange}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                ) : (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', borderRadius: 10,
+                    border: '1.5px solid var(--border)', background: 'var(--surface)',
+                  }}>
+                    {preview ? (
+                      <img src={preview} alt="preview" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                    ) : (
+                      <div style={{
+                        width: 48, height: 48, borderRadius: 6, flexShrink: 0,
+                        background: 'rgba(180,74,58,0.10)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--danger)', letterSpacing: '0.04em' }}>PDF</span>
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {archivo.name}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>
+                        {(archivo.size / 1024).toFixed(0)} KB
+                      </div>
+                    </div>
+                    <button type="button" onClick={handleRemoveArchivo}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 4, flexShrink: 0 }}>
+                      <I.x size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {archivoError && (
+                  <p style={{ fontSize: 12, color: 'var(--danger)', margin: 0 }}>{archivoError}</p>
+                )}
               </div>
 
               {/* Total */}
@@ -211,11 +289,15 @@ export default function GlobalGastosModal() {
             <button
               className="btn btn-primary anf-save-btn"
               onClick={handleSave}
-              disabled={saving || !canSave}
-              style={{ opacity: (saving || !canSave) ? 0.45 : 1, marginTop: 4 }}
+              disabled={isBusy || !canSave}
+              style={{ opacity: (isBusy || !canSave) ? 0.45 : 1, marginTop: 4 }}
             >
               <I.check size={16} />
-              {saving ? 'Guardando…' : pagado ? 'Guardar gasto' : 'Guardar gasto por pagar'}
+              {uploading
+                ? 'Subiendo comprobante…'
+                : saving
+                  ? 'Guardando…'
+                  : pagado ? 'Guardar gasto' : 'Guardar gasto por pagar'}
             </button>
 
             {!canSave && !error && (
