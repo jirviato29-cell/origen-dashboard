@@ -12,10 +12,8 @@ function catLabel(g) {
   return g.categoria_nombre ?? g.categoria ?? '—';
 }
 
-function metodoPago(g) {
-  if (g.metodo_pago === 'efectivo') return 'Caja efectivo AGS';
-  if (g.metodo_pago === 'banco')    return 'Banco';
-  return g.metodo_pago || '—';
+function metodoPago() {
+  return 'Caja efectivo AGS';
 }
 
 export default function GastosPorPagarPage() {
