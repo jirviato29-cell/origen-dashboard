@@ -52,6 +52,7 @@ function buildWeeklyData(ofrendas, gastos) {
     cumGastos   += gastosDelPeriodo;
     return {
       fecha:         d.fecha,
+      efectivo:      Number(d.efectivo),
       ingresos:      Number(d.total_ofrenda),
       gastos:        gastosDelPeriodo,
       balanceSemana: Number(d.total_ofrenda) - gastosDelPeriodo,
@@ -326,12 +327,14 @@ export default function BalancePage() {
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
-  // ── Tabla 1: Caja de Efectivo (saldo encadenado desde $0) ──
+  // ── Tabla 1: Caja de Efectivo ──
+  // Ingresos = solo efectivo de ofrendas; Gastos = todos (sin filtro de método).
+  // Arranca en SALDO_INICIAL_CAJA (carryover del año anterior).
   const cajaData = [];
-  let saldo = 0;
+  let saldo = SALDO_INICIAL_CAJA;
   for (const row of weeklyData) {
     const saldoInicial = saldo;
-    const saldoFinal   = saldo + row.ingresos - row.gastos;
+    const saldoFinal   = saldo + row.efectivo - row.gastos;
     cajaData.push({ ...row, saldoInicial, saldoFinal });
     saldo = saldoFinal;
   }
@@ -604,7 +607,7 @@ export default function BalancePage() {
                       {fmt(row.saldoInicial)}
                     </td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                      {fmt(row.ingresos)}
+                      {row.efectivo > 0 ? fmt(row.efectivo) : '—'}
                     </td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? 'var(--danger)' : 'var(--muted)' }}>
                       {row.gastos > 0 ? fmt(row.gastos) : '—'}
@@ -625,7 +628,7 @@ export default function BalancePage() {
                   </td>
                   <td />
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                    {fmt(totalIngresos)}
+                    {fmt(totalEfectivo)}
                   </td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
                     {fmt(totalGastosWeekly)}
