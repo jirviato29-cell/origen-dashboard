@@ -123,7 +123,7 @@ export default function Layout() {
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Asistencia</span>
               </button>
             )}
-            {isStewardship && !isGastos && !isGastosPorPagar && !isAsistencia && location.pathname !== '/stewardship/balance' && (
+            {isStewardship && !isGastos && !isGastosPorPagar && !isAsistencia && location.pathname !== '/stewardship/balance' && location.pathname !== '/stewardship/punto-encuentro' && (
               <button className="btn btn-primary" onClick={openOfrendasModal}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Ofrenda</span>
               </button>
