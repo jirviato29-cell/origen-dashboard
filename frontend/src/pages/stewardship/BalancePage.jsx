@@ -1,17 +1,8 @@
-import { useState } from 'react';
-import { dataMaestra, mockGastos, saldoInicialCaja } from '../../data/mockData';
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const CATEGORIAS = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'Decoración'];
-
-const CAT_COLORS = {
-  'Operación':  '#00B4D8',
-  'Alimentos':  '#FF6B2B',
-  'Materiales': '#1A1A1A',
-  'Eventos':    '#6B6B6B',
-  'Decoración': '#A3A3A3',
-};
+import { useState, useEffect } from 'react';
+import { ofrendasApi, gastosApi } from '../../services/api';
+import { fmtFecha, fmtFechaShort } from '../../utils/fecha';
+import { CATEGORIAS, CAT_COLORS } from '../../utils/categorias';
+import { SALDO_INICIAL_CAJA } from '../../utils/config';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -19,19 +10,9 @@ function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
 }
 
-function fmtFecha(iso) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('es-MX', {
-    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-  }).replace(/^\w/, c => c.toUpperCase());
-}
-
-function fmtFechaShort(iso) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('es-MX', {
-    day: '2-digit', month: 'short',
-  });
-}
-
-// ── Pre-compute weekly running totals ─────────────────────────────────────────
+// ── Weekly data builder ───────────────────────────────────────────────────────
+// Una fila por domingo (ofrenda). Los gastos se asignan al domingo cuyo
+// período los contiene (prevDomingo < fecha_gasto <= domingo_actual).
 
 function buildMonthlyData(weeklyData) {
   const byMonth = {};
@@ -49,20 +30,22 @@ function buildMonthlyData(weeklyData) {
   }));
 }
 
-function buildWeeklyData() {
-  const chronological = [...dataMaestra].sort((a, b) => a.fecha.localeCompare(b.fecha));
+function buildWeeklyData(ofrendas, gastos) {
+  if (ofrendas.length === 0) return [];
+  const sorted = [...ofrendas].sort((a, b) => a.fecha.localeCompare(b.fecha));
   let cumIngresos = 0, cumGastos = 0;
-  return chronological.map(d => {
-    const gastosDelDia = mockGastos
-      .filter(g => g.fecha === d.fecha)
-      .reduce((s, g) => s + g.monto, 0);
-    cumIngresos += d.total_ofrenda;
-    cumGastos   += gastosDelDia;
+  return sorted.map((d, idx) => {
+    const prevFecha = idx === 0 ? '' : sorted[idx - 1].fecha;
+    const gastosDelPeriodo = gastos
+      .filter(g => idx === 0 ? g.fecha <= d.fecha : g.fecha > prevFecha && g.fecha <= d.fecha)
+      .reduce((s, g) => s + Number(g.monto), 0);
+    cumIngresos += Number(d.total_ofrenda);
+    cumGastos   += gastosDelPeriodo;
     return {
       fecha:         d.fecha,
-      ingresos:      d.total_ofrenda,
-      gastos:        gastosDelDia,
-      balanceSemana: d.total_ofrenda - gastosDelDia,
+      ingresos:      Number(d.total_ofrenda),
+      gastos:        gastosDelPeriodo,
+      balanceSemana: Number(d.total_ofrenda) - gastosDelPeriodo,
       cumIngresos,
       cumGastos,
       balance:       cumIngresos - cumGastos,
@@ -77,6 +60,14 @@ const PAD = { left: 82, right: 28, top: 28, bottom: 52 };
 
 function BalanceChart({ data }) {
   const [hovered, setHovered] = useState(null);
+
+  if (data.length < 2) {
+    return (
+      <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
+        Sin suficientes datos para mostrar la gráfica
+      </div>
+    );
+  }
 
   const chartW = VW - PAD.left - PAD.right;
   const chartH = VH - PAD.top  - PAD.bottom;
@@ -94,7 +85,6 @@ function BalanceChart({ data }) {
   const pathIng = ptsIng.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   const pathGas = ptsGas.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 
-  // Filled area between the two curves (ingresos → gastos reversed → close)
   const areaPath =
     pathIng + ' ' +
     [...ptsGas].reverse().map(p => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') +
@@ -107,7 +97,6 @@ function BalanceChart({ data }) {
         style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
         onMouseLeave={() => setHovered(null)}
       >
-        {/* Grid + Y labels */}
         {yTicks.map(v => (
           <g key={v}>
             <line
@@ -118,14 +107,13 @@ function BalanceChart({ data }) {
             />
             <text
               x={PAD.left - 10} y={toY(v) + 4}
-              textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="monospace"
+              textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="var(--font-mono)"
             >
               {v === 0 ? '$0' : `$${(v / 1000).toFixed(0)}k`}
             </text>
           </g>
         ))}
 
-        {/* X axis labels — every 3rd point */}
         {ptsIng.map((p, i) => {
           if (i % 3 !== 0 && i !== ptsIng.length - 1) return null;
           return (
@@ -136,34 +124,27 @@ function BalanceChart({ data }) {
           );
         })}
 
-        {/* End-of-line labels */}
         <text
           x={ptsIng[ptsIng.length - 1].x + 6}
           y={ptsIng[ptsIng.length - 1].y + 4}
-          fontSize={9.5} fill="#00B4D8" fontWeight="700" fontFamily="monospace"
+          fontSize={9.5} fill="#00B4D8" fontWeight="700" fontFamily="var(--font-mono)"
         >
           {fmt(data[data.length - 1].cumIngresos)}
         </text>
         <text
           x={ptsGas[ptsGas.length - 1].x + 6}
           y={ptsGas[ptsGas.length - 1].y + 4}
-          fontSize={9.5} fill="#FF6B2B" fontWeight="700" fontFamily="monospace"
+          fontSize={9.5} fill="#FF6B2B" fontWeight="700" fontFamily="var(--font-mono)"
         >
           {fmt(data[data.length - 1].cumGastos)}
         </text>
 
-        {/* Area fill between lines */}
         <path d={areaPath} fill="#00B4D8" opacity={0.08} />
-
-        {/* Gastos line — dashed orange */}
         <path d={pathGas} fill="none" stroke="#FF6B2B" strokeWidth={2}
           strokeDasharray="7 4" strokeLinejoin="round" strokeLinecap="round" />
-
-        {/* Ingresos line — solid cyan */}
         <path d={pathIng} fill="none" stroke="#00B4D8" strokeWidth={2.5}
           strokeLinejoin="round" strokeLinecap="round" />
 
-        {/* Vertical hover guide */}
         {hovered !== null && (
           <line
             x1={ptsIng[hovered].x} x2={ptsIng[hovered].x}
@@ -172,7 +153,6 @@ function BalanceChart({ data }) {
           />
         )}
 
-        {/* Ingresos circles */}
         {ptsIng.map((p, i) => (
           <circle key={`ing-${i}`} cx={p.x} cy={p.y}
             r={hovered === i ? 6.5 : 4}
@@ -183,7 +163,6 @@ function BalanceChart({ data }) {
           />
         ))}
 
-        {/* Gastos circles */}
         {ptsGas.map((p, i) => (
           <circle key={`gas-${i}`} cx={p.x} cy={p.y}
             r={hovered === i ? 5 : 3}
@@ -195,7 +174,6 @@ function BalanceChart({ data }) {
         ))}
       </svg>
 
-      {/* Tooltip */}
       {hovered !== null && (() => {
         const d    = data[hovered];
         const p    = ptsIng[hovered];
@@ -225,14 +203,14 @@ function BalanceChart({ data }) {
                   <span style={{ width: 10, height: 3, background: '#00B4D8', display: 'inline-block', borderRadius: 2 }} />
                   <span style={{ opacity: 0.65, fontSize: 12 }}>Ing. acumulados</span>
                 </span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#00B4D8' }}>{fmt(d.cumIngresos)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#00B4D8' }}>{fmt(d.cumIngresos)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 10, height: 3, background: '#FF6B2B', display: 'inline-block', borderRadius: 2, opacity: 0.85 }} />
                   <span style={{ opacity: 0.65, fontSize: 12 }}>Gas. acumulados</span>
                 </span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#FF6B2B' }}>{fmt(d.cumGastos)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#FF6B2B' }}>{fmt(d.cumGastos)}</span>
               </div>
               <div style={{
                 display: 'flex', justifyContent: 'space-between', gap: 24,
@@ -240,7 +218,7 @@ function BalanceChart({ data }) {
               }}>
                 <span style={{ fontWeight: 700 }}>Balance</span>
                 <span style={{
-                  fontFamily: 'monospace', fontWeight: 800,
+                  fontFamily: 'var(--font-mono)', fontWeight: 800,
                   color: bal >= 0 ? '#90d4a8' : '#f4a070',
                 }}>
                   {bal >= 0 ? '+' : ''}{fmt(bal)}
@@ -257,38 +235,66 @@ function BalanceChart({ data }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function BalancePage() {
-  const weeklyData = buildWeeklyData(); // chronological, 21 rows
-  const lastRow    = weeklyData[weeklyData.length - 1];
+  const year = new Date().getFullYear();
 
-  // ── Fila 1 ──
-  const totalIngresos  = lastRow.cumIngresos;
-  const totalGastos    = lastRow.cumGastos;
+  const [ofrendas, setOfrendas] = useState([]);
+  const [gastos,   setGastos]   = useState([]);
+  const [loading,  setLoading]  = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [ro, rg] = await Promise.all([
+          ofrendasApi.getAll({ year }),
+          gastosApi.getAll({ year }),
+        ]);
+        setOfrendas(ro.data || []);
+        setGastos(rg.data || []);
+      } catch (e) {
+        console.error('BalancePage load error:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [year]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+        Cargando balance…
+      </div>
+    );
+  }
+
+  const weeklyData = buildWeeklyData(ofrendas, gastos);
+
+  // ── KPIs ──
+  const totalIngresos  = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
+  const totalGastos    = gastos.reduce((s, g) => s + Number(g.monto), 0);
   const balanceNeto    = totalIngresos - totalGastos;
-  const totalEfectivo  = dataMaestra.reduce((s, d) => s + d.efectivo, 0);
-  const totalGastosCC  = mockGastos.reduce((s, g) => s + g.monto, 0);
-  const cajaChica      = saldoInicialCaja + totalEfectivo - totalGastosCC;
+  const totalEfectivo  = ofrendas.reduce((s, d) => s + Number(d.efectivo), 0);
+  const totalTerminal  = ofrendas.reduce((s, d) => s + Number(d.terminal), 0);
+  const cajaChica      = SALDO_INICIAL_CAJA + totalEfectivo - totalGastos;
 
-  console.log('[CajaChica] saldoInicialCaja :', saldoInicialCaja);
-  console.log('[CajaChica] suma efectivos   :', totalEfectivo);
-  console.log('[CajaChica] suma gastos      :', totalGastosCC);
-  console.log('[CajaChica] resultado        :', cajaChica);
+  const pctEfectivo = totalIngresos > 0 ? Math.round(totalEfectivo / totalIngresos * 100) : 0;
+  const pctTerminal = totalIngresos > 0 ? Math.round(totalTerminal / totalIngresos * 100) : 0;
 
-  // ── Fila 2 ──
-  const totalTerminal  = dataMaestra.reduce((s, d) => s + d.terminal, 0);
-  const catTotales     = CATEGORIAS.map(cat => ({
+  // ── Gastos por categoría ──
+  const catTotales = CATEGORIAS.map(cat => ({
     cat,
-    total: mockGastos
+    total: gastos
       .filter(g => (g.categoria_nombre ?? g.categoria) === cat)
-      .reduce((s, g) => s + g.monto, 0),
+      .reduce((s, g) => s + Number(g.monto), 0),
   }));
-  const topCat = [...catTotales].sort((a, b) => b.total - a.total)[0];
 
   // ── Resumen por mes (acumulados al cierre de cada mes) ──
   const monthlyData = buildMonthlyData(weeklyData);
 
-  // ── Tabla (most recent first) ──
-  const tablaData = [...weeklyData].reverse();
+  // ── Tabla ──
+  const tablaData          = [...weeklyData].reverse();
   const totalBalanceSemana = weeklyData.reduce((s, r) => s + r.balanceSemana, 0);
+  const totalGastosWeekly  = weeklyData.reduce((s, r) => s + r.gastos, 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -302,7 +308,7 @@ export default function BalancePage() {
           background: cajaChica >= 0 ? 'rgba(79,138,91,0.07)' : 'rgba(180,74,58,0.07)',
         }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Caja chica actual
+            Efectivo en caja
           </div>
           <div style={{
             fontSize: 27, fontWeight: 800, marginTop: 10,
@@ -310,9 +316,6 @@ export default function BalancePage() {
             color: cajaChica >= 0 ? 'var(--good)' : 'var(--danger)',
           }}>
             {cajaChica >= 0 ? '+' : ''}{fmt(cajaChica)}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            Inicial {fmt(saldoInicialCaja)} + efectivo {fmt(totalEfectivo)} − gastos {fmt(totalGastosCC)}
           </div>
         </div>
 
@@ -325,7 +328,7 @@ export default function BalancePage() {
             {fmt(totalIngresos)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            {dataMaestra.length} domingos · 2026
+            {ofrendas.length} domingos · {year}
           </div>
         </div>
 
@@ -338,7 +341,7 @@ export default function BalancePage() {
             {fmt(totalGastos)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            {mockGastos.length} registros · 2026
+            {gastos.length} registros · {year}
           </div>
         </div>
 
@@ -359,7 +362,7 @@ export default function BalancePage() {
             {balanceNeto >= 0 ? '▲ ' : '▼ '}{fmt(Math.abs(balanceNeto))}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            {balanceNeto >= 0 ? 'Superávit' : 'Déficit'} acumulado 2026
+            {balanceNeto >= 0 ? 'Superávit' : 'Déficit'} acumulado {year}
           </div>
         </div>
       </div>
@@ -377,14 +380,14 @@ export default function BalancePage() {
               fontSize: 12, fontWeight: 800, padding: '2px 9px', borderRadius: 99,
               background: 'rgba(79,138,91,0.12)', color: 'var(--good)',
             }}>
-              {totalIngresos > 0 ? Math.round(totalEfectivo / totalIngresos * 100) : 0}%
+              {pctEfectivo}%
             </span>
           </div>
           <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--good)', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
             {fmt(totalEfectivo)}
           </div>
           <div style={{ marginTop: 14, height: 5, borderRadius: 99, background: 'var(--border)' }}>
-            <div style={{ height: '100%', width: `${Math.round(totalEfectivo / totalIngresos * 100)}%`, borderRadius: 99, background: 'var(--good)', opacity: 0.8 }} />
+            <div style={{ height: '100%', width: `${pctEfectivo}%`, borderRadius: 99, background: 'var(--good)', opacity: 0.8 }} />
           </div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>Del total de ofrendas del año</div>
         </div>
@@ -399,25 +402,25 @@ export default function BalancePage() {
               fontSize: 12, fontWeight: 800, padding: '2px 9px', borderRadius: 99,
               background: 'rgba(0,180,216,0.12)', color: 'var(--chart-primary)',
             }}>
-              {totalIngresos > 0 ? Math.round(totalTerminal / totalIngresos * 100) : 0}%
+              {pctTerminal}%
             </span>
           </div>
           <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--chart-primary)', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
             {fmt(totalTerminal)}
           </div>
           <div style={{ marginTop: 14, height: 5, borderRadius: 99, background: 'var(--border)' }}>
-            <div style={{ height: '100%', width: `${Math.round(totalTerminal / totalIngresos * 100)}%`, borderRadius: 99, background: 'var(--chart-primary)', opacity: 0.8 }} />
+            <div style={{ height: '100%', width: `${pctTerminal}%`, borderRadius: 99, background: 'var(--chart-primary)', opacity: 0.8 }} />
           </div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>Del total de ofrendas del año</div>
         </div>
 
-        {/* Mayor categoría de gasto */}
+        {/* Gastos por categoría */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
             Gastos por categoría
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {catTotales.sort((a, b) => b.total - a.total).map(({ cat, total }) => {
+            {[...catTotales].sort((a, b) => b.total - a.total).map(({ cat, total }) => {
               const pct = totalGastos > 0 ? (total / totalGastos) * 100 : 0;
               return (
                 <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -444,7 +447,7 @@ export default function BalancePage() {
           <div className="card-head" style={{ marginBottom: 16 }}>
             <div>
               <h3 className="card-title">Resumen por mes</h3>
-              <div className="card-sub">Acumulados al cierre de cada mes · 2026</div>
+              <div className="card-sub">Acumulados al cierre de cada mes · {year}</div>
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -481,9 +484,9 @@ export default function BalancePage() {
         <div className="card" style={{ padding: '20px 20px 16px' }}>
           <div className="card-head" style={{ marginBottom: 20 }}>
             <div>
-              <h3 className="card-title" style={{ fontSize: 13 }}>Balance acumulado 2026 — semana a semana</h3>
+              <h3 className="card-title" style={{ fontSize: 13 }}>Balance acumulado {year} — semana a semana</h3>
               <div className="card-sub">
-                {dataMaestra.length} domingos · hover para ver acumulados
+                {ofrendas.length} domingos · hover para ver acumulados
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -517,73 +520,79 @@ export default function BalancePage() {
           </div>
         </div>
 
-        <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <table className="table anf-table">
-            <thead>
-              <tr>
-                <th>Domingo</th>
-                <th style={{ textAlign: 'right' }}>Ingresos</th>
-                <th style={{ textAlign: 'right' }}>Gastos</th>
-                <th style={{ textAlign: 'right' }}>Balance semana</th>
-                <th style={{ textAlign: 'right' }}>Acumulado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tablaData.map(row => {
-                const isPositive  = row.balanceSemana >= 0;
-                const acumPositive = row.balance >= 0;
-                return (
-                  <tr key={row.fecha}>
-                    <td style={{ fontWeight: 500 }}>{fmtFecha(row.fecha)}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                      {fmt(row.ingresos)}
-                    </td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? 'var(--danger)' : 'var(--muted)' }}>
-                      {row.gastos > 0 ? fmt(row.gastos) : '—'}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span style={{
-                        fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font-mono)',
-                        color: isPositive ? 'var(--good)' : 'var(--danger)',
+        {weeklyData.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 13 }}>
+            Sin registros de ofrendas para {year}.
+          </div>
+        ) : (
+          <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <table className="table anf-table">
+              <thead>
+                <tr>
+                  <th>Domingo</th>
+                  <th style={{ textAlign: 'right' }}>Ingresos</th>
+                  <th style={{ textAlign: 'right' }}>Gastos</th>
+                  <th style={{ textAlign: 'right' }}>Balance semana</th>
+                  <th style={{ textAlign: 'right' }}>Acumulado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tablaData.map(row => {
+                  const isPositive   = row.balanceSemana >= 0;
+                  const acumPositive = row.balance >= 0;
+                  return (
+                    <tr key={row.fecha}>
+                      <td style={{ fontWeight: 500 }}>{fmtFecha(row.fecha)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                        {fmt(row.ingresos)}
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? 'var(--danger)' : 'var(--muted)' }}>
+                        {row.gastos > 0 ? fmt(row.gastos) : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span style={{
+                          fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                          color: isPositive ? 'var(--good)' : 'var(--danger)',
+                        }}>
+                          {isPositive ? '▲ ' : '▼ '}{fmt(Math.abs(row.balanceSemana))}
+                        </span>
+                      </td>
+                      <td style={{
+                        textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700,
+                        color: acumPositive ? 'var(--good)' : 'var(--danger)',
                       }}>
-                        {isPositive ? '▲ ' : '▼ '}{fmt(Math.abs(row.balanceSemana))}
-                      </span>
-                    </td>
-                    <td style={{
-                      textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700,
-                      color: acumPositive ? 'var(--good)' : 'var(--danger)',
-                    }}>
-                      {acumPositive ? '+' : ''}{fmt(row.balance)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tbody>
-              <tr className="anf-totals-row">
-                <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
-                  Totales 2026
-                </td>
-                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                  {fmt(totalIngresos)}
-                </td>
-                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
-                  {fmt(totalGastos)}
-                </td>
-                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700,
-                  color: totalBalanceSemana >= 0 ? 'var(--good)' : 'var(--danger)' }}>
-                  {totalBalanceSemana >= 0 ? '▲ ' : '▼ '}{fmt(Math.abs(totalBalanceSemana))}
-                </td>
-                <td style={{
-                  textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800,
-                  fontSize: 14, color: balanceNeto >= 0 ? 'var(--good)' : 'var(--danger)',
-                }}>
-                  {balanceNeto >= 0 ? '+' : ''}{fmt(balanceNeto)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                        {acumPositive ? '+' : ''}{fmt(row.balance)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tbody>
+                <tr className="anf-totals-row">
+                  <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
+                    Totales {year}
+                  </td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                    {fmt(totalIngresos)}
+                  </td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
+                    {fmt(totalGastosWeekly)}
+                  </td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700,
+                    color: totalBalanceSemana >= 0 ? 'var(--good)' : 'var(--danger)' }}>
+                    {totalBalanceSemana >= 0 ? '▲ ' : '▼ '}{fmt(Math.abs(totalBalanceSemana))}
+                  </td>
+                  <td style={{
+                    textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800,
+                    fontSize: 14, color: balanceNeto >= 0 ? 'var(--good)' : 'var(--danger)',
+                  }}>
+                    {balanceNeto >= 0 ? '+' : ''}{fmt(balanceNeto)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

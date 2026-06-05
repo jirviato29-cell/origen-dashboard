@@ -11,11 +11,22 @@ export const ROLES = {
 };
 
 export function AuthProvider({ children }) {
-  const [role, setRole]         = useState(null);
-  const [userName, setUserName] = useState('');
+  const [role, setRole]         = useState(() => localStorage.getItem('role') || null);
+  const [userName, setUserName] = useState(() => localStorage.getItem('userName') || '');
 
-  const login  = (selectedRole, name = '') => { setRole(selectedRole); setUserName(name); };
-  const logout = () => { setRole(null); setUserName(''); };
+  const login = (selectedRole, name = '') => {
+    setRole(selectedRole);
+    setUserName(name);
+    localStorage.setItem('role', selectedRole);
+    localStorage.setItem('userName', name);
+  };
+
+  const logout = () => {
+    setRole(null);
+    setUserName('');
+    localStorage.removeItem('role');
+    localStorage.removeItem('userName');
+  };
 
   return (
     <AuthContext.Provider value={{ role, userName, login, logout }}>

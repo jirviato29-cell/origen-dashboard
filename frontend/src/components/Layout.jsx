@@ -3,9 +3,11 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
+import { useGastosModal } from '../context/GastosModalContext';
 import Sidebar from './Sidebar';
 import GlobalAsistenciaModal from './GlobalAsistenciaModal';
 import GlobalOfrendasModal from './GlobalOfrendasModal';
+import GlobalGastosModal from './GlobalGastosModal';
 import { I } from './Icons';
 
 const ROUTE_INFO = {
@@ -35,8 +37,11 @@ export default function Layout() {
   const { role, userName } = useAuth();
   const { openModal } = useRegistrarModal();
   const { openModal: openOfrendasModal } = useOfrendasModal();
+  const { openModal: openGastosModal }   = useGastosModal();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+
+  const isGastos = location.pathname.endsWith('/gastos');
 
   if (!role) return <Navigate to="/" replace />;
 
@@ -109,12 +114,17 @@ export default function Layout() {
           <div className="topbar-right">
             {isAnfitriones && (
               <button className="btn btn-primary" onClick={openModal}>
-                <I.plus size={15} /> Registrar Asistencia
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Asistencia</span>
               </button>
             )}
-            {isStewardship && location.pathname !== '/stewardship/balance' && (
+            {isStewardship && !isGastos && location.pathname !== '/stewardship/balance' && (
               <button className="btn btn-primary" onClick={openOfrendasModal}>
-                <I.plus size={15} /> Registrar Ofrenda
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Ofrenda</span>
+              </button>
+            )}
+            {isStewardship && isGastos && (
+              <button className="btn btn-primary" onClick={openGastosModal}>
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Gasto</span>
               </button>
             )}
             <button className="icon-btn" aria-label="Notificaciones">
@@ -131,6 +141,7 @@ export default function Layout() {
 
       <GlobalAsistenciaModal />
       <GlobalOfrendasModal />
+      <GlobalGastosModal />
     </div>
   );
 }

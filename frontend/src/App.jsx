@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { RegistrarModalProvider } from './context/RegistrarModalContext';
 import { OfrendasModalProvider } from './context/OfrendasModalContext';
+import { GastosModalProvider } from './context/GastosModalContext';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -73,11 +74,13 @@ export default function App() {
   return (
     <RegistrarModalProvider>
       <OfrendasModalProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </AuthProvider>
+        <GastosModalProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </AuthProvider>
+        </GastosModalProvider>
       </OfrendasModalProvider>
     </RegistrarModalProvider>
   );
