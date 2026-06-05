@@ -327,26 +327,16 @@ export default function IngresosPage() {
           </div>
         </div>
 
-        {/* Participación */}
+        {/* Promedio de participación */}
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Participación
+            Promedio de participación en ofrendas
           </div>
           <div style={{ fontSize: 31, fontWeight: 800, color: 'var(--ink)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {participacionUltimo !== null ? `${participacionUltimo}%` : '—'}
+            {promedioParticipacion !== null ? `${promedioParticipacion}%` : '—'}
           </div>
           <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 7 }}>
-            {fmtParticipSub(ultimoDomingo.fecha)}
-          </div>
-          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {promedioParticipacion !== null && (
-              <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-                Promedio del año: <strong style={{ color: 'var(--ink)' }}>{promedioParticipacion}%</strong>
-              </div>
-            )}
-            <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-              Total de ofrendas del año: <strong style={{ color: 'var(--ink)' }}>{totalOfrendasAnio}</strong>
-            </div>
+            Total de ofrendas del año: <strong style={{ color: 'var(--ink)' }}>{totalOfrendasAnio}</strong>
           </div>
         </div>
 
