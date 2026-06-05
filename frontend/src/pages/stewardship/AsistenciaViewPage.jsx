@@ -16,7 +16,7 @@ const SEG_COLORS = {
   adultos:     '#00B4D8',
   voluntarios: '#64748B',
   ninos:       '#F97316',
-  bebes:       '#D4B896',
+  bebes:       '#a08060',
 };
 
 const LEGEND = [
@@ -25,6 +25,18 @@ const LEGEND = [
   { key: 'ninos',       label: 'Niños',       color: SEG_COLORS.ninos },
   { key: 'bebes',       label: 'Bebés',       color: SEG_COLORS.bebes },
 ];
+
+function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevos = 0 }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 8px', marginTop: 9, fontSize: 11.5, lineHeight: 1.6 }}>
+      <span style={{ color: '#00B4D8', fontWeight: 600 }}>Ad. <span style={{ fontFamily: 'var(--font-mono)' }}>{adultos}</span></span>
+      <span style={{ color: '#64748B', fontWeight: 600 }}>Vol. <span style={{ fontFamily: 'var(--font-mono)' }}>{voluntarios}</span></span>
+      <span style={{ color: '#F97316', fontWeight: 600 }}>Niños <span style={{ fontFamily: 'var(--font-mono)' }}>{ninos}</span></span>
+      <span style={{ color: '#a08060', fontWeight: 600 }}>Bbs. <span style={{ fontFamily: 'var(--font-mono)' }}>{bebes}</span></span>
+      {nuevos > 0 && <span style={{ color: '#ca8a04', fontWeight: 600 }}>Nv. <span style={{ fontFamily: 'var(--font-mono)' }}>{nuevos}</span></span>}
+    </div>
+  );
+}
 
 const VW = 900, VH = 320;
 const PAD = { left: 42, right: 14, top: 24, bottom: 60 };
@@ -218,10 +230,19 @@ export default function AsistenciaViewPage() {
   // ── Stats ──────────────────────────────────────────────────────────────────
   const ultimo      = records[0];
   const totalUltimo = ultimo ? rowTotal(ultimo) : 0;
-  const promedio    = records.length > 0
-    ? Math.round(records.reduce((s, r) => s + rowTotal(r), 0) / records.length)
-    : 0;
-  const maximo = records.length > 0 ? Math.max(...records.map(rowTotal)) : 0;
+  const n           = records.length;
+  const promedio    = n > 0 ? Math.round(records.reduce((s, r) => s + rowTotal(r), 0) / n) : 0;
+  const maximo      = n > 0 ? Math.max(...records.map(rowTotal)) : 0;
+
+  const promAdultos     = n > 0 ? Math.round(records.reduce((s, r) => s + (r.adultos     || 0), 0) / n) : 0;
+  const promVoluntarios = n > 0 ? Math.round(records.reduce((s, r) => s + (r.voluntarios || 0), 0) / n) : 0;
+  const promNinos       = n > 0 ? Math.round(records.reduce((s, r) => s + (r.ninos       || 0), 0) / n) : 0;
+  const promBebes       = n > 0 ? Math.round(records.reduce((s, r) => s + (r.bebes       || 0), 0) / n) : 0;
+  const promNuevos      = n > 0 ? Math.round(records.reduce((s, r) => s + (r.nuevos      || 0), 0) / n) : 0;
+
+  const hoy           = new Date();
+  const mesActual     = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  const mesActualLabel = mesNombre(mesActual);
 
   // ── Resumen por mes (SUMA + desglose) ────────────────────────────────────
   const mesesDisponibles = [...new Set(records.map(r => r.fecha.slice(0, 7)))].sort();
@@ -235,6 +256,8 @@ export default function AsistenciaViewPage() {
     const total       = adultos + voluntarios + ninos + bebes;
     return { mes: m, label: mesNombre(m), total, adultos, voluntarios, ninos, bebes, nuevos, count: rows.length };
   });
+
+  const mesActualData = resumenMeses.find(m => m.mes === mesActual) || null;
 
   // ── Chart data ─────────────────────────────────────────────────────────────
   const chartData = mesSeleccionado
@@ -284,22 +307,83 @@ export default function AsistenciaViewPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* ── A: 3 tarjetas ── */}
+      {/* ── A: tarjetas ── */}
       {records.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))', gap: 14 }}>
-          {[
-            { label: 'Último domingo',   value: totalUltimo, sub: ultimo ? fmtFecha(ultimo.fecha) : '—', color: 'var(--chart-primary)' },
-            { label: 'Promedio',         value: promedio,    sub: `${records.length} domingos`,          color: 'var(--ink)' },
-            { label: 'Máximo histórico', value: maximo,      sub: 'Total asistentes',                    color: 'var(--warn)' },
-          ].map(s => (
-            <div key={s.label} className="card" style={{ padding: '16px 18px' }}>
-              <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{s.label}</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: s.color, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
-                {s.value}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>{s.sub}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+
+          {/* Último domingo */}
+          <div className="card" style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Último domingo</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--chart-primary)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+              {totalUltimo}
             </div>
-          ))}
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+              {ultimo ? fmtFecha(ultimo.fecha) : '—'}
+            </div>
+            {ultimo && (
+              <DesgloseCat
+                adultos={ultimo.adultos || 0} voluntarios={ultimo.voluntarios || 0}
+                ninos={ultimo.ninos || 0} bebes={ultimo.bebes || 0} nuevos={ultimo.nuevos || 0}
+              />
+            )}
+          </div>
+
+          {/* Promedio */}
+          <div className="card" style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Promedio</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+              {promedio}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{n} domingos</div>
+            <DesgloseCat
+              adultos={promAdultos} voluntarios={promVoluntarios}
+              ninos={promNinos} bebes={promBebes} nuevos={promNuevos}
+            />
+          </div>
+
+          {/* Mes actual */}
+          <div className="card" style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{mesActualLabel}</div>
+            {mesActualData ? (
+              <>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#5C7A6F', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+                  {mesActualData.total}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                  {mesActualData.count} {mesActualData.count === 1 ? 'domingo' : 'domingos'}
+                </div>
+                <DesgloseCat
+                  adultos={mesActualData.adultos} voluntarios={mesActualData.voluntarios}
+                  ninos={mesActualData.ninos} bebes={mesActualData.bebes} nuevos={mesActualData.nuevos}
+                />
+              </>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 10 }}>Sin registros aún</div>
+            )}
+          </div>
+
+          {/* Total del año */}
+          <div className="card" style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Total del año</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+              {totTotal}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{n} domingos · {year}</div>
+            <DesgloseCat
+              adultos={totAdultos} voluntarios={totVoluntarios}
+              ninos={totNinos} bebes={totBebes} nuevos={totNuevos}
+            />
+          </div>
+
+          {/* Máximo histórico */}
+          <div className="card" style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Máximo histórico</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--warn)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+              {maximo}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Total asistentes</div>
+          </div>
+
         </div>
       )}
 
