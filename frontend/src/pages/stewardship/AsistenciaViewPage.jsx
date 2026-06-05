@@ -328,19 +328,6 @@ export default function AsistenciaViewPage() {
             )}
           </div>
 
-          {/* Promedio */}
-          <div className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Promedio</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
-              {promedio}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{n} domingos</div>
-            <DesgloseCat
-              adultos={promAdultos} voluntarios={promVoluntarios}
-              ninos={promNinos} bebes={promBebes} nuevos={promNuevos}
-            />
-          </div>
-
           {/* Mes actual */}
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{mesActualLabel}</div>
@@ -362,6 +349,28 @@ export default function AsistenciaViewPage() {
             )}
           </div>
 
+          {/* Promedio */}
+          <div className="card" style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Promedio</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+              {promedio}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{n} domingos</div>
+            <DesgloseCat
+              adultos={promAdultos} voluntarios={promVoluntarios}
+              ninos={promNinos} bebes={promBebes} nuevos={promNuevos}
+            />
+          </div>
+
+          {/* Máximo histórico */}
+          <div className="card" style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Máximo histórico</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--warn)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+              {maximo}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Total asistentes</div>
+          </div>
+
           {/* Total del año */}
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Total del año</div>
@@ -373,15 +382,6 @@ export default function AsistenciaViewPage() {
               adultos={totAdultos} voluntarios={totVoluntarios}
               ninos={totNinos} bebes={totBebes} nuevos={totNuevos}
             />
-          </div>
-
-          {/* Máximo histórico */}
-          <div className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Máximo histórico</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--warn)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
-              {maximo}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Total asistentes</div>
           </div>
 
         </div>
