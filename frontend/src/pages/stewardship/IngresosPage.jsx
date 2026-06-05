@@ -316,6 +316,14 @@ export default function IngresosPage() {
             <span style={{ color: 'var(--muted)' }}>
               Sobres <strong style={{ color: 'var(--ink)' }}>{Number(ultimoDomingo.ofrendas ?? 0)}</strong>
             </span>
+            {participacionUltimo !== null && (
+              <>
+                <span style={{ color: 'var(--border)' }}>·</span>
+                <span style={{ color: 'var(--muted)' }}>
+                  Participación <strong style={{ color: 'var(--ink)' }}>{participacionUltimo}%</strong>
+                </span>
+              </>
+            )}
           </div>
         </div>
 
