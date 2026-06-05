@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { asistenciaApi } from '../../services/api';
 import { useAsistenciaStewModal } from '../../context/AsistenciaStewModalContext';
 import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
-import { I } from '../../components/Icons';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -191,7 +190,6 @@ export default function AsistenciaViewPage() {
   const { refreshKey } = useAsistenciaStewModal();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search,  setSearch]  = useState('');
   const [mesSeleccionado, setMesSelec] = useState(null);
 
   const year = new Date().getFullYear();
@@ -268,13 +266,6 @@ export default function AsistenciaViewPage() {
     : `${chartData.length} ${chartData.length === 1 ? 'mes' : 'meses'} · por mes · clic en un mes para ver sus domingos`;
 
   // ── Tabla ──────────────────────────────────────────────────────────────────
-  const filtered = search
-    ? records.filter(r =>
-        fmtFecha(r.fecha).toLowerCase().includes(search.toLowerCase()) ||
-        r.fecha.includes(search)
-      )
-    : records;
-
   const totAdultos     = records.reduce((s, r) => s + (r.adultos     || 0), 0);
   const totVoluntarios = records.reduce((s, r) => s + (r.voluntarios || 0), 0);
   const totNinos       = records.reduce((s, r) => s + (r.ninos       || 0), 0);
@@ -437,20 +428,6 @@ export default function AsistenciaViewPage() {
           </div>
         </div>
 
-        <div className="toolbar">
-          <div className="search">
-            <I.search size={16} />
-            <input
-              placeholder="Buscar por fecha…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
-          <button className={`chip${!search ? ' active' : ''}`} onClick={() => setSearch('')}>
-            Todos
-          </button>
-        </div>
-
         {records.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted)', fontSize: 14 }}>
             Sin registros disponibles.
@@ -470,13 +447,13 @@ export default function AsistenciaViewPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r, i) => {
+                {records.map((r, i) => {
                   const total = rowTotal(r);
                   return (
                     <tr key={r.id}>
                       <td style={{ fontWeight: 500 }}>
                         {fmtFecha(r.fecha)}
-                        {i === 0 && !search && (
+                        {i === 0 && (
                           <span className="cat-pill" style={{ marginLeft: 8 }}>Más reciente</span>
                         )}
                       </td>
@@ -494,23 +471,21 @@ export default function AsistenciaViewPage() {
                   );
                 })}
               </tbody>
-              {!search && (
-                <tbody>
-                  <tr className="anf-totals-row">
-                    <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
-                      Totales
-                    </td>
-                    <td style={{ textAlign: 'right' }}>{totAdultos}</td>
-                    <td style={{ textAlign: 'right' }}>{totVoluntarios}</td>
-                    <td style={{ textAlign: 'right' }}>{totNinos}</td>
-                    <td style={{ textAlign: 'right' }}>{totBebes}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--warn)' }}>{totNuevos || '—'}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--ink)', fontSize: 14 }}>
-                      {totTotal}
-                    </td>
-                  </tr>
-                </tbody>
-              )}
+              <tbody>
+                <tr className="anf-totals-row">
+                  <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
+                    Totales
+                  </td>
+                  <td style={{ textAlign: 'right' }}>{totAdultos}</td>
+                  <td style={{ textAlign: 'right' }}>{totVoluntarios}</td>
+                  <td style={{ textAlign: 'right' }}>{totNinos}</td>
+                  <td style={{ textAlign: 'right' }}>{totBebes}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--warn)' }}>{totNuevos || '—'}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--ink)', fontSize: 14 }}>
+                    {totTotal}
+                  </td>
+                </tr>
+              </tbody>
             </table>
           </div>
         )}
