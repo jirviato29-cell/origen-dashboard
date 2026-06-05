@@ -237,6 +237,7 @@ export default function IngresosPage() {
       efectivo:    rows.reduce((s, d) => s + Number(d.efectivo), 0),
       terminal:    rows.reduce((s, d) => s + Number(d.terminal), 0),
       count:       rows.length,
+      ofrendasM:   rows.reduce((s, d) => s + Number(d.ofrendas ?? 0), 0),
       participMes: denomM > 0 ? Math.round(sobresM / denomM * 100) : null,
     };
   });
@@ -406,6 +407,7 @@ export default function IngresosPage() {
                   onClick={() => toggleMes(r.mes)}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    flexWrap: 'wrap', gap: '4px 12px',
                     padding: '10px 12px 10px 10px', borderRadius: 8, cursor: 'pointer',
                     background: activo ? 'rgba(249,115,22,0.07)' : 'transparent',
                     color: 'var(--ink)',
@@ -414,12 +416,25 @@ export default function IngresosPage() {
                     transition: 'background 0.15s, border-left-color 0.15s',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {/* Izquierda */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 110 }}>
                     <span style={{ fontSize: 15, fontWeight: 600 }}>{r.label}</span>
-                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                      {r.count} dom.
-                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{r.count} dom.</span>
                   </div>
+
+                  {/* Centro */}
+                  <div style={{ flex: 1, minWidth: 120, textAlign: 'center' }}>
+                    {r.ofrendasM > 0 ? (
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                        <strong style={{ color: 'var(--ink)' }}>{r.ofrendasM}</strong> ofrendas
+                        {r.participMes !== null && (
+                          <> · <strong style={{ color: 'var(--ink)' }}>{r.participMes}%</strong></>
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {/* Derecha */}
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: activo ? ORANGE : 'var(--ink)' }}>
                       {fmt(r.total)}
@@ -427,11 +442,6 @@ export default function IngresosPage() {
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
                       Efectivo {fmt(r.efectivo)} · Terminal {fmt(r.terminal)}
                     </div>
-                    {r.participMes !== null && (
-                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
-                        Participación {r.participMes}%
-                      </div>
-                    )}
                   </div>
                 </button>
               );
