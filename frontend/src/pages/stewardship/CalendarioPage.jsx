@@ -158,70 +158,117 @@ export default function CalendarioPage() {
           </button>
         </div>
 
-        {/* Cabecera días */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
-          {DIAS_HEADER.map(d => (
-            <div key={d} style={{
-              textAlign: 'center', fontSize: 11, fontWeight: 700,
-              color: 'var(--muted)', textTransform: 'uppercase', padding: '4px 0',
-            }}>
-              {d}
-            </div>
-          ))}
-        </div>
+        {/* Cuadrícula tipo calendario de pared */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{
+            width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed',
+            minWidth: 280,
+          }}>
+            <thead>
+              <tr>
+                {DIAS_HEADER.map(d => (
+                  <th key={d} style={{
+                    border: '1px solid var(--border)',
+                    padding: '7px 4px',
+                    textAlign: 'center',
+                    fontSize: 11, fontWeight: 700,
+                    color: 'var(--muted)',
+                    textTransform: 'uppercase',
+                    background: 'var(--surface)',
+                    letterSpacing: '0.04em',
+                  }}>
+                    {d}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const rows = [];
+                for (let i = 0; i < grid.length; i += 7) rows.push(grid.slice(i, i + 7));
+                return rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((day, ci) => {
+                      const iso     = day ? isoFromParts(viewYear, viewMonth, day) : null;
+                      const dayEvts = iso ? (eventsByDate[iso] || []) : [];
+                      const isToday    = iso === todayISO;
+                      const isSelected = iso === selectedDay;
 
-        {/* Cuadrícula */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
-          {grid.map((day, i) => {
-            if (!day) return <div key={i} />;
-            const iso = isoFromParts(viewYear, viewMonth, day);
-            const dayEvts = eventsByDate[iso] || [];
-            const isToday    = iso === todayISO;
-            const isSelected = iso === selectedDay;
+                      return (
+                        <td key={ci}
+                          onClick={day ? () => setSelectedDay(isSelected ? null : iso) : undefined}
+                          style={{
+                            border: '1px solid var(--border)',
+                            verticalAlign: 'top',
+                            padding: '6px 6px 4px',
+                            height: 88,
+                            cursor: day ? 'pointer' : 'default',
+                            background: isSelected
+                              ? 'rgba(0,180,216,0.08)'
+                              : !day
+                                ? 'var(--surface)'
+                                : 'var(--white, #fff)',
+                            boxShadow: isSelected
+                              ? 'inset 0 0 0 2px var(--chart-primary)'
+                              : 'none',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {day && (
+                            <>
+                              {/* Número del día — arriba a la izquierda */}
+                              <div style={{ marginBottom: 4 }}>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center', justifyContent: 'center',
+                                  width: 22, height: 22, borderRadius: '50%',
+                                  background: isToday ? 'var(--chart-primary)' : 'transparent',
+                                  color: isToday ? '#fff' : 'var(--ink)',
+                                  fontSize: 12, fontWeight: isToday ? 700 : 500,
+                                  lineHeight: 1,
+                                }}>
+                                  {day}
+                                </span>
+                              </div>
 
-            return (
-              <button key={i} onClick={() => setSelectedDay(isSelected ? null : iso)}
-                style={{
-                  position: 'relative',
-                  padding: '6px 2px 8px',
-                  borderRadius: 8,
-                  border: isSelected
-                    ? '2px solid var(--chart-primary)'
-                    : '2px solid transparent',
-                  background: isSelected
-                    ? 'rgba(0,180,216,0.09)'
-                    : isToday
-                      ? 'rgba(0,180,216,0.05)'
-                      : 'transparent',
-                  cursor: 'pointer',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                  minHeight: 52,
-                }}>
-                <span style={{
-                  fontSize: 13, fontWeight: isToday ? 800 : 500, lineHeight: 1,
-                  color: isToday ? 'var(--chart-primary)' : 'var(--ink)',
-                }}>
-                  {day}
-                </span>
-                {dayEvts.length > 0 && (
-                  <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {dayEvts.slice(0, 3).map((ev, ei) => (
-                      <span key={ei} style={{
-                        width: 6, height: 6, borderRadius: '50%',
-                        background: TIPO_COLOR[ev.tipo] || '#888',
-                        flexShrink: 0,
-                      }} />
-                    ))}
-                    {dayEvts.length > 3 && (
-                      <span style={{ fontSize: 9, color: 'var(--muted)', lineHeight: '6px' }}>
-                        +{dayEvts.length - 3}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </button>
-            );
-          })}
+                              {/* Etiquetas de eventos */}
+                              {dayEvts.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                  {dayEvts.slice(0, 2).map((ev, ei) => (
+                                    <span key={ei} style={{
+                                      display: 'block',
+                                      fontSize: 10, fontWeight: 600, lineHeight: 1.4,
+                                      color: TIPO_COLOR[ev.tipo] || '#888',
+                                      background: TIPO_BG[ev.tipo] || 'transparent',
+                                      borderRadius: 3,
+                                      padding: '1px 4px',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}>
+                                      {ev.nombre}
+                                    </span>
+                                  ))}
+                                  {dayEvts.length > 2 && (
+                                    <span style={{
+                                      fontSize: 9.5, color: 'var(--muted)',
+                                      paddingLeft: 3, lineHeight: 1,
+                                    }}>
+                                      +{dayEvts.length - 2} más
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ));
+              })()}
+            </tbody>
+          </table>
         </div>
 
         {/* Leyenda de tipos */}
