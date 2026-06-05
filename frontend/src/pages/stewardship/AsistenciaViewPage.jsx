@@ -223,14 +223,17 @@ export default function AsistenciaViewPage() {
     : 0;
   const maximo = records.length > 0 ? Math.max(...records.map(rowTotal)) : 0;
 
-  // ── Resumen por mes (PROMEDIO) ─────────────────────────────────────────────
+  // ── Resumen por mes (SUMA + desglose) ────────────────────────────────────
   const mesesDisponibles = [...new Set(records.map(r => r.fecha.slice(0, 7)))].sort();
   const resumenMeses = mesesDisponibles.map(m => {
     const rows = records.filter(r => r.fecha.startsWith(m));
-    const prom = rows.length > 0
-      ? Math.round(rows.reduce((s, r) => s + rowTotal(r), 0) / rows.length)
-      : 0;
-    return { mes: m, label: mesNombre(m), promedio: prom, count: rows.length };
+    const adultos     = rows.reduce((s, r) => s + (r.adultos     || 0), 0);
+    const voluntarios = rows.reduce((s, r) => s + (r.voluntarios || 0), 0);
+    const ninos       = rows.reduce((s, r) => s + (r.ninos       || 0), 0);
+    const bebes       = rows.reduce((s, r) => s + (r.bebes       || 0), 0);
+    const nuevos      = rows.reduce((s, r) => s + (r.nuevos      || 0), 0);
+    const total       = adultos + voluntarios + ninos + bebes;
+    return { mes: m, label: mesNombre(m), total, adultos, voluntarios, ninos, bebes, nuevos, count: rows.length };
   });
 
   // ── Chart data ─────────────────────────────────────────────────────────────
@@ -292,12 +295,12 @@ export default function AsistenciaViewPage() {
       {records.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
 
-          {/* Izquierda: Resumen por mes (promedio) */}
+          {/* Izquierda: Resumen por mes (suma) */}
           <div className="card" style={{ padding: '20px 20px 16px' }}>
             <div className="card-head" style={{ marginBottom: 16 }}>
               <div>
                 <h3 className="card-title">Resumen por mes</h3>
-                <div className="card-sub">{year} · promedio de asistencia · clic para filtrar la gráfica</div>
+                <div className="card-sub">{year} · total de asistencia · clic para filtrar la gráfica</div>
               </div>
             </div>
 
@@ -323,18 +326,37 @@ export default function AsistenciaViewPage() {
                         transition: 'background 0.15s, border-left-color 0.15s',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 15, fontWeight: 600 }}>{r.label}</span>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{r.count} dom.</span>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{
-                          fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)',
-                          color: activo ? 'var(--chart-primary)' : 'var(--ink)',
-                        }}>
-                          {r.promedio}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 }}>
+                          <span style={{ fontSize: 15, fontWeight: 600 }}>{r.label}</span>
+                          <span style={{ fontSize: 12, color: 'var(--muted)' }}>{r.count} dom.</span>
+                          <span style={{
+                            marginLeft: 'auto', fontSize: 17, fontWeight: 800,
+                            fontFamily: 'var(--font-mono)',
+                            color: activo ? 'var(--chart-primary)' : 'var(--ink)',
+                          }}>
+                            {r.total}
+                          </span>
                         </div>
-                        <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 1 }}>promedio</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px', fontSize: 11.5 }}>
+                          <span style={{ color: SEG_COLORS.adultos, fontWeight: 600 }}>
+                            Adultos <span style={{ fontFamily: 'var(--font-mono)' }}>{r.adultos}</span>
+                          </span>
+                          <span style={{ color: SEG_COLORS.voluntarios, fontWeight: 600 }}>
+                            Vol. <span style={{ fontFamily: 'var(--font-mono)' }}>{r.voluntarios}</span>
+                          </span>
+                          <span style={{ color: SEG_COLORS.ninos, fontWeight: 600 }}>
+                            Niños <span style={{ fontFamily: 'var(--font-mono)' }}>{r.ninos}</span>
+                          </span>
+                          <span style={{ color: '#a08060', fontWeight: 600 }}>
+                            Bebés <span style={{ fontFamily: 'var(--font-mono)' }}>{r.bebes}</span>
+                          </span>
+                          {r.nuevos > 0 && (
+                            <span style={{ color: 'var(--warn)', fontWeight: 600 }}>
+                              Nuevos <span style={{ fontFamily: 'var(--font-mono)' }}>{r.nuevos}</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   );
