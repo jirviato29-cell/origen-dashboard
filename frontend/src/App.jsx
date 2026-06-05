@@ -56,7 +56,6 @@ function AppRoutes() {
 
       <Route path="/stewardship" element={<Layout />}>
         <Route index element={<StewardshipDashboard />} />
-        <Route path="finanzas"      element={<FinanzasPage />} />
         <Route path="ingresos"      element={<StewardshipIngresosPage />} />
         <Route path="gastos"        element={<StewardshipGastosPage />} />
         <Route path="balance"       element={<StewardshipBalancePage />} />
