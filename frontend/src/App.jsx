@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { RegistrarModalProvider } from './context/RegistrarModalContext';
 import { OfrendasModalProvider } from './context/OfrendasModalContext';
 import { GastosModalProvider } from './context/GastosModalContext';
+import { AsistenciaStewModalProvider } from './context/AsistenciaStewModalContext';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -14,7 +15,6 @@ import RegistrarAsistencia from './pages/anfitriones/RegistrarAsistencia';
 import EstadisticasAsistencia from './pages/anfitriones/EstadisticasAsistencia';
 import HistorialAsistencia from './pages/anfitriones/HistorialAsistencia';
 import StewardshipDashboard from './pages/stewardship/StewardshipDashboard';
-import FinanzasPage from './pages/stewardship/FinanzasPage';
 import AsistenciaViewPage from './pages/stewardship/AsistenciaViewPage';
 import PuntoEncuentroViewPage from './pages/stewardship/PuntoEncuentroViewPage';
 import ConfiguracionPage from './pages/stewardship/ConfiguracionPage';
@@ -55,12 +55,10 @@ function AppRoutes() {
 
       <Route path="/stewardship" element={<Layout />}>
         <Route index element={<StewardshipDashboard />} />
-        <Route path="finanzas"      element={<FinanzasPage />} />
         <Route path="ingresos"      element={<StewardshipIngresosPage />} />
         <Route path="gastos"        element={<StewardshipGastosPage />} />
         <Route path="balance"       element={<StewardshipBalancePage />} />
-        <Route path="participacion" element={<FinanzasPage />} />
-        <Route path="asistencia"      element={<AsistenciaViewPage />} />
+<Route path="asistencia"      element={<AsistenciaViewPage />} />
         <Route path="punto-encuentro" element={<PuntoEncuentroViewPage />} />
         <Route path="configuracion"   element={<ConfiguracionPage />} />
       </Route>
@@ -75,11 +73,13 @@ export default function App() {
     <RegistrarModalProvider>
       <OfrendasModalProvider>
         <GastosModalProvider>
-          <AuthProvider>
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </AuthProvider>
+          <AsistenciaStewModalProvider>
+            <AuthProvider>
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </AuthProvider>
+          </AsistenciaStewModalProvider>
         </GastosModalProvider>
       </OfrendasModalProvider>
     </RegistrarModalProvider>
