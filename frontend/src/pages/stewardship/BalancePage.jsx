@@ -327,9 +327,8 @@ export default function BalancePage() {
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
   // ── Tabla ──
-  const tablaData          = [...weeklyData].reverse();
-  const totalBalanceSemana = weeklyData.reduce((s, r) => s + r.balanceSemana, 0);
-  const totalGastosWeekly  = weeklyData.reduce((s, r) => s + r.gastos, 0);
+  const tablaData         = [...weeklyData].reverse();
+  const totalGastosWeekly = weeklyData.reduce((s, r) => s + r.gastos, 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -581,13 +580,11 @@ export default function BalancePage() {
                   <th>Domingo</th>
                   <th style={{ textAlign: 'right' }}>Ingresos</th>
                   <th style={{ textAlign: 'right' }}>Gastos</th>
-                  <th style={{ textAlign: 'right' }}>Balance semana</th>
                   <th style={{ textAlign: 'right' }}>Acumulado</th>
                 </tr>
               </thead>
               <tbody>
                 {tablaData.map(row => {
-                  const isPositive   = row.balanceSemana >= 0;
                   const acumPositive = row.balance >= 0;
                   return (
                     <tr key={row.fecha}>
@@ -597,14 +594,6 @@ export default function BalancePage() {
                       </td>
                       <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? 'var(--danger)' : 'var(--muted)' }}>
                         {row.gastos > 0 ? fmt(row.gastos) : '—'}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <span style={{
-                          fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font-mono)',
-                          color: isPositive ? 'var(--good)' : 'var(--danger)',
-                        }}>
-                          {isPositive ? '▲ ' : '▼ '}{fmt(Math.abs(row.balanceSemana))}
-                        </span>
                       </td>
                       <td style={{
                         textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700,
@@ -626,10 +615,6 @@ export default function BalancePage() {
                   </td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
                     {fmt(totalGastosWeekly)}
-                  </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700,
-                    color: totalBalanceSemana >= 0 ? 'var(--good)' : 'var(--danger)' }}>
-                    {totalBalanceSemana >= 0 ? '▲ ' : '▼ '}{fmt(Math.abs(totalBalanceSemana))}
                   </td>
                   <td style={{
                     textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800,
