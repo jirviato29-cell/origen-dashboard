@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { gastosApi } from '../../services/api';
 import { useGastosModal } from '../../context/GastosModalContext';
-import { fmtFechaShort } from '../../utils/fecha';
+import { fmtFecha, fmtFechaShort } from '../../utils/fecha';
 import { CATEGORIAS, CAT_COLORS, CAT_BG } from '../../utils/categorias';
 
 function fmt(n) {
@@ -12,21 +12,36 @@ function catLabel(g) {
   return g.categoria_nombre ?? g.categoria ?? '—';
 }
 
+function metodoPago(g) {
+  if (g.metodo_pago === 'efectivo') return 'Caja efectivo AGS';
+  if (g.metodo_pago === 'banco')    return 'Banco';
+  return g.metodo_pago || '—';
+}
+
 export default function GastosPorPagarPage() {
   const year = new Date().getFullYear();
   const { refreshKey } = useGastosModal();
 
-  const [gastos,   setGastos]   = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [pagando,  setPagando]  = useState(null);
-  const [localKey, setLocalKey] = useState(0);
+  const [gastos,        setGastos]        = useState([]);
+  const [gastosPagados, setGastosPagados] = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [pagando,       setPagando]       = useState(null);
+  const [localKey,      setLocalKey]      = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    gastosApi.getAll({ year, pagado: 'false' })
-      .then(res => { if (!cancelled) setGastos(res.data || []); })
-      .catch(() => { if (!cancelled) setGastos([]); })
+    Promise.all([
+      gastosApi.getAll({ year, pagado: 'false' }),
+      gastosApi.getAll({ year, pagado: 'true' }),
+    ])
+      .then(([rPend, rPag]) => {
+        if (!cancelled) {
+          setGastos(rPend.data || []);
+          setGastosPagados(rPag.data || []);
+        }
+      })
+      .catch(() => { if (!cancelled) { setGastos([]); setGastosPagados([]); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [year, refreshKey, localKey]);
@@ -43,8 +58,10 @@ export default function GastosPorPagarPage() {
     }
   };
 
-  const total  = gastos.reduce((s, g) => s + Number(g.monto), 0);
-  const sorted = [...gastos].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const total         = gastos.reduce((s, g) => s + Number(g.monto), 0);
+  const sorted        = [...gastos].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const sortedPagados = [...gastosPagados].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const totalPagados  = gastosPagados.reduce((s, g) => s + Number(g.monto), 0);
 
   if (loading) {
     return (
@@ -147,6 +164,78 @@ export default function GastosPorPagarPage() {
                   </td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--danger)', fontSize: 14 }}>
                     {fmt(total)}
+                  </td>
+                  <td />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Historial: Gastos pagados ── */}
+      <div className="card">
+        <div className="card-head" style={{ marginBottom: sortedPagados.length > 0 ? 0 : 16 }}>
+          <div>
+            <h3 className="card-title">Gastos pagados</h3>
+            <div className="card-sub">
+              {sortedPagados.length} {sortedPagados.length === 1 ? 'gasto' : 'gastos'} · {fmt(totalPagados)}
+            </div>
+          </div>
+        </div>
+
+        {sortedPagados.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted)', fontSize: 14 }}>
+            Sin gastos pagados registrados.
+          </div>
+        ) : (
+          <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', marginTop: 16 }}>
+            <table className="table anf-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Concepto</th>
+                  <th>Categoría</th>
+                  <th style={{ textAlign: 'right' }}>Monto</th>
+                  <th>Pagado con</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedPagados.map(g => {
+                  const cat = catLabel(g);
+                  return (
+                    <tr key={g.id}>
+                      <td style={{ color: 'var(--muted)', fontSize: 13, whiteSpace: 'nowrap' }}>
+                        {fmtFecha(g.fecha)}
+                      </td>
+                      <td style={{ fontWeight: 500 }}>{g.concepto}</td>
+                      <td>
+                        <span style={{
+                          fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 99,
+                          background: CAT_BG[cat] || 'rgba(0,0,0,0.08)',
+                          color:      CAT_COLORS[cat] || 'var(--muted)',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {cat}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
+                        {fmt(Number(g.monto))}
+                      </td>
+                      <td style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                        {metodoPago(g)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tbody>
+                <tr className="anf-totals-row">
+                  <td colSpan={3} style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
+                    Total pagado
+                  </td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--danger)', fontSize: 14 }}>
+                    {fmt(totalPagados)}
                   </td>
                   <td />
                 </tr>
