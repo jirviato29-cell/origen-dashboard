@@ -5,11 +5,13 @@ import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
 import { useGastosModal } from '../context/GastosModalContext';
 import { useAsistenciaStewModal } from '../context/AsistenciaStewModalContext';
+import { useCalendarioModal } from '../context/CalendarioModalContext';
 import Sidebar from './Sidebar';
 import GlobalAsistenciaModal from './GlobalAsistenciaModal';
 import GlobalAsistenciaStewModal from './GlobalAsistenciaStewModal';
 import GlobalOfrendasModal from './GlobalOfrendasModal';
 import GlobalGastosModal from './GlobalGastosModal';
+import GlobalCalendarioModal from './GlobalCalendarioModal';
 import { I } from './Icons';
 
 const ROUTE_INFO = {
@@ -33,6 +35,7 @@ const ROUTE_INFO = {
   '/stewardship/participacion':        { section: 'Stewardship',        title: 'Participación' },
   '/stewardship/asistencia':           { section: 'Stewardship',        title: 'Asistencia' },
   '/stewardship/punto-encuentro':      { section: 'Stewardship',        title: 'Punto de Encuentro' },
+  '/stewardship/calendario':           { section: 'Stewardship',        title: 'Calendario' },
   '/stewardship/configuracion':        { section: 'Stewardship',        title: 'Configuración' },
 };
 
@@ -42,12 +45,14 @@ export default function Layout() {
   const { openModal: openOfrendasModal }   = useOfrendasModal();
   const { openModal: openGastosModal }     = useGastosModal();
   const { openModal: openAsistenciaModal } = useAsistenciaStewModal();
+  const { openModal: openCalendarioModal } = useCalendarioModal();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
   const isGastos         = location.pathname.endsWith('/gastos');
   const isGastosPorPagar = location.pathname.endsWith('/gastos-por-pagar');
   const isAsistencia     = location.pathname.endsWith('/asistencia');
+  const isCalendario     = location.pathname === '/stewardship/calendario';
 
   if (!role) return <Navigate to="/" replace />;
 
@@ -123,7 +128,7 @@ export default function Layout() {
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Asistencia</span>
               </button>
             )}
-            {isStewardship && !isGastos && !isGastosPorPagar && !isAsistencia && location.pathname !== '/stewardship/balance' && location.pathname !== '/stewardship/punto-encuentro' && (
+            {isStewardship && !isGastos && !isGastosPorPagar && !isAsistencia && !isCalendario && location.pathname !== '/stewardship/balance' && location.pathname !== '/stewardship/punto-encuentro' && (
               <button className="btn btn-primary" onClick={openOfrendasModal}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Ofrenda</span>
               </button>
@@ -136,6 +141,11 @@ export default function Layout() {
             {isStewardship && isAsistencia && (
               <button className="btn btn-primary" onClick={openAsistenciaModal}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Asistencia</span>
+              </button>
+            )}
+            {isStewardship && isCalendario && (
+              <button className="btn btn-primary" onClick={openCalendarioModal}>
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Evento</span>
               </button>
             )}
             <button className="icon-btn" aria-label="Notificaciones">
@@ -154,6 +164,7 @@ export default function Layout() {
       <GlobalAsistenciaStewModal />
       <GlobalOfrendasModal />
       <GlobalGastosModal />
+      <GlobalCalendarioModal />
     </div>
   );
 }

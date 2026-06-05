@@ -52,6 +52,7 @@ const navByRole = {
       },
       { to: '/stewardship/asistencia',      label: 'Asistencia',        icon: I.users },
       { to: '/stewardship/punto-encuentro', label: 'Punto de Encuentro', icon: I.pin },
+      { to: '/stewardship/calendario',      label: 'Calendario',         icon: I.calendar },
       { to: '/stewardship/configuracion',   label: 'Configuración',      icon: I.settings },
     ]},
   ],

@@ -4,6 +4,7 @@ import { RegistrarModalProvider } from './context/RegistrarModalContext';
 import { OfrendasModalProvider } from './context/OfrendasModalContext';
 import { GastosModalProvider } from './context/GastosModalContext';
 import { AsistenciaStewModalProvider } from './context/AsistenciaStewModalContext';
+import { CalendarioModalProvider } from './context/CalendarioModalContext';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -22,6 +23,7 @@ import StewardshipIngresosPage from './pages/stewardship/IngresosPage';
 import StewardshipGastosPage from './pages/stewardship/GastosPage';
 import StewardshipGastosPorPagarPage from './pages/stewardship/GastosPorPagarPage';
 import StewardshipBalancePage from './pages/stewardship/BalancePage';
+import CalendarioPage from './pages/stewardship/CalendarioPage';
 import './index.css';
 
 function AppRoutes() {
@@ -62,6 +64,7 @@ function AppRoutes() {
         <Route path="balance"       element={<StewardshipBalancePage />} />
 <Route path="asistencia"      element={<AsistenciaViewPage />} />
         <Route path="punto-encuentro" element={<PuntoEncuentroViewPage />} />
+        <Route path="calendario"      element={<CalendarioPage />} />
         <Route path="configuracion"   element={<ConfiguracionPage />} />
       </Route>
 
@@ -76,11 +79,13 @@ export default function App() {
       <OfrendasModalProvider>
         <GastosModalProvider>
           <AsistenciaStewModalProvider>
+            <CalendarioModalProvider>
             <AuthProvider>
               <BrowserRouter>
                 <AppRoutes />
               </BrowserRouter>
             </AuthProvider>
+            </CalendarioModalProvider>
           </AsistenciaStewModalProvider>
         </GastosModalProvider>
       </OfrendasModalProvider>
