@@ -34,6 +34,7 @@ const realGastosApi = {
   create:       (data)   => http.post('/gastos', data),
   update:       (id, d)  => http.put(`/gastos/${id}`, d),
   remove:       (id)     => http.delete(`/gastos/${id}`),
+  pagar:        (id)     => http.patch(`/gastos/${id}/pagar`),
   resumenAnual: (year)   => http.get('/gastos/resumen-anual', { params: { year } }),
   porCategoria: (params) => http.get('/gastos/por-categoria', { params }),
 };

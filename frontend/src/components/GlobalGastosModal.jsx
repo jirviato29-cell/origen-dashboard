@@ -22,7 +22,7 @@ function formatDateLong(iso) {
 const makeEmpty = () => ({ fecha: todayISO(), concepto: '', categoria: '', monto: '' });
 
 export default function GlobalGastosModal() {
-  const { open, closeModal, triggerRefresh } = useGastosModal();
+  const { open, pagado, closeModal, triggerRefresh } = useGastosModal();
 
   const [form, setForm]       = useState(makeEmpty);
   const [error, setError]     = useState('');
@@ -56,6 +56,7 @@ export default function GlobalGastosModal() {
         concepto:  form.concepto.trim(),
         categoria: form.categoria,
         monto,
+        pagado,
       });
       setSavedData({ fecha: form.fecha, concepto: form.concepto.trim(), categoria: form.categoria, monto });
       setSaved(true);
@@ -93,8 +94,12 @@ export default function GlobalGastosModal() {
           <>
             <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div className="anf-modal-eyebrow">Stewardship · Gastos</div>
-                <h3 className="anf-modal-date">Registrar gasto</h3>
+                <div className="anf-modal-eyebrow">
+                  {pagado ? 'Stewardship · Gastos' : 'Stewardship · Por pagar'}
+                </div>
+                <h3 className="anf-modal-date">
+                  {pagado ? 'Registrar gasto' : 'Registrar gasto por pagar'}
+                </h3>
                 <p>Origen Aguascalientes</p>
               </div>
               <button className="icon-btn" onClick={closeModal} style={{ width: 34, height: 34, flexShrink: 0 }}>
@@ -210,7 +215,7 @@ export default function GlobalGastosModal() {
               style={{ opacity: (saving || !canSave) ? 0.45 : 1, marginTop: 4 }}
             >
               <I.check size={16} />
-              {saving ? 'Guardando…' : 'Guardar gasto'}
+              {saving ? 'Guardando…' : pagado ? 'Guardar gasto' : 'Guardar gasto por pagar'}
             </button>
 
             {!canSave && !error && (

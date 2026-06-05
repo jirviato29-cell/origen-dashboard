@@ -45,7 +45,7 @@ export default function FinanzasPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [ri, rg] = await Promise.all([ofrendasApi.getAll(), gastosApi.getAll()]);
+      const [ri, rg] = await Promise.all([ofrendasApi.getAll(), gastosApi.getAll({ pagado: 'true' })]);
       setIngresos(ri.data);
       setGastos(rg.data);
     } finally {

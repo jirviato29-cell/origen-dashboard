@@ -186,7 +186,7 @@ export default function BalancePage() {
       try {
         const [ro, rg] = await Promise.all([
           ofrendasApi.getAll({ year }),
-          gastosApi.getAll({ year }),
+          gastosApi.getAll({ year, pagado: 'true' }),
         ]);
         setOfrendas(ro.data || []);
         setGastos(rg.data || []);

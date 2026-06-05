@@ -20,6 +20,7 @@ import PuntoEncuentroViewPage from './pages/stewardship/PuntoEncuentroViewPage';
 import ConfiguracionPage from './pages/stewardship/ConfiguracionPage';
 import StewardshipIngresosPage from './pages/stewardship/IngresosPage';
 import StewardshipGastosPage from './pages/stewardship/GastosPage';
+import StewardshipGastosPorPagarPage from './pages/stewardship/GastosPorPagarPage';
 import StewardshipBalancePage from './pages/stewardship/BalancePage';
 import './index.css';
 
@@ -56,7 +57,8 @@ function AppRoutes() {
       <Route path="/stewardship" element={<Layout />}>
         <Route index element={<StewardshipDashboard />} />
         <Route path="ingresos"      element={<StewardshipIngresosPage />} />
-        <Route path="gastos"        element={<StewardshipGastosPage />} />
+        <Route path="gastos"             element={<StewardshipGastosPage />} />
+        <Route path="gastos-por-pagar"   element={<StewardshipGastosPorPagarPage />} />
         <Route path="balance"       element={<StewardshipBalancePage />} />
 <Route path="asistencia"      element={<AsistenciaViewPage />} />
         <Route path="punto-encuentro" element={<PuntoEncuentroViewPage />} />

@@ -27,7 +27,8 @@ const ROUTE_INFO = {
   '/stewardship':                      { section: 'Stewardship',        title: 'Dashboard' },
   '/stewardship/finanzas':             { section: 'Stewardship',        title: 'Finanzas' },
   '/stewardship/ingresos':             { section: 'Stewardship',        title: 'Ingresos' },
-  '/stewardship/gastos':               { section: 'Stewardship',        title: 'Gastos' },
+  '/stewardship/gastos':               { section: 'Stewardship',        title: 'Gastos pagados' },
+  '/stewardship/gastos-por-pagar':     { section: 'Stewardship',        title: 'Gastos por pagar' },
   '/stewardship/balance':              { section: 'Stewardship',        title: 'Balance' },
   '/stewardship/participacion':        { section: 'Stewardship',        title: 'Participación' },
   '/stewardship/asistencia':           { section: 'Stewardship',        title: 'Asistencia' },
@@ -44,8 +45,9 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
-  const isGastos     = location.pathname.endsWith('/gastos');
-  const isAsistencia = location.pathname.endsWith('/asistencia');
+  const isGastos         = location.pathname.endsWith('/gastos');
+  const isGastosPorPagar = location.pathname.endsWith('/gastos-por-pagar');
+  const isAsistencia     = location.pathname.endsWith('/asistencia');
 
   if (!role) return <Navigate to="/" replace />;
 
@@ -121,14 +123,19 @@ export default function Layout() {
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Asistencia</span>
               </button>
             )}
-            {isStewardship && !isGastos && !isAsistencia && location.pathname !== '/stewardship/balance' && (
+            {isStewardship && !isGastos && !isGastosPorPagar && !isAsistencia && location.pathname !== '/stewardship/balance' && (
               <button className="btn btn-primary" onClick={openOfrendasModal}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Ofrenda</span>
               </button>
             )}
             {isStewardship && isGastos && (
-              <button className="btn btn-primary" onClick={openGastosModal}>
+              <button className="btn btn-primary" onClick={() => openGastosModal()}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Gasto</span>
+              </button>
+            )}
+            {isStewardship && isGastosPorPagar && (
+              <button className="btn btn-primary" onClick={() => openGastosModal(false)}>
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar gasto por pagar</span>
               </button>
             )}
             {isStewardship && isAsistencia && (

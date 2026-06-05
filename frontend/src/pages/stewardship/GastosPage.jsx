@@ -132,7 +132,7 @@ export default function GastosPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    gastosApi.getAll({ year })
+    gastosApi.getAll({ year, pagado: 'true' })
       .then(res => { if (!cancelled) setGastos(res.data || []); })
       .catch(() => { if (!cancelled) setGastos([]); })
       .finally(() => { if (!cancelled) setLoading(false); });

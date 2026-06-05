@@ -162,7 +162,7 @@ export default function IngresosPage() {
       try {
         const [ro, rg, ra] = await Promise.all([
           ofrendasApi.getAll({ year }),
-          gastosApi.getAll({ year }),
+          gastosApi.getAll({ year, pagado: 'true' }),
           asistenciaApi.getAll({ year }),
         ]);
         setOfrendas(ro.data);
