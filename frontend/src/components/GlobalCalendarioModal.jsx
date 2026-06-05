@@ -26,23 +26,33 @@ const inputStyle = {
 };
 
 export default function GlobalCalendarioModal() {
-  const { open, initialDate, closeModal, triggerRefresh } = useCalendarioModal();
+  const { open, initialDate, editingEvent, closeModal, triggerRefresh } = useCalendarioModal();
 
-  const [form,     setForm]     = useState(() => makeEmpty(null));
-  const [error,    setError]    = useState('');
-  const [saving,   setSaving]   = useState(false);
-  const [saved,    setSaved]    = useState(false);
+  const [form,      setForm]      = useState(() => makeEmpty(null));
+  const [error,     setError]     = useState('');
+  const [saving,    setSaving]    = useState(false);
+  const [saved,     setSaved]     = useState(false);
   const [savedData, setSavedData] = useState(null);
 
+  const isEditing = Boolean(editingEvent);
   const canSave = form.fecha && form.nombre.trim() && form.tipo;
 
   useEffect(() => {
     if (open) {
       setSaved(false);
-      setForm(makeEmpty(initialDate));
       setError('');
+      if (editingEvent) {
+        setForm({
+          fecha:  (editingEvent.fecha || '').slice(0, 10),
+          nombre: editingEvent.nombre || '',
+          tipo:   editingEvent.tipo   || '',
+          nota:   editingEvent.nota   || '',
+        });
+      } else {
+        setForm(makeEmpty(initialDate));
+      }
     }
-  }, [open, initialDate]);
+  }, [open, initialDate, editingEvent]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && !saved) closeModal(); };
@@ -57,12 +67,17 @@ export default function GlobalCalendarioModal() {
     setError('');
     setSaving(true);
     try {
-      await calendarioApi.create({
+      const payload = {
         fecha:  form.fecha,
         nombre: form.nombre.trim(),
         tipo:   form.tipo,
         nota:   form.nota.trim() || null,
-      });
+      };
+      if (isEditing) {
+        await calendarioApi.update(editingEvent.id, payload);
+      } else {
+        await calendarioApi.create(payload);
+      }
       setSavedData({ fecha: form.fecha, nombre: form.nombre.trim(), tipo: form.tipo });
       setSaved(true);
       triggerRefresh();
@@ -85,7 +100,7 @@ export default function GlobalCalendarioModal() {
         {saved ? (
           <div className="anf-success">
             <div className="anf-success-icon"><I.check size={36} /></div>
-            <h3>¡Evento registrado!</h3>
+            <h3>{isEditing ? '¡Evento actualizado!' : '¡Evento registrado!'}</h3>
             <p>{formatDateLong(savedData.fecha)}</p>
             <div className="anf-success-total">
               <span>{savedData.nombre}</span>
@@ -99,7 +114,7 @@ export default function GlobalCalendarioModal() {
             <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div className="anf-modal-eyebrow">Stewardship · Calendario</div>
-                <h3 className="anf-modal-date">Registrar evento</h3>
+                <h3 className="anf-modal-date">{isEditing ? 'Editar evento' : 'Registrar evento'}</h3>
                 <p>Origen Aguascalientes</p>
               </div>
               <button className="icon-btn" onClick={closeModal} style={{ width: 34, height: 34, flexShrink: 0 }}>
@@ -161,7 +176,7 @@ export default function GlobalCalendarioModal() {
               style={{ opacity: (saving || !canSave) ? 0.45 : 1, marginTop: 4 }}
             >
               <I.check size={16} />
-              {saving ? 'Guardando…' : 'Guardar evento'}
+              {saving ? 'Guardando…' : isEditing ? 'Actualizar evento' : 'Guardar evento'}
             </button>
 
             {!canSave && !error && (

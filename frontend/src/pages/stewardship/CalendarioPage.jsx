@@ -4,8 +4,6 @@ import { useCalendarioModal } from '../../context/CalendarioModalContext';
 import { fmtFecha, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 
-const TIPOS = ['Servicio', 'Especial', 'Reunión', 'General'];
-
 const TIPO_COLOR = {
   'Servicio': '#00B4D8',
   'Especial': '#F59E0B',
@@ -36,15 +34,8 @@ function isoFromParts(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-const inputStyle = {
-  padding: '7px 10px', borderRadius: 8,
-  border: '1.5px solid var(--border)', fontSize: 13.5,
-  outline: 'none', fontFamily: 'var(--font-ui)',
-  width: '100%', boxSizing: 'border-box',
-};
-
 export default function CalendarioPage() {
-  const { refreshKey, openModal } = useCalendarioModal();
+  const { refreshKey, openModal, openEditModal } = useCalendarioModal();
 
   const now = new Date();
   const todayISO = isoFromParts(now.getFullYear(), now.getMonth(), now.getDate());
@@ -55,11 +46,7 @@ export default function CalendarioPage() {
   const [loading,   setLoading]   = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const [editingId, setEditingId] = useState(null);
-  const [editForm,  setEditForm]  = useState({});
-  const [editError, setEditError] = useState('');
-  const [saving,    setSaving]    = useState(false);
-  const [deleting,  setDeleting]  = useState(null);
+  const [deleting, setDeleting] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -103,38 +90,10 @@ export default function CalendarioPage() {
     try {
       await calendarioApi.remove(id);
       setEventos(prev => prev.filter(e => e.id !== id));
-      if (editingId === id) setEditingId(null);
     } catch {
       // noop
     } finally {
       setDeleting(null);
-    }
-  };
-
-  const startEdit = (ev) => {
-    setEditingId(ev.id);
-    setEditForm({ fecha: toISODate(ev.fecha), nombre: ev.nombre, tipo: ev.tipo, nota: ev.nota || '' });
-    setEditError('');
-  };
-
-  const handleEditSave = async () => {
-    if (!editForm.fecha || !editForm.nombre.trim() || !editForm.tipo) {
-      setEditError('Completa todos los campos requeridos.'); return;
-    }
-    setSaving(true);
-    try {
-      const { data } = await calendarioApi.update(editingId, {
-        fecha:  editForm.fecha,
-        nombre: editForm.nombre.trim(),
-        tipo:   editForm.tipo,
-        nota:   editForm.nota.trim() || null,
-      });
-      setEventos(prev => prev.map(e => e.id === editingId ? data : e));
-      setEditingId(null);
-    } catch {
-      setEditError('Error al guardar.');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -201,7 +160,8 @@ export default function CalendarioPage() {
                             border: '1px solid var(--border)',
                             verticalAlign: 'top',
                             padding: '6px 6px 4px',
-                            height: 88,
+                            minHeight: 88,
+                            height: 'auto',
                             cursor: day ? 'pointer' : 'default',
                             background: isSelected
                               ? 'rgba(0,180,216,0.08)'
@@ -211,7 +171,6 @@ export default function CalendarioPage() {
                             boxShadow: isSelected
                               ? 'inset 0 0 0 2px var(--chart-primary)'
                               : 'none',
-                            overflow: 'hidden',
                           }}
                         >
                           {day && (
@@ -234,7 +193,7 @@ export default function CalendarioPage() {
                               {/* Etiquetas de eventos */}
                               {dayEvts.length > 0 && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                  {dayEvts.slice(0, 2).map((ev, ei) => (
+                                  {dayEvts.map((ev, ei) => (
                                     <span key={ei} style={{
                                       display: 'block',
                                       fontSize: 10, fontWeight: 600, lineHeight: 1.4,
@@ -242,21 +201,12 @@ export default function CalendarioPage() {
                                       background: TIPO_BG[ev.tipo] || 'transparent',
                                       borderRadius: 3,
                                       padding: '1px 4px',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
+                                      whiteSpace: 'normal',
+                                      wordWrap: 'break-word',
                                     }}>
                                       {ev.nombre}
                                     </span>
                                   ))}
-                                  {dayEvts.length > 2 && (
-                                    <span style={{
-                                      fontSize: 9.5, color: 'var(--muted)',
-                                      paddingLeft: 3, lineHeight: 1,
-                                    }}>
-                                      +{dayEvts.length - 2} más
-                                    </span>
-                                  )}
                                 </div>
                               )}
                             </>
@@ -334,6 +284,10 @@ export default function CalendarioPage() {
                   }}>
                     {ev.tipo}
                   </span>
+                  <button className="icon-btn" onClick={() => openEditModal(ev)}
+                    style={{ width: 28, height: 28, flexShrink: 0 }} title="Editar">
+                    <I.edit size={14} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -368,84 +322,42 @@ export default function CalendarioPage() {
               </thead>
               <tbody>
                 {allSorted.map(ev => (
-                  editingId === ev.id ? (
-                    <tr key={ev.id} style={{ background: 'var(--surface-2)' }}>
-                      <td style={{ padding: '8px 12px' }}>
-                        <input type="date" value={editForm.fecha}
-                          onChange={e => setEditForm(f => ({ ...f, fecha: e.target.value }))}
-                          style={inputStyle} />
-                      </td>
-                      <td style={{ padding: '8px 12px' }}>
-                        <input type="text" value={editForm.nombre}
-                          onChange={e => setEditForm(f => ({ ...f, nombre: e.target.value }))}
-                          style={inputStyle} />
-                      </td>
-                      <td style={{ padding: '8px 12px' }}>
-                        <select value={editForm.tipo}
-                          onChange={e => setEditForm(f => ({ ...f, tipo: e.target.value }))}
-                          style={{ ...inputStyle, background: 'white', cursor: 'pointer' }}>
-                          {TIPOS.map(t => <option key={t}>{t}</option>)}
-                        </select>
-                      </td>
-                      <td style={{ padding: '8px 12px' }}>
-                        <input type="text" value={editForm.nota}
-                          onChange={e => setEditForm(f => ({ ...f, nota: e.target.value }))}
-                          style={inputStyle} placeholder="(sin nota)" />
-                      </td>
-                      <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
-                        {editError && (
-                          <span style={{ fontSize: 11.5, color: 'var(--danger)', marginRight: 8 }}>
-                            {editError}
-                          </span>
-                        )}
-                        <button className="btn btn-primary" onClick={handleEditSave} disabled={saving}
-                          style={{ fontSize: 12, padding: '5px 10px', marginRight: 6 }}>
-                          {saving ? '…' : 'Guardar'}
-                        </button>
-                        <button className="icon-btn" onClick={() => setEditingId(null)}
-                          style={{ width: 28, height: 28 }}>
-                          <I.x size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr key={ev.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 12px', fontSize: 13.5, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>
-                        {fmtFecha(ev.fecha)}
-                      </td>
-                      <td style={{ padding: '10px 12px', fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>
-                        {ev.nombre}
-                      </td>
-                      <td style={{ padding: '10px 12px' }}>
+                  <tr key={ev.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 12px', fontSize: 13.5, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>
+                      {fmtFecha(ev.fecha)}
+                    </td>
+                    <td style={{ padding: '10px 12px', fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>
+                      {ev.nombre}
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
+                        background: TIPO_BG[ev.tipo] || 'var(--surface)',
+                        color: TIPO_COLOR[ev.tipo] || 'var(--ink)',
+                      }}>
                         <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                          fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
-                          background: TIPO_BG[ev.tipo] || 'var(--surface)',
-                          color: TIPO_COLOR[ev.tipo] || 'var(--ink)',
-                        }}>
-                          <span style={{
-                            width: 6, height: 6, borderRadius: '50%',
-                            background: TIPO_COLOR[ev.tipo] || '#888',
-                          }} />
-                          {ev.tipo}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 12px', fontSize: 13, color: 'var(--muted)', maxWidth: 220 }}>
-                        {ev.nota || '—'}
-                      </td>
-                      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-                        <button className="icon-btn" onClick={() => startEdit(ev)}
-                          style={{ width: 28, height: 28, marginRight: 4 }} title="Editar">
-                          <I.edit size={14} />
-                        </button>
-                        <button className="icon-btn" onClick={() => handleDelete(ev.id)}
-                          disabled={deleting === ev.id}
-                          style={{ width: 28, height: 28, color: 'var(--danger)' }} title="Eliminar">
-                          <I.trash size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  )
+                          width: 6, height: 6, borderRadius: '50%',
+                          background: TIPO_COLOR[ev.tipo] || '#888',
+                        }} />
+                        {ev.tipo}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 12px', fontSize: 13, color: 'var(--muted)', maxWidth: 220 }}>
+                      {ev.nota || '—'}
+                    </td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <button className="icon-btn" onClick={() => openEditModal(ev)}
+                        style={{ width: 28, height: 28, marginRight: 4 }} title="Editar">
+                        <I.edit size={14} />
+                      </button>
+                      <button className="icon-btn" onClick={() => handleDelete(ev.id)}
+                        disabled={deleting === ev.id}
+                        style={{ width: 28, height: 28, color: 'var(--danger)' }} title="Eliminar">
+                        <I.trash size={14} />
+                      </button>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
