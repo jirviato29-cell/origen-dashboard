@@ -15,7 +15,6 @@ import RegistrarAsistencia from './pages/anfitriones/RegistrarAsistencia';
 import EstadisticasAsistencia from './pages/anfitriones/EstadisticasAsistencia';
 import HistorialAsistencia from './pages/anfitriones/HistorialAsistencia';
 import StewardshipDashboard from './pages/stewardship/StewardshipDashboard';
-import FinanzasPage from './pages/stewardship/FinanzasPage';
 import AsistenciaViewPage from './pages/stewardship/AsistenciaViewPage';
 import PuntoEncuentroViewPage from './pages/stewardship/PuntoEncuentroViewPage';
 import ConfiguracionPage from './pages/stewardship/ConfiguracionPage';
@@ -59,8 +58,7 @@ function AppRoutes() {
         <Route path="ingresos"      element={<StewardshipIngresosPage />} />
         <Route path="gastos"        element={<StewardshipGastosPage />} />
         <Route path="balance"       element={<StewardshipBalancePage />} />
-        <Route path="participacion" element={<FinanzasPage />} />
-        <Route path="asistencia"      element={<AsistenciaViewPage />} />
+<Route path="asistencia"      element={<AsistenciaViewPage />} />
         <Route path="punto-encuentro" element={<PuntoEncuentroViewPage />} />
         <Route path="configuracion"   element={<ConfiguracionPage />} />
       </Route>

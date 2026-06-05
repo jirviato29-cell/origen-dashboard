@@ -44,10 +44,9 @@ const navByRole = {
         icon: I.coin,
         defaultOpen: true,
         children: [
-          { to: '/stewardship/ingresos',      label: 'Ingresos',      icon: I.arrowBarDown },
-          { to: '/stewardship/gastos',        label: 'Gastos',        icon: I.arrowBarUp },
-          { to: '/stewardship/balance',       label: 'Finanzas',      icon: I.scale },
-          { to: '/stewardship/participacion', label: 'Participación', icon: I.percent },
+          { to: '/stewardship/ingresos', label: 'Ingresos', icon: I.arrowBarDown },
+          { to: '/stewardship/gastos',   label: 'Gastos',   icon: I.arrowBarUp },
+          { to: '/stewardship/balance',  label: 'Finanzas', icon: I.scale },
         ],
       },
       { to: '/stewardship/asistencia',      label: 'Asistencia',        icon: I.users },
