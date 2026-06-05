@@ -326,7 +326,19 @@ export default function BalancePage() {
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
-  // ── Tabla ──
+  // ── Tabla 1: Caja de Efectivo (saldo encadenado desde $0) ──
+  const cajaData = [];
+  let saldo = 0;
+  for (const row of weeklyData) {
+    const saldoInicial = saldo;
+    const saldoFinal   = saldo + row.ingresos - row.gastos;
+    cajaData.push({ ...row, saldoInicial, saldoFinal });
+    saldo = saldoFinal;
+  }
+  const cajaRows      = [...cajaData].reverse();
+  const saldoEnCaja   = cajaData.length > 0 ? cajaData[cajaData.length - 1].saldoFinal : 0;
+
+  // ── Tabla 2: Movimientos por domingo ──
   const tablaData         = [...weeklyData].reverse();
   const totalGastosWeekly = weeklyData.reduce((s, r) => s + r.gastos, 0);
 
@@ -557,13 +569,87 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {/* ── Tabla semana a semana ── */}
+      {/* ── Tabla 1: Caja de Efectivo ── */}
       <div className="card">
         <div className="card-head" style={{ marginBottom: 16 }}>
           <div>
-            <h3 className="card-title">Desglose semana a semana</h3>
+            <h3 className="card-title">Caja de Efectivo</h3>
             <div className="card-sub">
-              {weeklyData.length} domingos · balance final {fmt(balanceNeto)}
+              {weeklyData.length} domingos · saldo en caja {fmt(saldoEnCaja)}
+            </div>
+          </div>
+        </div>
+
+        {weeklyData.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 13 }}>
+            Sin registros de ofrendas para {year}.
+          </div>
+        ) : (
+          <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <table className="table anf-table">
+              <thead>
+                <tr>
+                  <th>Domingo</th>
+                  <th style={{ textAlign: 'right' }}>Saldo inicial</th>
+                  <th style={{ textAlign: 'right' }}>Ingresos</th>
+                  <th style={{ textAlign: 'right' }}>Gastos</th>
+                  <th style={{ textAlign: 'right' }}>Saldo final</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cajaRows.map(row => (
+                  <tr key={row.fecha}>
+                    <td style={{ fontWeight: 500 }}>{fmtFecha(row.fecha)}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>
+                      {fmt(row.saldoInicial)}
+                    </td>
+                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                      {fmt(row.ingresos)}
+                    </td>
+                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? 'var(--danger)' : 'var(--muted)' }}>
+                      {row.gastos > 0 ? fmt(row.gastos) : '—'}
+                    </td>
+                    <td style={{
+                      textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700,
+                      color: row.saldoFinal < 0 ? 'var(--danger)' : 'var(--ink)',
+                    }}>
+                      {fmt(row.saldoFinal)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tbody>
+                <tr className="anf-totals-row">
+                  <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
+                    Saldo final {year}
+                  </td>
+                  <td />
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                    {fmt(totalIngresos)}
+                  </td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
+                    {fmt(totalGastosWeekly)}
+                  </td>
+                  <td style={{
+                    textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 14,
+                    color: saldoEnCaja < 0 ? 'var(--danger)' : 'var(--ink)',
+                  }}>
+                    {fmt(saldoEnCaja)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Tabla 2: Movimientos por domingo ── */}
+      <div className="card">
+        <div className="card-head" style={{ marginBottom: 16 }}>
+          <div>
+            <h3 className="card-title">Movimientos por domingo</h3>
+            <div className="card-sub">
+              {weeklyData.length} domingos · {year}
             </div>
           </div>
         </div>
@@ -580,30 +666,20 @@ export default function BalancePage() {
                   <th>Domingo</th>
                   <th style={{ textAlign: 'right' }}>Ingresos</th>
                   <th style={{ textAlign: 'right' }}>Gastos</th>
-                  <th style={{ textAlign: 'right' }}>Acumulado</th>
                 </tr>
               </thead>
               <tbody>
-                {tablaData.map(row => {
-                  const acumPositive = row.balance >= 0;
-                  return (
-                    <tr key={row.fecha}>
-                      <td style={{ fontWeight: 500 }}>{fmtFecha(row.fecha)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                        {fmt(row.ingresos)}
-                      </td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? 'var(--danger)' : 'var(--muted)' }}>
-                        {row.gastos > 0 ? fmt(row.gastos) : '—'}
-                      </td>
-                      <td style={{
-                        textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700,
-                        color: acumPositive ? 'var(--good)' : 'var(--danger)',
-                      }}>
-                        {acumPositive ? '+' : ''}{fmt(row.balance)}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {tablaData.map(row => (
+                  <tr key={row.fecha}>
+                    <td style={{ fontWeight: 500 }}>{fmtFecha(row.fecha)}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                      {fmt(row.ingresos)}
+                    </td>
+                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? 'var(--danger)' : 'var(--muted)' }}>
+                      {row.gastos > 0 ? fmt(row.gastos) : '—'}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
               <tbody>
                 <tr className="anf-totals-row">
@@ -615,12 +691,6 @@ export default function BalancePage() {
                   </td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
                     {fmt(totalGastosWeekly)}
-                  </td>
-                  <td style={{
-                    textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800,
-                    fontSize: 14, color: balanceNeto >= 0 ? 'var(--good)' : 'var(--danger)',
-                  }}>
-                    {balanceNeto >= 0 ? '+' : ''}{fmt(balanceNeto)}
                   </td>
                 </tr>
               </tbody>
