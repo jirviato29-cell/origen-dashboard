@@ -1,13 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { asistenciaApi } from '../../services/api';
+import { fmtFecha } from '../../utils/fecha';
 import { I } from '../../components/Icons';
-
-function fmtDate(d) {
-  if (!d) return '—';
-  return new Date(d + 'T00:00:00').toLocaleDateString('es-MX', {
-    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
-  });
-}
 
 function rowTotal(r) {
   return (r.adultos || 0) + (r.voluntarios || 0) + (r.ninos || 0) + (r.bebes || 0);
@@ -35,7 +29,7 @@ export default function AsistenciaViewPage() {
   }, [load]);
 
   const filtered = search
-    ? records.filter(r => fmtDate(r.fecha).toLowerCase().includes(search.toLowerCase()) || r.fecha.includes(search))
+    ? records.filter(r => fmtFecha(r.fecha).toLowerCase().includes(search.toLowerCase()) || r.fecha.includes(search))
     : records;
 
   const ultimo      = records[0];
@@ -61,7 +55,7 @@ export default function AsistenciaViewPage() {
       {!loading && records.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))', gap: 14 }}>
           {[
-            { label: 'Último domingo',  value: totalUltimo, sub: ultimo ? fmtDate(ultimo.fecha) : '—', color: 'var(--chart-primary)' },
+            { label: 'Último domingo',  value: totalUltimo, sub: ultimo ? fmtFecha(ultimo.fecha) : '—', color: 'var(--chart-primary)' },
             { label: 'Promedio',        value: promedio,    sub: `${records.length} domingos`, color: 'var(--ink)' },
             { label: 'Máximo histórico',value: maximo,      sub: 'Total asistentes',           color: 'var(--warn)' },
           ].map(s => (
@@ -125,7 +119,7 @@ export default function AsistenciaViewPage() {
                   return (
                     <tr key={r.id}>
                       <td style={{ fontWeight: 500 }}>
-                        {fmtDate(r.fecha)}
+                        {fmtFecha(r.fecha)}
                         {i === 0 && !search && (
                           <span className="cat-pill" style={{ marginLeft: 8 }}>
                             Más reciente
