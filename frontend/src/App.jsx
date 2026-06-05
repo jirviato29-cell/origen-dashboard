@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { RegistrarModalProvider } from './context/RegistrarModalContext';
 import { OfrendasModalProvider } from './context/OfrendasModalContext';
 import { GastosModalProvider } from './context/GastosModalContext';
+import { AsistenciaStewModalProvider } from './context/AsistenciaStewModalContext';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -75,11 +76,13 @@ export default function App() {
     <RegistrarModalProvider>
       <OfrendasModalProvider>
         <GastosModalProvider>
-          <AuthProvider>
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </AuthProvider>
+          <AsistenciaStewModalProvider>
+            <AuthProvider>
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </AuthProvider>
+          </AsistenciaStewModalProvider>
         </GastosModalProvider>
       </OfrendasModalProvider>
     </RegistrarModalProvider>

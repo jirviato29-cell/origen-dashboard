@@ -4,8 +4,10 @@ import { useAuth, ROLES } from '../context/AuthContext';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
 import { useGastosModal } from '../context/GastosModalContext';
+import { useAsistenciaStewModal } from '../context/AsistenciaStewModalContext';
 import Sidebar from './Sidebar';
 import GlobalAsistenciaModal from './GlobalAsistenciaModal';
+import GlobalAsistenciaStewModal from './GlobalAsistenciaStewModal';
 import GlobalOfrendasModal from './GlobalOfrendasModal';
 import GlobalGastosModal from './GlobalGastosModal';
 import { I } from './Icons';
@@ -36,12 +38,14 @@ const ROUTE_INFO = {
 export default function Layout() {
   const { role, userName } = useAuth();
   const { openModal } = useRegistrarModal();
-  const { openModal: openOfrendasModal } = useOfrendasModal();
-  const { openModal: openGastosModal }   = useGastosModal();
+  const { openModal: openOfrendasModal }   = useOfrendasModal();
+  const { openModal: openGastosModal }     = useGastosModal();
+  const { openModal: openAsistenciaModal } = useAsistenciaStewModal();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
-  const isGastos = location.pathname.endsWith('/gastos');
+  const isGastos     = location.pathname.endsWith('/gastos');
+  const isAsistencia = location.pathname.endsWith('/asistencia');
 
   if (!role) return <Navigate to="/" replace />;
 
@@ -117,7 +121,7 @@ export default function Layout() {
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Asistencia</span>
               </button>
             )}
-            {isStewardship && !isGastos && location.pathname !== '/stewardship/balance' && (
+            {isStewardship && !isGastos && !isAsistencia && location.pathname !== '/stewardship/balance' && (
               <button className="btn btn-primary" onClick={openOfrendasModal}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Ofrenda</span>
               </button>
@@ -125,6 +129,11 @@ export default function Layout() {
             {isStewardship && isGastos && (
               <button className="btn btn-primary" onClick={openGastosModal}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Gasto</span>
+              </button>
+            )}
+            {isStewardship && isAsistencia && (
+              <button className="btn btn-primary" onClick={openAsistenciaModal}>
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Asistencia</span>
               </button>
             )}
             <button className="icon-btn" aria-label="Notificaciones">
@@ -140,6 +149,7 @@ export default function Layout() {
       </div>
 
       <GlobalAsistenciaModal />
+      <GlobalAsistenciaStewModal />
       <GlobalOfrendasModal />
       <GlobalGastosModal />
     </div>
