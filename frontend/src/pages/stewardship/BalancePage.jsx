@@ -17,7 +17,6 @@ function mesNombre(isoMes) {
 
 // ── Data builders ─────────────────────────────────────────────────────────────
 
-// Suma los valores del mes directamente desde los registros crudos.
 function buildMonthlyData(ofrendas, gastos) {
   const meses = [...new Set(ofrendas.map(d => d.fecha.slice(0, 7)))].sort();
   return meses.map(mes => {
@@ -37,7 +36,7 @@ function buildMonthlyData(ofrendas, gastos) {
   });
 }
 
-// Una fila por domingo. Los gastos se asignan al período
+// Una fila por domingo. Gastos asignados al período
 // (prevDomingo < fecha_gasto <= domingo_actual).
 function buildWeeklyData(ofrendas, gastos) {
   if (ofrendas.length === 0) return [];
@@ -63,192 +62,112 @@ function buildWeeklyData(ofrendas, gastos) {
   });
 }
 
-// Reinicia los acumulados desde 0 para una tajada mensual del weekly data.
-function rebaseCumulative(slice) {
-  let cumIngresos = 0, cumGastos = 0;
-  return slice.map(row => {
-    cumIngresos += row.ingresos;
-    cumGastos   += row.gastos;
-    return { ...row, cumIngresos, cumGastos, balance: cumIngresos - cumGastos };
-  });
+// ── Donut / Pie Chart ─────────────────────────────────────────────────────────
+
+const VW = 500, VH = 260;
+const CX = 130, CY = 130, R_OUT = 100, R_IN = 55;
+
+function donutPath(start, end, rOut, rIn) {
+  // Full circle: split into two halves to avoid degenerate path
+  if (Math.abs(end - start) >= 2 * Math.PI - 0.001) {
+    const mid = start + Math.PI;
+    return donutPath(start, mid, rOut, rIn) + ' ' + donutPath(mid, end, rOut, rIn);
+  }
+  const large = end - start > Math.PI ? 1 : 0;
+  const x1o = (CX + rOut * Math.cos(start)).toFixed(2), y1o = (CY + rOut * Math.sin(start)).toFixed(2);
+  const x2o = (CX + rOut * Math.cos(end)).toFixed(2),   y2o = (CY + rOut * Math.sin(end)).toFixed(2);
+  const x2i = (CX + rIn  * Math.cos(end)).toFixed(2),   y2i = (CY + rIn  * Math.sin(end)).toFixed(2);
+  const x1i = (CX + rIn  * Math.cos(start)).toFixed(2), y1i = (CY + rIn  * Math.sin(start)).toFixed(2);
+  return `M ${x1o} ${y1o} A ${rOut} ${rOut} 0 ${large} 1 ${x2o} ${y2o} L ${x2i} ${y2i} A ${rIn} ${rIn} 0 ${large} 0 ${x1i} ${y1i} Z`;
 }
 
-// ── Dual-line Chart ───────────────────────────────────────────────────────────
-
-const VW = 900, VH = 320;
-const PAD = { left: 82, right: 28, top: 28, bottom: 52 };
-
-function BalanceChart({ data }) {
+function PieChart({ ingresos, gastos: gastosTotal }) {
   const [hovered, setHovered] = useState(null);
+  const balance   = ingresos - gastosTotal;
+  const isDeficit = balance < 0;
 
-  if (data.length < 2) {
+  // Surplus → pie = ingresos,    slices: [gastos, superávit]
+  // Deficit → pie = gastosTotal, slices: [ingresos, exceso]
+  const total  = isDeficit ? gastosTotal : ingresos;
+  const slices = isDeficit
+    ? [
+        { label: 'Ingresos',  value: ingresos,               color: '#5C7A6F' },
+        { label: 'Déficit',   value: gastosTotal - ingresos,  color: '#FF6B2B' },
+      ]
+    : [
+        { label: 'Gastos',    value: gastosTotal,             color: '#FF6B2B' },
+        { label: 'Superávit', value: balance,                 color: '#00B4D8' },
+      ];
+
+  if (total <= 0) {
     return (
       <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
-        Sin suficientes datos para mostrar la gráfica
+        Sin datos para mostrar
       </div>
     );
   }
 
-  const chartW = VW - PAD.left - PAD.right;
-  const chartH = VH - PAD.top  - PAD.bottom;
-
-  const yMax = Math.ceil(Math.max(...data.map(d => d.cumIngresos)) / 25000) * 25000 || 25000;
-  const tickInterval = yMax > 80000 ? 25000 : 10000;
-  const yTicks = Array.from({ length: Math.floor(yMax / tickInterval) + 1 }, (_, i) => i * tickInterval);
-
-  const toX = i => PAD.left + (i / (data.length - 1)) * chartW;
-  const toY = v => PAD.top  + chartH - (v / yMax) * chartH;
-
-  const ptsIng = data.map((d, i) => ({ x: toX(i), y: toY(d.cumIngresos), d, i }));
-  const ptsGas = data.map((d, i) => ({ x: toX(i), y: toY(d.cumGastos),   d, i }));
-
-  const pathIng = ptsIng.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const pathGas = ptsGas.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-
-  const areaPath =
-    pathIng + ' ' +
-    [...ptsGas].reverse().map(p => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') +
-    ' Z';
+  let angle = -Math.PI / 2;
+  const built = slices.map((s, i) => {
+    const sweep = (s.value / total) * 2 * Math.PI;
+    const start = angle, end = angle + sweep, mid = angle + sweep / 2;
+    angle = end;
+    return { ...s, start, end, mid, i };
+  });
 
   return (
-    <div style={{ position: 'relative' }}>
-      <svg
-        viewBox={`0 0 ${VW} ${VH}`}
-        style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
-        onMouseLeave={() => setHovered(null)}
-      >
-        {yTicks.map(v => (
-          <g key={v}>
-            <line
-              x1={PAD.left} x2={VW - PAD.right}
-              y1={toY(v)}   y2={toY(v)}
-              stroke="#ddd5c8" strokeWidth={v === 0 ? 1.2 : 0.65}
-              strokeDasharray={v === 0 ? '' : '3 3'}
-            />
-            <text
-              x={PAD.left - 10} y={toY(v) + 4}
-              textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="var(--font-mono)"
-            >
-              {v === 0 ? '$0' : `$${(v / 1000).toFixed(0)}k`}
-            </text>
-          </g>
-        ))}
-
-        {ptsIng.map((p, i) => {
-          if (i % 3 !== 0 && i !== ptsIng.length - 1) return null;
-          return (
-            <text key={i} x={p.x} y={PAD.top + chartH + 18}
-              textAnchor="middle" fontSize={9.5} fill="#b0a090">
-              {fmtFechaShort(data[i].fecha)}
-            </text>
-          );
-        })}
-
-        <text
-          x={ptsIng[ptsIng.length - 1].x + 6}
-          y={ptsIng[ptsIng.length - 1].y + 4}
-          fontSize={9.5} fill="#00B4D8" fontWeight="700" fontFamily="var(--font-mono)"
-        >
-          {fmt(data[data.length - 1].cumIngresos)}
-        </text>
-        <text
-          x={ptsGas[ptsGas.length - 1].x + 6}
-          y={ptsGas[ptsGas.length - 1].y + 4}
-          fontSize={9.5} fill="#FF6B2B" fontWeight="700" fontFamily="var(--font-mono)"
-        >
-          {fmt(data[data.length - 1].cumGastos)}
-        </text>
-
-        <path d={areaPath} fill="#00B4D8" opacity={0.08} />
-        <path d={pathGas} fill="none" stroke="#FF6B2B" strokeWidth={2}
-          strokeDasharray="7 4" strokeLinejoin="round" strokeLinecap="round" />
-        <path d={pathIng} fill="none" stroke="#00B4D8" strokeWidth={2.5}
-          strokeLinejoin="round" strokeLinecap="round" />
-
-        {hovered !== null && (
-          <line
-            x1={ptsIng[hovered].x} x2={ptsIng[hovered].x}
-            y1={PAD.top} y2={PAD.top + chartH}
-            stroke="#888" strokeWidth={1} strokeDasharray="4 3" opacity={0.35}
-          />
-        )}
-
-        {ptsIng.map((p, i) => (
-          <circle key={`ing-${i}`} cx={p.x} cy={p.y}
-            r={hovered === i ? 6.5 : 4}
-            fill={hovered === i ? '#00B4D8' : 'white'}
-            stroke="#00B4D8" strokeWidth={2}
-            style={{ cursor: 'pointer' }}
-            onMouseEnter={() => setHovered(i)}
-          />
-        ))}
-
-        {ptsGas.map((p, i) => (
-          <circle key={`gas-${i}`} cx={p.x} cy={p.y}
-            r={hovered === i ? 5 : 3}
-            fill={hovered === i ? '#FF6B2B' : 'white'}
-            stroke="#FF6B2B" strokeWidth={2}
-            style={{ cursor: 'pointer' }}
-            onMouseEnter={() => setHovered(i)}
-          />
-        ))}
-      </svg>
-
-      {hovered !== null && (() => {
-        const d    = data[hovered];
-        const p    = ptsIng[hovered];
-        const lPct = (p.x / VW) * 100;
-        const tPct = (p.y / VH) * 100;
-        const tx   = lPct > 70 ? '-94%' : lPct < 22 ? '6%' : '-50%';
-        const ty   = tPct < 28 ? '14%' : '-116%';
-        const bal  = d.cumIngresos - d.cumGastos;
+    <svg
+      viewBox={`0 0 ${VW} ${VH}`}
+      style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
+    >
+      {/* Donut slices */}
+      {built.map(s => {
+        const active = hovered === s.i;
+        const dimmed = hovered !== null && !active;
+        const push   = active ? 6 : 0;
         return (
-          <div style={{
-            position: 'absolute',
-            left: `${lPct}%`, top: `${tPct}%`,
-            transform: `translate(${tx}, ${ty})`,
-            pointerEvents: 'none',
-            background: '#1A1A1A', color: 'white',
-            borderRadius: 10, padding: '11px 16px',
-            fontSize: 12.5, lineHeight: 1.8,
-            boxShadow: '0 6px 24px rgba(0,0,0,0.28)',
-            whiteSpace: 'nowrap', zIndex: 20,
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
-              {fmtFecha(d.fecha)}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 10, height: 3, background: '#00B4D8', display: 'inline-block', borderRadius: 2 }} />
-                  <span style={{ opacity: 0.65, fontSize: 12 }}>Ing. acumulados</span>
-                </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#00B4D8' }}>{fmt(d.cumIngresos)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 10, height: 3, background: '#FF6B2B', display: 'inline-block', borderRadius: 2, opacity: 0.85 }} />
-                  <span style={{ opacity: 0.65, fontSize: 12 }}>Gas. acumulados</span>
-                </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#FF6B2B' }}>{fmt(d.cumGastos)}</span>
-              </div>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', gap: 24,
-                borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 5, paddingTop: 5,
-              }}>
-                <span style={{ fontWeight: 700 }}>Balance</span>
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontWeight: 800,
-                  color: bal >= 0 ? '#90d4a8' : '#f4a070',
-                }}>
-                  {bal >= 0 ? '+' : ''}{fmt(bal)}
-                </span>
-              </div>
-            </div>
-          </div>
+          <path
+            key={s.i}
+            d={donutPath(s.start, s.end, R_OUT, R_IN)}
+            fill={s.color}
+            opacity={dimmed ? 0.4 : 1}
+            transform={push > 0 ? `translate(${(Math.cos(s.mid) * push).toFixed(2)}, ${(Math.sin(s.mid) * push).toFixed(2)})` : undefined}
+            style={{ cursor: 'pointer', transition: 'opacity 0.15s' }}
+            onMouseEnter={() => setHovered(s.i)}
+            onMouseLeave={() => setHovered(null)}
+          />
         );
-      })()}
-    </div>
+      })}
+
+      {/* Center text */}
+      <text x={CX} y={CY - 8} textAnchor="middle" fontSize={9} fill="#b0a090" fontWeight={600}>
+        {isDeficit ? 'DÉFICIT' : 'TOTAL INGRESOS'}
+      </text>
+      <text x={CX} y={CY + 11} textAnchor="middle" fontSize={13.5} fill="var(--ink)" fontWeight={800} fontFamily="var(--font-mono)">
+        {fmt(isDeficit ? Math.abs(balance) : total)}
+      </text>
+
+      {/* Legend */}
+      {built.map((s, i) => {
+        const pct    = Math.round((s.value / total) * 100);
+        const ly     = 48 + i * 80;
+        const active = hovered === s.i;
+        return (
+          <g
+            key={`leg-${i}`}
+            style={{ cursor: 'pointer' }}
+            onMouseEnter={() => setHovered(s.i)}
+            onMouseLeave={() => setHovered(null)}
+            opacity={hovered !== null && !active ? 0.4 : 1}
+          >
+            <rect x={268} y={ly} width={11} height={11} rx={2} fill={s.color} />
+            <text x={285} y={ly + 10} fontSize={12.5} fill="var(--ink)" fontWeight={active ? 700 : 500}>{s.label}</text>
+            <text x={285} y={ly + 28} fontSize={14.5} fill={s.color} fontWeight={800} fontFamily="var(--font-mono)">{fmt(s.value)}</text>
+            <text x={285} y={ly + 44} fontSize={11} fill="#b0a090">{pct}% · {isDeficit ? 'de los gastos' : 'de los ingresos'}</text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
@@ -257,10 +176,10 @@ function BalanceChart({ data }) {
 export default function BalancePage() {
   const year = new Date().getFullYear();
 
-  const [ofrendas,        setOfrendas]  = useState([]);
-  const [gastos,          setGastos]    = useState([]);
-  const [loading,         setLoading]   = useState(true);
-  const [mesSeleccionado, setMesSelec]  = useState(null);
+  const [ofrendas,        setOfrendas] = useState([]);
+  const [gastos,          setGastos]   = useState([]);
+  const [loading,         setLoading]  = useState(true);
+  const [mesSeleccionado, setMesSelec] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -291,12 +210,12 @@ export default function BalancePage() {
   const weeklyData = buildWeeklyData(ofrendas, gastos);
 
   // ── KPIs ──
-  const totalIngresos  = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
-  const totalGastos    = gastos.reduce((s, g) => s + Number(g.monto), 0);
-  const balanceNeto    = totalIngresos - totalGastos;
-  const totalEfectivo  = ofrendas.reduce((s, d) => s + Number(d.efectivo), 0);
-  const totalTerminal  = ofrendas.reduce((s, d) => s + Number(d.terminal), 0);
-  const cajaChica      = SALDO_INICIAL_CAJA + totalEfectivo - totalGastos;
+  const totalIngresos = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
+  const totalGastos   = gastos.reduce((s, g) => s + Number(g.monto), 0);
+  const balanceNeto   = totalIngresos - totalGastos;
+  const totalEfectivo = ofrendas.reduce((s, d) => s + Number(d.efectivo), 0);
+  const totalTerminal = ofrendas.reduce((s, d) => s + Number(d.terminal), 0);
+  const cajaChica     = SALDO_INICIAL_CAJA + totalEfectivo - totalGastos;
 
   const pctEfectivo = totalIngresos > 0 ? Math.round(totalEfectivo / totalIngresos * 100) : 0;
   const pctTerminal = totalIngresos > 0 ? Math.round(totalTerminal / totalIngresos * 100) : 0;
@@ -309,27 +228,20 @@ export default function BalancePage() {
       .reduce((s, g) => s + Number(g.monto), 0),
   }));
 
-  // ── Resumen mensual (valores del mes, no acumulados) ──
+  // ── Resumen mensual ──
   const monthlyData = buildMonthlyData(ofrendas, gastos);
 
-  // ── Datos para la gráfica ──
-  const chartData = mesSeleccionado
-    ? rebaseCumulative(weeklyData.filter(r => r.fecha.startsWith(mesSeleccionado)))
-    : weeklyData;
-
-  const chartTitle = mesSeleccionado
-    ? `Balance ${mesNombre(mesSeleccionado)} ${year} — semana a semana`
-    : `Balance acumulado ${year} — semana a semana`;
-
-  const chartSub = mesSeleccionado
-    ? `${chartData.length} ${chartData.length === 1 ? 'domingo' : 'domingos'} · hover para ver detalle`
-    : `${ofrendas.length} domingos · hover para ver acumulados`;
+  // ── Datos para el pastel ──
+  const mesEntry   = mesSeleccionado ? monthlyData.find(m => m.mes === mesSeleccionado) : null;
+  const pieIngresos = mesEntry ? mesEntry.ingresos : totalIngresos;
+  const pieGastos   = mesEntry ? mesEntry.gastos   : totalGastos;
+  const pieTitle    = mesSeleccionado
+    ? `Balance ${mesNombre(mesSeleccionado)} ${year}`
+    : `Balance ${year}`;
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
-  // ── Tabla 1: Caja de Efectivo ──
-  // Ingresos = solo efectivo de ofrendas; Gastos = todos (sin filtro de método).
-  // Arranca en SALDO_INICIAL_CAJA (carryover del año anterior).
+  // ── Caja de Efectivo ──
   const cajaData = [];
   let saldo = SALDO_INICIAL_CAJA;
   for (const row of weeklyData) {
@@ -338,11 +250,8 @@ export default function BalancePage() {
     cajaData.push({ ...row, saldoInicial, saldoFinal });
     saldo = saldoFinal;
   }
-  const cajaRows      = [...cajaData].reverse();
-  const saldoEnCaja   = cajaData.length > 0 ? cajaData[cajaData.length - 1].saldoFinal : 0;
-
-  // ── Tabla 2: Movimientos por domingo ──
-  const tablaData         = [...weeklyData].reverse();
+  const cajaRows    = [...cajaData].reverse();
+  const saldoEnCaja = cajaData.length > 0 ? cajaData[cajaData.length - 1].saldoFinal : 0;
   const totalGastosWeekly = weeklyData.reduce((s, r) => s + r.gastos, 0);
 
   return (
@@ -481,10 +390,10 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {/* ── Resumen por mes + Gráfica ── */}
+      {/* ── Resumen por mes + Pastel ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
 
-        {/* Resumen por mes — interactivo */}
+        {/* Resumen por mes */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
           <div className="card-head" style={{ marginBottom: 16 }}>
             <div>
@@ -531,48 +440,35 @@ export default function BalancePage() {
           </div>
         </div>
 
-        {/* Gráfica — cambia según mes seleccionado */}
+        {/* Pastel */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
-          <div className="card-head" style={{ marginBottom: 20 }}>
+          <div className="card-head" style={{ marginBottom: 16 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h3 className="card-title" style={{ fontSize: 13 }}>{chartTitle}</h3>
-              <div className="card-sub">{chartSub}</div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
-              {mesSeleccionado && (
-                <button
-                  onClick={() => setMesSelec(null)}
-                  style={{
-                    fontSize: 11.5, fontWeight: 600, color: 'var(--muted)',
-                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                    textDecoration: 'underline', textUnderlineOffset: 3,
-                  }}
-                >
-                  ← Ver todo el año
-                </button>
-              )}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 18, height: 3, borderRadius: 99, background: '#00B4D8' }} />
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Ingresos acum.</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 18, height: 3, borderRadius: 99, background: '#FF6B2B', opacity: 0.8,
-                    backgroundImage: 'repeating-linear-gradient(90deg, #FF6B2B 0 7px, transparent 7px 11px)' }} />
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Gastos acum.</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 12, height: 8, borderRadius: 3, background: 'rgba(0,180,216,0.15)' }} />
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Superávit</span>
-                </div>
+              <h3 className="card-title" style={{ fontSize: 13 }}>{pieTitle}</h3>
+              <div className="card-sub">
+                {mesSeleccionado
+                  ? `${mesNombre(mesSeleccionado)} · ingresos vs gastos`
+                  : `Año completo · ingresos vs gastos`}
               </div>
             </div>
+            {mesSeleccionado && (
+              <button
+                onClick={() => setMesSelec(null)}
+                style={{
+                  fontSize: 11.5, fontWeight: 600, color: 'var(--muted)', flexShrink: 0,
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  textDecoration: 'underline', textUnderlineOffset: 3,
+                }}
+              >
+                ← Ver todo el año
+              </button>
+            )}
           </div>
-          <BalanceChart data={chartData} />
+          <PieChart ingresos={pieIngresos} gastos={pieGastos} />
         </div>
       </div>
 
-      {/* ── Tabla 1: Caja de Efectivo ── */}
+      {/* ── Tabla: Caja de Efectivo ── */}
       <div className="card">
         <div className="card-head" style={{ marginBottom: 16 }}>
           <div>
@@ -638,62 +534,6 @@ export default function BalancePage() {
                     color: saldoEnCaja < 0 ? 'var(--danger)' : 'var(--ink)',
                   }}>
                     {fmt(saldoEnCaja)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* ── Tabla 2: Movimientos por domingo ── */}
-      <div className="card">
-        <div className="card-head" style={{ marginBottom: 16 }}>
-          <div>
-            <h3 className="card-title">Movimientos por domingo</h3>
-            <div className="card-sub">
-              {weeklyData.length} domingos · {year}
-            </div>
-          </div>
-        </div>
-
-        {weeklyData.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 13 }}>
-            Sin registros de ofrendas para {year}.
-          </div>
-        ) : (
-          <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
-            <table className="table anf-table">
-              <thead>
-                <tr>
-                  <th>Domingo</th>
-                  <th style={{ textAlign: 'right' }}>Ingresos</th>
-                  <th style={{ textAlign: 'right' }}>Gastos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tablaData.map(row => (
-                  <tr key={row.fecha}>
-                    <td style={{ fontWeight: 500 }}>{fmtFecha(row.fecha)}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                      {fmt(row.ingresos)}
-                    </td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? 'var(--danger)' : 'var(--muted)' }}>
-                      {row.gastos > 0 ? fmt(row.gastos) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tbody>
-                <tr className="anf-totals-row">
-                  <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
-                    Totales {year}
-                  </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                    {fmt(totalIngresos)}
-                  </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
-                    {fmt(totalGastosWeekly)}
                   </td>
                 </tr>
               </tbody>
