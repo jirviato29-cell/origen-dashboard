@@ -187,7 +187,7 @@ export default function IngresosPage() {
   // toISODate normaliza fechas de cualquier formato (Date object, ISO timestamp, DATE string)
   const asistByFecha = Object.fromEntries(asistencia.map(r => [toISODate(r.fecha), r]));
 
-  const uSobres = Number(ultimoDomingo?.ofrendas_sobres ?? 0);
+  const uSobres = Number(ultimoDomingo?.ofrendas ?? 0);
   const uAsist  = asistByFecha[toISODate(ultimoDomingo?.fecha)];
   const uDenom  = (uAsist?.adultos ?? 0) + (uAsist?.voluntarios ?? 0);
   const participacionUltimo = (uSobres > 0 && uDenom > 0)
@@ -197,11 +197,11 @@ export default function IngresosPage() {
   // Promedio del año — método agregado: suma sobres / suma (adultos+voluntarios)
   let totalSobresAnio = 0, totalDenomAnio = 0;
   ofrendas
-    .filter(d => Number(d.ofrendas_sobres ?? 0) > 0)
+    .filter(d => Number(d.ofrendas ?? 0) > 0)
     .forEach(d => {
       const a   = asistByFecha[toISODate(d.fecha)];
       const den = (a?.adultos ?? 0) + (a?.voluntarios ?? 0);
-      if (den > 0) { totalSobresAnio += Number(d.ofrendas_sobres); totalDenomAnio += den; }
+      if (den > 0) { totalSobresAnio += Number(d.ofrendas); totalDenomAnio += den; }
     });
   const promedioParticipacion = totalDenomAnio > 0
     ? Math.round(totalSobresAnio / totalDenomAnio * 100)
@@ -223,11 +223,11 @@ export default function IngresosPage() {
     const rows = ofrendas.filter(d => d.fecha.startsWith(m));
     let sobresM = 0, denomM = 0;
     rows
-      .filter(d => Number(d.ofrendas_sobres ?? 0) > 0)
+      .filter(d => Number(d.ofrendas ?? 0) > 0)
       .forEach(d => {
         const a   = asistByFecha[toISODate(d.fecha)];
         const den = (a?.adultos ?? 0) + (a?.voluntarios ?? 0);
-        if (den > 0) { sobresM += Number(d.ofrendas_sobres); denomM += den; }
+        if (den > 0) { sobresM += Number(d.ofrendas); denomM += den; }
       });
     return {
       mes:         m,
@@ -314,7 +314,7 @@ export default function IngresosPage() {
             </span>
             <span style={{ color: 'var(--border)' }}>·</span>
             <span style={{ color: 'var(--muted)' }}>
-              Sobres <strong style={{ color: 'var(--ink)' }}>{Number(ultimoDomingo.ofrendas_sobres ?? 0)}</strong>
+              Sobres <strong style={{ color: 'var(--ink)' }}>{Number(ultimoDomingo.ofrendas ?? 0)}</strong>
             </span>
           </div>
         </div>
