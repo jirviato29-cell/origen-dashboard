@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ofrendasApi, gastosApi, asistenciaApi } from '../../services/api';
-import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
+import { fmtFecha, fmtFechaShort, mesNombre, toISODate } from '../../utils/fecha';
 import { useIsMobile } from '../../utils/useIsMobile';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -184,23 +184,27 @@ export default function IngresosPage() {
   const ultimoDomingo = sorted[0];
 
   // Participación: sobres ÷ (adultos + voluntarios) × 100
-  const asistByFecha = Object.fromEntries(asistencia.map(r => [r.fecha?.slice(0, 10), r]));
+  // toISODate normaliza fechas de cualquier formato (Date object, ISO timestamp, DATE string)
+  const asistByFecha = Object.fromEntries(asistencia.map(r => [toISODate(r.fecha), r]));
+
   const uSobres = Number(ultimoDomingo?.ofrendas_sobres ?? 0);
-  const uAsist  = asistByFecha[ultimoDomingo?.fecha?.slice(0, 10)];
+  const uAsist  = asistByFecha[toISODate(ultimoDomingo?.fecha)];
   const uDenom  = (uAsist?.adultos ?? 0) + (uAsist?.voluntarios ?? 0);
   const participacionUltimo = (uSobres > 0 && uDenom > 0)
     ? Math.round(uSobres / uDenom * 100)
     : null;
-  const participacionesAnio = ofrendas
+
+  // Promedio del año — método agregado: suma sobres / suma (adultos+voluntarios)
+  let totalSobresAnio = 0, totalDenomAnio = 0;
+  ofrendas
     .filter(d => Number(d.ofrendas_sobres ?? 0) > 0)
-    .map(d => {
-      const a   = asistByFecha[d.fecha?.slice(0, 10)];
+    .forEach(d => {
+      const a   = asistByFecha[toISODate(d.fecha)];
       const den = (a?.adultos ?? 0) + (a?.voluntarios ?? 0);
-      return den > 0 ? Math.round(Number(d.ofrendas_sobres) / den * 100) : null;
-    })
-    .filter(v => v !== null);
-  const promedioParticipacion = participacionesAnio.length > 0
-    ? Math.round(participacionesAnio.reduce((s, v) => s + v, 0) / participacionesAnio.length)
+      if (den > 0) { totalSobresAnio += Number(d.ofrendas_sobres); totalDenomAnio += den; }
+    });
+  const promedioParticipacion = totalDenomAnio > 0
+    ? Math.round(totalSobresAnio / totalDenomAnio * 100)
     : null;
 
   const ofrendasMesActual = ofrendas.filter(d => d.fecha.startsWith(mesActual));
@@ -217,15 +221,27 @@ export default function IngresosPage() {
   const mesesDisponibles = [...new Set(ofrendas.map(d => d.fecha.slice(0, 7)))].sort();
   const resumenMeses = mesesDisponibles.map(m => {
     const rows = ofrendas.filter(d => d.fecha.startsWith(m));
+    let sobresM = 0, denomM = 0;
+    rows
+      .filter(d => Number(d.ofrendas_sobres ?? 0) > 0)
+      .forEach(d => {
+        const a   = asistByFecha[toISODate(d.fecha)];
+        const den = (a?.adultos ?? 0) + (a?.voluntarios ?? 0);
+        if (den > 0) { sobresM += Number(d.ofrendas_sobres); denomM += den; }
+      });
     return {
-      mes:      m,
-      label:    mesNombre(m),
-      total:    rows.reduce((s, d) => s + Number(d.total_ofrenda), 0),
-      efectivo: rows.reduce((s, d) => s + Number(d.efectivo), 0),
-      terminal: rows.reduce((s, d) => s + Number(d.terminal), 0),
-      count:    rows.length,
+      mes:         m,
+      label:       mesNombre(m),
+      total:       rows.reduce((s, d) => s + Number(d.total_ofrenda), 0),
+      efectivo:    rows.reduce((s, d) => s + Number(d.efectivo), 0),
+      terminal:    rows.reduce((s, d) => s + Number(d.terminal), 0),
+      count:       rows.length,
+      participMes: denomM > 0 ? Math.round(sobresM / denomM * 100) : null,
     };
   });
+
+  const mesUltimo         = ultimoDomingo?.fecha?.slice(0, 7);
+  const participMesUltimo = resumenMeses.find(r => r.mes === mesUltimo)?.participMes ?? null;
 
   // Gráfica: mensual por defecto; por domingo cuando hay mes seleccionado
   const chartData = mesSeleccionado
@@ -314,8 +330,13 @@ export default function IngresosPage() {
           <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 7 }}>
             {fmtParticipSub(ultimoDomingo.fecha)} · {uSobres} sobres / {uDenom > 0 ? uDenom : '—'}
           </div>
+          {participMesUltimo !== null && (
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 5 }}>
+              {mesNombre(mesUltimo)}: <strong style={{ color: 'var(--ink)' }}>{participMesUltimo}%</strong>
+            </div>
+          )}
           {promedioParticipacion !== null && (
-            <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--muted)' }}>
+            <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--muted)' }}>
               Promedio del año: <strong style={{ color: 'var(--ink)' }}>{promedioParticipacion}%</strong>
             </div>
           )}
@@ -408,6 +429,11 @@ export default function IngresosPage() {
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
                       Efectivo {fmt(r.efectivo)} · Terminal {fmt(r.terminal)}
                     </div>
+                    {r.participMes !== null && (
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+                        Participación {r.participMes}%
+                      </div>
+                    )}
                   </div>
                 </button>
               );
