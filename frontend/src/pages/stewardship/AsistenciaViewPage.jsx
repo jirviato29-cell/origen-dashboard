@@ -33,7 +33,7 @@ const BAR_FILL = 0.68; // fraction of slot used by bar
 
 // ── Stacked Bar Chart ─────────────────────────────────────────────────────────
 
-function StackedBarChart({ data }) {
+function StackedBarChart({ data, onBarClick }) {
   const [hovered, setHovered] = useState(null);
 
   if (!data || data.length === 0) {
@@ -106,9 +106,11 @@ function StackedBarChart({ data }) {
 
           return (
             <g
-              key={d.fecha || i}
+              key={d.barKey || i}
               onMouseEnter={() => setHovered(i)}
-              style={{ cursor: 'pointer' }}
+              onMouseLeave={() => setHovered(null)}
+              onClick={() => onBarClick && onBarClick(d.barKey)}
+              style={{ cursor: onBarClick ? 'pointer' : 'default' }}
             >
               {segs.map((s, si) => (
                 <rect
@@ -125,10 +127,10 @@ function StackedBarChart({ data }) {
                 y={PAD.top + chartH + 15}
                 textAnchor="middle"
                 fontSize={n > 12 ? 7.5 : n > 8 ? 9 : 10}
-                fill="#b0a090"
+                fill={isHov && onBarClick ? 'var(--chart-primary)' : '#b0a090'}
                 style={{ userSelect: 'none' }}
               >
-                {fmtFechaShort(d.fecha)}
+                {d.xLabel}
               </text>
             </g>
           );
@@ -152,7 +154,7 @@ function StackedBarChart({ data }) {
             boxShadow: '0 6px 24px rgba(0,0,0,0.28)', whiteSpace: 'nowrap', zIndex: 20,
           }}>
             <div style={{ fontWeight: 700, marginBottom: 5, fontSize: 13 }}>
-              {fmtFecha(d.fecha)}
+              {d.tooltipHeader}
             </div>
             {LEGEND.map(({ key, label, color }) => (
               <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: 18 }}>
@@ -238,13 +240,32 @@ export default function AsistenciaViewPage() {
 
   // ── Chart data ─────────────────────────────────────────────────────────────
   const chartData = mesSeleccionado
-    ? [...records].filter(r => r.fecha.startsWith(mesSeleccionado)).sort((a, b) => a.fecha.localeCompare(b.fecha))
-    : [...records].sort((a, b) => a.fecha.localeCompare(b.fecha));
+    ? [...records]
+        .filter(r => r.fecha.startsWith(mesSeleccionado))
+        .sort((a, b) => a.fecha.localeCompare(b.fecha))
+        .map(r => ({
+          ...r,
+          xLabel:       fmtFechaShort(r.fecha),
+          tooltipHeader: fmtFecha(r.fecha),
+          barKey:       r.fecha,
+        }))
+    : resumenMeses.map(r => ({
+        adultos:      r.adultos,
+        voluntarios:  r.voluntarios,
+        ninos:        r.ninos,
+        bebes:        r.bebes,
+        nuevos:       r.nuevos,
+        xLabel:       r.label,
+        tooltipHeader: `${r.label} ${year}`,
+        barKey:       r.mes,
+      }));
 
   const chartTitle = mesSeleccionado
     ? `Asistencia ${mesNombre(mesSeleccionado)} ${year}`
     : `Asistencia ${year}`;
-  const chartSub = `${chartData.length} domingo${chartData.length !== 1 ? 's' : ''} · pasa el mouse sobre cada barra`;
+  const chartSub = mesSeleccionado
+    ? `${chartData.length} domingo${chartData.length !== 1 ? 's' : ''} · pasa el mouse sobre cada barra`
+    : `${chartData.length} ${chartData.length === 1 ? 'mes' : 'meses'} · por mes · clic en un mes para ver sus domingos`;
 
   // ── Tabla ──────────────────────────────────────────────────────────────────
   const filtered = search
@@ -397,7 +418,10 @@ export default function AsistenciaViewPage() {
                 </div>
               </div>
             </div>
-            <StackedBarChart data={chartData} />
+            <StackedBarChart
+              data={chartData}
+              onBarClick={mesSeleccionado ? null : mes => setMesSelec(mes)}
+            />
           </div>
         </div>
       )}
