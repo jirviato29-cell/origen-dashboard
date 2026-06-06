@@ -205,6 +205,7 @@ export default function CalendarioPage() {
                       const esDomingo  = iso ? isDomingo(iso) : false;
                       const isToday    = iso === todayISO;
                       const isSelected = iso === selectedDay;
+                      const hasEspecial = dayEvts.some(ev => ev.tipo === 'Especial');
 
                       return (
                         <td key={ci}
@@ -212,15 +213,17 @@ export default function CalendarioPage() {
                           style={{
                             border: '1px solid var(--border)',
                             verticalAlign: 'top',
-                            padding: '6px 6px 4px',
-                            minHeight: 88,
+                            padding: '8px 8px 6px',
+                            minHeight: 110,
                             height: 'auto',
                             cursor: day ? 'pointer' : 'default',
                             background: isSelected
                               ? 'rgba(0,180,216,0.08)'
                               : !day
                                 ? 'var(--surface)'
-                                : 'var(--white, #fff)',
+                                : hasEspecial
+                                  ? 'rgba(245,158,11,0.15)'
+                                  : 'var(--white, #fff)',
                             boxShadow: isSelected
                               ? 'inset 0 0 0 2px var(--chart-primary)'
                               : 'none',
@@ -242,7 +245,7 @@ export default function CalendarioPage() {
                                 </span>
                               </div>
 
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 {/* Domingo automático */}
                                 {esDomingo && (
                                   <span style={{
@@ -251,7 +254,7 @@ export default function CalendarioPage() {
                                     color: TIPO_COLOR['Servicio'],
                                     background: TIPO_BG['Servicio'],
                                     borderRadius: 3,
-                                    padding: '1px 4px',
+                                    padding: '2px 5px',
                                     whiteSpace: 'normal',
                                     wordWrap: 'break-word',
                                   }}>
@@ -268,7 +271,7 @@ export default function CalendarioPage() {
                                     color: TIPO_COLOR[ev.tipo] || '#888',
                                     background: TIPO_BG[ev.tipo] || 'transparent',
                                     borderRadius: 3,
-                                    padding: '1px 4px',
+                                    padding: '2px 5px',
                                     whiteSpace: 'normal',
                                     wordWrap: 'break-word',
                                   }}>
