@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { calendarioApi, participantesApi, abonosApi, comprobanteApi, cortesApi } from '../../services/api';
+import { calendarioApi, participantesApi, abonosApi, comprobanteApi } from '../../services/api';
 import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 import { TIPO_COLOR, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
@@ -173,13 +173,10 @@ export default function PuntoEncuentroViewPage() {
   const [abonoError,        setAbonoError]        = useState('');
   const abonoFileRef = useRef(null);
 
-  // Modal corte de caja
-  const [corteModalOpen,  setCorteModalOpen]  = useState(false);
-  const [corteEvento,     setCorteEvento]     = useState(null);
-  const [cortePendientes, setCortePendientes] = useState([]);
-  const [corteLoading,    setCorteLoading]    = useState(false);
-  const [savingCorte,     setSavingCorte]     = useState(false);
-  const [corteError,      setCorteError]      = useState('');
+  // Modal corte de caja (resumen en vivo, calculado en front)
+  const [corteModalOpen, setCorteModalOpen] = useState(false);
+  const [corteEvento,    setCorteEvento]    = useState(null);
+  const [corteResumen,   setCorteResumen]   = useState([]);
 
   // ── Carga inicial ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -379,81 +376,37 @@ export default function PuntoEncuentroViewPage() {
     });
   };
 
-  // ── Handlers corte de caja ──────────────────────────────────────────────
-  const openCorteModal = async (evento) => {
+  // ── Handler corte de caja (resumen en vivo) ─────────────────────────────
+  const openCorteModal = (evento) => {
     setCorteEvento(evento);
-    setCorteError('');
-    setSavingCorte(false);
-    setCortePendientes([]);
-    setCorteLoading(true);
+
+    const participantes = participantesMap[evento.id] || [];
+    const todosAbonos   = participantes.flatMap(p => abonosMap[p.id] || []);
+
+    const byFecha = {};
+    todosAbonos.forEach(a => {
+      const fecha = toISODate(a.fecha) || (a.fecha || '').slice(0, 10);
+      if (!fecha) return;
+      if (!byFecha[fecha]) byFecha[fecha] = { efectivo: 0, tarjeta: 0, transferencia: 0 };
+      const m      = parseFloat(a.monto || 0);
+      const metodo = (a.metodo || 'efectivo').toLowerCase();
+      if (metodo === 'tarjeta')            byFecha[fecha].tarjeta       += m;
+      else if (metodo === 'transferencia') byFecha[fecha].transferencia += m;
+      else                                 byFecha[fecha].efectivo      += m;
+    });
+
+    const resumen = Object.entries(byFecha)
+      .map(([fecha, t]) => ({
+        fecha,
+        efectivo:      t.efectivo,
+        tarjeta:       t.tarjeta,
+        transferencia: t.transferencia,
+        total:         t.efectivo + t.tarjeta + t.transferencia,
+      }))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+    setCorteResumen(resumen);
     setCorteModalOpen(true);
-    try {
-      const { data: cortesExistentes } = await cortesApi.getByEvento(evento.id);
-      const fechasYaCortadas = new Set(
-        cortesExistentes.map(c => (c.fecha || '').slice(0, 10))
-      );
-
-      // Abonos de todos los participantes de este evento
-      const participantes = participantesMap[evento.id] || [];
-      const todosAbonos   = participantes.flatMap(p => abonosMap[p.id] || []);
-
-      // Agrupar por fecha ISO
-      const byFecha = {};
-      todosAbonos.forEach(a => {
-        const fecha = toISODate(a.fecha) || (a.fecha || '').slice(0, 10);
-        if (!fecha) return;
-        if (!byFecha[fecha]) byFecha[fecha] = { efectivo: 0, tarjeta: 0, transferencia: 0 };
-        const m      = parseFloat(a.monto || 0);
-        const metodo = (a.metodo || 'efectivo').toLowerCase();
-        if (metodo === 'tarjeta')        byFecha[fecha].tarjeta       += m;
-        else if (metodo === 'transferencia') byFecha[fecha].transferencia += m;
-        else                             byFecha[fecha].efectivo      += m;
-      });
-
-      // Hoy siempre se incluye (aunque no tenga abonos)
-      if (!byFecha[hoyStr]) byFecha[hoyStr] = { efectivo: 0, tarjeta: 0, transferencia: 0 };
-
-      // Filtrar fechas ya cortadas
-      const pendientes = Object.entries(byFecha)
-        .filter(([fecha]) => !fechasYaCortadas.has(fecha))
-        .map(([fecha, t]) => ({
-          fecha,
-          efectivo:       t.efectivo,
-          tarjeta:        t.tarjeta,
-          transferencia:  t.transferencia,
-          total:          t.efectivo + t.tarjeta + t.transferencia,
-        }))
-        .sort((a, b) => a.fecha.localeCompare(b.fecha));
-
-      setCortePendientes(pendientes);
-    } catch {
-      setCorteError('Error al cargar los datos del corte.');
-    } finally {
-      setCorteLoading(false);
-    }
-  };
-
-  const handleConfirmarCorte = async () => {
-    if (!cortePendientes.length) return;
-    setSavingCorte(true);
-    setCorteError('');
-    try {
-      await cortesApi.upsert(
-        cortePendientes.map(p => ({
-          evento_id:           corteEvento.id,
-          fecha:               p.fecha,
-          total_efectivo:      p.efectivo,
-          total_tarjeta:       p.tarjeta,
-          total_transferencia: p.transferencia,
-          total:               p.total,
-        }))
-      );
-      setCorteModalOpen(false);
-    } catch (err) {
-      setCorteError(err?.response?.data?.error || 'Error al guardar el corte.');
-    } finally {
-      setSavingCorte(false);
-    }
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -1017,17 +970,13 @@ export default function PuntoEncuentroViewPage() {
               </button>
             </div>
 
-            {corteLoading ? (
-              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', padding: '24px 0' }}>
-                Calculando fechas pendientes…
-              </p>
-            ) : cortePendientes.length === 0 ? (
+            {corteResumen.length === 0 ? (
               <p style={{ textAlign: 'center', fontSize: 13.5, color: 'var(--muted)', padding: '24px 0' }}>
-                No hay movimientos pendientes de corte.
+                Sin abonos registrados.
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {cortePendientes.map(p => (
+                {corteResumen.map(p => (
                   <div key={p.fecha} style={{
                     borderRadius: 10,
                     border: '1px solid var(--border)',
@@ -1056,8 +1005,8 @@ export default function PuntoEncuentroViewPage() {
                 ))}
 
                 {/* Gran total */}
-                {cortePendientes.length > 1 && (() => {
-                  const gt = cortePendientes.reduce(
+                {(() => {
+                  const gt = corteResumen.reduce(
                     (acc, p) => ({
                       efectivo:      acc.efectivo      + p.efectivo,
                       tarjeta:       acc.tarjeta       + p.tarjeta,
@@ -1076,7 +1025,7 @@ export default function PuntoEncuentroViewPage() {
                       fontSize: 13,
                     }}>
                       <span style={{ fontWeight: 700, color: 'var(--ink)', width: '100%', marginBottom: 2 }}>
-                        Gran total ({cortePendientes.length} fechas)
+                        Gran total ({corteResumen.length} {corteResumen.length === 1 ? 'fecha' : 'fechas'})
                       </span>
                       <span style={{ color: 'var(--ink-2)' }}>Efectivo: <strong>{fmtMoney(gt.efectivo)}</strong></span>
                       <span style={{ color: 'var(--ink-2)' }}>Tarjeta: <strong>{fmtMoney(gt.tarjeta)}</strong></span>
@@ -1090,32 +1039,13 @@ export default function PuntoEncuentroViewPage() {
               </div>
             )}
 
-            {corteError && (
-              <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--danger)', marginTop: 4 }}>{corteError}</p>
-            )}
-
-            {!corteLoading && (
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button
-                  className="btn"
-                  style={{ flex: 1, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--ink-2)' }}
-                  onClick={() => setCorteModalOpen(false)}
-                >
-                  Cerrar
-                </button>
-                {cortePendientes.length > 0 && (
-                  <button
-                    className="btn btn-primary"
-                    style={{ flex: 2, opacity: savingCorte ? 0.55 : 1 }}
-                    onClick={handleConfirmarCorte}
-                    disabled={savingCorte}
-                  >
-                    <I.check size={15} />
-                    {savingCorte ? 'Guardando…' : 'Confirmar corte'}
-                  </button>
-                )}
-              </div>
-            )}
+            <button
+              className="btn"
+              style={{ border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--ink-2)', marginTop: 4 }}
+              onClick={() => setCorteModalOpen(false)}
+            >
+              Cerrar
+            </button>
           </div>
         </div>
       )}
