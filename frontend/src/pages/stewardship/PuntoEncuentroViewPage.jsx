@@ -651,40 +651,45 @@ export default function PuntoEncuentroViewPage() {
                               </div>
 
                               {pExpanded && pAbonos.length > 0 && (
-                                <div style={{ background: 'var(--surface)' }}>
+                                <div style={{
+                                  padding: '6px 12px 8px 16px',
+                                  borderTop: '1px dashed var(--border)',
+                                  background: 'var(--surface)',
+                                  display: 'flex', flexWrap: 'wrap', gap: 6,
+                                }}>
                                   {pAbonos.map(a => (
                                     <div key={a.id} style={{
-                                      display: 'flex', alignItems: 'center', gap: 10,
-                                      padding: '6px 16px 6px 32px',
-                                      borderTop: '1px dashed var(--border)',
-                                      flexWrap: 'wrap',
+                                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                                      padding: '3px 7px 3px 9px',
+                                      borderRadius: 99,
+                                      background: 'var(--surface-2)',
+                                      border: '1px solid var(--border)',
+                                      fontSize: 11.5,
                                     }}>
-                                      <div style={{ flex: 1, minWidth: 120 }}>
-                                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{fmtMoney(a.monto)}</span>
-                                        <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 8, textTransform: 'capitalize' }}>{a.metodo}</span>
-                                        {a.num_transaccion && (
-                                          <span style={{ fontSize: 11.5, color: 'var(--muted)', marginLeft: 8 }}>#{a.num_transaccion}</span>
-                                        )}
-                                        {a.comprobante_url && (
-                                          <a
-                                            href={a.comprobante_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            style={{ fontSize: 11.5, color: 'var(--chart-primary)', marginLeft: 8 }}
-                                          >
-                                            Comprobante
-                                          </a>
-                                        )}
-                                      </div>
-                                      <span style={{ fontSize: 11.5, color: 'var(--muted)', flexShrink: 0 }}>{fmtFechaShort(a.fecha)}</span>
+                                      <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{fmtMoney(a.monto)}</span>
+                                      <span style={{ color: 'var(--muted)' }}>·</span>
+                                      <span style={{ color: 'var(--ink-2)', textTransform: 'capitalize' }}>{a.metodo}</span>
+                                      <span style={{ color: 'var(--muted)' }}>·</span>
+                                      <span style={{ color: 'var(--muted)' }}>{fmtFechaShort(a.fecha)}</span>
+                                      {a.comprobante_url && (
+                                        <a
+                                          href={a.comprobante_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          style={{ color: 'var(--chart-primary)', marginLeft: 2, lineHeight: 1 }}
+                                          title="Ver comprobante"
+                                        >
+                                          <I.paperclip size={10} />
+                                        </a>
+                                      )}
                                       <button
                                         className="icon-btn"
                                         onClick={() => handleDeleteAbono(a)}
                                         disabled={deletingAbonoId === a.id}
-                                        style={{ width: 24, height: 24, color: 'var(--danger)', flexShrink: 0 }}
+                                        style={{ width: 16, height: 16, color: 'var(--danger)', flexShrink: 0, marginLeft: 1 }}
                                         title="Eliminar abono"
                                       >
-                                        <I.trash size={12} />
+                                        <I.x size={9} />
                                       </button>
                                     </div>
                                   ))}
