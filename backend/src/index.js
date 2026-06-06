@@ -15,6 +15,7 @@ const calendarioRouter           = require('./routes/calendario');
 const serviciosDominicalesRouter = require('./routes/serviciosDominicales');
 const participantesRouter        = require('./routes/participantes');
 const abonosRouter               = require('./routes/abonos');
+const cortesRouter               = require('./routes/cortes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -36,6 +37,7 @@ app.use('/api/calendario',           calendarioRouter);
 app.use('/api/servicios-dominicales', serviciosDominicalesRouter);
 app.use('/api/participantes',         participantesRouter);
 app.use('/api/abonos',               abonosRouter);
+app.use('/api/cortes',               cortesRouter);
 
 app.use((err, req, res, _next) => {
   console.error(err.stack);

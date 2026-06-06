@@ -111,6 +111,12 @@ const realAbonosApi = {
   remove:  (id)     => http.delete(`/abonos/${id}`),
 };
 
+// ─── Cortes ───────────────────────────────────────────────────────────────────
+const realCortesApi = {
+  getByEvento: (evento_id) => http.get('/cortes', { params: { evento_id } }),
+  upsert:      (records)   => http.post('/cortes/upsert', records),
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;
 export const ofrendasApi   = USE_MOCK ? mock.ingresosApi   : realOfrendasApi;
@@ -124,3 +130,4 @@ export const calendarioApi            = realCalendarioApi;
 export const serviciosDominicalesApi  = realServiciosDominicalesApi;
 export const comprobanteApi           = realComprobanteApi;
 export const abonosApi                = realAbonosApi;
+export const cortesApi                = realCortesApi;

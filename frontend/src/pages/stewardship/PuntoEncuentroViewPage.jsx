@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { calendarioApi, participantesApi, abonosApi, comprobanteApi } from '../../services/api';
+import { calendarioApi, participantesApi, abonosApi, comprobanteApi, cortesApi } from '../../services/api';
 import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 import { TIPO_COLOR, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
@@ -173,6 +173,14 @@ export default function PuntoEncuentroViewPage() {
   const [abonoError,        setAbonoError]        = useState('');
   const abonoFileRef = useRef(null);
 
+  // Modal corte de caja
+  const [corteModalOpen,  setCorteModalOpen]  = useState(false);
+  const [corteEvento,     setCorteEvento]     = useState(null);
+  const [cortePendientes, setCortePendientes] = useState([]);
+  const [corteLoading,    setCorteLoading]    = useState(false);
+  const [savingCorte,     setSavingCorte]     = useState(false);
+  const [corteError,      setCorteError]      = useState('');
+
   // ── Carga inicial ────────────────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
@@ -203,12 +211,13 @@ export default function PuntoEncuentroViewPage() {
   useEffect(() => {
     const handler = (e) => {
       if (e.key !== 'Escape') return;
-      if (abonoModalOpen) setAbonoModalOpen(false);
-      else if (modalOpen) setModalOpen(false);
+      if (corteModalOpen)     setCorteModalOpen(false);
+      else if (abonoModalOpen) setAbonoModalOpen(false);
+      else if (modalOpen)     setModalOpen(false);
     };
-    if (modalOpen || abonoModalOpen) window.addEventListener('keydown', handler);
+    if (modalOpen || abonoModalOpen || corteModalOpen) window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [modalOpen, abonoModalOpen]);
+  }, [modalOpen, abonoModalOpen, corteModalOpen]);
 
   // ── Datos derivados ──────────────────────────────────────────────────────
   const hoyStr = new Date().toISOString().slice(0, 10);
@@ -368,6 +377,83 @@ export default function PuntoEncuentroViewPage() {
       if (next.has(pId)) next.delete(pId); else next.add(pId);
       return next;
     });
+  };
+
+  // ── Handlers corte de caja ──────────────────────────────────────────────
+  const openCorteModal = async (evento) => {
+    setCorteEvento(evento);
+    setCorteError('');
+    setSavingCorte(false);
+    setCortePendientes([]);
+    setCorteLoading(true);
+    setCorteModalOpen(true);
+    try {
+      const { data: cortesExistentes } = await cortesApi.getByEvento(evento.id);
+      const fechasYaCortadas = new Set(
+        cortesExistentes.map(c => (c.fecha || '').slice(0, 10))
+      );
+
+      // Abonos de todos los participantes de este evento
+      const participantes = participantesMap[evento.id] || [];
+      const todosAbonos   = participantes.flatMap(p => abonosMap[p.id] || []);
+
+      // Agrupar por fecha ISO
+      const byFecha = {};
+      todosAbonos.forEach(a => {
+        const fecha = toISODate(a.fecha) || (a.fecha || '').slice(0, 10);
+        if (!fecha) return;
+        if (!byFecha[fecha]) byFecha[fecha] = { efectivo: 0, tarjeta: 0, transferencia: 0 };
+        const m      = parseFloat(a.monto || 0);
+        const metodo = (a.metodo || 'efectivo').toLowerCase();
+        if (metodo === 'tarjeta')        byFecha[fecha].tarjeta       += m;
+        else if (metodo === 'transferencia') byFecha[fecha].transferencia += m;
+        else                             byFecha[fecha].efectivo      += m;
+      });
+
+      // Hoy siempre se incluye (aunque no tenga abonos)
+      if (!byFecha[hoyStr]) byFecha[hoyStr] = { efectivo: 0, tarjeta: 0, transferencia: 0 };
+
+      // Filtrar fechas ya cortadas
+      const pendientes = Object.entries(byFecha)
+        .filter(([fecha]) => !fechasYaCortadas.has(fecha))
+        .map(([fecha, t]) => ({
+          fecha,
+          efectivo:       t.efectivo,
+          tarjeta:        t.tarjeta,
+          transferencia:  t.transferencia,
+          total:          t.efectivo + t.tarjeta + t.transferencia,
+        }))
+        .sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+      setCortePendientes(pendientes);
+    } catch {
+      setCorteError('Error al cargar los datos del corte.');
+    } finally {
+      setCorteLoading(false);
+    }
+  };
+
+  const handleConfirmarCorte = async () => {
+    if (!cortePendientes.length) return;
+    setSavingCorte(true);
+    setCorteError('');
+    try {
+      await cortesApi.upsert(
+        cortePendientes.map(p => ({
+          evento_id:           corteEvento.id,
+          fecha:               p.fecha,
+          total_efectivo:      p.efectivo,
+          total_tarjeta:       p.tarjeta,
+          total_transferencia: p.transferencia,
+          total:               p.total,
+        }))
+      );
+      setCorteModalOpen(false);
+    } catch (err) {
+      setCorteError(err?.response?.data?.error || 'Error al guardar el corte.');
+    } finally {
+      setSavingCorte(false);
+    }
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -536,6 +622,18 @@ export default function PuntoEncuentroViewPage() {
                       onClick={() => openModal(e)}
                     >
                       <I.plus size={12} /> Registrar participante
+                    </button>
+                    <button
+                      className="btn"
+                      style={{
+                        fontSize: 12, padding: '5px 12px',
+                        border: '1.5px solid var(--border)',
+                        background: 'var(--surface)',
+                        color: 'var(--ink-2)',
+                      }}
+                      onClick={() => openCorteModal(e)}
+                    >
+                      <I.cash size={12} /> Corte
                     </button>
                   </div>
 
@@ -897,6 +995,126 @@ export default function PuntoEncuentroViewPage() {
               <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--muted)', marginTop: -8 }}>
                 Ingresa la cantidad del abono
               </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal corte de caja ──────────────────────────────────────────────── */}
+      {corteModalOpen && (
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setCorteModalOpen(false); }}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-grabber" />
+
+            <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div className="anf-modal-eyebrow">Punto de Encuentro · Corte</div>
+                <h3 className="anf-modal-date">Corte de caja</h3>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>{corteEvento?.nombre}</p>
+              </div>
+              <button className="icon-btn" onClick={() => setCorteModalOpen(false)} style={{ width: 34, height: 34, flexShrink: 0 }}>
+                <I.x size={16} />
+              </button>
+            </div>
+
+            {corteLoading ? (
+              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', padding: '24px 0' }}>
+                Calculando fechas pendientes…
+              </p>
+            ) : cortePendientes.length === 0 ? (
+              <p style={{ textAlign: 'center', fontSize: 13.5, color: 'var(--muted)', padding: '24px 0' }}>
+                No hay movimientos pendientes de corte.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {cortePendientes.map(p => (
+                  <div key={p.fecha} style={{
+                    borderRadius: 10,
+                    border: '1px solid var(--border)',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      padding: '7px 14px',
+                      background: 'var(--surface-2)',
+                      fontWeight: 700, fontSize: 13, color: 'var(--ink)',
+                    }}>
+                      {fmtFecha(p.fecha)}
+                    </div>
+                    <div style={{
+                      padding: '8px 14px',
+                      display: 'flex', flexWrap: 'wrap', gap: '6px 20px',
+                      fontSize: 13, color: 'var(--ink-2)',
+                    }}>
+                      <span>Efectivo: <strong style={{ color: 'var(--ink)' }}>{fmtMoney(p.efectivo)}</strong></span>
+                      <span>Tarjeta: <strong style={{ color: 'var(--ink)' }}>{fmtMoney(p.tarjeta)}</strong></span>
+                      <span>Transferencia: <strong style={{ color: 'var(--ink)' }}>{fmtMoney(p.transferencia)}</strong></span>
+                      <span style={{ fontWeight: 700, color: 'var(--chart-primary)' }}>
+                        Total del día: {fmtMoney(p.total)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Gran total */}
+                {cortePendientes.length > 1 && (() => {
+                  const gt = cortePendientes.reduce(
+                    (acc, p) => ({
+                      efectivo:      acc.efectivo      + p.efectivo,
+                      tarjeta:       acc.tarjeta       + p.tarjeta,
+                      transferencia: acc.transferencia + p.transferencia,
+                      total:         acc.total         + p.total,
+                    }),
+                    { efectivo: 0, tarjeta: 0, transferencia: 0, total: 0 }
+                  );
+                  return (
+                    <div style={{
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      background: 'var(--surface-2)',
+                      border: '1.5px solid var(--border-strong)',
+                      display: 'flex', flexWrap: 'wrap', gap: '6px 20px',
+                      fontSize: 13,
+                    }}>
+                      <span style={{ fontWeight: 700, color: 'var(--ink)', width: '100%', marginBottom: 2 }}>
+                        Gran total ({cortePendientes.length} fechas)
+                      </span>
+                      <span style={{ color: 'var(--ink-2)' }}>Efectivo: <strong>{fmtMoney(gt.efectivo)}</strong></span>
+                      <span style={{ color: 'var(--ink-2)' }}>Tarjeta: <strong>{fmtMoney(gt.tarjeta)}</strong></span>
+                      <span style={{ color: 'var(--ink-2)' }}>Transferencia: <strong>{fmtMoney(gt.transferencia)}</strong></span>
+                      <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--chart-primary)' }}>
+                        Total: {fmtMoney(gt.total)}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {corteError && (
+              <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--danger)', marginTop: 4 }}>{corteError}</p>
+            )}
+
+            {!corteLoading && (
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button
+                  className="btn"
+                  style={{ flex: 1, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--ink-2)' }}
+                  onClick={() => setCorteModalOpen(false)}
+                >
+                  Cerrar
+                </button>
+                {cortePendientes.length > 0 && (
+                  <button
+                    className="btn btn-primary"
+                    style={{ flex: 2, opacity: savingCorte ? 0.55 : 1 }}
+                    onClick={handleConfirmarCorte}
+                    disabled={savingCorte}
+                  >
+                    <I.check size={15} />
+                    {savingCorte ? 'Guardando…' : 'Confirmar corte'}
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
