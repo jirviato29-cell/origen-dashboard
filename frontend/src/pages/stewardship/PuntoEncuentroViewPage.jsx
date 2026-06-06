@@ -588,7 +588,7 @@ export default function PuntoEncuentroViewPage() {
 
               {/* Tipo de persona toggle */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <label style={labelStyle}>Tipo de persona</label>
+                <label style={labelStyle}>Relación con la iglesia</label>
                 <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border)' }}>
                   {[
                     { val: 'familia',  label: 'Familia Origen' },
