@@ -234,9 +234,7 @@ export default function PuntoEncuentroViewPage() {
     return true;
   });
 
-  const proximos           = sorted.filter(e => (toISODate(e.fecha) || '') >= hoyStr).length;
-  const totalParticipantes = Object.values(participantesMap).reduce((s, arr) => s + arr.length, 0);
-  const proximo            = sorted
+  const proximo = sorted
     .filter(e => (toISODate(e.fecha) || '') >= hoyStr)
     .sort((a, b) => (toISODate(a.fecha) || '').localeCompare(toISODate(b.fecha) || ''))[0];
 
@@ -453,21 +451,6 @@ export default function PuntoEncuentroViewPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-      {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 14 }}>
-        {[
-          { label: 'Total de eventos',   value: loading ? '…' : eventos.length,     sub: 'En Punto de Encuentro',  color: 'var(--ink)' },
-          { label: 'Próximos eventos',    value: loading ? '…' : proximos,           sub: 'Próximamente',           color: 'var(--chart-primary)' },
-          { label: 'Total participantes', value: loading ? '…' : totalParticipantes, sub: 'Registrados',            color: 'var(--success, #10B981)' },
-        ].map(s => (
-          <div key={s.label} className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{s.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: s.color, marginTop: 6, fontFamily: 'var(--font-mono)' }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>{s.sub}</div>
-          </div>
-        ))}
-      </div>
 
       {/* Próximo evento highlight */}
       {!loading && proximo && (
