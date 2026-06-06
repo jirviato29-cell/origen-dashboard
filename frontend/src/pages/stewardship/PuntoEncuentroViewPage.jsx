@@ -989,17 +989,14 @@ export default function PuntoEncuentroViewPage() {
                     }}>
                       {fmtFecha(p.fecha)}
                     </div>
-                    <div style={{
-                      padding: '8px 14px',
-                      display: 'flex', flexWrap: 'wrap', gap: '6px 20px',
-                      fontSize: 13, color: 'var(--ink-2)',
-                    }}>
+                    <div style={{ padding: '8px 14px', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.7 }}>
                       <span>Efectivo: <strong style={{ color: 'var(--ink)' }}>{fmtMoney(p.efectivo)}</strong></span>
+                      <span style={{ margin: '0 7px', color: 'var(--border-strong)' }}>·</span>
                       <span>Tarjeta: <strong style={{ color: 'var(--ink)' }}>{fmtMoney(p.tarjeta)}</strong></span>
+                      <span style={{ margin: '0 7px', color: 'var(--border-strong)' }}>·</span>
                       <span>Transferencia: <strong style={{ color: 'var(--ink)' }}>{fmtMoney(p.transferencia)}</strong></span>
-                      <span style={{ fontWeight: 700, color: 'var(--chart-primary)' }}>
-                        Total del día: {fmtMoney(p.total)}
-                      </span>
+                      <span style={{ margin: '0 7px', color: 'var(--border-strong)' }}>·</span>
+                      <span style={{ fontWeight: 700, color: 'var(--chart-primary)' }}>Total del día: {fmtMoney(p.total)}</span>
                     </div>
                   </div>
                 ))}
@@ -1021,18 +1018,19 @@ export default function PuntoEncuentroViewPage() {
                       borderRadius: 10,
                       background: 'var(--surface-2)',
                       border: '1.5px solid var(--border-strong)',
-                      display: 'flex', flexWrap: 'wrap', gap: '6px 20px',
-                      fontSize: 13,
+                      fontSize: 13, lineHeight: 1.7,
                     }}>
-                      <span style={{ fontWeight: 700, color: 'var(--ink)', width: '100%', marginBottom: 2 }}>
-                        Gran total ({corteResumen.length} {corteResumen.length === 1 ? 'fecha' : 'fechas'})
+                      <span style={{ fontWeight: 700, color: 'var(--ink)' }}>
+                        Gran total ({corteResumen.length} {corteResumen.length === 1 ? 'fecha' : 'fechas'}):
                       </span>
+                      <span style={{ margin: '0 7px', color: 'var(--border-strong)' }}>·</span>
                       <span style={{ color: 'var(--ink-2)' }}>Efectivo: <strong>{fmtMoney(gt.efectivo)}</strong></span>
+                      <span style={{ margin: '0 7px', color: 'var(--border-strong)' }}>·</span>
                       <span style={{ color: 'var(--ink-2)' }}>Tarjeta: <strong>{fmtMoney(gt.tarjeta)}</strong></span>
+                      <span style={{ margin: '0 7px', color: 'var(--border-strong)' }}>·</span>
                       <span style={{ color: 'var(--ink-2)' }}>Transferencia: <strong>{fmtMoney(gt.transferencia)}</strong></span>
-                      <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--chart-primary)' }}>
-                        Total: {fmtMoney(gt.total)}
-                      </span>
+                      <span style={{ margin: '0 7px', color: 'var(--border-strong)' }}>·</span>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--chart-primary)' }}>Total: {fmtMoney(gt.total)}</span>
                     </div>
                   );
                 })()}
