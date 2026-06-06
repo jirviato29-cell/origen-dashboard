@@ -33,10 +33,39 @@ const labelStyle = {
   textTransform: 'uppercase', letterSpacing: '0.06em',
 };
 
-// ── Campos de pago compartidos (método + campos condicionales) ─────────────
-function PagoFields({ metodo, onMetodo, numTransaccion, onNumTransaccion, file, onFile, fileRef }) {
+// ── Campos completos de abono (cantidad + método + condicionales + fecha) ────
+function AbonoFields({
+  monto, onMonto,
+  metodo, onMetodo,
+  numTransaccion, onNumTransaccion,
+  file, onFile, fileRef,
+  fecha, onFecha,
+  cantidadRequerida = false,
+}) {
   return (
     <>
+      {/* Cantidad */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <label style={labelStyle}>
+          Cantidad{' '}
+          {cantidadRequerida
+            ? <span style={{ fontSize: 11, color: 'var(--danger)', marginLeft: 4 }}>*</span>
+            : <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 4 }}>(opcional)</span>
+          }
+        </label>
+        <input
+          type="number"
+          min={cantidadRequerida ? '0.01' : '0'}
+          step="0.01"
+          placeholder="0.00"
+          value={monto}
+          onChange={e => onMonto(e.target.value)}
+          style={{ ...inputStyle, width: '50%' }}
+          autoFocus={cantidadRequerida}
+        />
+      </div>
+
+      {/* Método de pago */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <label style={labelStyle}>Método de pago</label>
         <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border)' }}>
@@ -81,6 +110,9 @@ function PagoFields({ metodo, onMetodo, numTransaccion, onNumTransaccion, file, 
             Comprobante{' '}
             <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 4 }}>(opcional)</span>
           </label>
+          <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
+            Número de cuenta: (pendiente)
+          </div>
           <input
             ref={fileRef}
             type="file"
@@ -106,6 +138,17 @@ function PagoFields({ metodo, onMetodo, numTransaccion, onNumTransaccion, file, 
           </button>
         </div>
       )}
+
+      {/* Fecha del abono */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <label style={labelStyle}>Fecha del abono</label>
+        <input
+          type="date"
+          value={fecha}
+          onChange={e => onFecha(e.target.value)}
+          style={{ ...inputStyle, width: '60%' }}
+        />
+      </div>
     </>
   );
 }
@@ -130,7 +173,7 @@ export default function PuntoEncuentroViewPage() {
   const [saving,       setSaving]       = useState(false);
   const [formError,    setFormError]    = useState('');
   // Primer abono embebido en el formulario de registro
-  const [primerAbono,     setPrimerAbono]     = useState({ monto: '', metodo: 'efectivo', num_transaccion: '' });
+  const [primerAbono,     setPrimerAbono]     = useState({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: '' });
   const [primerAbonoFile, setPrimerAbonoFile] = useState(null);
   const primerAbonoFileRef = useRef(null);
 
@@ -208,7 +251,7 @@ export default function PuntoEncuentroViewPage() {
   const openModal = (evento) => {
     setModalEvento(evento);
     setForm({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
-    setPrimerAbono({ monto: '', metodo: 'efectivo', num_transaccion: '' });
+    setPrimerAbono({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: hoyStr });
     setPrimerAbonoFile(null);
     setFormError('');
     setModalOpen(true);
@@ -246,7 +289,7 @@ export default function PuntoEncuentroViewPage() {
           metodo:          primerAbono.metodo,
           num_transaccion: primerAbono.num_transaccion || null,
           comprobante_url,
-          fecha:           hoyStr,
+          fecha:           primerAbono.fecha || hoyStr,
         });
         setAbonosMap(prev => ({
           ...prev,
@@ -762,30 +805,20 @@ export default function PuntoEncuentroViewPage() {
                   Primer abono <span style={{ fontWeight: 500, textTransform: 'none' }}>(opcional)</span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={labelStyle}>Cantidad</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={primerAbono.monto}
-                    onChange={e => setPrimerAbono(f => ({ ...f, monto: e.target.value }))}
-                    style={{ ...inputStyle, width: '50%' }}
-                  />
-                </div>
-
-                {parseFloat(primerAbono.monto) > 0 && (
-                  <PagoFields
-                    metodo={primerAbono.metodo}
-                    onMetodo={m => setPrimerAbono(f => ({ ...f, metodo: m, num_transaccion: '' }))}
-                    numTransaccion={primerAbono.num_transaccion}
-                    onNumTransaccion={v => setPrimerAbono(f => ({ ...f, num_transaccion: v }))}
-                    file={primerAbonoFile}
-                    onFile={setPrimerAbonoFile}
-                    fileRef={primerAbonoFileRef}
-                  />
-                )}
+                <AbonoFields
+                  monto={primerAbono.monto}
+                  onMonto={v => setPrimerAbono(f => ({ ...f, monto: v }))}
+                  metodo={primerAbono.metodo}
+                  onMetodo={m => setPrimerAbono(f => ({ ...f, metodo: m, num_transaccion: '' }))}
+                  numTransaccion={primerAbono.num_transaccion}
+                  onNumTransaccion={v => setPrimerAbono(f => ({ ...f, num_transaccion: v }))}
+                  file={primerAbonoFile}
+                  onFile={setPrimerAbonoFile}
+                  fileRef={primerAbonoFileRef}
+                  fecha={primerAbono.fecha}
+                  onFecha={v => setPrimerAbono(f => ({ ...f, fecha: v }))}
+                  cantidadRequerida={false}
+                />
               </div>
 
             </div>
@@ -836,25 +869,9 @@ export default function PuntoEncuentroViewPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-              {/* Cantidad */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={labelStyle}>
-                  Cantidad <span style={{ fontSize: 11, color: 'var(--danger)', marginLeft: 4 }}>*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={abonoForm.monto}
-                  onChange={e => setAbonoForm(f => ({ ...f, monto: e.target.value }))}
-                  style={{ ...inputStyle, width: '50%' }}
-                  autoFocus
-                />
-              </div>
-
-              <PagoFields
+              <AbonoFields
+                monto={abonoForm.monto}
+                onMonto={v => setAbonoForm(f => ({ ...f, monto: v }))}
                 metodo={abonoForm.metodo}
                 onMetodo={m => setAbonoForm(f => ({ ...f, metodo: m, num_transaccion: '' }))}
                 numTransaccion={abonoForm.num_transaccion}
@@ -862,19 +879,10 @@ export default function PuntoEncuentroViewPage() {
                 file={abonoFile}
                 onFile={setAbonoFile}
                 fileRef={abonoFileRef}
+                fecha={abonoForm.fecha}
+                onFecha={v => setAbonoForm(f => ({ ...f, fecha: v }))}
+                cantidadRequerida={true}
               />
-
-              {/* Fecha */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={labelStyle}>Fecha del abono</label>
-                <input
-                  type="date"
-                  value={abonoForm.fecha}
-                  onChange={e => setAbonoForm(f => ({ ...f, fecha: e.target.value }))}
-                  style={{ ...inputStyle, width: '60%' }}
-                />
-              </div>
-
             </div>
 
             {abonoError && (
