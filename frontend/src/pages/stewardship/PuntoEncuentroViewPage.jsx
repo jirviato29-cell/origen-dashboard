@@ -579,21 +579,24 @@ export default function PuntoEncuentroViewPage() {
                                 background: 'var(--white, #fff)',
                                 flexWrap: 'wrap',
                               }}>
-                                <div style={{ flex: 1, minWidth: 140 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                    <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ink)' }}>{p.nombre}</span>
-                                    <span style={{
-                                      fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 99,
-                                      background: p.tipo_persona === 'invitado' ? 'rgba(245,158,11,0.13)' : 'rgba(16,185,129,0.11)',
-                                      color: p.tipo_persona === 'invitado' ? '#B45309' : '#047857',
-                                    }}>
-                                      {p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen'}
-                                    </span>
-                                  </div>
-                                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, display: 'flex', gap: 10 }}>
-                                    {p.whatsapp && <span>WA: {p.whatsapp}</span>}
-                                    {p.edad && <span>{p.edad} años</span>}
-                                  </div>
+                                <div style={{ flex: 1, minWidth: 140, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                                  <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ink)' }}>{p.nombre}</span>
+                                  <span style={{
+                                    fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 99, flexShrink: 0,
+                                    background: p.tipo_persona === 'invitado' ? 'rgba(245,158,11,0.13)' : 'rgba(16,185,129,0.11)',
+                                    color: p.tipo_persona === 'invitado' ? '#B45309' : '#047857',
+                                  }}>
+                                    {p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen'}
+                                  </span>
+                                  {p.whatsapp && (
+                                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>WA: {p.whatsapp}</span>
+                                  )}
+                                  {p.whatsapp && p.edad && (
+                                    <span style={{ fontSize: 11, color: 'var(--border-strong)' }}>·</span>
+                                  )}
+                                  {p.edad && (
+                                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{p.edad} años</span>
+                                  )}
                                 </div>
 
                                 {costo > 0 && (
