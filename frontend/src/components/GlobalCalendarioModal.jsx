@@ -17,7 +17,7 @@ function formatDateLong(iso) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-const makeEmpty = (date) => ({ fecha: date || todayISO(), nombre: '', tipo: '', nota: '' });
+const makeEmpty = (date) => ({ fecha: date || todayISO(), nombre: '', tipo: '', nota: '', enPuntoEncuentro: false });
 
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: 10,
@@ -43,10 +43,11 @@ export default function GlobalCalendarioModal() {
       setError('');
       if (editingEvent) {
         setForm({
-          fecha:  (editingEvent.fecha || '').slice(0, 10),
-          nombre: editingEvent.nombre || '',
-          tipo:   editingEvent.tipo   || '',
-          nota:   editingEvent.nota   || '',
+          fecha:             (editingEvent.fecha || '').slice(0, 10),
+          nombre:            editingEvent.nombre || '',
+          tipo:              editingEvent.tipo   || '',
+          nota:              editingEvent.nota   || '',
+          enPuntoEncuentro:  Boolean(editingEvent.en_punto_encuentro),
         });
       } else {
         setForm(makeEmpty(initialDate));
@@ -68,10 +69,11 @@ export default function GlobalCalendarioModal() {
     setSaving(true);
     try {
       const payload = {
-        fecha:  form.fecha,
-        nombre: form.nombre.trim(),
-        tipo:   form.tipo,
-        nota:   form.nota.trim() || null,
+        fecha:              form.fecha,
+        nombre:             form.nombre.trim(),
+        tipo:               form.tipo,
+        nota:               form.nota.trim() || null,
+        en_punto_encuentro: form.enPuntoEncuentro,
       };
       if (isEditing) {
         await calendarioApi.update(editingEvent.id, payload);
@@ -160,6 +162,29 @@ export default function GlobalCalendarioModal() {
                   rows={3}
                   style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
               </div>
+
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px', borderRadius: 10,
+                background: form.enPuntoEncuentro ? 'rgba(0,180,216,0.07)' : 'var(--surface)',
+                border: `1.5px solid ${form.enPuntoEncuentro ? 'var(--chart-primary)' : 'var(--border)'}`,
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={form.enPuntoEncuentro}
+                  onChange={e => setForm(f => ({ ...f, enPuntoEncuentro: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
+                />
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                    Mandar a Punto de Encuentro
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+                    El evento aparecerá también en la vista de Punto de Encuentro
+                  </div>
+                </div>
+              </label>
 
             </div>
 
