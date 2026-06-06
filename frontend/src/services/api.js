@@ -82,6 +82,12 @@ const realCalendarioApi = {
   remove:  (id)     => http.delete(`/calendario/${id}`),
 };
 
+// ─── Servicios dominicales ────────────────────────────────────────────────────
+const realServiciosDominicalesApi = {
+  getAll: (params) => http.get('/servicios-dominicales', { params }),
+  upsert: (data)   => http.post('/servicios-dominicales', data),
+};
+
 // ─── Comprobantes ─────────────────────────────────────────────────────────────
 const realComprobanteApi = {
   upload: (file) => {
@@ -99,5 +105,6 @@ export const categoriasApi = USE_MOCK ? mock.categoriasApi : realCategoriasApi;
 export const dashboardApi  = USE_MOCK ? mock.dashboardApi  : realDashboardApi;
 export const asistenciaApi = USE_MOCK ? mock.asistenciaApi : realAsistenciaApi;
 export const eventosApi      = USE_MOCK ? null               : realEventosApi;
-export const calendarioApi   = realCalendarioApi;
-export const comprobanteApi  = realComprobanteApi;
+export const calendarioApi            = realCalendarioApi;
+export const serviciosDominicalesApi  = realServiciosDominicalesApi;
+export const comprobanteApi           = realComprobanteApi;

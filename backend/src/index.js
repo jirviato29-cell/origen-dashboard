@@ -10,8 +10,9 @@ const dashboardRouter     = require('./routes/dashboard');
 const asistenciaRouter    = require('./routes/asistencia');
 const ofrendasRouter      = require('./routes/ofrendas');
 const eventosRouter       = require('./routes/eventos');
-const comprobantesRouter  = require('./routes/comprobantes');
-const calendarioRouter    = require('./routes/calendario');
+const comprobantesRouter         = require('./routes/comprobantes');
+const calendarioRouter           = require('./routes/calendario');
+const serviciosDominicalesRouter = require('./routes/serviciosDominicales');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -28,8 +29,9 @@ app.use('/api/dashboard',  dashboardRouter);
 app.use('/api/asistencia', asistenciaRouter);
 app.use('/api/ofrendas',   ofrendasRouter);
 app.use('/api/eventos',        eventosRouter);
-app.use('/api/comprobantes',  comprobantesRouter);
-app.use('/api/calendario',   calendarioRouter);
+app.use('/api/comprobantes',          comprobantesRouter);
+app.use('/api/calendario',           calendarioRouter);
+app.use('/api/servicios-dominicales', serviciosDominicalesRouter);
 
 app.use((err, req, res, _next) => {
   console.error(err.stack);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { calendarioApi } from '../../services/api';
+import { calendarioApi, serviciosDominicalesApi } from '../../services/api';
 import { useCalendarioModal } from '../../context/CalendarioModalContext';
 import { fmtFecha, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
@@ -34,6 +34,11 @@ function isoFromParts(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+function isDomingo(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d).getDay() === 0;
+}
+
 export default function CalendarioPage() {
   const { refreshKey, openModal, openEditModal } = useCalendarioModal();
 
@@ -43,18 +48,39 @@ export default function CalendarioPage() {
   const [viewYear,  setViewYear]  = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [eventos,   setEventos]   = useState([]);
+  const [servicios, setServicios] = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const [deleting, setDeleting] = useState(null);
+  const [predicaInput,  setPredicaInput]  = useState('');
+  const [savingPredica, setSavingPredica] = useState(false);
+  const [deleting,      setDeleting]      = useState(null);
 
   useEffect(() => {
     setLoading(true);
-    calendarioApi.getAll({ year: viewYear })
-      .then(r => setEventos(r.data))
-      .catch(() => setEventos([]))
+    Promise.all([
+      calendarioApi.getAll({ year: viewYear }),
+      serviciosDominicalesApi.getAll({ year: viewYear }),
+    ])
+      .then(([evRes, servRes]) => {
+        setEventos(evRes.data);
+        setServicios(servRes.data);
+      })
+      .catch(() => { setEventos([]); setServicios([]); })
       .finally(() => setLoading(false));
   }, [viewYear, refreshKey]);
+
+  // Inicializa el campo "predica" al seleccionar un domingo
+  useEffect(() => {
+    if (selectedDay) {
+      const found = servicios.find(s => (s.fecha || '').slice(0, 10) === selectedDay);
+      setPredicaInput(found?.predica || '');
+    } else {
+      setPredicaInput('');
+    }
+    // servicios omitido intencionalmente: solo inicializar al cambiar día
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDay]);
 
   const grid = buildGrid(viewYear, viewMonth);
 
@@ -65,6 +91,12 @@ export default function CalendarioPage() {
       if (!eventsByDate[iso]) eventsByDate[iso] = [];
       eventsByDate[iso].push(e);
     }
+  });
+
+  const serviciosByDate = {};
+  servicios.forEach(s => {
+    const iso = (s.fecha || '').slice(0, 10);
+    if (iso) serviciosByDate[iso] = s;
   });
 
   const monthLabel = new Date(viewYear, viewMonth, 1)
@@ -97,6 +129,26 @@ export default function CalendarioPage() {
     }
   };
 
+  const handleSavePredica = async () => {
+    if (!selectedDay) return;
+    setSavingPredica(true);
+    try {
+      const { data } = await serviciosDominicalesApi.upsert({
+        fecha:   selectedDay,
+        predica: predicaInput.trim() || null,
+      });
+      setServicios(prev => {
+        const exists = prev.some(s => (s.fecha || '').slice(0, 10) === selectedDay);
+        if (exists) return prev.map(s => (s.fecha || '').slice(0, 10) === selectedDay ? data : s);
+        return [...prev, data];
+      });
+    } catch {
+      // noop
+    } finally {
+      setSavingPredica(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
@@ -117,7 +169,7 @@ export default function CalendarioPage() {
           </button>
         </div>
 
-        {/* Cuadrícula tipo calendario de pared */}
+        {/* Cuadrícula */}
         <div style={{ overflowX: 'auto' }}>
           <table style={{
             width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed',
@@ -150,6 +202,7 @@ export default function CalendarioPage() {
                     {row.map((day, ci) => {
                       const iso     = day ? isoFromParts(viewYear, viewMonth, day) : null;
                       const dayEvts = iso ? (eventsByDate[iso] || []) : [];
+                      const esDomingo  = iso ? isDomingo(iso) : false;
                       const isToday    = iso === todayISO;
                       const isSelected = iso === selectedDay;
 
@@ -175,7 +228,6 @@ export default function CalendarioPage() {
                         >
                           {day && (
                             <>
-                              {/* Número del día — arriba a la izquierda */}
                               <div style={{ marginBottom: 4 }}>
                                 <span style={{
                                   display: 'inline-flex',
@@ -190,25 +242,40 @@ export default function CalendarioPage() {
                                 </span>
                               </div>
 
-                              {/* Etiquetas de eventos */}
-                              {dayEvts.length > 0 && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                  {dayEvts.map((ev, ei) => (
-                                    <span key={ei} style={{
-                                      display: 'block',
-                                      fontSize: 10, fontWeight: 600, lineHeight: 1.4,
-                                      color: TIPO_COLOR[ev.tipo] || '#888',
-                                      background: TIPO_BG[ev.tipo] || 'transparent',
-                                      borderRadius: 3,
-                                      padding: '1px 4px',
-                                      whiteSpace: 'normal',
-                                      wordWrap: 'break-word',
-                                    }}>
-                                      {ev.nombre}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {/* Domingo automático */}
+                                {esDomingo && (
+                                  <span style={{
+                                    display: 'block',
+                                    fontSize: 10, fontWeight: 600, lineHeight: 1.4,
+                                    color: TIPO_COLOR['Servicio'],
+                                    background: TIPO_BG['Servicio'],
+                                    borderRadius: 3,
+                                    padding: '1px 4px',
+                                    whiteSpace: 'normal',
+                                    wordWrap: 'break-word',
+                                  }}>
+                                    {serviciosByDate[iso]?.predica
+                                      ? `Servicio dominical — ${serviciosByDate[iso].predica}`
+                                      : 'Servicio dominical'}
+                                  </span>
+                                )}
+                                {/* Eventos manuales */}
+                                {dayEvts.map((ev, ei) => (
+                                  <span key={ei} style={{
+                                    display: 'block',
+                                    fontSize: 10, fontWeight: 600, lineHeight: 1.4,
+                                    color: TIPO_COLOR[ev.tipo] || '#888',
+                                    background: TIPO_BG[ev.tipo] || 'transparent',
+                                    borderRadius: 3,
+                                    padding: '1px 4px',
+                                    whiteSpace: 'normal',
+                                    wordWrap: 'break-word',
+                                  }}>
+                                    {ev.nombre}
+                                  </span>
+                                ))}
+                              </div>
                             </>
                           )}
                         </td>
@@ -251,47 +318,94 @@ export default function CalendarioPage() {
             </button>
           </div>
 
-          {selectedDayEvents.length === 0 ? (
-            <p style={{ fontSize: 13.5, color: 'var(--muted)', margin: 0 }}>
-              Sin eventos este día.
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {selectedDayEvents.map(ev => (
-                <div key={ev.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 14px', borderRadius: 10,
-                  background: TIPO_BG[ev.tipo] || 'var(--surface)',
-                  border: `1px solid ${TIPO_COLOR[ev.tipo] || 'var(--border)'}30`,
-                }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+            {/* Servicio dominical — solo domingos */}
+            {isDomingo(selectedDay) && (
+              <div style={{
+                padding: '12px 14px', borderRadius: 10,
+                background: TIPO_BG['Servicio'],
+                border: `1px solid ${TIPO_COLOR['Servicio']}40`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                   <span style={{
                     width: 8, height: 8, borderRadius: '50%',
-                    background: TIPO_COLOR[ev.tipo] || '#888', flexShrink: 0,
+                    background: TIPO_COLOR['Servicio'], flexShrink: 0,
                   }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
-                      {ev.nombre}
-                    </div>
-                    {ev.nota && (
-                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                        {ev.nota}
-                      </div>
-                    )}
+                  <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+                    Servicio dominical
                   </div>
-                  <span style={{
-                    fontSize: 11.5, color: TIPO_COLOR[ev.tipo] || 'var(--muted)',
-                    fontWeight: 600, flexShrink: 0,
-                  }}>
-                    {ev.tipo}
+                  <span style={{ fontSize: 11.5, color: TIPO_COLOR['Servicio'], fontWeight: 600, flexShrink: 0 }}>
+                    Servicio
                   </span>
-                  <button className="icon-btn" onClick={() => openEditModal(ev)}
-                    style={{ width: 28, height: 28, flexShrink: 0 }} title="Editar">
-                    <I.edit size={14} />
+                </div>
+                <div style={{ display: 'flex', gap: 8, paddingLeft: 16 }}>
+                  <input
+                    type="text"
+                    placeholder="¿Quién predica? (ej. Ps. Humberto)"
+                    value={predicaInput}
+                    onChange={e => setPredicaInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSavePredica(); }}
+                    style={{
+                      flex: 1, padding: '6px 10px', borderRadius: 7,
+                      border: '1.5px solid var(--border)', fontSize: 13,
+                      outline: 'none', fontFamily: 'var(--font-ui)',
+                    }}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    style={{ fontSize: 12, padding: '6px 12px', flexShrink: 0 }}
+                    onClick={handleSavePredica}
+                    disabled={savingPredica}
+                  >
+                    {savingPredica ? '…' : 'Guardar'}
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+
+            {/* Eventos manuales */}
+            {selectedDayEvents.map(ev => (
+              <div key={ev.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px', borderRadius: 10,
+                background: TIPO_BG[ev.tipo] || 'var(--surface)',
+                border: `1px solid ${TIPO_COLOR[ev.tipo] || 'var(--border)'}30`,
+              }}>
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: TIPO_COLOR[ev.tipo] || '#888', flexShrink: 0,
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+                    {ev.nombre}
+                  </div>
+                  {ev.nota && (
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                      {ev.nota}
+                    </div>
+                  )}
+                </div>
+                <span style={{
+                  fontSize: 11.5, color: TIPO_COLOR[ev.tipo] || 'var(--muted)',
+                  fontWeight: 600, flexShrink: 0,
+                }}>
+                  {ev.tipo}
+                </span>
+                <button className="icon-btn" onClick={() => openEditModal(ev)}
+                  style={{ width: 28, height: 28, flexShrink: 0 }} title="Editar">
+                  <I.edit size={14} />
+                </button>
+              </div>
+            ))}
+
+            {/* "Sin eventos" solo si no es domingo y no hay eventos manuales */}
+            {selectedDayEvents.length === 0 && !isDomingo(selectedDay) && (
+              <p style={{ fontSize: 13.5, color: 'var(--muted)', margin: 0 }}>
+                Sin eventos este día.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
