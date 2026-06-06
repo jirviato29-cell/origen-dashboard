@@ -3,7 +3,7 @@ import { calendarioApi } from '../services/api';
 import { useCalendarioModal } from '../context/CalendarioModalContext';
 import { I } from './Icons';
 
-const TIPOS = ['Servicio', 'Especial', 'Reunión', 'General'];
+const TIPOS = ['Servicio dominical', 'Especial', 'Reunión de hombres', 'Reunión de mujeres', 'Alpha'];
 
 function todayISO() {
   const d = new Date();

@@ -4,19 +4,35 @@ import { useCalendarioModal } from '../../context/CalendarioModalContext';
 import { fmtFecha, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 
+// Color sólido — para puntos, texto de etiquetas y leyenda
 const TIPO_COLOR = {
-  'Servicio': '#00B4D8',
-  'Especial': '#F59E0B',
-  'Reunión':  '#8B5CF6',
-  'General':  '#10B981',
+  'Servicio dominical': '#B5860D',
+  'Especial':           '#F59E0B',
+  'Reunión de hombres': '#1E3A8A',
+  'Reunión de mujeres': '#7C3AED',
+  'Alpha':              '#DC2626',
 };
 
+// Fondo semitransparente — para chips/etiquetas dentro de las celdas
 const TIPO_BG = {
-  'Servicio': 'rgba(0,180,216,0.12)',
-  'Especial': 'rgba(245,158,11,0.12)',
-  'Reunión':  'rgba(139,92,246,0.12)',
-  'General':  'rgba(16,185,129,0.12)',
+  'Servicio dominical': 'rgba(181,134,13,0.18)',
+  'Especial':           'rgba(245,158,11,0.18)',
+  'Reunión de hombres': 'rgba(30,58,138,0.14)',
+  'Reunión de mujeres': 'rgba(124,58,237,0.14)',
+  'Alpha':              'rgba(220,38,38,0.14)',
 };
+
+// Fondo suave — para el fondo completo de la celda <td>
+const TIPO_CELL_BG = {
+  'Servicio dominical': '#FDF6E3',
+  'Especial':           'rgba(245,158,11,0.12)',
+  'Reunión de hombres': 'rgba(30,58,138,0.07)',
+  'Reunión de mujeres': 'rgba(124,58,237,0.07)',
+  'Alpha':              'rgba(220,38,38,0.07)',
+};
+
+// Prioridad para pintar la celda (de mayor a menor)
+const TIPO_PRIORIDAD = ['Alpha', 'Reunión de mujeres', 'Reunión de hombres', 'Especial', 'Servicio dominical'];
 
 const DIAS_HEADER = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
@@ -205,7 +221,9 @@ export default function CalendarioPage() {
                       const esDomingo  = iso ? isDomingo(iso) : false;
                       const isToday    = iso === todayISO;
                       const isSelected = iso === selectedDay;
-                      const hasEspecial = dayEvts.some(ev => ev.tipo === 'Especial');
+                      const tiposEnCelda = new Set(dayEvts.map(ev => ev.tipo));
+                      if (esDomingo) tiposEnCelda.add('Servicio dominical');
+                      const tipoPrioritario = TIPO_PRIORIDAD.find(t => tiposEnCelda.has(t));
 
                       return (
                         <td key={ci}
@@ -221,8 +239,8 @@ export default function CalendarioPage() {
                               ? 'rgba(0,180,216,0.08)'
                               : !day
                                 ? 'var(--surface)'
-                                : hasEspecial
-                                  ? 'rgba(245,158,11,0.15)'
+                                : tipoPrioritario
+                                  ? TIPO_CELL_BG[tipoPrioritario]
                                   : 'var(--white, #fff)',
                             boxShadow: isSelected
                               ? 'inset 0 0 0 2px var(--chart-primary)'
@@ -251,8 +269,8 @@ export default function CalendarioPage() {
                                   <span style={{
                                     display: 'block',
                                     fontSize: 10, fontWeight: 600, lineHeight: 1.4,
-                                    color: TIPO_COLOR['Servicio'],
-                                    background: TIPO_BG['Servicio'],
+                                    color: TIPO_COLOR['Servicio dominical'],
+                                    background: TIPO_BG['Servicio dominical'],
                                     borderRadius: 3,
                                     padding: '2px 5px',
                                     whiteSpace: 'normal',
@@ -327,19 +345,19 @@ export default function CalendarioPage() {
             {isDomingo(selectedDay) && (
               <div style={{
                 padding: '12px 14px', borderRadius: 10,
-                background: TIPO_BG['Servicio'],
-                border: `1px solid ${TIPO_COLOR['Servicio']}40`,
+                background: TIPO_BG['Servicio dominical'],
+                border: `1px solid ${TIPO_COLOR['Servicio dominical']}40`,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                   <span style={{
                     width: 8, height: 8, borderRadius: '50%',
-                    background: TIPO_COLOR['Servicio'], flexShrink: 0,
+                    background: TIPO_COLOR['Servicio dominical'], flexShrink: 0,
                   }} />
                   <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
                     Servicio dominical
                   </div>
-                  <span style={{ fontSize: 11.5, color: TIPO_COLOR['Servicio'], fontWeight: 600, flexShrink: 0 }}>
-                    Servicio
+                  <span style={{ fontSize: 11.5, color: TIPO_COLOR['Servicio dominical'], fontWeight: 600, flexShrink: 0 }}>
+                    Servicio dominical
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, paddingLeft: 16 }}>
