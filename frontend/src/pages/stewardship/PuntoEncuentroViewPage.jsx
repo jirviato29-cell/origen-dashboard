@@ -2,21 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { calendarioApi, participantesApi, abonosApi, comprobanteApi } from '../../services/api';
 import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
-
-const TIPO_COLOR = {
-  'Servicio dominical': '#B5860D',
-  'Especial':           '#F59E0B',
-  'Reunión de hombres': '#1E3A8A',
-  'Reunión de mujeres': '#7C3AED',
-  'Alpha':              '#DC2626',
-};
-const TIPO_BG = {
-  'Servicio dominical': 'rgba(181,134,13,0.12)',
-  'Especial':           'rgba(245,158,11,0.12)',
-  'Reunión de hombres': 'rgba(30,58,138,0.10)',
-  'Reunión de mujeres': 'rgba(124,58,237,0.10)',
-  'Alpha':              'rgba(220,38,38,0.10)',
-};
+import { TIPO_COLOR, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
 
 function fmtMoney(n) {
   return `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -488,7 +474,7 @@ export default function PuntoEncuentroViewPage() {
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '12px 16px',
-                    background: isToday ? 'var(--surface-2)' : 'var(--surface)',
+                    background: isToday ? 'var(--surface-2)' : (TIPO_CELL_BG[e.tipo] || 'var(--surface)'),
                     flexWrap: 'wrap',
                   }}>
                     <div style={{ color: 'var(--muted)', flexShrink: 0 }}><I.pin size={15} /></div>
