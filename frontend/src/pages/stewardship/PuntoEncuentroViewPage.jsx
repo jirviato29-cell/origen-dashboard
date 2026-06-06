@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { calendarioApi, participantesApi, abonosApi, comprobanteApi } from '../../services/api';
 import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
+import * as XLSX from 'xlsx';
 import { I } from '../../components/Icons';
 import { TIPO_COLOR, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
 
@@ -376,6 +377,46 @@ export default function PuntoEncuentroViewPage() {
     });
   };
 
+  // ── Exportar Excel ──────────────────────────────────────────────────────
+  const descargarExcel = (evento) => {
+    const participantes = participantesMap[evento.id] || [];
+    const costo = parseFloat(evento.costo) || 0;
+
+    const headers = ['Nombre', 'WhatsApp', 'Edad', 'Relación', 'Costo', 'Pagado', 'Saldo', 'Estado'];
+
+    const rows = participantes.map(p => {
+      const abonos = abonosMap[p.id] || [];
+      const pagado = abonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
+      const saldo  = costo > 0 ? costo - pagado : 0;
+      return [
+        p.nombre    || '',
+        p.whatsapp  || '',
+        p.edad      ? Number(p.edad) : '',
+        p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen',
+        costo  > 0  ? costo  : '',
+        pagado > 0  ? pagado : 0,
+        costo  > 0  ? saldo  : '',
+        costo  > 0  ? (saldo <= 0 ? 'Liquidado' : 'Debe') : '',
+      ];
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+    // Anchos de columna
+    ws['!cols'] = [
+      { wch: 30 }, { wch: 15 }, { wch: 6 }, { wch: 16 },
+      { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Participantes');
+
+    const slug = evento.nombre
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/, '');
+    XLSX.writeFile(wb, `participantes_${slug}_${hoyStr}.xlsx`);
+  };
+
   // ── Handler corte de caja (resumen en vivo) ─────────────────────────────
   const openCorteModal = (evento) => {
     setCorteEvento(evento);
@@ -587,6 +628,19 @@ export default function PuntoEncuentroViewPage() {
                       onClick={() => openCorteModal(e)}
                     >
                       <I.cash size={12} /> Corte
+                    </button>
+                    <button
+                      className="btn"
+                      style={{
+                        fontSize: 12, padding: '5px 12px',
+                        border: '1.5px solid var(--border)',
+                        background: 'var(--surface)',
+                        color: 'var(--ink-2)',
+                      }}
+                      onClick={() => descargarExcel(e)}
+                      title="Descargar Excel con participantes"
+                    >
+                      <I.download size={12} /> Excel
                     </button>
                   </div>
 
