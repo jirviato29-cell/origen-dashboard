@@ -42,4 +42,6 @@ export const I = {
   arrowBarUp:  (p) => <Icon size={p?.size} d={<><path d="M4 4h16"/><path d="M12 20V8"/><path d="M7 11l5-5 5 5"/></>}/>,
   scale:       (p) => <Icon size={p?.size} d={<><path d="M12 3v18M8 21h8"/><path d="M3 7h18"/><path d="M3 7v2a3.5 3.5 0 0 0 7 0V7"/><path d="M14 7v2a3.5 3.5 0 0 0 7 0V7"/></>}/>,
   percent:     (p) => <Icon size={p?.size} d={<><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/><path d="M6 18L18 6"/></>}/>,
+  receipt:     (p) => <Icon size={p?.size} d={<><path d="M4 4v16l3-2 3 2 3-2 3 2 3-2V4z"/><path d="M8 10h8M8 14h5"/></>}/>,
+  paperclip:   (p) => <Icon size={p?.size} d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>,
 };

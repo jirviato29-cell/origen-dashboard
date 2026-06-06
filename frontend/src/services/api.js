@@ -104,6 +104,13 @@ const realComprobanteApi = {
   },
 };
 
+// ─── Abonos ───────────────────────────────────────────────────────────────────
+const realAbonosApi = {
+  getAll:  (params) => http.get('/abonos', { params }),
+  create:  (data)   => http.post('/abonos', data),
+  remove:  (id)     => http.delete(`/abonos/${id}`),
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;
 export const ofrendasApi   = USE_MOCK ? mock.ingresosApi   : realOfrendasApi;
@@ -116,3 +123,4 @@ export const participantesApi         = realParticipantesApi;
 export const calendarioApi            = realCalendarioApi;
 export const serviciosDominicalesApi  = realServiciosDominicalesApi;
 export const comprobanteApi           = realComprobanteApi;
+export const abonosApi                = realAbonosApi;

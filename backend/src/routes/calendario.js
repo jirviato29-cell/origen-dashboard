@@ -42,12 +42,14 @@ router.get('/:id', async (req, res) => {
 // POST /api/calendario
 router.post('/', async (req, res) => {
   try {
-    const { nombre, fecha, tipo, nota, en_punto_encuentro } = req.body;
+    const { nombre, fecha, tipo, nota, en_punto_encuentro, costo } = req.body;
     if (!nombre || !fecha) return res.status(400).json({ error: 'nombre y fecha son requeridos' });
     const { rows } = await pool.query(
-      `INSERT INTO calendario_eventos (nombre, fecha, tipo, nota, en_punto_encuentro)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [nombre, fecha, tipo || 'General', nota || null, en_punto_encuentro === true || en_punto_encuentro === 'true']
+      `INSERT INTO calendario_eventos (nombre, fecha, tipo, nota, en_punto_encuentro, costo)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [nombre, fecha, tipo || 'General', nota || null,
+       en_punto_encuentro === true || en_punto_encuentro === 'true',
+       costo ? parseFloat(costo) : 0]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -58,13 +60,14 @@ router.post('/', async (req, res) => {
 // PUT /api/calendario/:id
 router.put('/:id', async (req, res) => {
   try {
-    const { nombre, fecha, tipo, nota, en_punto_encuentro } = req.body;
+    const { nombre, fecha, tipo, nota, en_punto_encuentro, costo } = req.body;
     const { rows } = await pool.query(
       `UPDATE calendario_eventos
-       SET nombre=$1, fecha=$2, tipo=$3, nota=$4, en_punto_encuentro=$5
-       WHERE id=$6 RETURNING *`,
+       SET nombre=$1, fecha=$2, tipo=$3, nota=$4, en_punto_encuentro=$5, costo=$6
+       WHERE id=$7 RETURNING *`,
       [nombre, fecha, tipo || 'General', nota || null,
        en_punto_encuentro === true || en_punto_encuentro === 'true',
+       costo ? parseFloat(costo) : 0,
        req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { calendarioApi, participantesApi } from '../../services/api';
+import { useState, useEffect, useRef } from 'react';
+import { calendarioApi, participantesApi, abonosApi, comprobanteApi } from '../../services/api';
 import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 
@@ -18,10 +18,19 @@ const TIPO_BG = {
   'Alpha':              'rgba(220,38,38,0.10)',
 };
 
+function fmtMoney(n) {
+  return `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: 10,
   border: '1.5px solid var(--border)', fontSize: 15,
   outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-ui)',
+};
+
+const labelStyle = {
+  fontSize: 12.5, fontWeight: 600, color: 'var(--ink)',
+  textTransform: 'uppercase', letterSpacing: '0.06em',
 };
 
 export default function PuntoEncuentroViewPage() {
@@ -29,45 +38,68 @@ export default function PuntoEncuentroViewPage() {
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // participantesMap: { [eventoId]: participante[] }
-  const [participantesMap, setParticipantesMap] = useState({});
-  const [expandedId,       setExpandedId]       = useState(null);
-  const [deletingId,       setDeletingId]       = useState(null);
+  const [participantesMap,      setParticipantesMap]      = useState({});
+  const [abonosMap,             setAbonosMap]             = useState({});
+  const [expandedId,            setExpandedId]            = useState(null);
+  const [expandedParticipantes, setExpandedParticipantes] = useState(new Set());
+  const [deletingId,            setDeletingId]            = useState(null);
+  const [deletingAbonoId,       setDeletingAbonoId]       = useState(null);
 
-  // Modal
+  // Modal registrar participante
   const [modalOpen,   setModalOpen]   = useState(false);
   const [modalEvento, setModalEvento] = useState(null);
-  const [form,        setForm]        = useState({ nombre: '', whatsapp: '', edad: '' });
+  const [form,        setForm]        = useState({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
   const [saving,      setSaving]      = useState(false);
   const [formError,   setFormError]   = useState('');
 
-  // ── Carga inicial ─────────────────────────────────────────────────────────
+  // Modal agregar abono
+  const [abonoModalOpen,    setAbonoModalOpen]    = useState(false);
+  const [abonoParticipante, setAbonoParticipante] = useState(null);
+  const [abonoEvento,       setAbonoEvento]       = useState(null);
+  const [abonoForm,         setAbonoForm]         = useState({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: '' });
+  const [abonoFile,         setAbonoFile]         = useState(null);
+  const [savingAbono,       setSavingAbono]       = useState(false);
+  const [abonoError,        setAbonoError]        = useState('');
+  const fileInputRef = useRef(null);
+
+  // ── Carga inicial ────────────────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
       calendarioApi.getAll({ en_punto_encuentro: true }),
       participantesApi.getAll(),
+      abonosApi.getAll(),
     ])
-      .then(([evRes, partRes]) => {
+      .then(([evRes, partRes, abonosRes]) => {
         setEventos(evRes.data);
-        const map = {};
+        const pMap = {};
         partRes.data.forEach(p => {
-          if (!map[p.evento_id]) map[p.evento_id] = [];
-          map[p.evento_id].push(p);
+          if (!pMap[p.evento_id]) pMap[p.evento_id] = [];
+          pMap[p.evento_id].push(p);
         });
-        setParticipantesMap(map);
+        setParticipantesMap(pMap);
+        const aMap = {};
+        abonosRes.data.forEach(a => {
+          if (!aMap[a.participante_id]) aMap[a.participante_id] = [];
+          aMap[a.participante_id].push(a);
+        });
+        setAbonosMap(aMap);
       })
-      .catch(() => { setEventos([]); setParticipantesMap({}); })
+      .catch(() => { setEventos([]); setParticipantesMap({}); setAbonosMap({}); })
       .finally(() => setLoading(false));
   }, []);
 
-  // Escape para cerrar modal
+  // Escape para cerrar modales
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') setModalOpen(false); };
-    if (modalOpen) window.addEventListener('keydown', handler);
+    const handler = (e) => {
+      if (e.key !== 'Escape') return;
+      if (abonoModalOpen) setAbonoModalOpen(false);
+      else if (modalOpen) setModalOpen(false);
+    };
+    if (modalOpen || abonoModalOpen) window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [modalOpen]);
+  }, [modalOpen, abonoModalOpen]);
 
-  // ── Datos derivados ───────────────────────────────────────────────────────
+  // ── Datos derivados ──────────────────────────────────────────────────────
   const hoyStr = new Date().toISOString().slice(0, 10);
 
   const sorted = [...eventos].sort((a, b) => {
@@ -84,16 +116,16 @@ export default function PuntoEncuentroViewPage() {
     return true;
   });
 
-  const proximos          = sorted.filter(e => (toISODate(e.fecha) || '') >= hoyStr).length;
+  const proximos           = sorted.filter(e => (toISODate(e.fecha) || '') >= hoyStr).length;
   const totalParticipantes = Object.values(participantesMap).reduce((s, arr) => s + arr.length, 0);
-  const proximo           = sorted
+  const proximo            = sorted
     .filter(e => (toISODate(e.fecha) || '') >= hoyStr)
     .sort((a, b) => (toISODate(a.fecha) || '').localeCompare(toISODate(b.fecha) || ''))[0];
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  // ── Handlers participantes ───────────────────────────────────────────────
   const openModal = (evento) => {
     setModalEvento(evento);
-    setForm({ nombre: '', whatsapp: '', edad: '' });
+    setForm({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
     setFormError('');
     setModalOpen(true);
   };
@@ -104,10 +136,11 @@ export default function PuntoEncuentroViewPage() {
     setFormError('');
     try {
       const { data } = await participantesApi.create({
-        evento_id: modalEvento.id,
-        nombre:    form.nombre,
-        whatsapp:  form.whatsapp,
-        edad:      form.edad,
+        evento_id:    modalEvento.id,
+        nombre:       form.nombre,
+        whatsapp:     form.whatsapp,
+        edad:         form.edad,
+        tipo_persona: form.tipo_persona,
       });
       setParticipantesMap(prev => ({
         ...prev,
@@ -130,11 +163,74 @@ export default function PuntoEncuentroViewPage() {
         ...prev,
         [p.evento_id]: (prev[p.evento_id] || []).filter(x => x.id !== p.id),
       }));
-    } catch {
-      // noop
-    } finally {
+    } catch { /* noop */ } finally {
       setDeletingId(null);
     }
+  };
+
+  // ── Handlers abonos ──────────────────────────────────────────────────────
+  const openAbonoModal = (participante, evento) => {
+    setAbonoParticipante(participante);
+    setAbonoEvento(evento);
+    setAbonoForm({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: new Date().toISOString().slice(0, 10) });
+    setAbonoFile(null);
+    setAbonoError('');
+    setAbonoModalOpen(true);
+  };
+
+  const handleSaveAbono = async () => {
+    if (!abonoForm.monto || parseFloat(abonoForm.monto) <= 0) {
+      setAbonoError('Ingresa un monto válido.');
+      return;
+    }
+    setSavingAbono(true);
+    setAbonoError('');
+    try {
+      let comprobante_url = null;
+      if (abonoFile) {
+        const { data: upData } = await comprobanteApi.upload(abonoFile);
+        comprobante_url = upData.url;
+      }
+      const { data } = await abonosApi.create({
+        participante_id: abonoParticipante.id,
+        monto:           parseFloat(abonoForm.monto),
+        metodo:          abonoForm.metodo,
+        num_transaccion: abonoForm.num_transaccion || null,
+        comprobante_url,
+        fecha:           abonoForm.fecha,
+      });
+      setAbonosMap(prev => ({
+        ...prev,
+        [abonoParticipante.id]: [...(prev[abonoParticipante.id] || []), data],
+      }));
+      setExpandedParticipantes(prev => new Set([...prev, abonoParticipante.id]));
+      setAbonoModalOpen(false);
+    } catch (err) {
+      setAbonoError(err?.response?.data?.error || 'Error al guardar el abono.');
+    } finally {
+      setSavingAbono(false);
+    }
+  };
+
+  const handleDeleteAbono = async (abono) => {
+    setDeletingAbonoId(abono.id);
+    try {
+      await abonosApi.remove(abono.id);
+      setAbonosMap(prev => ({
+        ...prev,
+        [abono.participante_id]: (prev[abono.participante_id] || []).filter(a => a.id !== abono.id),
+      }));
+    } catch { /* noop */ } finally {
+      setDeletingAbonoId(null);
+    }
+  };
+
+  const toggleExpandParticipante = (pId) => {
+    setExpandedParticipantes(prev => {
+      const next = new Set(prev);
+      if (next.has(pId)) next.delete(pId); else next.add(pId);
+      return next;
+    });
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -144,9 +240,9 @@ export default function PuntoEncuentroViewPage() {
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 14 }}>
         {[
-          { label: 'Total de eventos',      value: loading ? '…' : eventos.length,       sub: 'En Punto de Encuentro', color: 'var(--ink)' },
-          { label: 'Próximos eventos',       value: loading ? '…' : proximos,             sub: 'Próximamente',          color: 'var(--chart-primary)' },
-          { label: 'Total participantes',    value: loading ? '…' : totalParticipantes,   sub: 'Registrados',           color: 'var(--success, #10B981)' },
+          { label: 'Total de eventos',   value: loading ? '…' : eventos.length,     sub: 'En Punto de Encuentro',  color: 'var(--ink)' },
+          { label: 'Próximos eventos',    value: loading ? '…' : proximos,           sub: 'Próximamente',           color: 'var(--chart-primary)' },
+          { label: 'Total participantes', value: loading ? '…' : totalParticipantes, sub: 'Registrados',            color: 'var(--success, #10B981)' },
         ].map(s => (
           <div key={s.label} className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{s.label}</div>
@@ -188,9 +284,7 @@ export default function PuntoEncuentroViewPage() {
         <div className="card-head">
           <div>
             <h3 className="card-title">Eventos en Punto de Encuentro</h3>
-            <div className="card-sub">
-              {loading ? 'Cargando…' : `${filtered.length} eventos`}
-            </div>
+            <div className="card-sub">{loading ? 'Cargando…' : `${filtered.length} eventos`}</div>
           </div>
         </div>
 
@@ -229,6 +323,7 @@ export default function PuntoEncuentroViewPage() {
               const pList      = participantesMap[e.id] || [];
               const pCount     = pList.length;
               const isExpanded = expandedId === e.id;
+              const costo      = parseFloat(e.costo) || 0;
 
               return (
                 <div key={e.id} style={{
@@ -245,12 +340,15 @@ export default function PuntoEncuentroViewPage() {
                     background: isToday ? 'var(--surface-2)' : 'var(--surface)',
                     flexWrap: 'wrap',
                   }}>
-                    <div style={{ color: 'var(--muted)', flexShrink: 0 }}>
-                      <I.pin size={15} />
-                    </div>
+                    <div style={{ color: 'var(--muted)', flexShrink: 0 }}><I.pin size={15} /></div>
                     <div style={{ flex: 1, minWidth: 140 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{e.nombre}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{fmtFechaShort(e.fecha)}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1, display: 'flex', gap: 10 }}>
+                        <span>{fmtFechaShort(e.fecha)}</span>
+                        {costo > 0 && (
+                          <span style={{ fontWeight: 600, color: 'var(--ink-2)' }}>Costo: {fmtMoney(costo)}</span>
+                        )}
+                      </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                       {isToday && (
@@ -267,13 +365,11 @@ export default function PuntoEncuentroViewPage() {
                           {e.tipo}
                         </span>
                       )}
-                      {isPast && !isToday && (
-                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>Pasado</span>
-                      )}
+                      {isPast && !isToday && <span style={{ fontSize: 11, color: 'var(--muted)' }}>Pasado</span>}
                     </div>
                   </div>
 
-                  {/* Fila de acciones: contar participantes + botón registrar */}
+                  {/* Fila acciones */}
                   <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '7px 12px 7px 16px',
@@ -293,11 +389,7 @@ export default function PuntoEncuentroViewPage() {
                     >
                       <I.users size={13} />
                       <span>{pCount} participante{pCount !== 1 ? 's' : ''}</span>
-                      <span style={{
-                        display: 'inline-flex',
-                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.18s',
-                      }}>
+                      <span style={{ display: 'inline-flex', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.18s' }}>
                         <I.chevR size={11} />
                       </span>
                     </button>
@@ -310,51 +402,161 @@ export default function PuntoEncuentroViewPage() {
                     </button>
                   </div>
 
-                  {/* Lista de participantes (expandible) */}
+                  {/* Lista participantes (expandible) */}
                   {isExpanded && (
                     <div>
                       {pList.length === 0 ? (
                         <div style={{
                           padding: '10px 16px', fontSize: 13, color: 'var(--muted)',
-                          borderTop: '1px solid var(--border)',
-                          background: 'var(--surface)',
+                          borderTop: '1px solid var(--border)', background: 'var(--surface)',
                         }}>
                           Sin participantes registrados. Usa el botón de arriba para agregar.
                         </div>
                       ) : (
-                        pList.map((p, idx) => (
-                          <div key={p.id} style={{
-                            display: 'flex', alignItems: 'center', gap: 12,
-                            padding: '9px 16px',
-                            borderTop: '1px solid var(--border)',
-                            background: idx % 2 === 0 ? 'var(--white, #fff)' : 'var(--surface)',
-                          }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ink)' }}>
-                                {p.nombre}
-                              </span>
-                              {p.whatsapp && (
-                                <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 12 }}>
-                                  WA: {p.whatsapp}
-                                </span>
-                              )}
-                              {p.edad && (
-                                <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 12 }}>
-                                  {p.edad} años
-                                </span>
+                        pList.map((p) => {
+                          const pAbonos    = abonosMap[p.id] || [];
+                          const totalPagado = pAbonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
+                          const saldo       = costo > 0 ? costo - totalPagado : null;
+                          const liquidado   = saldo !== null && saldo <= 0;
+                          const pExpanded   = expandedParticipantes.has(p.id);
+
+                          return (
+                            <div key={p.id} style={{ borderTop: '1px solid var(--border)' }}>
+                              {/* Fila participante */}
+                              <div style={{
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                padding: '9px 12px 9px 16px',
+                                background: 'var(--white, #fff)',
+                                flexWrap: 'wrap',
+                              }}>
+                                {/* Info izquierda */}
+                                <div style={{ flex: 1, minWidth: 140 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ink)' }}>{p.nombre}</span>
+                                    {/* tipo_persona badge */}
+                                    <span style={{
+                                      fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 99,
+                                      background: p.tipo_persona === 'invitado' ? 'rgba(245,158,11,0.13)' : 'rgba(16,185,129,0.11)',
+                                      color: p.tipo_persona === 'invitado' ? '#B45309' : '#047857',
+                                    }}>
+                                      {p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen'}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, display: 'flex', gap: 10 }}>
+                                    {p.whatsapp && <span>WA: {p.whatsapp}</span>}
+                                    {p.edad && <span>{p.edad} años</span>}
+                                  </div>
+                                </div>
+
+                                {/* Balance (solo si costo > 0) */}
+                                {costo > 0 && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                                      {fmtMoney(totalPagado)} / {fmtMoney(costo)}
+                                    </span>
+                                    <span style={{
+                                      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                                      background: liquidado ? 'rgba(16,185,129,0.12)' : 'rgba(220,38,38,0.10)',
+                                      color: liquidado ? '#047857' : 'var(--danger)',
+                                    }}>
+                                      {liquidado ? 'Liquidado' : `Debe ${fmtMoney(saldo)}`}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Acciones */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                                  {/* Botón historial abonos */}
+                                  {pAbonos.length > 0 && (
+                                    <button
+                                      onClick={() => toggleExpandParticipante(p.id)}
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: 4,
+                                        background: 'transparent', border: 'none',
+                                        padding: '3px 7px', borderRadius: 6,
+                                        fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer',
+                                        fontFamily: 'var(--font-ui)',
+                                      }}
+                                      title="Ver abonos"
+                                    >
+                                      <I.receipt size={12} />
+                                      <span>{pAbonos.length}</span>
+                                      <span style={{ display: 'inline-flex', transform: pExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.18s' }}>
+                                        <I.chevR size={10} />
+                                      </span>
+                                    </button>
+                                  )}
+                                  <button
+                                    className="btn btn-primary"
+                                    style={{ fontSize: 11, padding: '3px 9px' }}
+                                    onClick={() => openAbonoModal(p, e)}
+                                  >
+                                    <I.plus size={11} /> Abono
+                                  </button>
+                                  <button
+                                    className="icon-btn"
+                                    onClick={() => handleDeleteParticipante(p)}
+                                    disabled={deletingId === p.id}
+                                    style={{ width: 28, height: 28, color: 'var(--danger)', flexShrink: 0 }}
+                                    title="Eliminar participante"
+                                  >
+                                    <I.trash size={13} />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Historial de abonos */}
+                              {pExpanded && pAbonos.length > 0 && (
+                                <div style={{ background: 'var(--surface)' }}>
+                                  {pAbonos.map(a => (
+                                    <div key={a.id} style={{
+                                      display: 'flex', alignItems: 'center', gap: 10,
+                                      padding: '6px 16px 6px 32px',
+                                      borderTop: '1px dashed var(--border)',
+                                      flexWrap: 'wrap',
+                                    }}>
+                                      <div style={{ flex: 1, minWidth: 120 }}>
+                                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
+                                          {fmtMoney(a.monto)}
+                                        </span>
+                                        <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 8, textTransform: 'capitalize' }}>
+                                          {a.metodo}
+                                        </span>
+                                        {a.num_transaccion && (
+                                          <span style={{ fontSize: 11.5, color: 'var(--muted)', marginLeft: 8 }}>
+                                            #{a.num_transaccion}
+                                          </span>
+                                        )}
+                                        {a.comprobante_url && (
+                                          <a
+                                            href={a.comprobante_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ fontSize: 11.5, color: 'var(--chart-primary)', marginLeft: 8 }}
+                                          >
+                                            Comprobante
+                                          </a>
+                                        )}
+                                      </div>
+                                      <span style={{ fontSize: 11.5, color: 'var(--muted)', flexShrink: 0 }}>
+                                        {fmtFechaShort(a.fecha)}
+                                      </span>
+                                      <button
+                                        className="icon-btn"
+                                        onClick={() => handleDeleteAbono(a)}
+                                        disabled={deletingAbonoId === a.id}
+                                        style={{ width: 24, height: 24, color: 'var(--danger)', flexShrink: 0 }}
+                                        title="Eliminar abono"
+                                      >
+                                        <I.trash size={12} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                             </div>
-                            <button
-                              className="icon-btn"
-                              onClick={() => handleDeleteParticipante(p)}
-                              disabled={deletingId === p.id}
-                              style={{ width: 28, height: 28, color: 'var(--danger)', flexShrink: 0 }}
-                              title="Eliminar participante"
-                            >
-                              <I.trash size={14} />
-                            </button>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   )}
@@ -365,12 +567,9 @@ export default function PuntoEncuentroViewPage() {
         )}
       </div>
 
-      {/* ── Modal registrar participante ─────────────────────────────────── */}
+      {/* ── Modal registrar participante ────────────────────────────────────── */}
       {modalOpen && (
-        <div
-          className="modal-backdrop"
-          onClick={(e) => { if (e.target === e.currentTarget) setModalOpen(false); }}
-        >
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setModalOpen(false); }}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
             <div className="modal-grabber" />
 
@@ -378,26 +577,46 @@ export default function PuntoEncuentroViewPage() {
               <div>
                 <div className="anf-modal-eyebrow">Punto de Encuentro</div>
                 <h3 className="anf-modal-date">Registrar participante</h3>
-                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
-                  {modalEvento?.nombre}
-                </p>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>{modalEvento?.nombre}</p>
               </div>
-              <button
-                className="icon-btn"
-                onClick={() => setModalOpen(false)}
-                style={{ width: 34, height: 34, flexShrink: 0 }}
-              >
+              <button className="icon-btn" onClick={() => setModalOpen(false)} style={{ width: 34, height: 34, flexShrink: 0 }}>
                 <I.x size={16} />
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
+              {/* Tipo de persona toggle */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label style={labelStyle}>Tipo de persona</label>
+                <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border)' }}>
+                  {[
+                    { val: 'familia',  label: 'Familia Origen' },
+                    { val: 'invitado', label: 'Invitado' },
+                  ].map(opt => (
+                    <button
+                      key={opt.val}
+                      onClick={() => setForm(f => ({ ...f, tipo_persona: opt.val }))}
+                      style={{
+                        flex: 1, padding: '9px 0', border: 'none', cursor: 'pointer',
+                        fontFamily: 'var(--font-ui)', fontSize: 13.5, fontWeight: 600,
+                        background: form.tipo_persona === opt.val
+                          ? (opt.val === 'invitado' ? '#F59E0B' : '#10B981')
+                          : 'var(--surface)',
+                        color: form.tipo_persona === opt.val ? 'white' : 'var(--ink-2)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Nombre */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Nombre
-                  <span style={{ fontSize: 11, color: 'var(--danger)', marginLeft: 4 }}>*</span>
+                <label style={labelStyle}>
+                  Nombre <span style={{ fontSize: 11, color: 'var(--danger)', marginLeft: 4 }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -412,9 +631,8 @@ export default function PuntoEncuentroViewPage() {
 
               {/* WhatsApp */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  WhatsApp
-                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
+                <label style={labelStyle}>
+                  WhatsApp <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
                 </label>
                 <input
                   type="tel"
@@ -427,15 +645,13 @@ export default function PuntoEncuentroViewPage() {
 
               {/* Edad */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Edad
-                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
+                <label style={labelStyle}>
+                  Edad <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
                 </label>
                 <input
                   type="number"
                   placeholder="ej. 25"
-                  min="1"
-                  max="120"
+                  min="1" max="120"
                   value={form.edad}
                   onChange={e => setForm(f => ({ ...f, edad: e.target.value }))}
                   style={inputStyle}
@@ -445,9 +661,7 @@ export default function PuntoEncuentroViewPage() {
             </div>
 
             {formError && (
-              <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--danger)', marginTop: 4 }}>
-                {formError}
-              </p>
+              <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--danger)', marginTop: 4 }}>{formError}</p>
             )}
 
             <button
@@ -463,6 +677,154 @@ export default function PuntoEncuentroViewPage() {
             {!form.nombre.trim() && !formError && (
               <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--muted)', marginTop: -8 }}>
                 El nombre es requerido
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal agregar abono ──────────────────────────────────────────────── */}
+      {abonoModalOpen && (
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setAbonoModalOpen(false); }}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-grabber" />
+
+            <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div className="anf-modal-eyebrow">Punto de Encuentro · Abono</div>
+                <h3 className="anf-modal-date">Agregar abono</h3>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
+                  {abonoParticipante?.nombre}
+                  {abonoEvento?.costo > 0 && (
+                    <span style={{ marginLeft: 8 }}>· Costo: {fmtMoney(abonoEvento.costo)}</span>
+                  )}
+                </p>
+              </div>
+              <button className="icon-btn" onClick={() => setAbonoModalOpen(false)} style={{ width: 34, height: 34, flexShrink: 0 }}>
+                <I.x size={16} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+              {/* Cantidad */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={labelStyle}>
+                  Cantidad <span style={{ fontSize: 11, color: 'var(--danger)', marginLeft: 4 }}>*</span>
+                </label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={abonoForm.monto}
+                  onChange={e => setAbonoForm(f => ({ ...f, monto: e.target.value }))}
+                  style={{ ...inputStyle, width: '50%' }}
+                  autoFocus
+                />
+              </div>
+
+              {/* Método */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={labelStyle}>Método de pago</label>
+                <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border)' }}>
+                  {['efectivo', 'tarjeta', 'transferencia'].map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setAbonoForm(f => ({ ...f, metodo: m, num_transaccion: '' }))}
+                      style={{
+                        flex: 1, padding: '9px 0', border: 'none', cursor: 'pointer',
+                        fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
+                        background: abonoForm.metodo === m ? 'var(--chart-primary)' : 'var(--surface)',
+                        color: abonoForm.metodo === m ? 'white' : 'var(--ink-2)',
+                        transition: 'all 0.15s',
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tarjeta: num_transaccion */}
+              {abonoForm.metodo === 'tarjeta' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={labelStyle}>
+                    No. de transacción <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="ej. 1234567890"
+                    value={abonoForm.num_transaccion}
+                    onChange={e => setAbonoForm(f => ({ ...f, num_transaccion: e.target.value }))}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+
+              {/* Transferencia: comprobante upload */}
+              {abonoForm.metodo === 'transferencia' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <label style={labelStyle}>
+                    Comprobante <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
+                  </label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    style={{ display: 'none' }}
+                    onChange={e => setAbonoFile(e.target.files[0] || null)}
+                  />
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{
+                      border: `1.5px dashed ${abonoFile ? 'var(--chart-primary)' : 'var(--border)'}`,
+                      background: abonoFile ? 'rgba(0,180,216,0.05)' : 'var(--surface)',
+                      color: abonoFile ? 'var(--chart-primary)' : 'var(--ink-2)',
+                      padding: '10px 16px', borderRadius: 10,
+                      fontFamily: 'var(--font-ui)', fontSize: 13, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 8,
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <I.paperclip size={14} />
+                    {abonoFile ? abonoFile.name : 'Seleccionar archivo…'}
+                  </button>
+                </div>
+              )}
+
+              {/* Fecha */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={labelStyle}>Fecha del abono</label>
+                <input
+                  type="date"
+                  value={abonoForm.fecha}
+                  onChange={e => setAbonoForm(f => ({ ...f, fecha: e.target.value }))}
+                  style={{ ...inputStyle, width: '60%' }}
+                />
+              </div>
+
+            </div>
+
+            {abonoError && (
+              <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--danger)', marginTop: 4 }}>{abonoError}</p>
+            )}
+
+            <button
+              className="btn btn-primary anf-save-btn"
+              onClick={handleSaveAbono}
+              disabled={savingAbono || !abonoForm.monto}
+              style={{ opacity: (savingAbono || !abonoForm.monto) ? 0.45 : 1, marginTop: 4 }}
+            >
+              <I.check size={16} />
+              {savingAbono ? 'Guardando…' : 'Guardar abono'}
+            </button>
+
+            {!abonoForm.monto && !abonoError && (
+              <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--muted)', marginTop: -8 }}>
+                Ingresa la cantidad del abono
               </p>
             )}
           </div>

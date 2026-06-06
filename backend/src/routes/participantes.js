@@ -23,18 +23,19 @@ router.get('/', async (req, res) => {
 // POST /api/participantes
 router.post('/', async (req, res) => {
   try {
-    const { evento_id, nombre, whatsapp, edad } = req.body;
+    const { evento_id, nombre, whatsapp, edad, tipo_persona } = req.body;
     if (!evento_id || !nombre?.trim()) {
       return res.status(400).json({ error: 'evento_id y nombre son requeridos' });
     }
     const { rows } = await pool.query(
-      `INSERT INTO participantes (evento_id, nombre, whatsapp, edad)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
+      `INSERT INTO participantes (evento_id, nombre, whatsapp, edad, tipo_persona)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [
         evento_id,
         nombre.trim(),
         whatsapp?.trim() || null,
         edad ? parseInt(edad, 10) : null,
+        tipo_persona === 'invitado' ? 'invitado' : 'familia',
       ]
     );
     res.status(201).json(rows[0]);

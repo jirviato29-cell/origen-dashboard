@@ -17,7 +17,7 @@ function formatDateLong(iso) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-const makeEmpty = (date) => ({ fecha: date || todayISO(), nombre: '', tipo: '', nota: '', enPuntoEncuentro: false });
+const makeEmpty = (date) => ({ fecha: date || todayISO(), nombre: '', tipo: '', nota: '', costo: '', enPuntoEncuentro: false });
 
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: 10,
@@ -47,6 +47,7 @@ export default function GlobalCalendarioModal() {
           nombre:            editingEvent.nombre || '',
           tipo:              editingEvent.tipo   || '',
           nota:              editingEvent.nota   || '',
+          costo:             editingEvent.costo != null ? String(editingEvent.costo) : '',
           enPuntoEncuentro:  Boolean(editingEvent.en_punto_encuentro),
         });
       } else {
@@ -73,6 +74,7 @@ export default function GlobalCalendarioModal() {
         nombre:             form.nombre.trim(),
         tipo:               form.tipo,
         nota:               form.nota.trim() || null,
+        costo:              form.costo ? parseFloat(form.costo) : 0,
         en_punto_encuentro: form.enPuntoEncuentro,
       };
       if (isEditing) {
@@ -161,6 +163,22 @@ export default function GlobalCalendarioModal() {
                   onChange={e => setForm(f => ({ ...f, nota: e.target.value }))}
                   rows={3}
                   style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Costo del evento
+                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={form.costo}
+                  onChange={e => setForm(f => ({ ...f, costo: e.target.value }))}
+                  style={{ ...inputStyle, width: '50%' }}
+                />
               </div>
 
               <label style={{
