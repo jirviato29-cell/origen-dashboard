@@ -33,6 +33,84 @@ const labelStyle = {
   textTransform: 'uppercase', letterSpacing: '0.06em',
 };
 
+// ── Campos de pago compartidos (método + campos condicionales) ─────────────
+function PagoFields({ metodo, onMetodo, numTransaccion, onNumTransaccion, file, onFile, fileRef }) {
+  return (
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <label style={labelStyle}>Método de pago</label>
+        <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border)' }}>
+          {['efectivo', 'tarjeta', 'transferencia'].map(m => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => onMetodo(m)}
+              style={{
+                flex: 1, padding: '9px 0', border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
+                background: metodo === m ? 'var(--chart-primary)' : 'var(--surface)',
+                color: metodo === m ? 'white' : 'var(--ink-2)',
+                transition: 'all 0.15s', textTransform: 'capitalize',
+              }}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {metodo === 'tarjeta' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={labelStyle}>
+            No. de transacción{' '}
+            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 4 }}>(opcional)</span>
+          </label>
+          <input
+            type="text"
+            placeholder="ej. 1234567890"
+            value={numTransaccion}
+            onChange={e => onNumTransaccion(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+      )}
+
+      {metodo === 'transferencia' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label style={labelStyle}>
+            Comprobante{' '}
+            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 4 }}>(opcional)</span>
+          </label>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/pdf"
+            style={{ display: 'none' }}
+            onChange={e => onFile(e.target.files[0] || null)}
+          />
+          <button
+            type="button"
+            className="btn"
+            style={{
+              border: `1.5px dashed ${file ? 'var(--chart-primary)' : 'var(--border)'}`,
+              background: file ? 'rgba(0,180,216,0.05)' : 'var(--surface)',
+              color: file ? 'var(--chart-primary)' : 'var(--ink-2)',
+              padding: '10px 16px', borderRadius: 10,
+              fontFamily: 'var(--font-ui)', fontSize: 13, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
+            onClick={() => fileRef.current?.click()}
+          >
+            <I.paperclip size={14} />
+            {file ? file.name : 'Seleccionar archivo…'}
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function PuntoEncuentroViewPage() {
   const [filter,  setFilter]  = useState('todos');
   const [eventos, setEventos] = useState([]);
@@ -46,13 +124,17 @@ export default function PuntoEncuentroViewPage() {
   const [deletingAbonoId,       setDeletingAbonoId]       = useState(null);
 
   // Modal registrar participante
-  const [modalOpen,   setModalOpen]   = useState(false);
-  const [modalEvento, setModalEvento] = useState(null);
-  const [form,        setForm]        = useState({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
-  const [saving,      setSaving]      = useState(false);
-  const [formError,   setFormError]   = useState('');
+  const [modalOpen,    setModalOpen]    = useState(false);
+  const [modalEvento,  setModalEvento]  = useState(null);
+  const [form,         setForm]         = useState({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
+  const [saving,       setSaving]       = useState(false);
+  const [formError,    setFormError]    = useState('');
+  // Primer abono embebido en el formulario de registro
+  const [primerAbono,     setPrimerAbono]     = useState({ monto: '', metodo: 'efectivo', num_transaccion: '' });
+  const [primerAbonoFile, setPrimerAbonoFile] = useState(null);
+  const primerAbonoFileRef = useRef(null);
 
-  // Modal agregar abono
+  // Modal agregar abono (abonos posteriores)
   const [abonoModalOpen,    setAbonoModalOpen]    = useState(false);
   const [abonoParticipante, setAbonoParticipante] = useState(null);
   const [abonoEvento,       setAbonoEvento]       = useState(null);
@@ -60,7 +142,7 @@ export default function PuntoEncuentroViewPage() {
   const [abonoFile,         setAbonoFile]         = useState(null);
   const [savingAbono,       setSavingAbono]       = useState(false);
   const [abonoError,        setAbonoError]        = useState('');
-  const fileInputRef = useRef(null);
+  const abonoFileRef = useRef(null);
 
   // ── Carga inicial ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -126,6 +208,8 @@ export default function PuntoEncuentroViewPage() {
   const openModal = (evento) => {
     setModalEvento(evento);
     setForm({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
+    setPrimerAbono({ monto: '', metodo: 'efectivo', num_transaccion: '' });
+    setPrimerAbonoFile(null);
     setFormError('');
     setModalOpen(true);
   };
@@ -135,7 +219,8 @@ export default function PuntoEncuentroViewPage() {
     setSaving(true);
     setFormError('');
     try {
-      const { data } = await participantesApi.create({
+      // 1. Crear participante
+      const { data: pData } = await participantesApi.create({
         evento_id:    modalEvento.id,
         nombre:       form.nombre,
         whatsapp:     form.whatsapp,
@@ -144,8 +229,31 @@ export default function PuntoEncuentroViewPage() {
       });
       setParticipantesMap(prev => ({
         ...prev,
-        [modalEvento.id]: [...(prev[modalEvento.id] || []), data],
+        [modalEvento.id]: [...(prev[modalEvento.id] || []), pData],
       }));
+
+      // 2. Crear primer abono si se capturó monto
+      const monto = parseFloat(primerAbono.monto);
+      if (monto > 0) {
+        let comprobante_url = null;
+        if (primerAbonoFile) {
+          const { data: upData } = await comprobanteApi.upload(primerAbonoFile);
+          comprobante_url = upData.url;
+        }
+        const { data: aData } = await abonosApi.create({
+          participante_id: pData.id,
+          monto,
+          metodo:          primerAbono.metodo,
+          num_transaccion: primerAbono.num_transaccion || null,
+          comprobante_url,
+          fecha:           hoyStr,
+        });
+        setAbonosMap(prev => ({
+          ...prev,
+          [pData.id]: [...(prev[pData.id] || []), aData],
+        }));
+      }
+
       setExpandedId(modalEvento.id);
       setModalOpen(false);
     } catch (err) {
@@ -172,7 +280,7 @@ export default function PuntoEncuentroViewPage() {
   const openAbonoModal = (participante, evento) => {
     setAbonoParticipante(participante);
     setAbonoEvento(evento);
-    setAbonoForm({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: new Date().toISOString().slice(0, 10) });
+    setAbonoForm({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: hoyStr });
     setAbonoFile(null);
     setAbonoError('');
     setAbonoModalOpen(true);
@@ -333,7 +441,7 @@ export default function PuntoEncuentroViewPage() {
                   opacity: isPast ? 0.72 : 1,
                 }}>
 
-                  {/* Fila principal: nombre + fecha + badges */}
+                  {/* Fila principal */}
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '12px 16px',
@@ -414,7 +522,7 @@ export default function PuntoEncuentroViewPage() {
                         </div>
                       ) : (
                         pList.map((p) => {
-                          const pAbonos    = abonosMap[p.id] || [];
+                          const pAbonos     = abonosMap[p.id] || [];
                           const totalPagado = pAbonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
                           const saldo       = costo > 0 ? costo - totalPagado : null;
                           const liquidado   = saldo !== null && saldo <= 0;
@@ -422,18 +530,15 @@ export default function PuntoEncuentroViewPage() {
 
                           return (
                             <div key={p.id} style={{ borderTop: '1px solid var(--border)' }}>
-                              {/* Fila participante */}
                               <div style={{
                                 display: 'flex', alignItems: 'center', gap: 10,
                                 padding: '9px 12px 9px 16px',
                                 background: 'var(--white, #fff)',
                                 flexWrap: 'wrap',
                               }}>
-                                {/* Info izquierda */}
                                 <div style={{ flex: 1, minWidth: 140 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                     <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ink)' }}>{p.nombre}</span>
-                                    {/* tipo_persona badge */}
                                     <span style={{
                                       fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 99,
                                       background: p.tipo_persona === 'invitado' ? 'rgba(245,158,11,0.13)' : 'rgba(16,185,129,0.11)',
@@ -448,7 +553,6 @@ export default function PuntoEncuentroViewPage() {
                                   </div>
                                 </div>
 
-                                {/* Balance (solo si costo > 0) */}
                                 {costo > 0 && (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                                     <span style={{ fontSize: 12, color: 'var(--muted)' }}>
@@ -464,9 +568,7 @@ export default function PuntoEncuentroViewPage() {
                                   </div>
                                 )}
 
-                                {/* Acciones */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                                  {/* Botón historial abonos */}
                                   {pAbonos.length > 0 && (
                                     <button
                                       onClick={() => toggleExpandParticipante(p.id)}
@@ -505,7 +607,6 @@ export default function PuntoEncuentroViewPage() {
                                 </div>
                               </div>
 
-                              {/* Historial de abonos */}
                               {pExpanded && pAbonos.length > 0 && (
                                 <div style={{ background: 'var(--surface)' }}>
                                   {pAbonos.map(a => (
@@ -516,16 +617,10 @@ export default function PuntoEncuentroViewPage() {
                                       flexWrap: 'wrap',
                                     }}>
                                       <div style={{ flex: 1, minWidth: 120 }}>
-                                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
-                                          {fmtMoney(a.monto)}
-                                        </span>
-                                        <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 8, textTransform: 'capitalize' }}>
-                                          {a.metodo}
-                                        </span>
+                                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{fmtMoney(a.monto)}</span>
+                                        <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 8, textTransform: 'capitalize' }}>{a.metodo}</span>
                                         {a.num_transaccion && (
-                                          <span style={{ fontSize: 11.5, color: 'var(--muted)', marginLeft: 8 }}>
-                                            #{a.num_transaccion}
-                                          </span>
+                                          <span style={{ fontSize: 11.5, color: 'var(--muted)', marginLeft: 8 }}>#{a.num_transaccion}</span>
                                         )}
                                         {a.comprobante_url && (
                                           <a
@@ -538,9 +633,7 @@ export default function PuntoEncuentroViewPage() {
                                           </a>
                                         )}
                                       </div>
-                                      <span style={{ fontSize: 11.5, color: 'var(--muted)', flexShrink: 0 }}>
-                                        {fmtFechaShort(a.fecha)}
-                                      </span>
+                                      <span style={{ fontSize: 11.5, color: 'var(--muted)', flexShrink: 0 }}>{fmtFechaShort(a.fecha)}</span>
                                       <button
                                         className="icon-btn"
                                         onClick={() => handleDeleteAbono(a)}
@@ -586,7 +679,7 @@ export default function PuntoEncuentroViewPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-              {/* Tipo de persona toggle */}
+              {/* Relación con la iglesia */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <label style={labelStyle}>Relación con la iglesia</label>
                 <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border)' }}>
@@ -596,6 +689,7 @@ export default function PuntoEncuentroViewPage() {
                   ].map(opt => (
                     <button
                       key={opt.val}
+                      type="button"
                       onClick={() => setForm(f => ({ ...f, tipo_persona: opt.val }))}
                       style={{
                         flex: 1, padding: '9px 0', border: 'none', cursor: 'pointer',
@@ -658,6 +752,42 @@ export default function PuntoEncuentroViewPage() {
                 />
               </div>
 
+              {/* ── Primer abono (opcional) ── */}
+              <div style={{
+                borderTop: '1px dashed var(--border)',
+                paddingTop: 14,
+                display: 'flex', flexDirection: 'column', gap: 12,
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Primer abono <span style={{ fontWeight: 500, textTransform: 'none' }}>(opcional)</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={labelStyle}>Cantidad</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={primerAbono.monto}
+                    onChange={e => setPrimerAbono(f => ({ ...f, monto: e.target.value }))}
+                    style={{ ...inputStyle, width: '50%' }}
+                  />
+                </div>
+
+                {parseFloat(primerAbono.monto) > 0 && (
+                  <PagoFields
+                    metodo={primerAbono.metodo}
+                    onMetodo={m => setPrimerAbono(f => ({ ...f, metodo: m, num_transaccion: '' }))}
+                    numTransaccion={primerAbono.num_transaccion}
+                    onNumTransaccion={v => setPrimerAbono(f => ({ ...f, num_transaccion: v }))}
+                    file={primerAbonoFile}
+                    onFile={setPrimerAbonoFile}
+                    fileRef={primerAbonoFileRef}
+                  />
+                )}
+              </div>
+
             </div>
 
             {formError && (
@@ -683,7 +813,7 @@ export default function PuntoEncuentroViewPage() {
         </div>
       )}
 
-      {/* ── Modal agregar abono ──────────────────────────────────────────────── */}
+      {/* ── Modal agregar abono (abonos posteriores) ─────────────────────────── */}
       {abonoModalOpen && (
         <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setAbonoModalOpen(false); }}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
@@ -724,76 +854,15 @@ export default function PuntoEncuentroViewPage() {
                 />
               </div>
 
-              {/* Método */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={labelStyle}>Método de pago</label>
-                <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border)' }}>
-                  {['efectivo', 'tarjeta', 'transferencia'].map(m => (
-                    <button
-                      key={m}
-                      onClick={() => setAbonoForm(f => ({ ...f, metodo: m, num_transaccion: '' }))}
-                      style={{
-                        flex: 1, padding: '9px 0', border: 'none', cursor: 'pointer',
-                        fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
-                        background: abonoForm.metodo === m ? 'var(--chart-primary)' : 'var(--surface)',
-                        color: abonoForm.metodo === m ? 'white' : 'var(--ink-2)',
-                        transition: 'all 0.15s',
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tarjeta: num_transaccion */}
-              {abonoForm.metodo === 'tarjeta' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={labelStyle}>
-                    No. de transacción <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="ej. 1234567890"
-                    value={abonoForm.num_transaccion}
-                    onChange={e => setAbonoForm(f => ({ ...f, num_transaccion: e.target.value }))}
-                    style={inputStyle}
-                  />
-                </div>
-              )}
-
-              {/* Transferencia: comprobante upload */}
-              {abonoForm.metodo === 'transferencia' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <label style={labelStyle}>
-                    Comprobante <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
-                  </label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,application/pdf"
-                    style={{ display: 'none' }}
-                    onChange={e => setAbonoFile(e.target.files[0] || null)}
-                  />
-                  <button
-                    type="button"
-                    className="btn"
-                    style={{
-                      border: `1.5px dashed ${abonoFile ? 'var(--chart-primary)' : 'var(--border)'}`,
-                      background: abonoFile ? 'rgba(0,180,216,0.05)' : 'var(--surface)',
-                      color: abonoFile ? 'var(--chart-primary)' : 'var(--ink-2)',
-                      padding: '10px 16px', borderRadius: 10,
-                      fontFamily: 'var(--font-ui)', fontSize: 13, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 8,
-                    }}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <I.paperclip size={14} />
-                    {abonoFile ? abonoFile.name : 'Seleccionar archivo…'}
-                  </button>
-                </div>
-              )}
+              <PagoFields
+                metodo={abonoForm.metodo}
+                onMetodo={m => setAbonoForm(f => ({ ...f, metodo: m, num_transaccion: '' }))}
+                numTransaccion={abonoForm.num_transaccion}
+                onNumTransaccion={v => setAbonoForm(f => ({ ...f, num_transaccion: v }))}
+                file={abonoFile}
+                onFile={setAbonoFile}
+                fileRef={abonoFileRef}
+              />
 
               {/* Fecha */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
