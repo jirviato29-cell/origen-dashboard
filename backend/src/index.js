@@ -13,6 +13,7 @@ const eventosRouter       = require('./routes/eventos');
 const comprobantesRouter         = require('./routes/comprobantes');
 const calendarioRouter           = require('./routes/calendario');
 const serviciosDominicalesRouter = require('./routes/serviciosDominicales');
+const participantesRouter        = require('./routes/participantes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +33,7 @@ app.use('/api/eventos',        eventosRouter);
 app.use('/api/comprobantes',          comprobantesRouter);
 app.use('/api/calendario',           calendarioRouter);
 app.use('/api/servicios-dominicales', serviciosDominicalesRouter);
+app.use('/api/participantes',         participantesRouter);
 
 app.use((err, req, res, _next) => {
   console.error(err.stack);
