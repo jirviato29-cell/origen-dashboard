@@ -3,16 +3,28 @@ import { voluntariosApi } from '../../services/api';
 import { fmtFecha } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 
-// ── Edita esta lista para agregar/quitar ministerios ─────────────────────────
+// ── Lista de áreas de servicio (orden alfabético) ─────────────────────────────
 export const MINISTERIOS = [
-  'Alabanza',
-  'Multimedia / Audio',
-  'Bienvenida / Anfitriones',
-  'Kids',
-  'Jóvenes',
-  'Intercesión',
-  'Logística',
-  'Diáconos',
+  'Alabanza Worship',
+  'Anfitriones Bienvenida',
+  'Foto y Video',
+  'Liturgia, Devocionales, Mcs',
+  'Oración e Intercesión',
+  'Origen Kids',
+  'Proyección',
+  'Punto de Encuentro',
+  'Santa Cena',
+  'Santuario',
+  'Staff Alpha Anfitrión',
+  'Staff de Audio',
+  'Staff de Eventos',
+  'Staff de Hombres',
+  'Staff de Jóvenes Alpha Ados',
+  'Staff de Mujeres',
+  'Staff Logístico',
+  'Staff Mcs',
+  'Staff Producción Crew',
+  'Staff Producción y carga',
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -20,6 +32,7 @@ export const MINISTERIOS = [
 const EMPTY_FORM = {
   nombre: '', cumpleanos: '', whatsapp: '',
   ministerio1: '', ministerio2: '', ministerio3: '',
+  otra_area: '',
 };
 
 const inputStyle = {
@@ -33,12 +46,16 @@ const labelStyle = {
   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block',
 };
 
+const sectionHeadStyle = {
+  fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 2,
+};
+
 function optsFor(allMin, exclude1, exclude2) {
   return allMin.filter(m => m !== exclude1 && m !== exclude2);
 }
 
-// ─── Selector de ministerio ───────────────────────────────────────────────────
-function MinisterioSelect({ label, value, onChange, available, required }) {
+// ─── Selector de área ────────────────────────────────────────────────────────
+function AreaSelect({ label, value, onChange, available, required }) {
   return (
     <div>
       <label style={labelStyle}>{label}{required && ' *'}</label>
@@ -60,14 +77,40 @@ function MinisterioSelect({ label, value, onChange, available, required }) {
   );
 }
 
-// ─── Modal Editar ─────────────────────────────────────────────────────────────
-function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
+// ─── Bloque de áreas (reutilizado en modal y kiosco) ─────────────────────────
+function AreasBlock({ form, setForm, showHeader }) {
   const { ministerio1, ministerio2, ministerio3 } = form;
-
   const opts1 = optsFor(MINISTERIOS, ministerio2, ministerio3);
   const opts2 = optsFor(MINISTERIOS, ministerio1, ministerio3);
   const opts3 = optsFor(MINISTERIOS, ministerio1, ministerio2);
 
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {showHeader && (
+        <div style={{ paddingBottom: 4, borderBottom: '1px solid var(--border)' }}>
+          <div style={sectionHeadStyle}>Áreas de servicio</div>
+          <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Elige en qué área(s) sirves</div>
+        </div>
+      )}
+      <AreaSelect label="Área 1" value={ministerio1} onChange={v => setForm(p => ({ ...p, ministerio1: v }))} available={opts1} required />
+      <AreaSelect label="Área 2" value={ministerio2} onChange={v => setForm(p => ({ ...p, ministerio2: v }))} available={opts2} />
+      <AreaSelect label="Área 3" value={ministerio3} onChange={v => setForm(p => ({ ...p, ministerio3: v }))} available={opts3} />
+      <div>
+        <label style={labelStyle}>¿En qué otra área te gustaría apoyar? (opcional)</label>
+        <textarea
+          placeholder="Escribe aquí…"
+          value={form.otra_area}
+          onChange={e => setForm(p => ({ ...p, otra_area: e.target.value }))}
+          rows={2}
+          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal Editar ─────────────────────────────────────────────────────────────
+function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
   const canSave = form.nombre.trim() && form.ministerio1;
 
   return (
@@ -119,9 +162,7 @@ function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
             </div>
           </div>
 
-          <MinisterioSelect label="Ministerio 1" value={ministerio1} onChange={v => setForm(p => ({ ...p, ministerio1: v }))} available={opts1} required />
-          <MinisterioSelect label="Ministerio 2" value={ministerio2} onChange={v => setForm(p => ({ ...p, ministerio2: v }))} available={opts2} />
-          <MinisterioSelect label="Ministerio 3" value={ministerio3} onChange={v => setForm(p => ({ ...p, ministerio3: v }))} available={opts3} />
+          <AreasBlock form={form} setForm={setForm} showHeader />
         </div>
 
         {error && (
@@ -144,10 +185,6 @@ function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
 
 // ─── Kiosco: pantalla de formulario ──────────────────────────────────────────
 function KioskForm({ form, setForm, onSave, saving, error }) {
-  const { ministerio1, ministerio2, ministerio3 } = form;
-  const opts1 = optsFor(MINISTERIOS, ministerio2, ministerio3);
-  const opts2 = optsFor(MINISTERIOS, ministerio1, ministerio3);
-  const opts3 = optsFor(MINISTERIOS, ministerio1, ministerio2);
   const canSave = form.nombre.trim() && form.ministerio1;
 
   return (
@@ -155,10 +192,10 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
       position: 'fixed', inset: 0, zIndex: 9999,
       background: 'var(--surface, #faf9f7)',
       display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '24px 16px', overflowY: 'auto',
+      alignItems: 'center', justifyContent: 'flex-start',
+      padding: '32px 16px 40px', overflowY: 'auto',
     }}>
-      <div style={{ width: '100%', maxWidth: 460 }}>
+      <div style={{ width: '100%', maxWidth: 480 }}>
 
         {/* Encabezado */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
@@ -169,8 +206,8 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
           }}>
             Origen Aguascalientes
           </div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px' }}>
-            Únete al equipo de voluntarios
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px', lineHeight: 1.3 }}>
+            Directorio de voluntarios,<br />áreas de servicio y cumpleaños
           </h1>
           <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>
             Llena tus datos y te contactamos pronto.
@@ -185,6 +222,7 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
           boxShadow: '0 4px 32px rgba(0,0,0,0.07)',
           display: 'flex', flexDirection: 'column', gap: 16,
         }}>
+          {/* Datos personales */}
           <div>
             <label style={labelStyle}>Nombre completo *</label>
             <input
@@ -219,9 +257,8 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
             </div>
           </div>
 
-          <MinisterioSelect label="Ministerio 1" value={ministerio1} onChange={v => setForm(p => ({ ...p, ministerio1: v }))} available={opts1} required />
-          <MinisterioSelect label="Ministerio 2" value={ministerio2} onChange={v => setForm(p => ({ ...p, ministerio2: v }))} available={opts2} />
-          <MinisterioSelect label="Ministerio 3" value={ministerio3} onChange={v => setForm(p => ({ ...p, ministerio3: v }))} available={opts3} />
+          {/* Áreas */}
+          <AreasBlock form={form} setForm={setForm} showHeader />
         </div>
 
         {error && (
@@ -241,11 +278,7 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
         >
-          {saving ? (
-            'Guardando…'
-          ) : (
-            <><I.check size={18} /> Guardar</>
-          )}
+          {saving ? 'Guardando…' : <><I.check size={18} /> Guardar</>}
         </button>
       </div>
     </div>
@@ -263,8 +296,6 @@ function KioskThanks({ onNext, onExit }) {
       padding: '32px 24px', textAlign: 'center',
     }}>
       <div style={{ maxWidth: 460 }}>
-
-        {/* Icono */}
         <div style={{
           width: 72, height: 72, borderRadius: '50%',
           background: 'var(--accent, #7c5c3a)',
@@ -331,18 +362,16 @@ export default function VoluntariosPage() {
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
 
-  // Admin modal (solo editar)
   const [editId,  setEditId]  = useState(null);
   const [form,    setForm]    = useState(EMPTY_FORM);
   const [modal,   setModal]   = useState(false);
   const [saving,  setSaving]  = useState(false);
   const [formErr, setFormErr] = useState('');
 
-  // Kiosco
-  const [kiosk,        setKiosk]        = useState(null); // null | 'form' | 'thanks'
-  const [kioskForm,    setKioskForm]    = useState(EMPTY_FORM);
-  const [kioskSaving,  setKioskSaving]  = useState(false);
-  const [kioskError,   setKioskError]   = useState('');
+  const [kiosk,       setKiosk]       = useState(null); // null | 'form' | 'thanks'
+  const [kioskForm,   setKioskForm]   = useState(EMPTY_FORM);
+  const [kioskSaving, setKioskSaving] = useState(false);
+  const [kioskError,  setKioskError]  = useState('');
 
   const fetchVoluntarios = useCallback(async () => {
     setLoading(true);
@@ -359,7 +388,6 @@ export default function VoluntariosPage() {
 
   useEffect(() => { fetchVoluntarios(); }, [fetchVoluntarios]);
 
-  // ── Admin: abrir edición ──────────────────────────────────────────────────
   const openEdit = (v) => {
     setEditId(v.id);
     setForm({
@@ -369,6 +397,7 @@ export default function VoluntariosPage() {
       ministerio1: v.ministerio1 || '',
       ministerio2: v.ministerio2 || '',
       ministerio3: v.ministerio3 || '',
+      otra_area:   v.otra_area   || '',
     });
     setFormErr('');
     setModal(true);
@@ -377,7 +406,7 @@ export default function VoluntariosPage() {
 
   const handleSave = async () => {
     if (!form.nombre.trim() || !form.ministerio1) {
-      setFormErr('Nombre y Ministerio 1 son obligatorios');
+      setFormErr('Nombre y Área 1 son obligatorios');
       return;
     }
     setSaving(true); setFormErr('');
@@ -402,10 +431,9 @@ export default function VoluntariosPage() {
     }
   };
 
-  // ── Kiosco: guardar ───────────────────────────────────────────────────────
   const handleKioskSave = async () => {
     if (!kioskForm.nombre.trim() || !kioskForm.ministerio1) {
-      setKioskError('Nombre y Ministerio 1 son obligatorios');
+      setKioskError('Nombre y Área 1 son obligatorios');
       return;
     }
     setKioskSaving(true); setKioskError('');
@@ -420,41 +448,19 @@ export default function VoluntariosPage() {
     }
   };
 
-  const openKiosk = () => {
-    setKioskForm(EMPTY_FORM);
-    setKioskError('');
-    setKiosk('form');
-  };
-
-  const kioskNext = () => {
-    setKioskForm(EMPTY_FORM);
-    setKioskError('');
-    setKiosk('form');
-  };
+  const openKiosk = () => { setKioskForm(EMPTY_FORM); setKioskError(''); setKiosk('form'); };
+  const kioskNext = () => { setKioskForm(EMPTY_FORM); setKioskError(''); setKiosk('form'); };
 
   return (
     <>
-      {/* ── Kiosco (superpone todo) ─────────────────────────────────────── */}
       {kiosk === 'form' && (
-        <KioskForm
-          form={kioskForm}
-          setForm={setKioskForm}
-          onSave={handleKioskSave}
-          saving={kioskSaving}
-          error={kioskError}
-        />
+        <KioskForm form={kioskForm} setForm={setKioskForm} onSave={handleKioskSave} saving={kioskSaving} error={kioskError} />
       )}
       {kiosk === 'thanks' && (
-        <KioskThanks
-          onNext={kioskNext}
-          onExit={() => setKiosk(null)}
-        />
+        <KioskThanks onNext={kioskNext} onExit={() => setKiosk(null)} />
       )}
 
-      {/* ── Vista de administración ─────────────────────────────────────── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-        {/* Header card */}
         <div className="card">
           <div className="card-head">
             <div>
@@ -474,7 +480,6 @@ export default function VoluntariosPage() {
             <p style={{ fontSize: 13, color: 'var(--danger)', margin: '8px 0 0' }}>{error}</p>
           )}
 
-          {/* Tabla */}
           <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', marginTop: 8 }}>
             <table className="table anf-table">
               <thead>
@@ -482,15 +487,16 @@ export default function VoluntariosPage() {
                   <th>Nombre</th>
                   <th>Cumpleaños</th>
                   <th>WhatsApp</th>
-                  <th>Ministerios</th>
+                  <th>Áreas</th>
+                  <th>Otra área</th>
                   <th style={{ textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: 24, color: 'var(--muted)' }}>Cargando…</td></tr>
+                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--muted)' }}>Cargando…</td></tr>
                 ) : voluntarios.length === 0 ? (
-                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: 24, color: 'var(--muted)' }}>Sin voluntarios registrados</td></tr>
+                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--muted)' }}>Sin voluntarios registrados</td></tr>
                 ) : (
                   voluntarios.map(v => (
                     <tr key={v.id}>
@@ -508,6 +514,9 @@ export default function VoluntariosPage() {
                             color: 'var(--ink-2)',
                           }}>{m}</span>
                         ))}
+                      </td>
+                      <td style={{ fontSize: 13, color: 'var(--muted)', maxWidth: 180 }}>
+                        {v.otra_area || '—'}
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <button className="icon-btn" onClick={() => openEdit(v)} title="Editar"
@@ -527,7 +536,6 @@ export default function VoluntariosPage() {
           </div>
         </div>
 
-        {/* Modal editar */}
         {modal && (
           <VoluntarioModal
             form={form}
