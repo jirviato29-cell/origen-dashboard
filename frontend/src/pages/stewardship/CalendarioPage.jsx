@@ -204,14 +204,14 @@ export default function CalendarioPage() {
                     key={idx}
                     onClick={() => setSelectedDay(isSel ? null : item.iso)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
+                      display: 'flex', alignItems: 'flex-start', gap: 12,
                       padding: '10px 12px', borderRadius: 10,
                       background: isSel ? 'rgba(0,180,216,0.08)' : (TIPO_CELL_BG[item.tipo] || 'var(--surface)'),
                       border: `1px solid ${isSel ? 'var(--chart-primary)' : 'var(--border)'}`,
                       cursor: 'pointer', fontFamily: 'var(--font-ui)', textAlign: 'left', width: '100%',
                     }}
                   >
-                    <div style={{ width: 40, flexShrink: 0, textAlign: 'center' }}>
+                    <div style={{ width: 40, flexShrink: 0, textAlign: 'center', paddingTop: 2 }}>
                       <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, color: isSel ? 'var(--chart-primary)' : 'var(--ink)' }}>
                         {item.day}
                       </div>
@@ -219,22 +219,23 @@ export default function CalendarioPage() {
                         {item.dayAbbr}
                       </div>
                     </div>
-                    <div style={{ width: 3, height: 34, borderRadius: 99, background: TIPO_COLOR[item.tipo] || '#888', flexShrink: 0 }} />
+                    <div style={{ width: 3, alignSelf: 'stretch', minHeight: 34, borderRadius: 99, background: TIPO_COLOR[item.tipo] || '#888', flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35, whiteSpace: 'normal', wordWrap: 'break-word' }}>
                         {item.name}
                       </div>
                       {item.nota && (
-                        <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>{item.nota}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, whiteSpace: 'normal', wordWrap: 'break-word' }}>{item.nota}</div>
                       )}
+                      <span style={{
+                        display: 'inline-block', marginTop: 6,
+                        fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
+                        background: TIPO_BG[item.tipo] || 'var(--surface-3)',
+                        color: TIPO_COLOR[item.tipo] || 'var(--ink-2)',
+                      }}>
+                        {item.tipo}
+                      </span>
                     </div>
-                    <span style={{
-                      fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 99, flexShrink: 0,
-                      background: TIPO_BG[item.tipo] || 'var(--surface-3)',
-                      color: TIPO_COLOR[item.tipo] || 'var(--ink-2)',
-                    }}>
-                      {item.tipo}
-                    </span>
                   </button>
                 );
               })}
