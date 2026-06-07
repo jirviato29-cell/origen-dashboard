@@ -26,6 +26,15 @@ import StewardshipBalancePage from './pages/stewardship/BalancePage';
 import CalendarioPage from './pages/stewardship/CalendarioPage';
 import './index.css';
 
+// Protege una sección de rutas: redirige a / si no hay sesión,
+// o al inicio del rol propio si intenta entrar a rutas de otro rol.
+function ProtectedRoute({ routeRole, children }) {
+  const { role } = useAuth();
+  if (!role) return <Navigate to="/" replace />;
+  if (role !== routeRole) return <Navigate to={`/${role}`} replace />;
+  return children;
+}
+
 function AppRoutes() {
   const { role } = useAuth();
 
@@ -33,39 +42,57 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={role ? <Navigate to={`/${role}`} replace /> : <LoginPage />} />
 
-      <Route path="/administracion" element={<Layout />}>
+      {/* ── Administración ─────────────────────────────────────────────── */}
+      <Route path="/administracion" element={
+        <ProtectedRoute routeRole="administracion"><Layout /></ProtectedRoute>
+      }>
         <Route index element={<AdminDashboard />} />
         <Route path="ingresos" element={<IngresosPage />} />
-        <Route path="gastos" element={<GastosPage />} />
-        <Route path="mensual" element={<VistaMensual />} />
+        <Route path="gastos"   element={<GastosPage />} />
+        <Route path="mensual"  element={<VistaMensual />} />
       </Route>
 
-      <Route path="/pastor" element={<Layout />}>
+      {/* ── Pastor ─────────────────────────────────────────────────────── */}
+      <Route path="/pastor" element={
+        <ProtectedRoute routeRole="pastor"><Layout /></ProtectedRoute>
+      }>
         <Route index element={<ComingSoon role="Pastor" />} />
-        <Route path="finanzas" element={<ComingSoon role="Pastor - Finanzas" />} />
+        <Route path="finanzas"   element={<ComingSoon role="Pastor - Finanzas" />} />
         <Route path="asistencia" element={<ComingSoon role="Pastor - Asistencia" />} />
       </Route>
 
-      <Route path="/anfitriones" element={<Layout />}>
-        <Route index element={<RegistrarAsistencia />} />
+      {/* ── Anfitriones ────────────────────────────────────────────────── */}
+      <Route path="/anfitriones" element={
+        <ProtectedRoute routeRole="anfitriones"><Layout /></ProtectedRoute>
+      }>
+        <Route index       element={<RegistrarAsistencia />} />
         <Route path="estadisticas" element={<EstadisticasAsistencia />} />
-        <Route path="historial" element={<HistorialAsistencia />} />
+        <Route path="historial"    element={<HistorialAsistencia />} />
+        <Route path="calendario"   element={<CalendarioPage />} />
       </Route>
 
-      <Route path="/punto_encuentro" element={<Layout />}>
-        <Route index element={<ComingSoon role="Punto de Encuentro" />} />
+      {/* ── Punto de Encuentro ─────────────────────────────────────────── */}
+      <Route path="/punto_encuentro" element={
+        <ProtectedRoute routeRole="punto_encuentro"><Layout /></ProtectedRoute>
+      }>
+        <Route index             element={<ComingSoon role="Punto de Encuentro" />} />
+        <Route path="asistencia" element={<AsistenciaViewPage />} />
+        <Route path="calendario" element={<CalendarioPage />} />
       </Route>
 
-      <Route path="/stewardship" element={<Layout />}>
-        <Route index element={<StewardshipDashboard />} />
-        <Route path="ingresos"      element={<StewardshipIngresosPage />} />
-        <Route path="gastos"             element={<StewardshipGastosPage />} />
-        <Route path="gastos-por-pagar"   element={<StewardshipGastosPorPagarPage />} />
-        <Route path="balance"       element={<StewardshipBalancePage />} />
-<Route path="asistencia"      element={<AsistenciaViewPage />} />
-        <Route path="punto-encuentro" element={<PuntoEncuentroViewPage />} />
-        <Route path="calendario"      element={<CalendarioPage />} />
-        <Route path="configuracion"   element={<ConfiguracionPage />} />
+      {/* ── Stewardship ────────────────────────────────────────────────── */}
+      <Route path="/stewardship" element={
+        <ProtectedRoute routeRole="stewardship"><Layout /></ProtectedRoute>
+      }>
+        <Route index                   element={<StewardshipDashboard />} />
+        <Route path="ingresos"         element={<StewardshipIngresosPage />} />
+        <Route path="gastos"           element={<StewardshipGastosPage />} />
+        <Route path="gastos-por-pagar" element={<StewardshipGastosPorPagarPage />} />
+        <Route path="balance"          element={<StewardshipBalancePage />} />
+        <Route path="asistencia"       element={<AsistenciaViewPage />} />
+        <Route path="punto-encuentro"  element={<PuntoEncuentroViewPage />} />
+        <Route path="calendario"       element={<CalendarioPage />} />
+        <Route path="configuracion"    element={<ConfiguracionPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -80,11 +107,11 @@ export default function App() {
         <GastosModalProvider>
           <AsistenciaStewModalProvider>
             <CalendarioModalProvider>
-            <AuthProvider>
-              <BrowserRouter>
-                <AppRoutes />
-              </BrowserRouter>
-            </AuthProvider>
+              <AuthProvider>
+                <BrowserRouter>
+                  <AppRoutes />
+                </BrowserRouter>
+              </AuthProvider>
             </CalendarioModalProvider>
           </AsistenciaStewModalProvider>
         </GastosModalProvider>

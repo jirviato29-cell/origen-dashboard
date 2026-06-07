@@ -4,6 +4,8 @@ import { useCalendarioModal } from '../../context/CalendarioModalContext';
 import { fmtFecha, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 import { TIPO_COLOR, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
+import { useAuth } from '../../context/AuthContext';
+import { puedeRegistrar } from '../../permissions';
 
 // Prioridad para pintar la celda (de mayor a menor)
 const TIPO_PRIORIDAD = ['Alpha', 'Reunión de mujeres', 'Reunión de hombres', 'Especial', 'Servicio dominical'];
@@ -30,6 +32,8 @@ function isDomingo(iso) {
 }
 
 export default function CalendarioPage() {
+  const { permisos } = useAuth();
+  const canWrite = puedeRegistrar(permisos, 'calendario');
   const { refreshKey, openModal, openEditModal } = useCalendarioModal();
 
   const now = new Date();
@@ -304,13 +308,15 @@ export default function CalendarioPage() {
             <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>
               {fmtFecha(selectedDay)}
             </h3>
-            <button
-              className="btn btn-primary"
-              style={{ fontSize: 12.5, padding: '6px 12px' }}
-              onClick={() => openModal(selectedDay)}
-            >
-              <I.plus size={13} /> Añadir evento
-            </button>
+            {canWrite && (
+              <button
+                className="btn btn-primary"
+                style={{ fontSize: 12.5, padding: '6px 12px' }}
+                onClick={() => openModal(selectedDay)}
+              >
+                <I.plus size={13} /> Añadir evento
+              </button>
+            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -456,17 +462,22 @@ export default function CalendarioPage() {
                       {ev.nota || '—'}
                     </td>
                     <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-                      <button className="icon-btn" onClick={() => openEditModal(ev)}
-                        style={{ width: 28, height: 28, marginRight: 4 }} title="Editar">
-                        <I.edit size={14} />
-                      </button>
-                      <button className="icon-btn" onClick={() => handleDelete(ev.id)}
-                        disabled={deleting === ev.id}
-                        style={{ width: 28, height: 28, color: 'var(--danger)' }} title="Eliminar">
-                        <I.trash size={14} />
-                      </button>
+                      {canWrite && (
+                        <>
+                          <button className="icon-btn" onClick={() => openEditModal(ev)}
+                            style={{ width: 28, height: 28, marginRight: 4 }} title="Editar">
+                            <I.edit size={14} />
+                          </button>
+                          <button className="icon-btn" onClick={() => handleDelete(ev.id)}
+                            disabled={deleting === ev.id}
+                            style={{ width: 28, height: 28, color: 'var(--danger)' }} title="Eliminar">
+                            <I.trash size={14} />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
+                  )
                 ))}
               </tbody>
             </table>

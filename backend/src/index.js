@@ -3,6 +3,7 @@ require('dns').setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
 
+const authRouter          = require('./routes/auth');
 const ingresosRouter      = require('./routes/ingresos');
 const gastosRouter        = require('./routes/gastos');
 const categoriasRouter    = require('./routes/categorias');
@@ -24,6 +25,8 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'Origen Dashboard' }));
+
+app.use('/api', authRouter);
 
 app.use('/api/ingresos',   ingresosRouter);
 app.use('/api/gastos',     gastosRouter);

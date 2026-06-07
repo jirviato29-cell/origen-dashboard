@@ -2,6 +2,15 @@
 -- Origen Campus Aguascalientes — Schema PostgreSQL (Supabase)
 -- ─────────────────────────────────────────────────────────────────────────────
 
+CREATE TABLE IF NOT EXISTS usuarios (
+  id          SERIAL PRIMARY KEY,
+  nombre      TEXT    NOT NULL,
+  rol         TEXT    NOT NULL,
+  clave_hash  TEXT    NOT NULL,
+  activo      BOOLEAN DEFAULT true,
+  created_at  TIMESTAMP DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS asistencia (
   id           SERIAL PRIMARY KEY,
   fecha        DATE    NOT NULL,

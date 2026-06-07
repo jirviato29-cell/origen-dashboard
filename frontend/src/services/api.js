@@ -7,6 +7,12 @@ const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
 });
 
+http.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
 // ─── Ingresos (→ tabla ofrendas, con alias monto/concepto para compat) ────────
 const realIngresosApi = {
   getAll:       (params) => http.get('/ingresos', { params }),

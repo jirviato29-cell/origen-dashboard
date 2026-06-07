@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
+import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
 import { I } from './Icons';
@@ -18,21 +19,25 @@ const navByRole = {
   ],
   [ROLES.PASTOR]: [
     { group: 'Pastor', items: [
-      { to: '/pastor',            label: 'Resumen General', icon: I.home,  end: true },
+      { to: '/pastor',            label: 'Resumen General', icon: I.home,   end: true },
       { to: '/pastor/finanzas',   label: 'Finanzas',        icon: I.wallet },
       { to: '/pastor/asistencia', label: 'Asistencia',      icon: I.users },
     ]},
   ],
   [ROLES.ANFITRIONES]: [
     { group: 'Anfitriones', items: [
-      { action: 'registrar', label: 'Registrar Asistencia', icon: I.plus },
+      // acción de registrar — se muestra solo si tiene permiso registrar en asistencia
+      { action: 'registrar', seccion: 'asistencia', label: 'Registrar Asistencia', icon: I.plus },
       { to: '/anfitriones/estadisticas', label: 'Estadísticas', icon: I.chart },
       { to: '/anfitriones/historial',    label: 'Historial',    icon: I.clock },
+      { to: '/anfitriones/calendario',   label: 'Calendario',   icon: I.calendar },
     ]},
   ],
   [ROLES.PUNTO_ENCUENTRO]: [
     { group: 'Punto de Encuentro', items: [
-      { to: '/punto_encuentro', label: 'Registro', icon: I.pin, end: true },
+      { to: '/punto_encuentro',             label: 'Registro',   icon: I.pin,      end: true },
+      { to: '/punto_encuentro/asistencia',  label: 'Asistencia', icon: I.users },
+      { to: '/punto_encuentro/calendario',  label: 'Calendario', icon: I.calendar },
     ]},
   ],
   [ROLES.STEWARDSHIP]: [
@@ -50,7 +55,7 @@ const navByRole = {
           { to: '/stewardship/balance',          label: 'Finanzas',         icon: I.scale },
         ],
       },
-      { to: '/stewardship/asistencia',      label: 'Asistencia',        icon: I.users },
+      { to: '/stewardship/asistencia',      label: 'Asistencia',         icon: I.users },
       { to: '/stewardship/punto-encuentro', label: 'Punto de Encuentro', icon: I.pin },
       { to: '/stewardship/calendario',      label: 'Calendario',         icon: I.calendar },
       { to: '/stewardship/configuracion',   label: 'Configuración',      icon: I.settings },
@@ -121,7 +126,7 @@ function NavAccordion({ item, onClose }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export default function Sidebar({ onClose }) {
-  const { role, logout } = useAuth();
+  const { role, userName, permisos, logout } = useAuth();
   const navigate = useNavigate();
   const { openModal } = useRegistrarModal();
   const { openModal: openOfrendasModal } = useOfrendasModal();
@@ -143,7 +148,6 @@ export default function Sidebar({ onClose }) {
           style={{ width: '140px', height: 'auto' }}
         />
 
-        {/* Close button – mobile only */}
         {onClose && (
           <button
             onClick={onClose}
@@ -174,6 +178,8 @@ export default function Sidebar({ onClose }) {
               }
 
               if (item.action === 'registrar') {
+                // Ocultar si el rol no tiene permiso de registrar en esa sección
+                if (!puedeRegistrar(permisos, item.seccion)) return null;
                 return (
                   <button
                     key="registrar"
@@ -216,22 +222,24 @@ export default function Sidebar({ onClose }) {
         ))}
       </nav>
 
-      {/* Footer – avatar + role + logout */}
+      {/* Footer – nombre real + rol + logout */}
       <div className="sidebar-footer">
-        <div className="avatar">{roleInitials[role] ?? '?'}</div>
+        <div className="avatar">
+          {userName ? userName.charAt(0).toUpperCase() : (roleInitials[role] ?? '?')}
+        </div>
         <div className="user-meta" style={{ flex: 1, minWidth: 0 }}>
-          <div className="user-name">{roleLabel[role]}</div>
-          <div className="user-role">Origen Campus Ags</div>
+          <div className="user-name">{userName || roleLabel[role]}</div>
+          <div className="user-role">{roleLabel[role]}</div>
         </div>
         <button
           onClick={handleLogout}
-          title="Cambiar rol"
+          title="Cerrar sesión"
           style={{
             background: 'transparent', border: 0,
             color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', flexShrink: 0,
           }}
-          aria-label="Cambiar rol"
+          aria-label="Cerrar sesión"
         >
           <I.back size={16} />
         </button>
