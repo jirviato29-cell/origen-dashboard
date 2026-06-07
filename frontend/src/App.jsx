@@ -65,9 +65,9 @@ function AppRoutes() {
       <Route path="/anfitriones" element={
         <ProtectedRoute routeRole="anfitriones"><Layout /></ProtectedRoute>
       }>
-        <Route index       element={<RegistrarAsistencia />} />
-        <Route path="estadisticas" element={<EstadisticasAsistencia />} />
-        <Route path="historial"    element={<HistorialAsistencia />} />
+        <Route index               element={<Navigate to="/anfitriones/calendario" replace />} />
+        <Route path="estadisticas" element={<Navigate to="/anfitriones/calendario" replace />} />
+        <Route path="historial"    element={<Navigate to="/anfitriones/calendario" replace />} />
         <Route path="calendario"   element={<CalendarioPage />} />
       </Route>
 

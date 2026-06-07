@@ -5,8 +5,7 @@ export const PERMISOS = {
   anfitriones: {
     total: false,
     secciones: {
-      asistencia:      { ver: true,  registrar: true,  modificar: true  },
-      calendario:      { ver: true,  registrar: false, modificar: false },
+      calendario: { ver: true, registrar: false, modificar: false },
     },
   },
   punto_encuentro: {

@@ -26,11 +26,7 @@ const navByRole = {
   ],
   [ROLES.ANFITRIONES]: [
     { group: 'Anfitriones', items: [
-      // acción de registrar — se muestra solo si tiene permiso registrar en asistencia
-      { action: 'registrar', seccion: 'asistencia', label: 'Registrar Asistencia', icon: I.plus },
-      { to: '/anfitriones/estadisticas', label: 'Estadísticas', icon: I.chart },
-      { to: '/anfitriones/historial',    label: 'Historial',    icon: I.clock },
-      { to: '/anfitriones/calendario',   label: 'Calendario',   icon: I.calendar },
+      { to: '/anfitriones/calendario', label: 'Calendario', icon: I.calendar },
     ]},
   ],
   [ROLES.PUNTO_ENCUENTRO]: [
