@@ -167,7 +167,7 @@ export default function CalendarioPage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{
             width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed',
-            minWidth: 280,
+            minWidth: 480,
           }}>
             <thead>
               <tr>

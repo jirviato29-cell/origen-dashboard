@@ -487,7 +487,7 @@ export default function VoluntariosPage() {
             <p style={{ fontSize: 13, color: 'var(--danger)', margin: '8px 0 0' }}>{error}</p>
           )}
 
-          <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', marginTop: 8 }}>
+          <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)', marginTop: 8 }}>
             <table className="table anf-table">
               <thead>
                 <tr>
