@@ -76,7 +76,7 @@ function AppRoutes() {
       <Route path="/punto_encuentro" element={
         <ProtectedRoute routeRole="punto_encuentro"><Layout /></ProtectedRoute>
       }>
-        <Route index             element={<ComingSoon role="Punto de Encuentro" />} />
+        <Route index             element={<PuntoEncuentroViewPage />} />
         <Route path="asistencia" element={<AsistenciaViewPage />} />
         <Route path="calendario" element={<CalendarioPage />} />
       </Route>

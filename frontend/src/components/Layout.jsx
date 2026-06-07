@@ -25,7 +25,7 @@ const ROUTE_INFO = {
   '/pastor/asistencia':                 { section: 'Pastor',            title: 'Asistencia' },
   '/anfitriones/asistencia':            { section: 'Anfitriones',       title: 'Asistencia' },
   '/anfitriones/calendario':            { section: 'Anfitriones',       title: 'Calendario' },
-  '/punto_encuentro':                   { section: 'Punto de Encuentro', title: 'Registro' },
+  '/punto_encuentro':                   { section: 'Punto de Encuentro', title: 'Punto de Encuentro' },
   '/punto_encuentro/asistencia':        { section: 'Punto de Encuentro', title: 'Asistencia' },
   '/punto_encuentro/calendario':        { section: 'Punto de Encuentro', title: 'Calendario' },
   '/stewardship':                       { section: 'Stewardship',        title: 'Dashboard' },
@@ -153,13 +153,6 @@ export default function Layout() {
             {isCalendario && canRegCalendario && (
               <button className="btn btn-primary" onClick={openCalendarioModal}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Evento</span>
-              </button>
-            )}
-
-            {/* Punto de Encuentro — solo si tiene permiso de registrar en punto_encuentro */}
-            {path.endsWith('/punto_encuentro') && canRegPE && (
-              <button className="btn btn-primary" onClick={() => {}}>
-                <I.plus size={15} /><span className="topbar-btn-label"> Registrar</span>
               </button>
             )}
 
