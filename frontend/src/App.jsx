@@ -24,6 +24,7 @@ import StewardshipGastosPage from './pages/stewardship/GastosPage';
 import StewardshipGastosPorPagarPage from './pages/stewardship/GastosPorPagarPage';
 import StewardshipBalancePage from './pages/stewardship/BalancePage';
 import CalendarioPage from './pages/stewardship/CalendarioPage';
+import VoluntariosPage from './pages/stewardship/VoluntariosPage';
 import './index.css';
 
 // Protege una sección de rutas: redirige a / si no hay sesión,
@@ -92,6 +93,7 @@ function AppRoutes() {
         <Route path="balance"          element={<StewardshipBalancePage />} />
         <Route path="asistencia"       element={<AsistenciaViewPage />} />
         <Route path="punto-encuentro"  element={<PuntoEncuentroViewPage />} />
+        <Route path="voluntarios"      element={<VoluntariosPage />} />
         <Route path="calendario"       element={<CalendarioPage />} />
         <Route path="configuracion"    element={<ConfiguracionPage />} />
       </Route>

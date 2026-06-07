@@ -38,6 +38,7 @@ const ROUTE_INFO = {
   '/stewardship/asistencia':            { section: 'Stewardship',        title: 'Asistencia' },
   '/stewardship/punto-encuentro':       { section: 'Stewardship',        title: 'Punto de Encuentro' },
   '/stewardship/calendario':            { section: 'Stewardship',        title: 'Calendario' },
+  '/stewardship/voluntarios':           { section: 'Stewardship',        title: 'Directorio de voluntarios' },
   '/stewardship/configuracion':         { section: 'Stewardship',        title: 'Configuración' },
 };
 

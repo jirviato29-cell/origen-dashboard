@@ -5,6 +5,7 @@ const cors = require('cors');
 
 const authRouter          = require('./routes/auth');
 const usuariosRouter      = require('./routes/usuarios');
+const voluntariosRouter   = require('./routes/voluntarios');
 const ingresosRouter      = require('./routes/ingresos');
 const gastosRouter        = require('./routes/gastos');
 const categoriasRouter    = require('./routes/categorias');
@@ -28,7 +29,8 @@ app.use(express.json());
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'Origen Dashboard' }));
 
 app.use('/api', authRouter);
-app.use('/api/usuarios', usuariosRouter);
+app.use('/api/usuarios',    usuariosRouter);
+app.use('/api/voluntarios', voluntariosRouter);
 
 app.use('/api/ingresos',   ingresosRouter);
 app.use('/api/gastos',     gastosRouter);
