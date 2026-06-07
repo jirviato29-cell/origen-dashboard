@@ -15,7 +15,7 @@ router.post('/login', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      'SELECT * FROM usuarios WHERE rol = $1 AND activo = true LIMIT 1',
+      'SELECT * FROM usuarios WHERE rol = $1 AND activo = true',
       [rol]
     );
 
@@ -23,10 +23,13 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Rol no disponible' });
     }
 
-    const usuario = rows[0];
-    const match = await bcrypt.compare(clave, usuario.clave_hash);
+    // Comparar la clave contra todos los usuarios activos del rol
+    let usuario = null;
+    for (const row of rows) {
+      if (await bcrypt.compare(clave, row.clave_hash)) { usuario = row; break; }
+    }
 
-    if (!match) {
+    if (!usuario) {
       return res.status(401).json({ error: 'Clave incorrecta' });
     }
 

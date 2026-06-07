@@ -123,6 +123,15 @@ const realCortesApi = {
   upsert:      (records)   => http.post('/cortes/upsert', records),
 };
 
+// ─── Usuarios ─────────────────────────────────────────────────────────────────
+const realUsuariosApi = {
+  getAll:      ()              => http.get('/usuarios'),
+  create:      (data)          => http.post('/usuarios', data),
+  toggle:      (id)            => http.patch(`/usuarios/${id}/toggle`),
+  cambiarClave:(id, clave)     => http.patch(`/usuarios/${id}/clave`, { clave }),
+  remove:      (id)            => http.delete(`/usuarios/${id}`),
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;
 export const ofrendasApi   = USE_MOCK ? mock.ingresosApi   : realOfrendasApi;
@@ -137,3 +146,4 @@ export const serviciosDominicalesApi  = realServiciosDominicalesApi;
 export const comprobanteApi           = realComprobanteApi;
 export const abonosApi                = realAbonosApi;
 export const cortesApi                = realCortesApi;
+export const usuariosApi              = realUsuariosApi;

@@ -1,28 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { I } from '../../components/Icons';
+import { usuariosApi } from '../../services/api';
 
 const ROLES_LISTA = [
-  { id: 'administracion',  label: 'Administración',     color: 'var(--chart-primary)', desc: 'Ingresos, gastos y finanzas completas' },
-  { id: 'pastor',          label: 'Pastor Principal',   color: 'var(--ink)',           desc: 'Vista completa del dashboard' },
   { id: 'anfitriones',     label: 'Anfitriones',        color: 'var(--chart-secondary)', desc: 'Gestión de asistencia y bienvenida' },
-  { id: 'punto_encuentro', label: 'Punto de Encuentro', color: 'var(--warn)',        desc: 'Registro y seguimiento de eventos' },
-  { id: 'stewardship',     label: 'Stewardship',        color: 'var(--ink)',        desc: 'Ofrendas, finanzas y administración' },
+  { id: 'punto_encuentro', label: 'Punto de Encuentro', color: 'var(--warn)',             desc: 'Registro y seguimiento de eventos' },
+  { id: 'stewardship',     label: 'Stewardship',        color: 'var(--chart-primary)',    desc: 'Ofrendas, finanzas y administración' },
+  { id: 'pastor',          label: 'Pastor Principal',   color: 'var(--ink)',              desc: 'Vista completa del dashboard' },
+  { id: 'administracion',  label: 'Administración',     color: 'var(--ink)',              desc: 'Ingresos, gastos y finanzas completas' },
 ];
 
-const MOCK_USUARIOS_INIT = [
-  { id: 1, nombre: 'Ana González',   email: 'ana@origen.mx',     rol: 'anfitriones',     activo: true },
-  { id: 2, nombre: 'David Martínez', email: 'pastor@origen.mx',  rol: 'pastor',          activo: true },
-  { id: 3, nombre: 'Carlos Reyes',   email: 'admin@origen.mx',   rol: 'administracion',  activo: true },
-  { id: 4, nombre: 'María López',    email: 'maria@origen.mx',   rol: 'punto_encuentro', activo: true },
-  { id: 5, nombre: 'Jorge Steward',  email: 'jorge@origen.mx',   rol: 'stewardship',     activo: true },
-  { id: 6, nombre: 'Laura Sánchez',  email: 'laura@origen.mx',   rol: 'anfitriones',     activo: false },
-];
-
-const EMPTY_FORM = { nombre: '', email: '', rol: 'anfitriones', activo: true };
+const EMPTY_ADD  = { rol: 'anfitriones', clave: '' };
+const EMPTY_EDIT = { clave: '' };
 
 function RolBadge({ rolId }) {
   const r = ROLES_LISTA.find(x => x.id === rolId);
-  if (!r) return null;
+  if (!r) return <span style={{ fontSize: 12, color: 'var(--muted)' }}>{rolId}</span>;
   return (
     <span style={{
       fontSize: 11.5, fontWeight: 700, padding: '2px 10px', borderRadius: 99,
@@ -33,29 +26,108 @@ function RolBadge({ rolId }) {
   );
 }
 
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+const inputStyle = {
+  width: '100%', padding: '10px 12px', borderRadius: 10,
+  border: '1.5px solid var(--border)', fontSize: 14,
+  outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+};
+
+const labelStyle = {
+  fontSize: 12.5, fontWeight: 600, color: 'var(--ink)',
+  textTransform: 'uppercase', letterSpacing: '0.06em',
+};
+
 export default function ConfiguracionPage() {
-  const [usuarios, setUsuarios] = useState(MOCK_USUARIOS_INIT);
-  const [modal, setModal]       = useState(null); // null | 'add' | 'edit'
-  const [form,  setForm]        = useState(EMPTY_FORM);
-  const [editId, setEditId]     = useState(null);
+  const [usuarios, setUsuarios] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState('');
 
-  const openAdd  = () => { setForm(EMPTY_FORM); setEditId(null); setModal('add'); };
-  const openEdit = (u) => { setForm({ nombre: u.nombre, email: u.email, rol: u.rol, activo: u.activo }); setEditId(u.id); setModal('edit'); };
-  const closeModal = () => setModal(null);
+  const [modal,    setModal]    = useState(null); // null | 'add' | 'edit'
+  const [editId,   setEditId]   = useState(null);
+  const [addForm,  setAddForm]  = useState(EMPTY_ADD);
+  const [editForm, setEditForm] = useState(EMPTY_EDIT);
+  const [saving,   setSaving]   = useState(false);
+  const [formErr,  setFormErr]  = useState('');
 
-  const handleSave = () => {
-    if (!form.nombre || !form.email) return;
-    if (modal === 'add') {
-      const newId = Math.max(...usuarios.map(u => u.id)) + 1;
-      setUsuarios(prev => [...prev, { id: newId, ...form }]);
-    } else {
-      setUsuarios(prev => prev.map(u => u.id === editId ? { ...u, ...form } : u));
+  const fetchUsuarios = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await usuariosApi.getAll();
+      setUsuarios(data);
+      setError('');
+    } catch (e) {
+      setError(e.response?.data?.error || 'Error al cargar usuarios');
+    } finally {
+      setLoading(false);
     }
-    closeModal();
+  }, []);
+
+  useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
+
+  const closeModal = () => { setModal(null); setFormErr(''); };
+
+  const openAdd = () => {
+    setAddForm(EMPTY_ADD);
+    setFormErr('');
+    setModal('add');
   };
 
-  const toggleActivo = (id) => {
-    setUsuarios(prev => prev.map(u => u.id === id ? { ...u, activo: !u.activo } : u));
+  const openEdit = (u) => {
+    setEditId(u.id);
+    setEditForm(EMPTY_EDIT);
+    setFormErr('');
+    setModal('edit');
+  };
+
+  const handleAdd = async () => {
+    if (!addForm.clave.trim()) { setFormErr('La clave no puede estar vacía'); return; }
+    setSaving(true); setFormErr('');
+    try {
+      const { data } = await usuariosApi.create({ rol: addForm.rol, clave: addForm.clave.trim() });
+      setUsuarios(prev => [...prev, data]);
+      closeModal();
+    } catch (e) {
+      setFormErr(e.response?.data?.error || 'Error al crear usuario');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditClave = async () => {
+    if (!editForm.clave.trim()) { setFormErr('Escribe la nueva clave'); return; }
+    setSaving(true); setFormErr('');
+    try {
+      await usuariosApi.cambiarClave(editId, editForm.clave.trim());
+      closeModal();
+    } catch (e) {
+      setFormErr(e.response?.data?.error || 'Error al cambiar clave');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggle = async (id) => {
+    try {
+      const { data } = await usuariosApi.toggle(id);
+      setUsuarios(prev => prev.map(u => u.id === id ? data : u));
+    } catch {
+      // noop — no bloquear UI por error de toggle
+    }
+  };
+
+  const handleDelete = async (u) => {
+    if (!window.confirm(`¿Eliminar el usuario "${u.nombre}" (${u.rol})?`)) return;
+    try {
+      await usuariosApi.remove(u.id);
+      setUsuarios(prev => prev.filter(x => x.id !== u.id));
+    } catch (e) {
+      alert(e.response?.data?.error || 'Error al eliminar');
+    }
   };
 
   const activos   = usuarios.filter(u => u.activo).length;
@@ -64,21 +136,23 @@ export default function ConfiguracionPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Stats */}
+      {/* ── Stats ──────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14 }}>
         {[
-          { label: 'Usuarios activos',   value: activos,            color: 'var(--good)' },
-          { label: 'Usuarios inactivos', value: inactivos,          color: 'var(--danger)' },
-          { label: 'Roles configurados', value: ROLES_LISTA.length, color: 'var(--ink)' },
+          { label: 'Usuarios activos',   value: loading ? '…' : activos,            color: 'var(--good)'   },
+          { label: 'Usuarios inactivos', value: loading ? '…' : inactivos,          color: 'var(--danger)' },
+          { label: 'Roles configurados', value: ROLES_LISTA.length,                 color: 'var(--ink)'    },
         ].map(s => (
           <div key={s.label} className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{s.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: s.color, marginTop: 6, fontFamily: 'var(--font-mono)' }}>{s.value}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: s.color, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+              {s.value}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Roles list */}
+      {/* ── Roles del sistema ──────────────────────────────────────────── */}
       <div className="card">
         <div className="card-head">
           <h3 className="card-title">Roles del sistema</h3>
@@ -103,12 +177,14 @@ export default function ConfiguracionPage() {
         </div>
       </div>
 
-      {/* Users list */}
+      {/* ── Gestión de usuarios ────────────────────────────────────────── */}
       <div className="card">
         <div className="card-head">
           <div>
             <h3 className="card-title">Gestión de usuarios</h3>
-            <div className="card-sub">{usuarios.length} usuarios registrados</div>
+            <div className="card-sub">
+              {loading ? 'Cargando…' : `${usuarios.length} usuario${usuarios.length !== 1 ? 's' : ''} registrado${usuarios.length !== 1 ? 's' : ''}`}
+            </div>
           </div>
           <div className="card-actions">
             <button className="btn btn-primary" onClick={openAdd}>
@@ -117,114 +193,164 @@ export default function ConfiguracionPage() {
           </div>
         </div>
 
-        <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', marginTop: 4 }}>
+        {error && (
+          <p style={{ fontSize: 13, color: 'var(--danger)', margin: '8px 0 0' }}>{error}</p>
+        )}
+
+        <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', marginTop: 8 }}>
           <table className="table anf-table">
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Email</th>
+                <th>ID</th>
                 <th>Rol</th>
                 <th style={{ textAlign: 'center' }}>Estado</th>
+                <th>Alta</th>
                 <th style={{ textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {usuarios.map(u => (
-                <tr key={u.id} style={{ opacity: u.activo ? 1 : 0.55 }}>
-                  <td style={{ fontWeight: 600 }}>{u.nombre}</td>
-                  <td style={{ fontSize: 13, color: 'var(--muted)' }}>{u.email}</td>
-                  <td><RolBadge rolId={u.rol} /></td>
-                  <td style={{ textAlign: 'center' }}>
-                    <button
-                      onClick={() => toggleActivo(u.id)}
-                      style={{
-                        fontSize: 11.5, fontWeight: 700, padding: '2px 10px', borderRadius: 99, cursor: 'pointer',
-                        border: 'none',
-                        background: u.activo ? 'rgba(79,138,91,0.15)' : 'rgba(180,74,58,0.12)',
-                        color: u.activo ? 'var(--good)' : 'var(--danger)',
-                      }}
-                    >
-                      {u.activo ? 'Activo' : 'Inactivo'}
-                    </button>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button className="icon-btn" onClick={() => openEdit(u)} title="Editar">
-                      <I.edit size={15} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {loading ? (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 20, color: 'var(--muted)' }}>Cargando…</td></tr>
+              ) : usuarios.length === 0 ? (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 20, color: 'var(--muted)' }}>Sin usuarios registrados</td></tr>
+              ) : (
+                usuarios.map(u => (
+                  <tr key={u.id} style={{ opacity: u.activo ? 1 : 0.55 }}>
+                    <td style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>#{u.id}</td>
+                    <td><RolBadge rolId={u.rol} /></td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        onClick={() => handleToggle(u.id)}
+                        style={{
+                          fontSize: 11.5, fontWeight: 700, padding: '2px 10px', borderRadius: 99,
+                          cursor: 'pointer', border: 'none',
+                          background: u.activo ? 'rgba(79,138,91,0.15)' : 'rgba(180,74,58,0.12)',
+                          color: u.activo ? 'var(--good)' : 'var(--danger)',
+                        }}
+                      >
+                        {u.activo ? 'Activo' : 'Inactivo'}
+                      </button>
+                    </td>
+                    <td style={{ fontSize: 12.5, color: 'var(--muted)' }}>{fmtDate(u.created_at)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="icon-btn" onClick={() => openEdit(u)} title="Cambiar clave"
+                        style={{ width: 28, height: 28, marginRight: 4 }}>
+                        <I.edit size={14} />
+                      </button>
+                      <button className="icon-btn" onClick={() => handleDelete(u)} title="Eliminar"
+                        style={{ width: 28, height: 28, color: 'var(--danger)' }}>
+                        <I.trash size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal */}
-      {modal && (
+      {/* ── Modal Agregar ──────────────────────────────────────────────── */}
+      {modal === 'add' && (
         <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
             <div className="modal-grabber" />
             <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div className="anf-modal-eyebrow">{modal === 'add' ? 'Nuevo usuario' : 'Editar usuario'}</div>
-                <h3 className="anf-modal-date">{modal === 'add' ? 'Agregar usuario' : form.nombre}</h3>
+                <div className="anf-modal-eyebrow">Nuevo usuario</div>
+                <h3 className="anf-modal-date">Agregar usuario</h3>
               </div>
-              <button className="icon-btn" onClick={closeModal} style={{ width: 34, height: 34, flexShrink: 0 }}>
+              <button className="icon-btn" onClick={closeModal} style={{ width: 34, height: 34 }}>
                 <I.x size={16} />
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[
-                { key: 'nombre', label: 'Nombre completo', type: 'text', placeholder: 'Nombre Apellido' },
-                { key: 'email',  label: 'Email',           type: 'email', placeholder: 'correo@origen.mx' },
-              ].map(f => (
-                <div key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {f.label}
-                  </label>
-                  <input
-                    type={f.type}
-                    placeholder={f.placeholder}
-                    value={form[f.key]}
-                    onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                    style={{
-                      width: '100%', padding: '10px 12px', borderRadius: 10,
-                      border: '1.5px solid var(--border)', fontSize: 14,
-                      outline: 'none', boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-              ))}
-
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Rol
-                </label>
+                <label style={labelStyle}>Rol</label>
                 <select
-                  value={form.rol}
-                  onChange={e => setForm(p => ({ ...p, rol: e.target.value }))}
-                  style={{
-                    width: '100%', padding: '10px 12px', borderRadius: 10,
-                    border: '1.5px solid var(--border)', fontSize: 14,
-                    outline: 'none', boxSizing: 'border-box', background: 'white',
-                  }}
+                  value={addForm.rol}
+                  onChange={e => setAddForm(p => ({ ...p, rol: e.target.value }))}
+                  style={{ ...inputStyle, background: 'white', cursor: 'pointer' }}
                 >
                   {ROLES_LISTA.map(r => (
                     <option key={r.id} value={r.id}>{r.label}</option>
                   ))}
                 </select>
               </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <label style={labelStyle}>Clave de acceso</label>
+                <input
+                  type="text"
+                  placeholder="ej. ana00"
+                  value={addForm.clave}
+                  onChange={e => { setAddForm(p => ({ ...p, clave: e.target.value })); setFormErr(''); }}
+                  onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                  style={inputStyle}
+                />
+                <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: 0 }}>
+                  Se guardará hasheada. No la escribas en ningún otro lado.
+                </p>
+              </div>
+
+              {formErr && <p style={{ fontSize: 13, color: 'var(--danger)', margin: 0 }}>{formErr}</p>}
             </div>
 
             <button
               className="btn btn-primary anf-save-btn"
-              onClick={handleSave}
-              disabled={!form.nombre || !form.email}
-              style={{ opacity: (!form.nombre || !form.email) ? 0.45 : 1, marginTop: 8 }}
+              onClick={handleAdd}
+              disabled={!addForm.clave.trim() || saving}
+              style={{ opacity: (!addForm.clave.trim() || saving) ? 0.45 : 1, marginTop: 8 }}
             >
               <I.check size={16} />
-              {modal === 'add' ? 'Agregar usuario' : 'Guardar cambios'}
+              {saving ? 'Guardando…' : 'Agregar usuario'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Cambiar clave ────────────────────────────────────────── */}
+      {modal === 'edit' && (
+        <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-grabber" />
+            <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div className="anf-modal-eyebrow">Usuario #{editId}</div>
+                <h3 className="anf-modal-date">Cambiar clave</h3>
+              </div>
+              <button className="icon-btn" onClick={closeModal} style={{ width: 34, height: 34 }}>
+                <I.x size={16} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label style={labelStyle}>Nueva clave</label>
+              <input
+                type="text"
+                placeholder="Nueva clave de acceso"
+                value={editForm.clave}
+                onChange={e => { setEditForm(p => ({ ...p, clave: e.target.value })); setFormErr(''); }}
+                onKeyDown={e => e.key === 'Enter' && handleEditClave()}
+                style={inputStyle}
+                autoFocus
+              />
+              <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: 0 }}>
+                Se re-hasheará automáticamente. La clave anterior quedará inválida.
+              </p>
+            </div>
+
+            {formErr && <p style={{ fontSize: 13, color: 'var(--danger)', margin: '4px 0 0' }}>{formErr}</p>}
+
+            <button
+              className="btn btn-primary anf-save-btn"
+              onClick={handleEditClave}
+              disabled={!editForm.clave.trim() || saving}
+              style={{ opacity: (!editForm.clave.trim() || saving) ? 0.45 : 1, marginTop: 8 }}
+            >
+              <I.check size={16} />
+              {saving ? 'Guardando…' : 'Guardar nueva clave'}
             </button>
           </div>
         </div>
