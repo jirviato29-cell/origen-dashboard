@@ -77,33 +77,40 @@ function AreaSelect({ label, value, onChange, available, required }) {
   );
 }
 
-// ─── Bloque de áreas (reutilizado en modal y kiosco) ─────────────────────────
+// ─── Bloque de ministerios (reutilizado en modal y kiosco) ───────────────────
 function AreasBlock({ form, setForm, showHeader }) {
   const { ministerio1, ministerio2, ministerio3 } = form;
   const opts1 = optsFor(MINISTERIOS, ministerio2, ministerio3);
   const opts2 = optsFor(MINISTERIOS, ministerio1, ministerio3);
   const opts3 = optsFor(MINISTERIOS, ministerio1, ministerio2);
+  const optsOtra = optsFor(MINISTERIOS, ministerio1, ministerio2).filter(m => m !== ministerio3);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {showHeader && (
         <div style={{ paddingBottom: 4, borderBottom: '1px solid var(--border)' }}>
-          <div style={sectionHeadStyle}>Áreas de servicio</div>
-          <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Elige en qué área(s) sirves</div>
+          <div style={sectionHeadStyle}>Ministerios</div>
+          <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Elige en qué ministerio(s) sirves</div>
         </div>
       )}
-      <AreaSelect label="Área 1" value={ministerio1} onChange={v => setForm(p => ({ ...p, ministerio1: v }))} available={opts1} required />
-      <AreaSelect label="Área 2" value={ministerio2} onChange={v => setForm(p => ({ ...p, ministerio2: v }))} available={opts2} />
-      <AreaSelect label="Área 3" value={ministerio3} onChange={v => setForm(p => ({ ...p, ministerio3: v }))} available={opts3} />
+      <AreaSelect label="Ministerio 1" value={ministerio1} onChange={v => setForm(p => ({ ...p, ministerio1: v }))} available={opts1} required />
+      <AreaSelect label="Ministerio 2" value={ministerio2} onChange={v => setForm(p => ({ ...p, ministerio2: v }))} available={opts2} />
+      <AreaSelect label="Ministerio 3" value={ministerio3} onChange={v => setForm(p => ({ ...p, ministerio3: v }))} available={opts3} />
       <div>
-        <label style={labelStyle}>¿En qué otra área te gustaría apoyar? (opcional)</label>
-        <textarea
-          placeholder="Escribe aquí…"
+        <label style={labelStyle}>¿En qué otro ministerio te gustaría apoyar? (opcional)</label>
+        <select
           value={form.otra_area}
           onChange={e => setForm(p => ({ ...p, otra_area: e.target.value }))}
-          rows={2}
-          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
-        />
+          style={{ ...inputStyle, background: 'white', cursor: 'pointer' }}
+        >
+          <option value="">— elegir —</option>
+          {optsOtra.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+          {form.otra_area && !optsOtra.includes(form.otra_area) && (
+            <option value={form.otra_area}>{form.otra_area}</option>
+          )}
+        </select>
       </div>
     </div>
   );
@@ -207,7 +214,7 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
             Origen Aguascalientes
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px', lineHeight: 1.3 }}>
-            Directorio de voluntarios,<br />áreas de servicio y cumpleaños
+            Directorio de voluntarios,<br />ministerios y cumpleaños
           </h1>
           <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>
             Llena tus datos y te contactamos pronto.
@@ -406,7 +413,7 @@ export default function VoluntariosPage() {
 
   const handleSave = async () => {
     if (!form.nombre.trim() || !form.ministerio1) {
-      setFormErr('Nombre y Área 1 son obligatorios');
+      setFormErr('Nombre y Ministerio 1 son obligatorios');
       return;
     }
     setSaving(true); setFormErr('');
@@ -433,7 +440,7 @@ export default function VoluntariosPage() {
 
   const handleKioskSave = async () => {
     if (!kioskForm.nombre.trim() || !kioskForm.ministerio1) {
-      setKioskError('Nombre y Área 1 son obligatorios');
+      setKioskError('Nombre y Ministerio 1 son obligatorios');
       return;
     }
     setKioskSaving(true); setKioskError('');
@@ -487,7 +494,7 @@ export default function VoluntariosPage() {
                   <th>Nombre</th>
                   <th>Cumpleaños</th>
                   <th>WhatsApp</th>
-                  <th>Áreas</th>
+                  <th>Ministerios</th>
                   <th>Otra área</th>
                   <th style={{ textAlign: 'right' }}>Acciones</th>
                 </tr>
