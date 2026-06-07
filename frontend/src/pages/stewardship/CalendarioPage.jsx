@@ -477,7 +477,6 @@ export default function CalendarioPage() {
                       )}
                     </td>
                   </tr>
-                  )
                 ))}
               </tbody>
             </table>
