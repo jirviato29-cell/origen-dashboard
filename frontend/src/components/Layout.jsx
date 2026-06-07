@@ -23,6 +23,7 @@ const ROUTE_INFO = {
   '/pastor':                            { section: 'Pastor',            title: 'Resumen general' },
   '/pastor/finanzas':                   { section: 'Pastor',            title: 'Finanzas' },
   '/pastor/asistencia':                 { section: 'Pastor',            title: 'Asistencia' },
+  '/anfitriones/asistencia':            { section: 'Anfitriones',       title: 'Asistencia' },
   '/anfitriones/calendario':            { section: 'Anfitriones',       title: 'Calendario' },
   '/punto_encuentro':                   { section: 'Punto de Encuentro', title: 'Registro' },
   '/punto_encuentro/asistencia':        { section: 'Punto de Encuentro', title: 'Asistencia' },
@@ -126,14 +127,6 @@ export default function Layout() {
           </div>
 
           <div className="topbar-right">
-
-            {/* Registrar Asistencia — anfitriones abriendo su modal propio
-                Solo si tiene permiso de registrar en asistencia */}
-            {role === ROLES.ANFITRIONES && canRegAsistencia && (
-              <button className="btn btn-primary" onClick={openModal}>
-                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Asistencia</span>
-              </button>
-            )}
 
             {/* Stewardship — Registrar Ofrenda (en páginas de ingresos/dashboard) */}
             {showOfrendaBtn && (

@@ -26,6 +26,7 @@ const navByRole = {
   ],
   [ROLES.ANFITRIONES]: [
     { group: 'Anfitriones', items: [
+      { to: '/anfitriones/asistencia', label: 'Asistencia', icon: I.users },
       { to: '/anfitriones/calendario', label: 'Calendario', icon: I.calendar },
     ]},
   ],
