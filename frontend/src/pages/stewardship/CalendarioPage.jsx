@@ -6,6 +6,7 @@ import { I } from '../../components/Icons';
 import { TIPO_COLOR, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 // Prioridad para pintar la celda (de mayor a menor)
 const TIPO_PRIORIDAD = ['Alpha', 'Reunión de mujeres', 'Reunión de hombres', 'Especial', 'Servicio dominical'];
@@ -34,6 +35,7 @@ function isDomingo(iso) {
 export default function CalendarioPage() {
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'calendario');
+  const isMobile = useIsMobile();
   const { refreshKey, openModal, openEditModal } = useCalendarioModal();
 
   const now = new Date();
@@ -143,6 +145,30 @@ export default function CalendarioPage() {
     }
   };
 
+  // Vista de lista para móvil: todos los items del mes (domingos + eventos), ordenados por día
+  const diasSem = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const monthListItems = (() => {
+    const total = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const items = [];
+    for (let d = 1; d <= total; d++) {
+      const iso = isoFromParts(viewYear, viewMonth, d);
+      const dow = new Date(viewYear, viewMonth, d).getDay();
+      const dayAbbr = diasSem[dow];
+      if (isDomingo(iso)) {
+        const predica = serviciosByDate[iso]?.predica;
+        items.push({
+          iso, day: d, dayAbbr, tipo: 'Servicio dominical',
+          name: predica ? `Servicio dominical — ${predica}` : 'Servicio dominical',
+          nota: null,
+        });
+      }
+      (eventsByDate[iso] || []).forEach(ev => {
+        items.push({ iso, day: d, dayAbbr, tipo: ev.tipo, name: ev.nombre, nota: ev.nota || null });
+      });
+    }
+    return items;
+  })();
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
@@ -163,129 +189,181 @@ export default function CalendarioPage() {
           </button>
         </div>
 
-        {/* Cuadrícula */}
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{
-            width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed',
-            minWidth: 480,
-          }}>
-            <thead>
-              <tr>
-                {DIAS_HEADER.map(d => (
-                  <th key={d} style={{
-                    border: '1px solid var(--border)',
-                    padding: '7px 4px',
-                    textAlign: 'center',
-                    fontSize: 11, fontWeight: 700,
-                    color: 'var(--muted)',
-                    textTransform: 'uppercase',
-                    background: 'var(--surface)',
-                    letterSpacing: '0.04em',
-                  }}>
-                    {d}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                const rows = [];
-                for (let i = 0; i < grid.length; i += 7) rows.push(grid.slice(i, i + 7));
-                return rows.map((row, ri) => (
-                  <tr key={ri}>
-                    {row.map((day, ci) => {
-                      const iso     = day ? isoFromParts(viewYear, viewMonth, day) : null;
-                      const dayEvts = iso ? (eventsByDate[iso] || []) : [];
-                      const esDomingo  = iso ? isDomingo(iso) : false;
-                      const isToday    = iso === todayISO;
-                      const isSelected = iso === selectedDay;
-                      const tiposEnCelda = new Set(dayEvts.map(ev => ev.tipo));
-                      if (esDomingo) tiposEnCelda.add('Servicio dominical');
-                      const tipoPrioritario = TIPO_PRIORIDAD.find(t => tiposEnCelda.has(t));
+        {/* Cuadrícula (escritorio) / Lista (móvil) */}
+        {isMobile ? (
+          monthListItems.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)', fontSize: 14 }}>
+              Sin eventos este mes.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {monthListItems.map((item, idx) => {
+                const isSel = selectedDay === item.iso;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedDay(isSel ? null : item.iso)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 12px', borderRadius: 10,
+                      background: isSel ? 'rgba(0,180,216,0.08)' : (TIPO_CELL_BG[item.tipo] || 'var(--surface)'),
+                      border: `1px solid ${isSel ? 'var(--chart-primary)' : 'var(--border)'}`,
+                      cursor: 'pointer', fontFamily: 'var(--font-ui)', textAlign: 'left', width: '100%',
+                    }}
+                  >
+                    <div style={{ width: 40, flexShrink: 0, textAlign: 'center' }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, color: isSel ? 'var(--chart-primary)' : 'var(--ink)' }}>
+                        {item.day}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>
+                        {item.dayAbbr}
+                      </div>
+                    </div>
+                    <div style={{ width: 3, height: 34, borderRadius: 99, background: TIPO_COLOR[item.tipo] || '#888', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.name}
+                      </div>
+                      {item.nota && (
+                        <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>{item.nota}</div>
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 99, flexShrink: 0,
+                      background: TIPO_BG[item.tipo] || 'var(--surface-3)',
+                      color: TIPO_COLOR[item.tipo] || 'var(--ink-2)',
+                    }}>
+                      {item.tipo}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{
+              width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed',
+              minWidth: 480,
+            }}>
+              <thead>
+                <tr>
+                  {DIAS_HEADER.map(d => (
+                    <th key={d} style={{
+                      border: '1px solid var(--border)',
+                      padding: '7px 4px',
+                      textAlign: 'center',
+                      fontSize: 11, fontWeight: 700,
+                      color: 'var(--muted)',
+                      textTransform: 'uppercase',
+                      background: 'var(--surface)',
+                      letterSpacing: '0.04em',
+                    }}>
+                      {d}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const rows = [];
+                  for (let i = 0; i < grid.length; i += 7) rows.push(grid.slice(i, i + 7));
+                  return rows.map((row, ri) => (
+                    <tr key={ri}>
+                      {row.map((day, ci) => {
+                        const iso     = day ? isoFromParts(viewYear, viewMonth, day) : null;
+                        const dayEvts = iso ? (eventsByDate[iso] || []) : [];
+                        const esDomingo  = iso ? isDomingo(iso) : false;
+                        const isToday    = iso === todayISO;
+                        const isSelected = iso === selectedDay;
+                        const tiposEnCelda = new Set(dayEvts.map(ev => ev.tipo));
+                        if (esDomingo) tiposEnCelda.add('Servicio dominical');
+                        const tipoPrioritario = TIPO_PRIORIDAD.find(t => tiposEnCelda.has(t));
 
-                      return (
-                        <td key={ci}
-                          onClick={day ? () => setSelectedDay(isSelected ? null : iso) : undefined}
-                          style={{
-                            border: '1px solid var(--border)',
-                            verticalAlign: 'top',
-                            padding: '8px 8px 6px',
-                            minHeight: 110,
-                            height: 'auto',
-                            cursor: day ? 'pointer' : 'default',
-                            background: isSelected
-                              ? 'rgba(0,180,216,0.08)'
-                              : !day
-                                ? 'var(--surface)'
-                                : tipoPrioritario
-                                  ? TIPO_CELL_BG[tipoPrioritario]
-                                  : 'var(--white, #fff)',
-                            boxShadow: isSelected
-                              ? 'inset 0 0 0 2px var(--chart-primary)'
-                              : 'none',
-                          }}
-                        >
-                          {day && (
-                            <>
-                              <div style={{ marginBottom: 4 }}>
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center', justifyContent: 'center',
-                                  width: 22, height: 22, borderRadius: '50%',
-                                  background: isToday ? 'var(--chart-primary)' : 'transparent',
-                                  color: isToday ? '#fff' : 'var(--ink)',
-                                  fontSize: 12, fontWeight: isToday ? 700 : 500,
-                                  lineHeight: 1,
-                                }}>
-                                  {day}
-                                </span>
-                              </div>
-
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                {/* Domingo automático */}
-                                {esDomingo && (
+                        return (
+                          <td key={ci}
+                            onClick={day ? () => setSelectedDay(isSelected ? null : iso) : undefined}
+                            style={{
+                              border: '1px solid var(--border)',
+                              verticalAlign: 'top',
+                              padding: '8px 8px 6px',
+                              minHeight: 110,
+                              height: 'auto',
+                              cursor: day ? 'pointer' : 'default',
+                              background: isSelected
+                                ? 'rgba(0,180,216,0.08)'
+                                : !day
+                                  ? 'var(--surface)'
+                                  : tipoPrioritario
+                                    ? TIPO_CELL_BG[tipoPrioritario]
+                                    : 'var(--white, #fff)',
+                              boxShadow: isSelected
+                                ? 'inset 0 0 0 2px var(--chart-primary)'
+                                : 'none',
+                            }}
+                          >
+                            {day && (
+                              <>
+                                <div style={{ marginBottom: 4 }}>
                                   <span style={{
-                                    display: 'block',
-                                    fontSize: 10, fontWeight: 600, lineHeight: 1.4,
-                                    color: TIPO_COLOR['Servicio dominical'],
-                                    background: TIPO_BG['Servicio dominical'],
-                                    borderRadius: 3,
-                                    padding: '2px 5px',
-                                    whiteSpace: 'normal',
-                                    wordWrap: 'break-word',
+                                    display: 'inline-flex',
+                                    alignItems: 'center', justifyContent: 'center',
+                                    width: 22, height: 22, borderRadius: '50%',
+                                    background: isToday ? 'var(--chart-primary)' : 'transparent',
+                                    color: isToday ? '#fff' : 'var(--ink)',
+                                    fontSize: 12, fontWeight: isToday ? 700 : 500,
+                                    lineHeight: 1,
                                   }}>
-                                    {serviciosByDate[iso]?.predica
-                                      ? `Servicio dominical — ${serviciosByDate[iso].predica}`
-                                      : 'Servicio dominical'}
+                                    {day}
                                   </span>
-                                )}
-                                {/* Eventos manuales */}
-                                {dayEvts.map((ev, ei) => (
-                                  <span key={ei} style={{
-                                    display: 'block',
-                                    fontSize: 10, fontWeight: 600, lineHeight: 1.4,
-                                    color: TIPO_COLOR[ev.tipo] || '#888',
-                                    background: TIPO_BG[ev.tipo] || 'transparent',
-                                    borderRadius: 3,
-                                    padding: '2px 5px',
-                                    whiteSpace: 'normal',
-                                    wordWrap: 'break-word',
-                                  }}>
-                                    {ev.nombre}
-                                  </span>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ));
-              })()}
-            </tbody>
-          </table>
-        </div>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {/* Domingo automático */}
+                                  {esDomingo && (
+                                    <span style={{
+                                      display: 'block',
+                                      fontSize: 10, fontWeight: 600, lineHeight: 1.4,
+                                      color: TIPO_COLOR['Servicio dominical'],
+                                      background: TIPO_BG['Servicio dominical'],
+                                      borderRadius: 3,
+                                      padding: '2px 5px',
+                                      whiteSpace: 'normal',
+                                      wordWrap: 'break-word',
+                                    }}>
+                                      {serviciosByDate[iso]?.predica
+                                        ? `Servicio dominical — ${serviciosByDate[iso].predica}`
+                                        : 'Servicio dominical'}
+                                    </span>
+                                  )}
+                                  {/* Eventos manuales */}
+                                  {dayEvts.map((ev, ei) => (
+                                    <span key={ei} style={{
+                                      display: 'block',
+                                      fontSize: 10, fontWeight: 600, lineHeight: 1.4,
+                                      color: TIPO_COLOR[ev.tipo] || '#888',
+                                      background: TIPO_BG[ev.tipo] || 'transparent',
+                                      borderRadius: 3,
+                                      padding: '2px 5px',
+                                      whiteSpace: 'normal',
+                                      wordWrap: 'break-word',
+                                    }}>
+                                      {ev.nombre}
+                                    </span>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ));
+                })()}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Leyenda de tipos */}
         <div style={{
