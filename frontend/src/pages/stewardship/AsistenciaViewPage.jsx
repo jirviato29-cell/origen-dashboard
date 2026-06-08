@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Label, ResponsiveContainer } from 'recharts';
 import { asistenciaApi } from '../../services/api';
 import { useAsistenciaStewModal } from '../../context/AsistenciaStewModalContext';
-import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
+import { fmtFecha, mesNombre } from '../../utils/fecha';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -20,12 +20,12 @@ const SEG_COLORS = {
   bebes:       '#fbbf24',
 };
 
-const LEGEND = [
-  { key: 'adultos',     label: 'Adultos',     color: SEG_COLORS.adultos },
-  { key: 'voluntarios', label: 'Voluntarios', color: SEG_COLORS.voluntarios },
-  { key: 'ninos',       label: 'Niños',       color: SEG_COLORS.ninos },
-  { key: 'bebes',       label: 'Bebés',       color: SEG_COLORS.bebes },
-];
+const DONUT_COLORS = {
+  adultos:     '#ea580c',
+  voluntarios: '#2563eb',
+  ninos:       '#facc15',
+  bebes:       '#f9a8d4',
+};
 
 function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevos = 0 }) {
   return (
@@ -39,47 +39,64 @@ function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevo
   );
 }
 
-// ── Stacked Bar Chart (Recharts — barras horizontales) ───────────────────────
+// ── Attendance Donut Chart ────────────────────────────────────────────────────
 
-function StackedBarChart({ data, onBarClick }) {
-  if (!data || data.length === 0) {
+function AttendanceDonutChart({ slices, total }) {
+  if (!slices || total === 0) {
     return (
-      <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
+      <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
         Sin registros para mostrar
       </div>
     );
   }
-
-  const handleClick = (chartState) => {
-    if (!onBarClick || !chartState?.activeLabel) return;
-    const d = data.find(x => x.xLabel === chartState.activeLabel);
-    if (d) onBarClick(d.barKey);
-  };
-
   return (
-    <ResponsiveContainer width="100%" height={360}>
-      <BarChart
-        data={data}
-        layout="vertical"
-        margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-        onClick={onBarClick ? handleClick : undefined}
-        style={{ cursor: onBarClick ? 'pointer' : 'default' }}
-      >
-        <XAxis type="number" />
-        <YAxis type="category" dataKey="xLabel" width={70} />
-        <Tooltip
-          formatter={(value, name) => [value, name]}
-          labelFormatter={(label) => {
-            const d = data.find(x => x.xLabel === label);
-            return d?.tooltipHeader || label;
-          }}
-        />
-        <Bar dataKey="adultos"     name="Adultos"     fill={SEG_COLORS.adultos}     stackId="a" />
-        <Bar dataKey="voluntarios" name="Voluntarios" fill={SEG_COLORS.voluntarios} stackId="a" />
-        <Bar dataKey="ninos"       name="Niños"       fill={SEG_COLORS.ninos}       stackId="a" />
-        <Bar dataKey="bebes"       name="Bebés"       fill={SEG_COLORS.bebes}       stackId="a" />
-      </BarChart>
-    </ResponsiveContainer>
+    <div>
+      <ResponsiveContainer width="100%" height={240}>
+        <PieChart>
+          <Pie
+            data={slices}
+            cx="50%"
+            cy="50%"
+            innerRadius={68}
+            outerRadius={108}
+            dataKey="value"
+            paddingAngle={2}
+            strokeWidth={0}
+          >
+            <Label
+              content={({ viewBox: { cx, cy } }) => (
+                <text x={cx} y={cy} textAnchor="middle">
+                  <tspan x={cx} dy="-6" fontSize="26" fontWeight="800" fill="var(--ink)" fontFamily="var(--font-mono)">{total}</tspan>
+                  <tspan x={cx} dy="20" fontSize="11" fill="#b0a090">asistentes</tspan>
+                </text>
+              )}
+              position="center"
+            />
+            {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
+          </Pie>
+          <Tooltip
+            formatter={(value, name) => {
+              const pct = total > 0 ? Math.round(value / total * 100) : 0;
+              return [`${value} · ${pct}%`, name];
+            }}
+            contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 18px', marginTop: 4 }}>
+        {slices.map(s => {
+          const pct = total > 0 ? Math.round(s.value / total * 100) : 0;
+          return (
+            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{s.name}</span>
+              <span style={{ fontSize: 12.5, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)' }}>{s.value}</span>
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -146,34 +163,28 @@ export default function AsistenciaViewPage() {
 
   const mesActualData = resumenMeses.find(m => m.mes === mesActual) || null;
 
-  // ── Chart data ─────────────────────────────────────────────────────────────
-  const chartData = mesSeleccionado
-    ? [...records]
-        .filter(r => r.fecha.startsWith(mesSeleccionado))
-        .sort((a, b) => a.fecha.localeCompare(b.fecha))
-        .map(r => ({
-          ...r,
-          xLabel:       fmtFechaShort(r.fecha),
-          tooltipHeader: fmtFecha(r.fecha),
-          barKey:       r.fecha,
-        }))
-    : resumenMeses.map(r => ({
-        adultos:      r.adultos,
-        voluntarios:  r.voluntarios,
-        ninos:        r.ninos,
-        bebes:        r.bebes,
-        nuevos:       r.nuevos,
-        xLabel:       r.label,
-        tooltipHeader: `${r.label} ${year}`,
-        barKey:       r.mes,
-      }));
+  // ── Donut data ─────────────────────────────────────────────────────────────
+  const donutSource = mesSeleccionado
+    ? (resumenMeses.find(r => r.mes === mesSeleccionado) || null)
+    : { adultos: totAdultos, voluntarios: totVoluntarios, ninos: totNinos, bebes: totBebes };
+
+  const donutSlices = donutSource
+    ? [
+        { name: 'Adultos',     value: donutSource.adultos     || 0, color: DONUT_COLORS.adultos },
+        { name: 'Voluntarios', value: donutSource.voluntarios || 0, color: DONUT_COLORS.voluntarios },
+        { name: 'Niños',       value: donutSource.ninos       || 0, color: DONUT_COLORS.ninos },
+        { name: 'Bebés',       value: donutSource.bebes       || 0, color: DONUT_COLORS.bebes },
+      ]
+    : [];
+
+  const donutTotal = donutSlices.reduce((s, x) => s + x.value, 0);
 
   const chartTitle = mesSeleccionado
     ? `Asistencia ${mesNombre(mesSeleccionado)} ${year}`
     : `Asistencia ${year}`;
   const chartSub = mesSeleccionado
-    ? `${chartData.length} domingo${chartData.length !== 1 ? 's' : ''} · pasa el mouse sobre cada barra`
-    : `${chartData.length} ${chartData.length === 1 ? 'mes' : 'meses'} · por mes · clic en un mes para ver sus domingos`;
+    ? `${resumenMeses.find(r => r.mes === mesSeleccionado)?.count || 0} domingos · distribución por categoría`
+    : `${resumenMeses.length} meses · distribución por categoría · clic en un mes para filtrar`;
 
   // ── Tabla ──────────────────────────────────────────────────────────────────
   const totAdultos     = records.reduce((s, r) => s + (r.adultos     || 0), 0);
@@ -348,42 +359,29 @@ export default function AsistenciaViewPage() {
             )}
           </div>
 
-          {/* Derecha: Gráfica de barras apiladas */}
+          {/* Derecha: Gráfica de dona */}
           <div className="card" style={{ padding: '20px 20px 16px' }}>
             <div className="card-head chart-head" style={{ marginBottom: 14 }}>
               <div>
                 <h3 className="card-title">{chartTitle}</h3>
                 <div className="card-sub">{chartSub}</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                {mesSeleccionado && (
-                  <button
-                    onClick={() => setMesSelec(null)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      background: 'none', border: '1px solid var(--border)',
-                      borderRadius: 6, padding: '4px 10px',
-                      fontSize: 12, color: 'var(--muted)', cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    ← Ver todo el año
-                  </button>
-                )}
-                <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                  {LEGEND.map(({ key, label, color }) => (
-                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {mesSeleccionado && (
+                <button
+                  onClick={() => setMesSelec(null)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    background: 'none', border: '1px solid var(--border)',
+                    borderRadius: 6, padding: '4px 10px',
+                    fontSize: 12, color: 'var(--muted)', cursor: 'pointer',
+                    whiteSpace: 'nowrap', flexShrink: 0,
+                  }}
+                >
+                  ← Ver todo el año
+                </button>
+              )}
             </div>
-            <StackedBarChart
-              data={chartData.slice().reverse()}
-              onBarClick={mesSeleccionado ? null : mes => setMesSelec(mes)}
-            />
+            <AttendanceDonutChart slices={donutSlices} total={donutTotal} />
           </div>
         </div>
       )}
