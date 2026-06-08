@@ -209,7 +209,7 @@ export default function AsistenciaViewPage() {
           {/* Último domingo */}
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Último domingo</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--chart-primary)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: CAT_VALUE, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               {totalUltimo}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
@@ -218,7 +218,7 @@ export default function AsistenciaViewPage() {
             {ultimo && (
               <DesgloseCat
                 adultos={ultimo.adultos || 0} voluntarios={ultimo.voluntarios || 0}
-                ninos={ultimo.ninos || 0} bebes={ultimo.bebes || 0} nuevos={ultimo.nuevos || 0}
+                ninos={ultimo.ninos || 0} bebes={ultimo.bebes || 0}
               />
             )}
           </div>
@@ -228,7 +228,7 @@ export default function AsistenciaViewPage() {
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{mesActualLabel}</div>
             {mesActualData ? (
               <>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#5C7A6F', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: CAT_VALUE, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
                   {mesActualData.total}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
@@ -236,7 +236,7 @@ export default function AsistenciaViewPage() {
                 </div>
                 <DesgloseCat
                   adultos={mesActualData.adultos} voluntarios={mesActualData.voluntarios}
-                  ninos={mesActualData.ninos} bebes={mesActualData.bebes} nuevos={mesActualData.nuevos}
+                  ninos={mesActualData.ninos} bebes={mesActualData.bebes}
                 />
               </>
             ) : (
@@ -247,20 +247,20 @@ export default function AsistenciaViewPage() {
           {/* Promedio */}
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Promedio</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: CAT_VALUE, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               {promedio}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{n} domingos</div>
             <DesgloseCat
               adultos={promAdultos} voluntarios={promVoluntarios}
-              ninos={promNinos} bebes={promBebes} nuevos={promNuevos}
+              ninos={promNinos} bebes={promBebes}
             />
           </div>
 
           {/* Máximo histórico */}
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Máximo histórico</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--warn)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: CAT_VALUE, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               {maximo}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Total asistentes</div>
@@ -269,13 +269,13 @@ export default function AsistenciaViewPage() {
           {/* Total del año */}
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Total del año</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: CAT_VALUE, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               {totTotal}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{n} domingos · {year}</div>
             <DesgloseCat
               adultos={totAdultos} voluntarios={totVoluntarios}
-              ninos={totNinos} bebes={totBebes} nuevos={totNuevos}
+              ninos={totNinos} bebes={totBebes}
             />
           </div>
 
