@@ -30,11 +30,11 @@ const LEGEND = [
 function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevos = 0 }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 8px', marginTop: 9, fontSize: 11.5, lineHeight: 1.6 }}>
-      <span style={{ color: SEG_COLORS.adultos, fontWeight: 600 }}>Ad. <span style={{ fontFamily: 'var(--font-mono)' }}>{adultos}</span></span>
-      <span style={{ color: SEG_COLORS.voluntarios, fontWeight: 600 }}>Vol. <span style={{ fontFamily: 'var(--font-mono)' }}>{voluntarios}</span></span>
+      <span style={{ color: SEG_COLORS.adultos, fontWeight: 600 }}>Adultos <span style={{ fontFamily: 'var(--font-mono)' }}>{adultos}</span></span>
+      <span style={{ color: SEG_COLORS.voluntarios, fontWeight: 600 }}>Voluntarios <span style={{ fontFamily: 'var(--font-mono)' }}>{voluntarios}</span></span>
       <span style={{ color: SEG_COLORS.ninos, fontWeight: 600 }}>Niños <span style={{ fontFamily: 'var(--font-mono)' }}>{ninos}</span></span>
-      <span style={{ color: SEG_COLORS.bebes, fontWeight: 600 }}>Bbs. <span style={{ fontFamily: 'var(--font-mono)' }}>{bebes}</span></span>
-      {nuevos > 0 && <span style={{ color: '#ca8a04', fontWeight: 600 }}>Nv. <span style={{ fontFamily: 'var(--font-mono)' }}>{nuevos}</span></span>}
+      <span style={{ color: SEG_COLORS.bebes, fontWeight: 600 }}>Bebés <span style={{ fontFamily: 'var(--font-mono)' }}>{bebes}</span></span>
+      {nuevos > 0 && <span style={{ color: '#ca8a04', fontWeight: 600 }}>Nuevos <span style={{ fontFamily: 'var(--font-mono)' }}>{nuevos}</span></span>}
     </div>
   );
 }
