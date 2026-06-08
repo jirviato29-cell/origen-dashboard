@@ -273,7 +273,7 @@ export default function GastosPage() {
           <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Acumulado del año
           </div>
-          <div style={{ fontSize: 27, fontWeight: 800, color: 'var(--ink)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+          <div style={{ fontSize: 27, fontWeight: 800, color: 'var(--danger)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
             {fmt(acumuladoAnio)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
