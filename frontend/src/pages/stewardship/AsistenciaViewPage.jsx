@@ -14,10 +14,10 @@ function rowTotal(r) {
 // ── Chart constants ───────────────────────────────────────────────────────────
 
 const SEG_COLORS = {
-  adultos:     '#2563eb',
-  voluntarios: '#60a5fa',
-  ninos:       '#f59e0b',
-  bebes:       '#fcd34d',
+  adultos:     '#0f766e',
+  voluntarios: '#2dd4bf',
+  ninos:       '#f97316',
+  bebes:       '#fbbf24',
 };
 
 const LEGEND = [
@@ -381,7 +381,7 @@ export default function AsistenciaViewPage() {
               </div>
             </div>
             <StackedBarChart
-              data={chartData}
+              data={chartData.slice().reverse()}
               onBarClick={mesSeleccionado ? null : mes => setMesSelec(mes)}
             />
           </div>
