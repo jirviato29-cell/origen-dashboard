@@ -163,6 +163,14 @@ export default function AsistenciaViewPage() {
 
   const mesActualData = resumenMeses.find(m => m.mes === mesActual) || null;
 
+  // ── Tabla totals (must be before donutSource) ─────────────────────────────
+  const totAdultos     = records.reduce((s, r) => s + (r.adultos     || 0), 0);
+  const totVoluntarios = records.reduce((s, r) => s + (r.voluntarios || 0), 0);
+  const totNinos       = records.reduce((s, r) => s + (r.ninos       || 0), 0);
+  const totBebes       = records.reduce((s, r) => s + (r.bebes       || 0), 0);
+  const totNuevos      = records.reduce((s, r) => s + (r.nuevos      || 0), 0);
+  const totTotal       = records.reduce((s, r) => s + rowTotal(r), 0);
+
   // ── Donut data ─────────────────────────────────────────────────────────────
   const donutSource = mesSeleccionado
     ? (resumenMeses.find(r => r.mes === mesSeleccionado) || null)
@@ -185,14 +193,6 @@ export default function AsistenciaViewPage() {
   const chartSub = mesSeleccionado
     ? `${resumenMeses.find(r => r.mes === mesSeleccionado)?.count || 0} domingos · distribución por categoría`
     : `${resumenMeses.length} meses · distribución por categoría · clic en un mes para filtrar`;
-
-  // ── Tabla ──────────────────────────────────────────────────────────────────
-  const totAdultos     = records.reduce((s, r) => s + (r.adultos     || 0), 0);
-  const totVoluntarios = records.reduce((s, r) => s + (r.voluntarios || 0), 0);
-  const totNinos       = records.reduce((s, r) => s + (r.ninos       || 0), 0);
-  const totBebes       = records.reduce((s, r) => s + (r.bebes       || 0), 0);
-  const totNuevos      = records.reduce((s, r) => s + (r.nuevos      || 0), 0);
-  const totTotal       = records.reduce((s, r) => s + rowTotal(r), 0);
 
   if (loading) {
     return (
