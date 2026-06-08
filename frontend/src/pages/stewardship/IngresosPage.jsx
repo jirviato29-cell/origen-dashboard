@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { ofrendasApi, gastosApi, asistenciaApi } from '../../services/api';
 import { fmtFecha, fmtFechaShort, mesNombre, toISODate } from '../../utils/fecha';
 import { useIsMobile } from '../../utils/useIsMobile';
+import { useOfrendasModal } from '../../context/OfrendasModalContext';
+import { I } from '../../components/Icons';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -154,6 +156,7 @@ export default function IngresosPage() {
   const [loading,    setLoading]    = useState(true);
   const [mesSeleccionado, setMesSelec] = useState(null);
   const isMobile = useIsMobile();
+  const { openModal } = useOfrendasModal();
 
   const year = new Date().getFullYear();
 
@@ -542,6 +545,7 @@ export default function IngresosPage() {
                   <th style={{ textAlign: 'right' }}>Transferencia</th>
                   <th style={{ textAlign: 'right' }}>Ofrendas</th>
                   <th style={{ textAlign: 'right' }}>Participación</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -554,6 +558,21 @@ export default function IngresosPage() {
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{Number(d.ofrendas ?? 0) || '—'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
                       {d.participDom !== null ? `${d.participDom}%` : '—'}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        onClick={() => openModal(d)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          background: 'none', border: '1px solid var(--border)',
+                          borderRadius: 6, padding: '3px 8px',
+                          fontSize: 11.5, color: 'var(--muted)', cursor: 'pointer',
+                          lineHeight: 1,
+                        }}
+                      >
+                        <I.edit size={11} />
+                        Editar
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -570,6 +589,7 @@ export default function IngresosPage() {
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: ORANGE, fontSize: 14 }}>
                     {tablaParticipMes !== null ? `${tablaParticipMes}%` : '—'}
                   </td>
+                  <td />
                 </tr>
               </tbody>
             </table>
