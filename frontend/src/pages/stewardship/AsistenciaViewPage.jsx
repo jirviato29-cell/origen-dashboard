@@ -13,8 +13,8 @@ function rowTotal(r) {
 
 // ── Chart constants ───────────────────────────────────────────────────────────
 
-const CAT_LABEL = '#6b7280';
-const CAT_VALUE = '#374151';
+const CAT_LABEL = '#1e40af';
+const CAT_VALUE = '#1e3a8a';
 
 const DONUT_COLORS = {
   adultos:     '#fb923c',
@@ -86,9 +86,9 @@ function AttendanceDonutChart({ slices, total }) {
           return (
             <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <div style={{ width: 10, height: 10, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{s.name}</span>
-              <span style={{ fontSize: 12.5, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)' }}>{s.value}</span>
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>{pct}%</span>
+              <span style={{ fontSize: 12, color: CAT_LABEL }}>{s.name}</span>
+              <span style={{ fontSize: 12.5, fontFamily: 'var(--font-mono)', fontWeight: 700, color: CAT_VALUE }}>{s.value}</span>
+              <span style={{ fontSize: 11, color: CAT_LABEL }}>{pct}%</span>
             </div>
           );
         })}
