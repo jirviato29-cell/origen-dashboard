@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { asistenciaApi } from '../../services/api';
 import { useAsistenciaStewModal } from '../../context/AsistenciaStewModalContext';
 import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
@@ -13,10 +14,10 @@ function rowTotal(r) {
 // ── Chart constants ───────────────────────────────────────────────────────────
 
 const SEG_COLORS = {
-  adultos:     '#00B4D8',
-  voluntarios: '#64748B',
-  ninos:       '#F97316',
-  bebes:       '#a08060',
+  adultos:     '#2563eb',
+  voluntarios: '#60a5fa',
+  ninos:       '#f59e0b',
+  bebes:       '#fcd34d',
 };
 
 const LEGEND = [
@@ -29,24 +30,18 @@ const LEGEND = [
 function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevos = 0 }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 8px', marginTop: 9, fontSize: 11.5, lineHeight: 1.6 }}>
-      <span style={{ color: '#00B4D8', fontWeight: 600 }}>Ad. <span style={{ fontFamily: 'var(--font-mono)' }}>{adultos}</span></span>
-      <span style={{ color: '#64748B', fontWeight: 600 }}>Vol. <span style={{ fontFamily: 'var(--font-mono)' }}>{voluntarios}</span></span>
-      <span style={{ color: '#F97316', fontWeight: 600 }}>Niños <span style={{ fontFamily: 'var(--font-mono)' }}>{ninos}</span></span>
-      <span style={{ color: '#a08060', fontWeight: 600 }}>Bbs. <span style={{ fontFamily: 'var(--font-mono)' }}>{bebes}</span></span>
+      <span style={{ color: SEG_COLORS.adultos, fontWeight: 600 }}>Ad. <span style={{ fontFamily: 'var(--font-mono)' }}>{adultos}</span></span>
+      <span style={{ color: SEG_COLORS.voluntarios, fontWeight: 600 }}>Vol. <span style={{ fontFamily: 'var(--font-mono)' }}>{voluntarios}</span></span>
+      <span style={{ color: SEG_COLORS.ninos, fontWeight: 600 }}>Niños <span style={{ fontFamily: 'var(--font-mono)' }}>{ninos}</span></span>
+      <span style={{ color: SEG_COLORS.bebes, fontWeight: 600 }}>Bbs. <span style={{ fontFamily: 'var(--font-mono)' }}>{bebes}</span></span>
       {nuevos > 0 && <span style={{ color: '#ca8a04', fontWeight: 600 }}>Nv. <span style={{ fontFamily: 'var(--font-mono)' }}>{nuevos}</span></span>}
     </div>
   );
 }
 
-const VW = 900, VH = 320;
-const PAD = { left: 42, right: 14, top: 24, bottom: 60 };
-const BAR_FILL = 0.68; // fraction of slot used by bar
-
-// ── Stacked Bar Chart ─────────────────────────────────────────────────────────
+// ── Stacked Bar Chart (Recharts — barras horizontales) ───────────────────────
 
 function StackedBarChart({ data, onBarClick }) {
-  const [hovered, setHovered] = useState(null);
-
   if (!data || data.length === 0) {
     return (
       <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
@@ -55,144 +50,36 @@ function StackedBarChart({ data, onBarClick }) {
     );
   }
 
-  const chartW = VW - PAD.left - PAD.right;
-  const chartH = VH - PAD.top - PAD.bottom;
-  const n      = data.length;
-  const slotW  = chartW / n;
-  const barW   = slotW * BAR_FILL;
-  const barOff = (slotW - barW) / 2;
-
-  const maxVal = Math.max(...data.map(rowTotal), 1);
-  const rawStep = maxVal / 4;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
-  const yStep = Math.ceil(rawStep / magnitude) * magnitude || 10;
-  const yMax  = Math.ceil(maxVal / yStep) * yStep;
-  const yTicks = Array.from({ length: Math.floor(yMax / yStep) + 1 }, (_, i) => i * yStep);
-
-  const toX  = i  => PAD.left + i * slotW + barOff;
-  const toY  = v  => PAD.top + chartH - (v / yMax) * chartH;
-  const toHt = v  => (v / yMax) * chartH;
+  const handleClick = (chartState) => {
+    if (!onBarClick || !chartState?.activeLabel) return;
+    const d = data.find(x => x.xLabel === chartState.activeLabel);
+    if (d) onBarClick(d.barKey);
+  };
 
   return (
-    <div style={{ position: 'relative' }}>
-      <svg
-        viewBox={`0 0 ${VW} ${VH}`}
-        style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
-        onMouseLeave={() => setHovered(null)}
+    <ResponsiveContainer width="100%" height={360}>
+      <BarChart
+        data={data}
+        layout="vertical"
+        margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+        onClick={onBarClick ? handleClick : undefined}
+        style={{ cursor: onBarClick ? 'pointer' : 'default' }}
       >
-        {/* Grid lines + Y labels */}
-        {yTicks.map(v => (
-          <g key={v}>
-            <line
-              x1={PAD.left} x2={VW - PAD.right}
-              y1={toY(v)}   y2={toY(v)}
-              stroke="#ddd5c8"
-              strokeWidth={v === 0 ? 1.2 : 0.65}
-              strokeDasharray={v === 0 ? '' : '3 3'}
-            />
-            <text
-              x={PAD.left - 6} y={toY(v) + 4}
-              textAnchor="end" fontSize={9.5} fill="#b0a090"
-              fontFamily="var(--font-mono)"
-            >
-              {v}
-            </text>
-          </g>
-        ))}
-
-        {/* Bars */}
-        {data.map((d, i) => {
-          const x     = toX(i);
-          const isHov = hovered === i;
-
-          // Build segments bottom→top
-          let curY = PAD.top + chartH;
-          const segs = LEGEND.map(({ key, color }) => {
-            const val = d[key] || 0;
-            if (val === 0) return null;
-            const h = toHt(val);
-            curY -= h;
-            return { key, color, y: curY, h };
-          }).filter(Boolean);
-
-          return (
-            <g
-              key={d.barKey || i}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(null)}
-              onClick={() => onBarClick && onBarClick(d.barKey)}
-              style={{ cursor: onBarClick ? 'pointer' : 'default' }}
-            >
-              {segs.map((s, si) => (
-                <rect
-                  key={s.key}
-                  x={x} y={s.y}
-                  width={barW} height={s.h}
-                  fill={s.color}
-                  opacity={isHov ? 1 : 0.80}
-                  rx={si === segs.length - 1 ? 3 : 0}
-                />
-              ))}
-              <text
-                x={x + barW / 2}
-                y={PAD.top + chartH + 15}
-                textAnchor="middle"
-                fontSize={n > 12 ? 7.5 : n > 8 ? 9 : 10}
-                fill={isHov && onBarClick ? 'var(--chart-primary)' : '#b0a090'}
-                style={{ userSelect: 'none' }}
-              >
-                {d.xLabel}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-
-      {/* Tooltip */}
-      {hovered !== null && (() => {
-        const d     = data[hovered];
-        const total = rowTotal(d);
-        const cx    = toX(hovered) + barW / 2;
-        const lPct  = (cx / VW) * 100;
-        const tPct  = 8;
-        const tx    = lPct > 74 ? '-92%' : lPct < 18 ? '4%' : '-50%';
-        return (
-          <div style={{
-            position: 'absolute', left: `${lPct}%`, top: `${tPct}%`,
-            transform: `translate(${tx}, 0)`, pointerEvents: 'none',
-            background: '#1A1A1A', color: 'white', borderRadius: 10,
-            padding: '10px 14px', fontSize: 12.5, lineHeight: 1.75,
-            boxShadow: '0 6px 24px rgba(0,0,0,0.28)', whiteSpace: 'nowrap', zIndex: 20,
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: 5, fontSize: 13 }}>
-              {d.tooltipHeader}
-            </div>
-            {LEGEND.map(({ key, label, color }) => (
-              <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: 18 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5, opacity: 0.78, fontSize: 12 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: color, display: 'inline-block', flexShrink: 0 }} />
-                  {label}
-                </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{d[key] || 0}</span>
-              </div>
-            ))}
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', gap: 18,
-              borderTop: '1px solid rgba(255,255,255,0.14)', marginTop: 5, paddingTop: 5,
-            }}>
-              <span style={{ fontWeight: 700 }}>Total</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#fdba74' }}>{total}</span>
-            </div>
-            {(d.nuevos || 0) > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, fontSize: 11.5, opacity: 0.65 }}>
-                <span>Nuevos</span>
-                <span style={{ fontFamily: 'var(--font-mono)' }}>{d.nuevos}</span>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-    </div>
+        <XAxis type="number" />
+        <YAxis type="category" dataKey="xLabel" width={70} />
+        <Tooltip
+          formatter={(value, name) => [value, name]}
+          labelFormatter={(label) => {
+            const d = data.find(x => x.xLabel === label);
+            return d?.tooltipHeader || label;
+          }}
+        />
+        <Bar dataKey="adultos"     name="Adultos"     fill={SEG_COLORS.adultos}     stackId="a" />
+        <Bar dataKey="voluntarios" name="Voluntarios" fill={SEG_COLORS.voluntarios} stackId="a" />
+        <Bar dataKey="ninos"       name="Niños"       fill={SEG_COLORS.ninos}       stackId="a" />
+        <Bar dataKey="bebes"       name="Bebés"       fill={SEG_COLORS.bebes}       stackId="a" />
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -444,7 +331,7 @@ export default function AsistenciaViewPage() {
                           <span style={{ color: SEG_COLORS.ninos, fontWeight: 600 }}>
                             Niños <span style={{ fontFamily: 'var(--font-mono)' }}>{r.ninos}</span>
                           </span>
-                          <span style={{ color: '#a08060', fontWeight: 600 }}>
+                          <span style={{ color: SEG_COLORS.bebes, fontWeight: 600 }}>
                             Bebés <span style={{ fontFamily: 'var(--font-mono)' }}>{r.bebes}</span>
                           </span>
                           {r.nuevos > 0 && (
