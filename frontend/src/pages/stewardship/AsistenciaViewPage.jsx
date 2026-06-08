@@ -21,9 +21,9 @@ const SEG_COLORS = {
 };
 
 const DONUT_COLORS = {
-  adultos:     '#ea580c',
-  voluntarios: '#2563eb',
-  ninos:       '#facc15',
+  adultos:     '#fb923c',
+  voluntarios: '#93c5fd',
+  ninos:       '#fde047',
   bebes:       '#f9a8d4',
 };
 
