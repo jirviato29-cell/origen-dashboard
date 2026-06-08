@@ -557,6 +557,32 @@ export default function IngresosPage() {
           ))}
         </div>
 
+        {/* Banda de totales superior */}
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', gap: 0,
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 10, marginBottom: 12, overflow: 'hidden',
+        }}>
+          {[
+            { label: 'Efectivo',      value: tablaEfectivo,      color: 'var(--good)' },
+            { label: 'Terminal',      value: tablaTerminal,      color: 'var(--chart-primary)' },
+            { label: 'Transferencia', value: tablaTransferencia, color: '#0d9488' },
+            { label: 'Total',         value: tablaEfectivo + tablaTerminal + tablaTransferencia, color: ORANGE, bold: true },
+          ].map(({ label, value, color, bold }, i, arr) => (
+            <div key={label} style={{
+              flex: '1 1 120px', padding: '10px 16px',
+              borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>
+                {label}
+              </div>
+              <div style={{ fontSize: bold ? 16 : 14, fontWeight: bold ? 800 : 700, fontFamily: 'var(--font-mono)', color }}>
+                {fmt(value)}
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
           <table className="table anf-table">
             <thead>
