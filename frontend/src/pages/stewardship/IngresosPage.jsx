@@ -277,10 +277,11 @@ export default function IngresosPage() {
         .filter(d => d.fecha.startsWith(mesSeleccionado))
         .sort((a, b) => b.fecha.localeCompare(a.fecha))
     : [];
-  const tablaEfectivo    = tablaData.reduce((s, d) => s + Number(d.efectivo), 0);
-  const tablaTerminal    = tablaData.reduce((s, d) => s + Number(d.terminal), 0);
-  const tablaTotal       = tablaData.reduce((s, d) => s + Number(d.total_ofrenda), 0);
-  const tablaOfrendas    = tablaData.reduce((s, d) => s + Number(d.ofrendas ?? 0), 0);
+  const tablaEfectivo      = tablaData.reduce((s, d) => s + Number(d.efectivo),            0);
+  const tablaTerminal      = tablaData.reduce((s, d) => s + Number(d.terminal),            0);
+  const tablaTransferencia = tablaData.reduce((s, d) => s + Number(d.transferencia || 0), 0);
+  const tablaTotal         = tablaData.reduce((s, d) => s + Number(d.total_ofrenda),       0);
+  const tablaOfrendas      = tablaData.reduce((s, d) => s + Number(d.ofrendas ?? 0),       0);
   const tablaParticipMes = resumenMeses.find(r => r.mes === mesSeleccionado)?.participMes ?? null;
   const tablaRows = tablaData.map(d => {
     const a   = asistByFecha[toISODate(d.fecha)];
@@ -538,6 +539,7 @@ export default function IngresosPage() {
                   <th>Domingo</th>
                   <th style={{ textAlign: 'right' }}>Efectivo</th>
                   <th style={{ textAlign: 'right' }}>Terminal</th>
+                  <th style={{ textAlign: 'right' }}>Transferencia</th>
                   <th style={{ textAlign: 'right' }}>Ofrendas</th>
                   <th style={{ textAlign: 'right' }}>Participación</th>
                 </tr>
@@ -548,6 +550,7 @@ export default function IngresosPage() {
                     <td style={{ fontWeight: 500 }}>{fmtFecha(d.fecha)}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmt(Number(d.efectivo))}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmt(Number(d.terminal))}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmt(Number(d.transferencia || 0))}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{Number(d.ofrendas ?? 0) || '—'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
                       {d.participDom !== null ? `${d.participDom}%` : '—'}
@@ -562,6 +565,7 @@ export default function IngresosPage() {
                   </td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaEfectivo)}</td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaTerminal)}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaTransferencia)}</td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{tablaOfrendas || '—'}</td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: ORANGE, fontSize: 14 }}>
                     {tablaParticipMes !== null ? `${tablaParticipMes}%` : '—'}
