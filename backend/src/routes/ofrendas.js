@@ -62,17 +62,20 @@ router.get('/:id', async (req, res) => {
 // POST /api/ofrendas
 router.post('/', async (req, res) => {
   try {
-    const { fecha, efectivo, terminal, total_ofrenda, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial } = req.body;
+    const { fecha, efectivo, terminal, transferencia, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial } = req.body;
     if (!fecha) return res.status(400).json({ error: 'fecha es requerida' });
+    const ef       = efectivo      || 0;
+    const term     = terminal      || 0;
+    const transf   = transferencia || 0;
+    const total    = ef + term + transf;
     const sobres   = ofrendas_sobres   || 0;
     const termCnt  = ofrendas_terminal || 0;
     const ofrendas = sobres + termCnt;
     console.log('[POST /api/ofrendas] body:', req.body);
-    console.log('[POST /api/ofrendas] params:', [fecha, efectivo||0, terminal||0, total_ofrenda||0, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0]);
     const { rows } = await pool.query(
-      `INSERT INTO ofrendas (fecha, efectivo, terminal, total_ofrenda, ofrendas, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-      [fecha, efectivo||0, terminal||0, total_ofrenda||0, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0]
+      `INSERT INTO ofrendas (fecha, efectivo, terminal, transferencia, total_ofrenda, ofrendas, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [fecha, ef, term, transf, total, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -84,15 +87,19 @@ router.post('/', async (req, res) => {
 // PUT /api/ofrendas/:id
 router.put('/:id', async (req, res) => {
   try {
-    const { fecha, efectivo, terminal, total_ofrenda, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial } = req.body;
+    const { fecha, efectivo, terminal, transferencia, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial } = req.body;
+    const ef       = efectivo      || 0;
+    const term     = terminal      || 0;
+    const transf   = transferencia || 0;
+    const total    = ef + term + transf;
     const sobres   = ofrendas_sobres   || 0;
     const termCnt  = ofrendas_terminal || 0;
     const ofrendas = sobres + termCnt;
     const { rows } = await pool.query(
-      `UPDATE ofrendas SET fecha=$1, efectivo=$2, terminal=$3, total_ofrenda=$4,
-       ofrendas=$5, ofrendas_sobres=$6, ofrendas_terminal=$7, participacion=$8, ofrenda_especial=$9
-       WHERE id=$10 RETURNING *`,
-      [fecha, efectivo||0, terminal||0, total_ofrenda||0, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0, req.params.id]
+      `UPDATE ofrendas SET fecha=$1, efectivo=$2, terminal=$3, transferencia=$4, total_ofrenda=$5,
+       ofrendas=$6, ofrendas_sobres=$7, ofrendas_terminal=$8, participacion=$9, ofrenda_especial=$10
+       WHERE id=$11 RETURNING *`,
+      [fecha, ef, term, transf, total, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
