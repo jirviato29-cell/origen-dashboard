@@ -404,7 +404,7 @@ export default function AsistenciaViewPage() {
             Sin registros disponibles.
           </div>
         ) : (
-          <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
+          <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
             <table className="table anf-table">
               <thead>
                 <tr>

@@ -103,7 +103,7 @@ export default function GastosPorPagarPage() {
             Sin gastos por pagar registrados.
           </div>
         ) : (
-          <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', marginTop: 16 }}>
+          <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)', marginTop: 16 }}>
             <table className="table anf-table">
               <thead>
                 <tr>
@@ -187,7 +187,7 @@ export default function GastosPorPagarPage() {
             Sin gastos pagados registrados.
           </div>
         ) : (
-          <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', marginTop: 16 }}>
+          <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)', marginTop: 16 }}>
             <table className="table anf-table">
               <thead>
                 <tr>

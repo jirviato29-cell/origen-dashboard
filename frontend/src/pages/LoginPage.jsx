@@ -4,27 +4,45 @@ import { useAuth, ROLES } from '../context/AuthContext';
 import { I } from '../components/Icons';
 
 const ROLES_LIST = [
-  { id: ROLES.PASTOR,          label: 'Pastor',             desc: 'Vista completa del dashboard',          icon: I.heart },
-  { id: ROLES.STEWARDSHIP,     label: 'Stewardship',        desc: 'Ofrendas, finanzas y administración',   icon: I.coin  },
-  { id: ROLES.ANFITRIONES,     label: 'Anfitriones',        desc: 'Gestión de asistencia y bienvenida',    icon: I.hand  },
-  { id: ROLES.PUNTO_ENCUENTRO, label: 'Punto de Encuentro', desc: 'Registro y seguimiento de eventos',     icon: I.pin   },
+  { id: ROLES.PASTOR,          label: 'Pastor',             desc: 'Vista completa del dashboard',        icon: I.heart },
+  { id: ROLES.STEWARDSHIP,     label: 'Stewardship',        desc: 'Ofrendas, finanzas y administración', icon: I.coin  },
+  { id: ROLES.ANFITRIONES,     label: 'Anfitriones',        desc: 'Gestión de asistencia y bienvenida',  icon: I.hand  },
+  { id: ROLES.PUNTO_ENCUENTRO, label: 'Punto de Encuentro', desc: 'Registro y seguimiento de eventos',   icon: I.pin   },
 ];
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+
   const [selected, setSelected] = useState(null);
-  const [name, setName]         = useState('');
+  const [clave,    setClave]    = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
+
   const inputRef = useRef(null);
 
   useEffect(() => {
     if (selected) inputRef.current?.focus();
   }, [selected]);
 
-  const handleEnter = () => {
-    if (!name.trim()) return;
-    login(selected.id, name.trim());
-    navigate(`/${selected.id}`);
+  const handleBack = () => {
+    setSelected(null);
+    setClave('');
+    setError('');
+  };
+
+  const handleEnter = async () => {
+    if (!clave.trim() || loading) return;
+    setLoading(true);
+    setError('');
+    const result = await login(selected.id, clave.trim());
+    setLoading(false);
+    if (result.ok) {
+      navigate(`/${selected.id}`);
+    } else {
+      setError(result.error);
+      inputRef.current?.focus();
+    }
   };
 
   return (
@@ -90,7 +108,7 @@ export default function LoginPage() {
         ) : (
           <div style={{ padding: '28px 24px' }}>
             <button
-              onClick={() => { setSelected(null); setName(''); }}
+              onClick={handleBack}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 6,
@@ -119,37 +137,47 @@ export default function LoginPage() {
               display: 'block', fontSize: 13, fontWeight: 600,
               color: '#1A1A1A', marginBottom: 8,
             }}>
-              ¿Cuál es tu nombre?
+              Clave de acceso
             </label>
             <input
               ref={inputRef}
-              type="text"
-              placeholder="Tu nombre"
-              value={name}
-              onChange={e => setName(e.target.value)}
+              type="password"
+              placeholder="••••••••"
+              value={clave}
+              onChange={e => { setClave(e.target.value); setError(''); }}
               onKeyDown={e => e.key === 'Enter' && handleEnter()}
               style={{
                 width: '100%', padding: '11px 14px', borderRadius: 10,
-                border: '1.5px solid #E5E5E5', fontSize: 15,
+                border: `1.5px solid ${error ? '#EF4444' : '#E5E5E5'}`, fontSize: 15,
                 outline: 'none', boxSizing: 'border-box', color: '#1A1A1A',
-                marginBottom: 12, fontFamily: 'inherit',
+                marginBottom: error ? 6 : 12, fontFamily: 'inherit',
               }}
-              onFocus={e  => e.target.style.borderColor = '#1A1A1A'}
-              onBlur={e   => e.target.style.borderColor = '#E5E5E5'}
+              onFocus={e  => e.target.style.borderColor = error ? '#EF4444' : '#1A1A1A'}
+              onBlur={e   => e.target.style.borderColor = error ? '#EF4444' : '#E5E5E5'}
             />
+
+            {error && (
+              <p style={{
+                margin: '0 0 12px', fontSize: 12.5,
+                color: '#EF4444', fontWeight: 500,
+              }}>
+                {error}
+              </p>
+            )}
+
             <button
               onClick={handleEnter}
-              disabled={!name.trim()}
+              disabled={!clave.trim() || loading}
               style={{
                 width: '100%', padding: '12px 14px', borderRadius: 10,
-                background: name.trim() ? '#1A1A1A' : '#E5E5E5',
-                color: name.trim() ? '#FFFFFF' : '#A3A3A3',
+                background: (clave.trim() && !loading) ? '#1A1A1A' : '#E5E5E5',
+                color: (clave.trim() && !loading) ? '#FFFFFF' : '#A3A3A3',
                 border: 'none', fontSize: 15, fontWeight: 600,
-                cursor: name.trim() ? 'pointer' : 'not-allowed',
+                cursor: (clave.trim() && !loading) ? 'pointer' : 'not-allowed',
                 transition: 'background 0.15s', fontFamily: 'inherit',
               }}
             >
-              Entrar
+              {loading ? 'Verificando…' : 'Entrar'}
             </button>
           </div>
         )}

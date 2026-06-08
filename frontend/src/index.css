@@ -336,6 +336,9 @@ body {
 }
 .tiny-btn:hover { color: var(--ink); background: var(--surface-3); }
 
+/* ─── Table wrapper (scroll on mobile) ──────────────────────────────────── */
+.tbl-wrap { overflow: hidden; }
+
 /* ─── Toolbar / Chips / Search ───────────────────────────────────────────── */
 
 .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -626,6 +629,20 @@ body {
   }
   .chart-head .card-title { font-size: 14px; }
   .chart-head .card-sub   { font-size: 11.5px; }
+
+  /* Tables: allow horizontal scroll */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl-wrap .table, .tbl-wrap table { min-width: 480px; }
+
+  /* Cards: reduce padding on mobile */
+  .card { padding: 14px 16px; }
+
+  /* Welcome card: stack vertically on mobile */
+  .welcome-card { flex-direction: column; align-items: flex-start; padding: 20px 18px; gap: 12px; }
+  .welcome-actions { flex-wrap: wrap; }
+
+  /* Metric numbers: shrink for 2-col layout on narrow screens */
+  .metric-value { font-size: 26px; }
 }
 
 /* ─── visually-hidden helper ─────────────────────────────────────────────── */

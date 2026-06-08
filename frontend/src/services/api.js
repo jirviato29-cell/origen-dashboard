@@ -7,6 +7,12 @@ const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
 });
 
+http.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
 // ─── Ingresos (→ tabla ofrendas, con alias monto/concepto para compat) ────────
 const realIngresosApi = {
   getAll:       (params) => http.get('/ingresos', { params }),
@@ -117,6 +123,23 @@ const realCortesApi = {
   upsert:      (records)   => http.post('/cortes/upsert', records),
 };
 
+// ─── Voluntarios ──────────────────────────────────────────────────────────────
+const realVoluntariosApi = {
+  getAll:  ()         => http.get('/voluntarios'),
+  create:  (data)     => http.post('/voluntarios', data),
+  update:  (id, data) => http.put(`/voluntarios/${id}`, data),
+  remove:  (id)       => http.delete(`/voluntarios/${id}`),
+};
+
+// ─── Usuarios ─────────────────────────────────────────────────────────────────
+const realUsuariosApi = {
+  getAll:      ()              => http.get('/usuarios'),
+  create:      (data)          => http.post('/usuarios', data),
+  toggle:      (id)            => http.patch(`/usuarios/${id}/toggle`),
+  cambiarClave:(id, clave)     => http.patch(`/usuarios/${id}/clave`, { clave }),
+  remove:      (id)            => http.delete(`/usuarios/${id}`),
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;
 export const ofrendasApi   = USE_MOCK ? mock.ingresosApi   : realOfrendasApi;
@@ -131,3 +154,5 @@ export const serviciosDominicalesApi  = realServiciosDominicalesApi;
 export const comprobanteApi           = realComprobanteApi;
 export const abonosApi                = realAbonosApi;
 export const cortesApi                = realCortesApi;
+export const usuariosApi              = realUsuariosApi;
+export const voluntariosApi           = realVoluntariosApi;
