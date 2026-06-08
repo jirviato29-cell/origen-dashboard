@@ -23,11 +23,14 @@ function formatDateLong(date) {
 const EMPTY = { efectivo: '', tarjeta: '', transferencia: '', sobres: '', terminalCnt: '' };
 
 export default function GlobalOfrendasModal() {
-  const { open, closeModal } = useOfrendasModal();
+  const { open, closeModal, record } = useOfrendasModal();
+  const isEdit = !!record?.id;
 
-  const sunday     = getLastSunday();
-  const fechaISO   = toISODate(sunday);
-  const fechaLabel = formatDateLong(sunday);
+  const sunday     = isEdit ? null : getLastSunday();
+  const fechaISO   = isEdit ? record.fecha : toISODate(sunday);
+  const fechaLabel = isEdit
+    ? formatDateLong(new Date(record.fecha + 'T12:00:00'))
+    : formatDateLong(sunday);
 
   const [form, setForm]           = useState(EMPTY);
   const [asistentes, setAsistentes] = useState(null);
@@ -71,8 +74,22 @@ export default function GlobalOfrendasModal() {
   }, [fechaISO]);
 
   useEffect(() => {
-    if (open) { setSaved(false); setForm(EMPTY); loadAsistencia(); }
-  }, [open, loadAsistencia]);
+    if (open) {
+      setSaved(false);
+      if (record) {
+        setForm({
+          efectivo:     String(record.efectivo          ?? ''),
+          tarjeta:      String(record.terminal          ?? ''),
+          transferencia: String(record.transferencia    ?? ''),
+          sobres:       String(record.ofrendas_sobres   ?? ''),
+          terminalCnt:  String(record.ofrendas_terminal ?? ''),
+        });
+      } else {
+        setForm(EMPTY);
+      }
+      loadAsistencia();
+    }
+  }, [open, record, loadAsistencia]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && !saved) closeModal(); };
@@ -84,7 +101,7 @@ export default function GlobalOfrendasModal() {
     if (total <= 0) return;
     setSaving(true);
     try {
-      await ofrendasApi.create({
+      const body = {
         fecha:             fechaISO,
         efectivo:          efectivo,
         terminal:          tarjeta,
@@ -93,7 +110,12 @@ export default function GlobalOfrendasModal() {
         ofrendas_terminal: terminalCnt,
         participacion:     participacion ? parseFloat(participacion) : 0,
         ofrenda_especial:  0,
-      });
+      };
+      if (isEdit) {
+        await ofrendasApi.update(record.id, body);
+      } else {
+        await ofrendasApi.create(body);
+      }
       setSavedData({ total, efectivo, tarjeta, sobres, terminalCnt, cantidad, participacion });
       setSaved(true);
       setTimeout(() => { setSaved(false); closeModal(); }, 2500);
@@ -113,8 +135,8 @@ export default function GlobalOfrendasModal() {
         {saved ? (
           <div className="anf-success">
             <div className="anf-success-icon"><I.check size={36} /></div>
-            <h3>¡Ofrenda registrada!</h3>
-            <p>Registro del {fechaLabel} guardado correctamente.</p>
+            <h3>{isEdit ? '¡Ofrenda actualizada!' : '¡Ofrenda registrada!'}</h3>
+            <p>{isEdit ? `Registro del ${fechaLabel} actualizado correctamente.` : `Registro del ${fechaLabel} guardado correctamente.`}</p>
             <div className="anf-success-total">
               <span>Total registrado</span>
               <strong>${savedData?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong>
@@ -130,9 +152,9 @@ export default function GlobalOfrendasModal() {
           <>
             <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div className="anf-modal-eyebrow">Último servicio dominical</div>
+                <div className="anf-modal-eyebrow">{isEdit ? 'Editando registro' : 'Último servicio dominical'}</div>
                 <h3 className="anf-modal-date">{fechaLabel}</h3>
-                <p>Registra las ofrendas y diezmos · Origen Aguascalientes</p>
+                <p>{isEdit ? 'Modifica los montos y conteos del registro seleccionado' : 'Registra las ofrendas y diezmos · Origen Aguascalientes'}</p>
               </div>
               <button className="icon-btn" onClick={closeModal} style={{ width: 34, height: 34, flexShrink: 0 }}>
                 <I.x size={16} />
@@ -306,7 +328,7 @@ export default function GlobalOfrendasModal() {
               style={{ opacity: (saving || total <= 0) ? 0.45 : 1 }}
             >
               <I.check size={16} />
-              {saving ? 'Guardando…' : 'Guardar registro'}
+              {saving ? 'Guardando…' : isEdit ? 'Actualizar registro' : 'Guardar registro'}
             </button>
 
             {total <= 0 && (

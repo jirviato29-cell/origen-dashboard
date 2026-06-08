@@ -4,8 +4,14 @@ const OfrendasModalContext = createContext(null);
 
 export function OfrendasModalProvider({ children }) {
   const [open, setOpen] = useState(false);
+  const [record, setRecord] = useState(null);
   return (
-    <OfrendasModalContext.Provider value={{ open, openModal: () => setOpen(true), closeModal: () => setOpen(false) }}>
+    <OfrendasModalContext.Provider value={{
+      open,
+      record,
+      openModal: (rec = null) => { setRecord(rec); setOpen(true); },
+      closeModal: () => { setOpen(false); setRecord(null); },
+    }}>
       {children}
     </OfrendasModalContext.Provider>
   );
