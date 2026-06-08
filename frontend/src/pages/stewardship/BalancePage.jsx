@@ -440,22 +440,24 @@ export default function BalancePage() {
                     textAlign: 'left', width: '100%',
                   }}
                 >
-                  <span style={{ fontSize: 15, fontWeight: 600 }}>{r.label}</span>
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, color: activo ? 'rgba(255,255,255,0.8)' : '#00B4D8' }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, flexShrink: 0 }}>{r.label}</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 6px', justifyContent: 'flex-end' }}>
+                    <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, color: activo ? 'rgba(255,255,255,0.8)' : '#00B4D8', whiteSpace: 'nowrap' }}>
                       Ing: {fmt(r.ingresos)}
-                    </div>
-                    <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: activo ? 'rgba(255,255,255,0.65)' : 'var(--danger)' }}>
+                    </span>
+                    <span style={{ color: activo ? 'rgba(255,255,255,0.3)' : 'var(--border)' }}>·</span>
+                    <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: activo ? 'rgba(255,255,255,0.65)' : 'var(--danger)', whiteSpace: 'nowrap' }}>
                       Gas: {fmt(r.gastos)}
-                    </div>
-                    <div style={{
-                      fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 800,
+                    </span>
+                    <span style={{ color: activo ? 'rgba(255,255,255,0.3)' : 'var(--border)' }}>·</span>
+                    <span style={{
+                      fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 800, whiteSpace: 'nowrap',
                       color: activo
                         ? (r.balance >= 0 ? '#90d4a8' : '#f4a070')
                         : (r.balance >= 0 ? 'var(--good)' : 'var(--danger)'),
                     }}>
                       {r.balance >= 0 ? '+' : ''}{fmt(r.balance)}
-                    </div>
+                    </span>
                   </div>
                 </button>
               );
