@@ -20,7 +20,7 @@ function formatDateLong(date) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-const EMPTY = { efectivo: '', tarjeta: '', sobres: '', terminalCnt: '' };
+const EMPTY = { efectivo: '', tarjeta: '', transferencia: '', sobres: '', terminalCnt: '' };
 
 export default function GlobalOfrendasModal() {
   const { open, closeModal } = useOfrendasModal();
@@ -35,11 +35,12 @@ export default function GlobalOfrendasModal() {
   const [saved, setSaved]         = useState(false);
   const [savedData, setSavedData] = useState(null);
 
-  const efectivo    = parseFloat(form.efectivo)      || 0;
-  const tarjeta     = parseFloat(form.tarjeta)       || 0;
-  const sobres      = parseInt(form.sobres, 10)      || 0;
-  const terminalCnt = parseInt(form.terminalCnt, 10) || 0;
-  const total       = efectivo + tarjeta;
+  const efectivo      = parseFloat(form.efectivo)      || 0;
+  const tarjeta       = parseFloat(form.tarjeta)       || 0;
+  const transferencia = parseFloat(form.transferencia) || 0;
+  const sobres        = parseInt(form.sobres, 10)      || 0;
+  const terminalCnt   = parseInt(form.terminalCnt, 10) || 0;
+  const total         = efectivo + tarjeta + transferencia;
   const cantidad    = sobres + terminalCnt;
   const participacion = asistentes && asistentes > 0 && cantidad > 0
     ? ((cantidad / asistentes) * 100).toFixed(1)
@@ -87,7 +88,7 @@ export default function GlobalOfrendasModal() {
         fecha:             fechaISO,
         efectivo:          efectivo,
         terminal:          tarjeta,
-        total_ofrenda:     total,
+        transferencia:     transferencia,
         ofrendas_sobres:   sobres,
         ofrendas_terminal: terminalCnt,
         participacion:     participacion ? parseFloat(participacion) : 0,
@@ -177,6 +178,29 @@ export default function GlobalOfrendasModal() {
                     placeholder="0.00"
                     value={form.tarjeta}
                     onChange={e => setForm(f => ({ ...f, tarjeta: e.target.value }))}
+                    style={{
+                      width: '100%', padding: '10px 12px 10px 26px', borderRadius: 10,
+                      border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Transferencia */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Transferencia
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontWeight: 600 }}>$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.transferencia}
+                    onChange={e => setForm(f => ({ ...f, transferencia: e.target.value }))}
                     style={{
                       width: '100%', padding: '10px 12px 10px 26px', borderRadius: 10,
                       border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
