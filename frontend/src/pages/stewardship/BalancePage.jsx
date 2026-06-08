@@ -213,12 +213,14 @@ export default function BalancePage() {
   const totalIngresos = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
   const totalGastos   = gastos.reduce((s, g) => s + Number(g.monto), 0);
   const balanceNeto   = totalIngresos - totalGastos;
-  const totalEfectivo = ofrendas.reduce((s, d) => s + Number(d.efectivo), 0);
-  const totalTerminal = ofrendas.reduce((s, d) => s + Number(d.terminal), 0);
-  const cajaChica     = SALDO_INICIAL_CAJA + totalEfectivo - totalGastos;
+  const totalEfectivo      = ofrendas.reduce((s, d) => s + Number(d.efectivo),            0);
+  const totalTerminal      = ofrendas.reduce((s, d) => s + Number(d.terminal),            0);
+  const totalTransferencia = ofrendas.reduce((s, d) => s + Number(d.transferencia || 0), 0);
+  const cajaChica          = SALDO_INICIAL_CAJA + totalEfectivo - totalGastos;
 
-  const pctEfectivo = totalIngresos > 0 ? Math.round(totalEfectivo / totalIngresos * 100) : 0;
-  const pctTerminal = totalIngresos > 0 ? Math.round(totalTerminal / totalIngresos * 100) : 0;
+  const pctEfectivo      = totalIngresos > 0 ? Math.round(totalEfectivo      / totalIngresos * 100) : 0;
+  const pctTerminal      = totalIngresos > 0 ? Math.round(totalTerminal      / totalIngresos * 100) : 0;
+  const pctTransferencia = totalIngresos > 0 ? 100 - pctEfectivo - pctTerminal                      : 0;
 
   // ── Gastos por categoría ──
   const catTotales = CATEGORIAS.map(cat => ({
@@ -321,8 +323,8 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {/* ── Fila 2: 3 tarjetas secundarias ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 14 }}>
+      {/* ── Fila 2: 4 tarjetas secundarias ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
 
         <div className="card" style={{ padding: '18px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -362,6 +364,27 @@ export default function BalancePage() {
           </div>
           <div style={{ marginTop: 14, height: 5, borderRadius: 99, background: 'var(--border)' }}>
             <div style={{ height: '100%', width: `${pctTerminal}%`, borderRadius: 99, background: 'var(--chart-primary)', opacity: 0.8 }} />
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>Del total de ofrendas del año</div>
+        </div>
+
+        <div className="card" style={{ padding: '18px 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              Total transferencia recibido
+            </div>
+            <span style={{
+              fontSize: 12, fontWeight: 800, padding: '2px 9px', borderRadius: 99,
+              background: 'rgba(13,148,136,0.12)', color: '#0d9488',
+            }}>
+              {pctTransferencia}%
+            </span>
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#0d9488', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+            {fmt(totalTransferencia)}
+          </div>
+          <div style={{ marginTop: 14, height: 5, borderRadius: 99, background: 'var(--border)' }}>
+            <div style={{ height: '100%', width: `${pctTransferencia}%`, borderRadius: 99, background: '#0d9488', opacity: 0.8 }} />
           </div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>Del total de ofrendas del año</div>
         </div>
