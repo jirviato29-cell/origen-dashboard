@@ -3,6 +3,7 @@ import { ofrendasApi, gastosApi } from '../../services/api';
 import { fmtFecha, fmtFechaShort } from '../../utils/fecha';
 import { CATEGORIAS, CAT_COLORS } from '../../utils/categorias';
 import { SALDO_INICIAL_CAJA } from '../../utils/config';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Cell, ResponsiveContainer } from 'recharts';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -62,112 +63,41 @@ function buildWeeklyData(ofrendas, gastos) {
   });
 }
 
-// ── Donut / Pie Chart ─────────────────────────────────────────────────────────
+// ── Balance Bar Chart ─────────────────────────────────────────────────────────
 
-const VW = 500, VH = 260;
-const CX = 130, CY = 130, R_OUT = 100, R_IN = 55;
+const BAR_GREEN = '#5C7A6F';
+const BAR_RED   = '#FF6B2B';
 
-function donutPath(start, end, rOut, rIn) {
-  // Full circle: split into two halves to avoid degenerate path
-  if (Math.abs(end - start) >= 2 * Math.PI - 0.001) {
-    const mid = start + Math.PI;
-    return donutPath(start, mid, rOut, rIn) + ' ' + donutPath(mid, end, rOut, rIn);
-  }
-  const large = end - start > Math.PI ? 1 : 0;
-  const x1o = (CX + rOut * Math.cos(start)).toFixed(2), y1o = (CY + rOut * Math.sin(start)).toFixed(2);
-  const x2o = (CX + rOut * Math.cos(end)).toFixed(2),   y2o = (CY + rOut * Math.sin(end)).toFixed(2);
-  const x2i = (CX + rIn  * Math.cos(end)).toFixed(2),   y2i = (CY + rIn  * Math.sin(end)).toFixed(2);
-  const x1i = (CX + rIn  * Math.cos(start)).toFixed(2), y1i = (CY + rIn  * Math.sin(start)).toFixed(2);
-  return `M ${x1o} ${y1o} A ${rOut} ${rOut} 0 ${large} 1 ${x2o} ${y2o} L ${x2i} ${y2i} A ${rIn} ${rIn} 0 ${large} 0 ${x1i} ${y1i} Z`;
-}
-
-function PieChart({ ingresos, gastos: gastosTotal }) {
-  const [hovered, setHovered] = useState(null);
-  const balance   = ingresos - gastosTotal;
-  const isDeficit = balance < 0;
-
-  // Surplus → pie = ingresos,    slices: [gastos, superávit]
-  // Deficit → pie = gastosTotal, slices: [ingresos, exceso]
-  const total  = isDeficit ? gastosTotal : ingresos;
-  const slices = isDeficit
-    ? [
-        { label: 'Ingresos',  value: ingresos,               color: '#5C7A6F' },
-        { label: 'Déficit',   value: gastosTotal - ingresos,  color: '#FF6B2B' },
-      ]
-    : [
-        { label: 'Gastos',    value: gastosTotal,             color: '#FF6B2B' },
-        { label: 'Superávit', value: balance,                 color: '#00B4D8' },
-      ];
-
-  if (total <= 0) {
+function BalanceBarChart({ data }) {
+  if (!data || data.length === 0) {
     return (
-      <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
+      <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
         Sin datos para mostrar
       </div>
     );
   }
-
-  let angle = -Math.PI / 2;
-  const built = slices.map((s, i) => {
-    const sweep = (s.value / total) * 2 * Math.PI;
-    const start = angle, end = angle + sweep, mid = angle + sweep / 2;
-    angle = end;
-    return { ...s, start, end, mid, i };
-  });
-
+  const chartData = data.map(r => ({ name: r.label.slice(0, 3), balance: r.balance, label: r.label }));
   return (
-    <svg
-      viewBox={`0 0 ${VW} ${VH}`}
-      style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
-    >
-      {/* Donut slices */}
-      {built.map(s => {
-        const active = hovered === s.i;
-        const dimmed = hovered !== null && !active;
-        const push   = active ? 6 : 0;
-        return (
-          <path
-            key={s.i}
-            d={donutPath(s.start, s.end, R_OUT, R_IN)}
-            fill={s.color}
-            opacity={dimmed ? 0.4 : 1}
-            transform={push > 0 ? `translate(${(Math.cos(s.mid) * push).toFixed(2)}, ${(Math.sin(s.mid) * push).toFixed(2)})` : undefined}
-            style={{ cursor: 'pointer', transition: 'opacity 0.15s' }}
-            onMouseEnter={() => setHovered(s.i)}
-            onMouseLeave={() => setHovered(null)}
-          />
-        );
-      })}
-
-      {/* Center text */}
-      <text x={CX} y={CY - 8} textAnchor="middle" fontSize={9} fill="#b0a090" fontWeight={600}>
-        {isDeficit ? 'DÉFICIT' : 'TOTAL INGRESOS'}
-      </text>
-      <text x={CX} y={CY + 11} textAnchor="middle" fontSize={13.5} fill="var(--ink)" fontWeight={800} fontFamily="var(--font-mono)">
-        {fmt(isDeficit ? Math.abs(balance) : total)}
-      </text>
-
-      {/* Legend */}
-      {built.map((s, i) => {
-        const pct    = Math.round((s.value / total) * 100);
-        const ly     = 48 + i * 80;
-        const active = hovered === s.i;
-        return (
-          <g
-            key={`leg-${i}`}
-            style={{ cursor: 'pointer' }}
-            onMouseEnter={() => setHovered(s.i)}
-            onMouseLeave={() => setHovered(null)}
-            opacity={hovered !== null && !active ? 0.4 : 1}
-          >
-            <rect x={268} y={ly} width={11} height={11} rx={2} fill={s.color} />
-            <text x={285} y={ly + 10} fontSize={12.5} fill="var(--ink)" fontWeight={active ? 700 : 500}>{s.label}</text>
-            <text x={285} y={ly + 28} fontSize={14.5} fill={s.color} fontWeight={800} fontFamily="var(--font-mono)">{fmt(s.value)}</text>
-            <text x={285} y={ly + 44} fontSize={11} fill="#b0a090">{pct}% · {isDeficit ? 'de los gastos' : 'de los ingresos'}</text>
-          </g>
-        );
-      })}
-    </svg>
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 4 }}>
+        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#b0a090' }} axisLine={false} tickLine={false} />
+        <YAxis
+          tickFormatter={v => v === 0 ? '$0' : `${v < 0 ? '-' : ''}$${Math.abs(Math.round(v) / 1000).toFixed(0)}k`}
+          tick={{ fontSize: 10, fill: '#b0a090' }} axisLine={false} tickLine={false} width={44}
+        />
+        <Tooltip
+          formatter={(value) => [fmt(value), 'Saldo']}
+          labelFormatter={(name) => { const d = chartData.find(x => x.name === name); return d?.label || name; }}
+          contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
+        />
+        <ReferenceLine y={0} stroke="#ddd5c8" strokeWidth={1.5} />
+        <Bar dataKey="balance" radius={[3, 3, 0, 0]} maxBarSize={48}>
+          {chartData.map((entry, i) => (
+            <Cell key={i} fill={entry.balance >= 0 ? BAR_GREEN : BAR_RED} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -232,14 +162,6 @@ export default function BalancePage() {
 
   // ── Resumen mensual ──
   const monthlyData = buildMonthlyData(ofrendas, gastos);
-
-  // ── Datos para el pastel ──
-  const mesEntry   = mesSeleccionado ? monthlyData.find(m => m.mes === mesSeleccionado) : null;
-  const pieIngresos = mesEntry ? mesEntry.ingresos : totalIngresos;
-  const pieGastos   = mesEntry ? mesEntry.gastos   : totalGastos;
-  const pieTitle    = mesSeleccionado
-    ? `Balance ${mesNombre(mesSeleccionado)} ${year}`
-    : `Balance ${year}`;
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
@@ -465,31 +387,15 @@ export default function BalancePage() {
           </div>
         </div>
 
-        {/* Pastel */}
+        {/* Gráfica de barras de saldo mensual */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
           <div className="card-head" style={{ marginBottom: 16 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h3 className="card-title" style={{ fontSize: 13 }}>{pieTitle}</h3>
-              <div className="card-sub">
-                {mesSeleccionado
-                  ? `${mesNombre(mesSeleccionado)} · ingresos vs gastos`
-                  : `Año completo · ingresos vs gastos`}
-              </div>
+            <div>
+              <h3 className="card-title">Balance {year}</h3>
+              <div className="card-sub">Año completo · saldo por mes</div>
             </div>
-            {mesSeleccionado && (
-              <button
-                onClick={() => setMesSelec(null)}
-                style={{
-                  fontSize: 11.5, fontWeight: 600, color: 'var(--muted)', flexShrink: 0,
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                  textDecoration: 'underline', textUnderlineOffset: 3,
-                }}
-              >
-                ← Ver todo el año
-              </button>
-            )}
           </div>
-          <PieChart ingresos={pieIngresos} gastos={pieGastos} />
+          <BalanceBarChart data={monthlyData} />
         </div>
       </div>
 
