@@ -154,7 +154,8 @@ export default function IngresosPage() {
   const [gastos,     setGastos]     = useState([]);
   const [asistencia, setAsistencia] = useState([]);
   const [loading,    setLoading]    = useState(true);
-  const [mesSeleccionado, setMesSelec] = useState(null);
+  const [mesSeleccionado, setMesSelec]   = useState(null);
+  const [tablaMesFiltro, setTablaMesFiltro] = useState(null);
   const isMobile = useIsMobile();
   const { openModal } = useOfrendasModal();
 
@@ -274,18 +275,18 @@ export default function IngresosPage() {
 
   const chartLegend = mesSeleccionado ? 'Total por domingo' : 'Total mensual';
 
-  // Tabla del acordeón
-  const tablaData = mesSeleccionado
-    ? [...ofrendas]
-        .filter(d => d.fecha.startsWith(mesSeleccionado))
-        .sort((a, b) => b.fecha.localeCompare(a.fecha))
-    : [];
+  // Tabla de detalle (siempre visible, filtra por tablaMesFiltro)
+  const tablaData = [...ofrendas]
+    .filter(d => tablaMesFiltro ? d.fecha.startsWith(tablaMesFiltro) : true)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
   const tablaEfectivo      = tablaData.reduce((s, d) => s + Number(d.efectivo),            0);
   const tablaTerminal      = tablaData.reduce((s, d) => s + Number(d.terminal),            0);
   const tablaTransferencia = tablaData.reduce((s, d) => s + Number(d.transferencia || 0), 0);
   const tablaTotal         = tablaData.reduce((s, d) => s + Number(d.total_ofrenda),       0);
   const tablaOfrendas      = tablaData.reduce((s, d) => s + Number(d.ofrendas ?? 0),       0);
-  const tablaParticipMes = resumenMeses.find(r => r.mes === mesSeleccionado)?.participMes ?? null;
+  const tablaParticipMes = tablaMesFiltro
+    ? (resumenMeses.find(r => r.mes === tablaMesFiltro)?.participMes ?? null)
+    : null;
   const tablaRows = tablaData.map(d => {
     const a   = asistByFecha[toISODate(d.fecha)];
     const den = (a?.adultos ?? 0) + (a?.voluntarios ?? 0);
@@ -516,86 +517,106 @@ export default function IngresosPage() {
         </div>
       </div>
 
-      {/* ── Acordeón: detalle por domingo ── */}
-      {mesSeleccionado && (
-        <div className="card">
-          <div className="card-head" style={{ marginBottom: 16 }}>
-            <div>
-              <h3 className="card-title">Detalle de ingresos — {mesNombre(mesSeleccionado)}</h3>
-              <div className="card-sub">{tablaData.length} {tablaData.length === 1 ? 'domingo' : 'domingos'}</div>
-            </div>
-            <button
-              onClick={() => setMesSelec(null)}
-              style={{
-                background: 'none', border: '1px solid var(--border)', borderRadius: 6,
-                padding: '5px 12px', fontSize: 12.5, color: 'var(--muted)', cursor: 'pointer',
-                flexShrink: 0,
-              }}
-            >
-              ✕ Cerrar
-            </button>
-          </div>
-          <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
-            <table className="table anf-table">
-              <thead>
-                <tr>
-                  <th>Domingo</th>
-                  <th style={{ textAlign: 'right' }}>Efectivo</th>
-                  <th style={{ textAlign: 'right' }}>Terminal</th>
-                  <th style={{ textAlign: 'right' }}>Transferencia</th>
-                  <th style={{ textAlign: 'right' }}>Ofrendas</th>
-                  <th style={{ textAlign: 'right' }}>Participación</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {tablaRows.map(d => (
-                  <tr key={d.fecha}>
-                    <td style={{ fontWeight: 500 }}>{fmtFecha(d.fecha)}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmt(Number(d.efectivo))}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmt(Number(d.terminal))}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmt(Number(d.transferencia || 0))}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{Number(d.ofrendas ?? 0) || '—'}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                      {d.participDom !== null ? `${d.participDom}%` : '—'}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <button
-                        onClick={() => openModal(d)}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                          background: 'none', border: '1px solid var(--border)',
-                          borderRadius: 6, padding: '3px 8px',
-                          fontSize: 11.5, color: 'var(--muted)', cursor: 'pointer',
-                          lineHeight: 1,
-                        }}
-                      >
-                        <I.edit size={11} />
-                        Editar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tbody>
-                <tr className="anf-totals-row">
-                  <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
-                    Totales {mesNombre(mesSeleccionado)}
-                  </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaEfectivo)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaTerminal)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaTransferencia)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{tablaOfrendas || '—'}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: ORANGE, fontSize: 14 }}>
-                    {tablaParticipMes !== null ? `${tablaParticipMes}%` : '—'}
-                  </td>
-                  <td />
-                </tr>
-              </tbody>
-            </table>
+      {/* ── Tabla de detalle: siempre visible ── */}
+      <div className="card">
+        <div className="card-head" style={{ marginBottom: 12 }}>
+          <div>
+            <h3 className="card-title">Detalle de ingresos — {tablaMesFiltro ? mesNombre(tablaMesFiltro) : year}</h3>
+            <div className="card-sub">{tablaData.length} {tablaData.length === 1 ? 'domingo' : 'domingos'}</div>
           </div>
         </div>
-      )}
+
+        {/* Filtros de mes */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+          <button
+            onClick={() => setTablaMesFiltro(null)}
+            style={{
+              padding: '4px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', border: 'none',
+              background: tablaMesFiltro === null ? ORANGE : 'var(--border)',
+              color: tablaMesFiltro === null ? 'white' : 'var(--muted)',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+          >
+            Todos
+          </button>
+          {mesesDisponibles.map(m => (
+            <button
+              key={m}
+              onClick={() => setTablaMesFiltro(prev => prev === m ? null : m)}
+              style={{
+                padding: '4px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+                cursor: 'pointer', border: 'none',
+                background: tablaMesFiltro === m ? ORANGE : 'var(--border)',
+                color: tablaMesFiltro === m ? 'white' : 'var(--muted)',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+            >
+              {mesNombre(m)}
+            </button>
+          ))}
+        </div>
+
+        <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
+          <table className="table anf-table">
+            <thead>
+              <tr>
+                <th>Domingo</th>
+                <th style={{ textAlign: 'right' }}>Efectivo</th>
+                <th style={{ textAlign: 'right' }}>Terminal</th>
+                <th style={{ textAlign: 'right' }}>Transferencia</th>
+                <th style={{ textAlign: 'right' }}>Ofrendas</th>
+                <th style={{ textAlign: 'right' }}>Participación</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {tablaRows.map(d => (
+                <tr key={d.fecha}>
+                  <td style={{ fontWeight: 500 }}>{fmtFecha(d.fecha)}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmt(Number(d.efectivo))}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmt(Number(d.terminal))}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmt(Number(d.transferencia || 0))}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{Number(d.ofrendas ?? 0) || '—'}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                    {d.participDom !== null ? `${d.participDom}%` : '—'}
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button
+                      onClick={() => openModal(d)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        background: 'none', border: '1px solid var(--border)',
+                        borderRadius: 6, padding: '3px 8px',
+                        fontSize: 11.5, color: 'var(--muted)', cursor: 'pointer',
+                        lineHeight: 1,
+                      }}
+                    >
+                      <I.edit size={11} />
+                      Editar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tbody>
+              <tr className="anf-totals-row">
+                <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
+                  Totales {tablaMesFiltro ? mesNombre(tablaMesFiltro) : year}
+                </td>
+                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaEfectivo)}</td>
+                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaTerminal)}</td>
+                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(tablaTransferencia)}</td>
+                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{tablaOfrendas || '—'}</td>
+                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: ORANGE, fontSize: 14 }}>
+                  {tablaParticipMes !== null ? `${tablaParticipMes}%` : '—'}
+                </td>
+                <td />
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
