@@ -13,12 +13,8 @@ function rowTotal(r) {
 
 // ── Chart constants ───────────────────────────────────────────────────────────
 
-const SEG_COLORS = {
-  adultos:     '#ea580c',
-  voluntarios: '#2563eb',
-  ninos:       '#ca8a04',
-  bebes:       '#db2777',
-};
+const CAT_LABEL = '#6b7280';
+const CAT_VALUE = '#374151';
 
 const DONUT_COLORS = {
   adultos:     '#fb923c',
@@ -28,13 +24,14 @@ const DONUT_COLORS = {
 };
 
 function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevos = 0 }) {
+  const num = { fontFamily: 'var(--font-mono)', color: CAT_VALUE, fontWeight: 700 };
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 8px', marginTop: 9, fontSize: 11.5, lineHeight: 1.6 }}>
-      <span style={{ color: SEG_COLORS.adultos, fontWeight: 600 }}>Adultos <span style={{ fontFamily: 'var(--font-mono)' }}>{adultos}</span></span>
-      <span style={{ color: SEG_COLORS.voluntarios, fontWeight: 600 }}>Voluntarios <span style={{ fontFamily: 'var(--font-mono)' }}>{voluntarios}</span></span>
-      <span style={{ color: SEG_COLORS.ninos, fontWeight: 600 }}>Niños <span style={{ fontFamily: 'var(--font-mono)' }}>{ninos}</span></span>
-      <span style={{ color: SEG_COLORS.bebes, fontWeight: 600 }}>Bebés <span style={{ fontFamily: 'var(--font-mono)' }}>{bebes}</span></span>
-      {nuevos > 0 && <span style={{ color: '#ca8a04', fontWeight: 600 }}>Nuevos <span style={{ fontFamily: 'var(--font-mono)' }}>{nuevos}</span></span>}
+      <span style={{ color: CAT_LABEL }}>Adultos <span style={num}>{adultos}</span></span>
+      <span style={{ color: CAT_LABEL }}>Voluntarios <span style={num}>{voluntarios}</span></span>
+      <span style={{ color: CAT_LABEL }}>Niños <span style={num}>{ninos}</span></span>
+      <span style={{ color: CAT_LABEL }}>Bebés <span style={num}>{bebes}</span></span>
+      {nuevos > 0 && <span style={{ color: CAT_LABEL }}>Nuevos <span style={num}>{nuevos}</span></span>}
     </div>
   );
 }
@@ -333,23 +330,17 @@ export default function AsistenciaViewPage() {
                           </span>
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px', fontSize: 11.5 }}>
-                          <span style={{ color: SEG_COLORS.adultos, fontWeight: 600 }}>
-                            Adultos <span style={{ fontFamily: 'var(--font-mono)' }}>{r.adultos}</span>
-                          </span>
-                          <span style={{ color: SEG_COLORS.voluntarios, fontWeight: 600 }}>
-                            Vol. <span style={{ fontFamily: 'var(--font-mono)' }}>{r.voluntarios}</span>
-                          </span>
-                          <span style={{ color: SEG_COLORS.ninos, fontWeight: 600 }}>
-                            Niños <span style={{ fontFamily: 'var(--font-mono)' }}>{r.ninos}</span>
-                          </span>
-                          <span style={{ color: SEG_COLORS.bebes, fontWeight: 600 }}>
-                            Bebés <span style={{ fontFamily: 'var(--font-mono)' }}>{r.bebes}</span>
-                          </span>
-                          {r.nuevos > 0 && (
-                            <span style={{ color: 'var(--warn)', fontWeight: 600 }}>
-                              Nuevos <span style={{ fontFamily: 'var(--font-mono)' }}>{r.nuevos}</span>
+                          {[
+                            { label: 'Adultos',     v: r.adultos },
+                            { label: 'Vol.',        v: r.voluntarios },
+                            { label: 'Niños',       v: r.ninos },
+                            { label: 'Bebés',       v: r.bebes },
+                            ...(r.nuevos > 0 ? [{ label: 'Nuevos', v: r.nuevos }] : []),
+                          ].map(({ label, v }) => (
+                            <span key={label} style={{ color: CAT_LABEL }}>
+                              {label} <span style={{ fontFamily: 'var(--font-mono)', color: CAT_VALUE, fontWeight: 700 }}>{v}</span>
                             </span>
-                          )}
+                          ))}
                         </div>
                       </div>
                     </button>
