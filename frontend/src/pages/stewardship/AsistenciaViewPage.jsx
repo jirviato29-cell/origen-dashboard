@@ -14,10 +14,10 @@ function rowTotal(r) {
 // ── Chart constants ───────────────────────────────────────────────────────────
 
 const SEG_COLORS = {
-  adultos:     '#0f766e',
-  voluntarios: '#2dd4bf',
-  ninos:       '#f97316',
-  bebes:       '#fbbf24',
+  adultos:     '#ea580c',
+  voluntarios: '#2563eb',
+  ninos:       '#ca8a04',
+  bebes:       '#db2777',
 };
 
 const DONUT_COLORS = {
