@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockGastos, mockEventos } from '../../data/mockData';
-import { asistenciaApi, ofrendasApi, gastosApi } from '../../services/api';
+import { mockGastos } from '../../data/mockData';
+import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi } from '../../services/api';
 import { SALDO_INICIAL_CAJA } from '../../utils/config';
 import { I } from '../../components/Icons';
 import { useOfrendasModal } from '../../context/OfrendasModalContext';
 import { useIsMobile } from '../../utils/useIsMobile';
+import { TIPO_COLOR, TIPO_BG } from '../../utils/tipoEventoColors';
 
 function fmt(n) {
   return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -81,22 +82,28 @@ export default function StewardshipDashboard() {
   // ── API state ──────────────────────────────────────────────────────────────
   const [asistencia, setAsistencia] = useState([]);
   const [ofrendas,   setOfrendas]   = useState([]);
-  const [gastos,     setGastos]     = useState([]);
-  const [loading,    setLoading]    = useState(true);
+  const [gastos,        setGastos]        = useState([]);
+  const [calendario,    setCalendario]    = useState([]);
+  const [participantes, setParticipantes] = useState([]);
+  const [loading,       setLoading]       = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [ra, ro, rg] = await Promise.all([
+        const [ra, ro, rg, rc, rp] = await Promise.all([
           asistenciaApi.getAll({ year, limit: 200 }),
           ofrendasApi.getAll({ year }),
           gastosApi.getAll({ year, pagado: 'true' }),
+          calendarioApi.getAll({ year }),
+          participantesApi.getAll(),
         ]);
         if (!cancelled) {
-          setAsistencia(ra.data || []);
-          setOfrendas(ro.data   || []);
-          setGastos(rg.data     || []);
+          setAsistencia(ra.data     || []);
+          setOfrendas(ro.data       || []);
+          setGastos(rg.data         || []);
+          setCalendario(rc.data     || []);
+          setParticipantes(rp.data  || []);
         }
       } catch { /* mantiene arrays vacíos; cards muestran — */ }
       finally   { if (!cancelled) setLoading(false); }
@@ -139,10 +146,10 @@ export default function StewardshipDashboard() {
         .reduce((s, g) => s + g.monto, 0),
     }))
     .filter(c => c.total > 0);
-  const proximosEventos = mockEventos
-    .filter(e => e.fecha >= hoyStr)
-    .sort((a, b) => a.fecha.localeCompare(b.fecha))
-    .slice(0, 4);
+  const _sortByFecha    = (a, b) => toDateISO(a.fecha).localeCompare(toDateISO(b.fecha));
+  const peProximos      = calendario.filter(e =>  e.en_punto_encuentro && toDateISO(e.fecha) >= hoyStr).sort(_sortByFecha);
+  const otrosProximos   = calendario.filter(e => !e.en_punto_encuentro && toDateISO(e.fecha) >= hoyStr).sort(_sortByFecha);
+  const proximosEventos = [...peProximos, ...otrosProximos].slice(0, 6);
 
   // ── Valores para las tarjetas ──────────────────────────────────────────────
   const D = '—';
@@ -257,33 +264,48 @@ export default function StewardshipDashboard() {
         <div className="card">
           <div className="card-head">
             <h3 className="card-title">Próximos eventos</h3>
-            <button className="btn btn-ghost" onClick={() => navigate('/stewardship/punto-encuentro')}>
+            <button className="btn btn-ghost" onClick={() => navigate('/stewardship/calendario')}>
               Ver todos <I.chevR size={14} />
             </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            {proximosEventos.map(e => (
-              <div key={e.id} style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '10px 14px', borderRadius: 10,
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-              }}>
-                <div style={{ color: 'var(--muted)', flexShrink: 0 }}>
-                  <I.calendar size={16} />
+            {proximosEventos.map(e => {
+              const tipColor = TIPO_COLOR[e.tipo] || 'var(--muted)';
+              const tipBg    = TIPO_BG[e.tipo]    || 'var(--surface-2)';
+              const isPE     = Boolean(e.en_punto_encuentro);
+              const count    = isPE ? participantes.filter(p => p.evento_id === e.id).length : null;
+              return (
+                <div key={e.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 14px', borderRadius: 10,
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderLeft: `3px solid ${tipColor}`,
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{e.nombre}</span>
+                      {isPE && (
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: '#14b8a61a', color: '#14b8a6', flexShrink: 0 }}>
+                          Pto. Encuentro
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{fmtDate(e.fecha)}</span>
+                      {e.tipo && (
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: tipBg, color: tipColor }}>
+                          {e.tipo}
+                        </span>
+                      )}
+                      {count !== null && (
+                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>{count} registrados</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{e.nombre}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>{fmtDate(e.fecha)}</div>
-                </div>
-                {e.tipo === 'especial' && (
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, flexShrink: 0,
-                    background: 'var(--surface-3)', color: 'var(--ink-2)',
-                  }}>Especial</span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
