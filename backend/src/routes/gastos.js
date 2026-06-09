@@ -84,13 +84,13 @@ router.get('/:id', async (req, res) => {
 // POST /api/gastos
 router.post('/', async (req, res) => {
   try {
-    const { fecha, concepto, categoria, monto, pagado = true, comprobante_url = null } = req.body;
+    const { fecha, concepto, categoria, monto, pagado = true, comprobante_url = null, fecha_vencimiento = null } = req.body;
     if (!fecha || !concepto || !categoria || !monto) {
       return res.status(400).json({ error: 'fecha, concepto, categoria y monto son requeridos' });
     }
     const { rows } = await pool.query(
-      'INSERT INTO gastos (fecha, concepto, categoria, monto, pagado, comprobante_url) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
-      [fecha, concepto, categoria, monto, pagado, comprobante_url]
+      'INSERT INTO gastos (fecha, concepto, categoria, monto, pagado, comprobante_url, fecha_vencimiento) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+      [fecha, concepto, categoria, monto, pagado, comprobante_url, fecha_vencimiento]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -101,11 +101,12 @@ router.post('/', async (req, res) => {
 // PUT /api/gastos/:id
 router.put('/:id', async (req, res) => {
   try {
-    const { fecha, concepto, categoria, monto, pagado, comprobante_url } = req.body;
+    const { fecha, concepto, categoria, monto, pagado, comprobante_url, fecha_vencimiento } = req.body;
     const sets   = ['fecha=$1', 'concepto=$2', 'categoria=$3', 'monto=$4'];
     const params = [fecha, concepto, categoria, monto];
-    if (pagado !== undefined)        { sets.push(`pagado=$${params.length+1}`);        params.push(pagado); }
-    if (comprobante_url !== undefined){ sets.push(`comprobante_url=$${params.length+1}`); params.push(comprobante_url); }
+    if (pagado !== undefined)           { sets.push(`pagado=$${params.length+1}`);           params.push(pagado); }
+    if (comprobante_url !== undefined)  { sets.push(`comprobante_url=$${params.length+1}`);  params.push(comprobante_url); }
+    if (fecha_vencimiento !== undefined){ sets.push(`fecha_vencimiento=$${params.length+1}`); params.push(fecha_vencimiento); }
     params.push(req.params.id);
     const query = `UPDATE gastos SET ${sets.join(', ')} WHERE id=$${params.length} RETURNING *`;
     const { rows } = await pool.query(query, params);
