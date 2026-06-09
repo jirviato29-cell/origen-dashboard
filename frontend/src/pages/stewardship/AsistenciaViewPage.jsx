@@ -38,6 +38,25 @@ function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevo
 
 // ── Attendance Donut Chart ────────────────────────────────────────────────────
 
+function renderDonutLabel({ cx, cy, midAngle, outerRadius, name, percent }) {
+  const RADIAN = Math.PI / 180;
+  const r = outerRadius + 32;
+  const x = cx + r * Math.cos(-midAngle * RADIAN);
+  const y = cy + r * Math.sin(-midAngle * RADIAN);
+  const pct = Math.round(percent * 100);
+  return (
+    <text
+      x={x} y={y}
+      fill="#374151"
+      fontSize={11}
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+    >
+      {pct >= 8 ? `${name} ${pct}%` : `${pct}%`}
+    </text>
+  );
+}
+
 function AttendanceDonutChart({ slices, total }) {
   if (!slices || total === 0) {
     return (
@@ -47,53 +66,40 @@ function AttendanceDonutChart({ slices, total }) {
     );
   }
   return (
-    <div>
-      <ResponsiveContainer width="100%" height={240}>
-        <PieChart>
-          <Pie
-            data={slices}
-            cx="50%"
-            cy="50%"
-            innerRadius={68}
-            outerRadius={108}
-            dataKey="value"
-            paddingAngle={2}
-            strokeWidth={0}
-          >
-            <Label
-              content={({ viewBox: { cx, cy } }) => (
-                <text x={cx} y={cy} textAnchor="middle">
-                  <tspan x={cx} dy="-6" fontSize="26" fontWeight="800" fill="var(--ink)" fontFamily="var(--font-mono)">{total}</tspan>
-                  <tspan x={cx} dy="20" fontSize="11" fill="#b0a090">asistentes</tspan>
-                </text>
-              )}
-              position="center"
-            />
-            {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
-          </Pie>
-          <Tooltip
-            formatter={(value, name) => {
-              const pct = total > 0 ? Math.round(value / total * 100) : 0;
-              return [`${value} · ${pct}%`, name];
-            }}
-            contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
+    <ResponsiveContainer width="100%" height={280}>
+      <PieChart>
+        <Pie
+          data={slices}
+          cx="50%"
+          cy="50%"
+          innerRadius={68}
+          outerRadius={90}
+          dataKey="value"
+          paddingAngle={2}
+          strokeWidth={0}
+          label={renderDonutLabel}
+          labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
+        >
+          <Label
+            content={({ viewBox: { cx, cy } }) => (
+              <text x={cx} y={cy} textAnchor="middle">
+                <tspan x={cx} dy="-6" fontSize="26" fontWeight="800" fill="var(--ink)" fontFamily="var(--font-mono)">{total}</tspan>
+                <tspan x={cx} dy="20" fontSize="11" fill="#b0a090">asistentes</tspan>
+              </text>
+            )}
+            position="center"
           />
-        </PieChart>
-      </ResponsiveContainer>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 18px', marginTop: 4 }}>
-        {slices.map(s => {
-          const pct = total > 0 ? Math.round(s.value / total * 100) : 0;
-          return (
-            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: CAT_LABEL }}>{s.name}</span>
-              <span style={{ fontSize: 12.5, fontFamily: 'var(--font-mono)', fontWeight: 700, color: CAT_VALUE }}>{s.value}</span>
-              <span style={{ fontSize: 11, color: CAT_LABEL }}>{pct}%</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+          {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
+        </Pie>
+        <Tooltip
+          formatter={(value, name) => {
+            const pct = total > 0 ? Math.round(value / total * 100) : 0;
+            return [`${value} · ${pct}%`, name];
+          }}
+          contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -207,7 +213,7 @@ export default function AsistenciaViewPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
 
           {/* Último domingo */}
-          <div className="card" style={{ padding: '16px 18px' }}>
+          <div className="card" style={{ padding: '16px 18px', background: '#f0fdfa', border: '2px solid #2dd4bf', boxShadow: '0 2px 10px rgba(45,212,191,0.18)' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Último domingo</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#5eead4', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               {totalUltimo}
