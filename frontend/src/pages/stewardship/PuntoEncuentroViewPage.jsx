@@ -253,7 +253,7 @@ export default function PuntoEncuentroViewPage() {
   const sorted = [...eventos].sort((a, b) => {
     const ia = toISODate(a.fecha) || '';
     const ib = toISODate(b.fecha) || '';
-    return ib.localeCompare(ia);
+    return ia.localeCompare(ib);
   });
 
   const filtered = sorted.filter(e => {
