@@ -3,12 +3,39 @@ import { calendarioApi, participantesApi, abonosApi, comprobanteApi } from '../.
 import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
 import * as XLSX from 'xlsx';
 import { I } from '../../components/Icons';
-import { TIPO_COLOR, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
+import { TIPO_COLOR, TIPO_BG } from '../../utils/tipoEventoColors';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 
+// ── Design tokens ──────────────────────────────────────────────────────────
+const NAVY     = '#112540';
+const NAVY_700 = '#244169';
+const NAVY_300 = '#9CB0CC';
+const NAVY_100 = '#DCE4EF';
+const ORANGE   = '#FF6B2B';
+const ORANGE_400 = '#FF8A52';
+const ORANGE_50  = '#FFF4EE';
+const ORANGE_600 = '#E0561B';
+const GREEN    = '#15915A';
+const RED      = '#D23B36';
+const AMBER    = '#C98A14';
+const GRAY_700 = '#3D4654';
+const GRAY_500 = '#7A8699';
+const GRAY_300 = '#CBD2DC';
+const GRAY_200 = '#E2E6EC';
+const GRAY_100 = '#EEF1F5';
+const GRAY_50  = '#F6F7F9';
+
 function fmtMoney(n) {
   return `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function fmtAmt(n) {
+  return `$${Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 })}`;
+}
+
+function initials(nombre) {
+  return (nombre || '').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
 }
 
 const inputStyle = {
@@ -22,7 +49,7 @@ const labelStyle = {
   textTransform: 'uppercase', letterSpacing: '0.06em',
 };
 
-// ── Campos completos de abono (cantidad + método + condicionales + fecha) ────
+// ── Campos completos de abono — PRESERVED EXACTLY ─────────────────────────
 function AbonoFields({
   monto, onMonto,
   metodo, onMetodo,
@@ -163,12 +190,11 @@ export default function PuntoEncuentroViewPage() {
   const [form,         setForm]         = useState({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
   const [saving,       setSaving]       = useState(false);
   const [formError,    setFormError]    = useState('');
-  // Primer abono embebido en el formulario de registro
   const [primerAbono,     setPrimerAbono]     = useState({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: '' });
   const [primerAbonoFile, setPrimerAbonoFile] = useState(null);
   const primerAbonoFileRef = useRef(null);
 
-  // Modal agregar abono (abonos posteriores)
+  // Modal agregar abono
   const [abonoModalOpen,    setAbonoModalOpen]    = useState(false);
   const [abonoParticipante, setAbonoParticipante] = useState(null);
   const [abonoEvento,       setAbonoEvento]       = useState(null);
@@ -178,12 +204,12 @@ export default function PuntoEncuentroViewPage() {
   const [abonoError,        setAbonoError]        = useState('');
   const abonoFileRef = useRef(null);
 
-  // Modal corte de caja (resumen en vivo, calculado en front)
+  // Modal corte de caja
   const [corteModalOpen, setCorteModalOpen] = useState(false);
   const [corteEvento,    setCorteEvento]    = useState(null);
   const [corteResumen,   setCorteResumen]   = useState([]);
 
-  // ── Carga inicial ────────────────────────────────────────────────────────
+  // ── Carga inicial ──────────────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
       calendarioApi.getAll({ en_punto_encuentro: true }),
@@ -213,15 +239,15 @@ export default function PuntoEncuentroViewPage() {
   useEffect(() => {
     const handler = (e) => {
       if (e.key !== 'Escape') return;
-      if (corteModalOpen)     setCorteModalOpen(false);
+      if (corteModalOpen)      setCorteModalOpen(false);
       else if (abonoModalOpen) setAbonoModalOpen(false);
-      else if (modalOpen)     setModalOpen(false);
+      else if (modalOpen)      setModalOpen(false);
     };
     if (modalOpen || abonoModalOpen || corteModalOpen) window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [modalOpen, abonoModalOpen, corteModalOpen]);
 
-  // ── Datos derivados ──────────────────────────────────────────────────────
+  // ── Datos derivados ────────────────────────────────────────────────────
   const hoyStr = new Date().toISOString().slice(0, 10);
 
   const sorted = [...eventos].sort((a, b) => {
@@ -242,7 +268,43 @@ export default function PuntoEncuentroViewPage() {
     .filter(e => (toISODate(e.fecha) || '') >= hoyStr)
     .sort((a, b) => (toISODate(a.fecha) || '').localeCompare(toISODate(b.fecha) || ''))[0];
 
-  // ── Handlers participantes ───────────────────────────────────────────────
+  // ── KPI calculations ───────────────────────────────────────────────────
+  const eventosActivos     = eventos.filter(e => (toISODate(e.fecha) || '') >= hoyStr).length;
+  const allParticipantes   = Object.values(participantesMap).flat();
+  const totalParticipantes = allParticipantes.length;
+  const totalRecaudado     = Object.values(abonosMap).flat().reduce((s, a) => s + parseFloat(a.monto || 0), 0);
+
+  let totalPorCobrar = 0;
+  let countPendientes = 0;
+  eventos.forEach(e => {
+    const costo = parseFloat(e.costo) || 0;
+    if (costo <= 0) return;
+    (participantesMap[e.id] || []).forEach(p => {
+      const pagado = (abonosMap[p.id] || []).reduce((s, a) => s + parseFloat(a.monto || 0), 0);
+      const saldo  = costo - pagado;
+      if (saldo > 0) { totalPorCobrar += saldo; countPendientes++; }
+    });
+  });
+
+  // ── Próximo evento stats ───────────────────────────────────────────────
+  const proximoParts      = proximo ? (participantesMap[proximo.id] || []) : [];
+  const proximoInscritos  = proximoParts.length;
+  const proximoRecaudado  = proximoParts.reduce((s, p) =>
+    s + (abonosMap[p.id] || []).reduce((ss, a) => ss + parseFloat(a.monto || 0), 0), 0);
+  const diasFaltantes = proximo
+    ? Math.max(0, Math.round((new Date(toISODate(proximo.fecha) + 'T00:00:00') - new Date(hoyStr + 'T00:00:00')) / 86400000))
+    : 0;
+
+  // ── Tipos de reunión count ─────────────────────────────────────────────
+  const tiposCount = {};
+  eventos.forEach(e => {
+    if (e.tipo) {
+      tiposCount[e.tipo] = (tiposCount[e.tipo] || 0) + 1;
+    }
+  });
+  const tipoEntries = Object.entries(tiposCount).sort((a, b) => b[1] - a[1]);
+
+  // ── Handlers participantes — PRESERVED EXACTLY ─────────────────────────
   const openModal = (evento) => {
     setModalEvento(evento);
     setForm({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
@@ -257,7 +319,6 @@ export default function PuntoEncuentroViewPage() {
     setSaving(true);
     setFormError('');
     try {
-      // 1. Crear participante
       const { data: pData } = await participantesApi.create({
         evento_id:    modalEvento.id,
         nombre:       form.nombre,
@@ -269,8 +330,6 @@ export default function PuntoEncuentroViewPage() {
         ...prev,
         [modalEvento.id]: [...(prev[modalEvento.id] || []), pData],
       }));
-
-      // 2. Crear primer abono si se capturó monto
       const monto = parseFloat(primerAbono.monto);
       if (monto > 0) {
         let comprobante_url = null;
@@ -291,7 +350,6 @@ export default function PuntoEncuentroViewPage() {
           [pData.id]: [...(prev[pData.id] || []), aData],
         }));
       }
-
       setExpandedId(modalEvento.id);
       setModalOpen(false);
     } catch (err) {
@@ -314,7 +372,7 @@ export default function PuntoEncuentroViewPage() {
     }
   };
 
-  // ── Handlers abonos ──────────────────────────────────────────────────────
+  // ── Handlers abonos — PRESERVED EXACTLY ───────────────────────────────
   const openAbonoModal = (participante, evento) => {
     setAbonoParticipante(participante);
     setAbonoEvento(evento);
@@ -379,13 +437,11 @@ export default function PuntoEncuentroViewPage() {
     });
   };
 
-  // ── Exportar Excel ──────────────────────────────────────────────────────
+  // ── Exportar Excel — PRESERVED EXACTLY ────────────────────────────────
   const descargarExcel = (evento) => {
     const participantes = participantesMap[evento.id] || [];
     const costo = parseFloat(evento.costo) || 0;
-
     const headers = ['Nombre', 'WhatsApp', 'Edad', 'Relación', 'Costo', 'Pagado', 'Saldo', 'Estado'];
-
     const rows = participantes.map(p => {
       const abonos = abonosMap[p.id] || [];
       const pagado = abonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
@@ -401,31 +457,24 @@ export default function PuntoEncuentroViewPage() {
         costo  > 0  ? (saldo <= 0 ? 'Liquidado' : 'Debe') : '',
       ];
     });
-
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-
-    // Anchos de columna
     ws['!cols'] = [
       { wch: 30 }, { wch: 15 }, { wch: 6 }, { wch: 16 },
       { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 },
     ];
-
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Participantes');
-
     const slug = evento.nombre
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/, '');
     XLSX.writeFile(wb, `participantes_${slug}_${hoyStr}.xlsx`);
   };
 
-  // ── Handler corte de caja (resumen en vivo) ─────────────────────────────
+  // ── Corte de caja — PRESERVED EXACTLY ─────────────────────────────────
   const openCorteModal = (evento) => {
     setCorteEvento(evento);
-
     const participantes = participantesMap[evento.id] || [];
     const todosAbonos   = participantes.flatMap(p => abonosMap[p.id] || []);
-
     const byFecha = {};
     todosAbonos.forEach(a => {
       const fecha = toISODate(a.fecha) || (a.fecha || '').slice(0, 10);
@@ -437,7 +486,6 @@ export default function PuntoEncuentroViewPage() {
       else if (metodo === 'transferencia') byFecha[fecha].transferencia += m;
       else                                 byFecha[fecha].efectivo      += m;
     });
-
     const resumen = Object.entries(byFecha)
       .map(([fecha, t]) => ({
         fecha,
@@ -447,254 +495,303 @@ export default function PuntoEncuentroViewPage() {
         total:         t.efectivo + t.tarjeta + t.transferencia,
       }))
       .sort((a, b) => a.fecha.localeCompare(b.fecha));
-
     setCorteResumen(resumen);
     setCorteModalOpen(true);
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      {/* Próximo evento highlight */}
-      {!loading && proximo && (
-        <div style={{
-          padding: '16px 20px', borderRadius: 14,
-          background: 'var(--surface-2)', border: '1.5px solid var(--border-strong)',
-          display: 'flex', alignItems: 'center', gap: 16,
-        }}>
-          <div style={{ color: 'var(--ink)', flexShrink: 0 }}><I.calendar size={28} /></div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Próximo evento
+      {/* ── KPIs (4 tarjetas) ─────────────────────────────────────────────── */}
+      {!loading && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+
+          {/* Eventos activos */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
+              <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: NAVY_100, color: NAVY_700, flexShrink: 0 }}>
+                <I.calendar size={15} />
+              </span>
+              Eventos activos
             </div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginTop: 2 }}>{proximo.nombre}</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>{fmtFecha(proximo.fecha)}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+              {eventosActivos}
+            </div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>próximos este año</div>
           </div>
-          {proximo.tipo && (
-            <span style={{
-              fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 99, flexShrink: 0,
-              background: TIPO_BG[proximo.tipo] || 'var(--surface-3)',
-              color: TIPO_COLOR[proximo.tipo] || 'var(--ink-2)',
-            }}>
-              {proximo.tipo}
-            </span>
-          )}
+
+          {/* Participantes */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
+              <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: NAVY_100, color: NAVY_700, flexShrink: 0 }}>
+                <I.users size={15} />
+              </span>
+              Participantes
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+              {totalParticipantes}
+            </div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>inscritos en total</div>
+          </div>
+
+          {/* Recaudado */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
+              <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#E6F5EC', color: GREEN, flexShrink: 0 }}>
+                <I.cash size={15} />
+              </span>
+              Recaudado
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: GREEN, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 17, fontWeight: 600, color: '#3DD68C' }}>$</span>
+              {Math.round(totalRecaudado).toLocaleString('es-MX')}
+            </div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>suma de todos los abonos</div>
+          </div>
+
+          {/* Por cobrar */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
+              <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FBF2DC', color: AMBER, flexShrink: 0 }}>
+                <I.clock size={15} />
+              </span>
+              Por cobrar
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: AMBER, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 17, fontWeight: 600, opacity: 0.6 }}>$</span>
+              {Math.round(totalPorCobrar).toLocaleString('es-MX')}
+            </div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>
+              {countPendientes} {countPendientes === 1 ? 'pago pendiente' : 'pagos pendientes'}
+            </div>
+          </div>
+
         </div>
       )}
 
-      {/* Events list */}
-      <div className="card">
-        <div className="card-head">
-          <div>
-            <h3 className="card-title">Eventos en Punto de Encuentro</h3>
-            <div className="card-sub">{loading ? 'Cargando…' : `${filtered.length} eventos`}</div>
+      {/* ── Layout principal 2 columnas ──────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 14, alignItems: 'start' }}>
+
+        {/* ── IZQUIERDA: Lista de eventos ────────────────────────────────── */}
+        <div className="card">
+          <div className="card-head" style={{ marginBottom: 14 }}>
+            <div>
+              <h3 className="card-title">Eventos en Punto de Encuentro</h3>
+              <div className="card-sub">{loading ? 'Cargando…' : `${filtered.length} evento${filtered.length !== 1 ? 's' : ''}`}</div>
+            </div>
           </div>
-        </div>
 
-        {/* Filter chips */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-          {[
-            { key: 'todos',    label: 'Todos' },
-            { key: 'proximos', label: 'Próximos' },
-            { key: 'pasados',  label: 'Pasados' },
-            { key: 'especial', label: 'Especiales' },
-          ].map(opt => (
-            <button
-              key={opt.key}
-              className={`chip${filter === opt.key ? ' active' : ''}`}
-              onClick={() => setFilter(opt.key)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>
-            Cargando eventos…
+          {/* Filter tabs */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+            {[
+              { key: 'todos',    label: 'Todos' },
+              { key: 'proximos', label: 'Próximos' },
+              { key: 'pasados',  label: 'Pasados' },
+              { key: 'especial', label: 'Especiales' },
+            ].map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setFilter(opt.key)}
+                style={{
+                  fontSize: 13, fontWeight: 600, padding: '8px 15px', borderRadius: 9,
+                  border: `1px solid ${filter === opt.key ? NAVY : GRAY_200}`,
+                  background: filter === opt.key ? NAVY : 'white',
+                  color: filter === opt.key ? 'white' : GRAY_700,
+                  cursor: 'pointer', transition: '.12s',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>
-            Sin eventos en esta categoría.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtered.map(e => {
-              const iso        = toISODate(e.fecha) || '';
-              const isPast     = iso < hoyStr;
-              const isToday    = iso === hoyStr;
-              const pList      = participantesMap[e.id] || [];
-              const pCount     = pList.length;
-              const isExpanded = expandedId === e.id;
-              const costo      = parseFloat(e.costo) || 0;
 
-              return (
-                <div key={e.id} style={{
-                  borderRadius: 10,
-                  border: `1px solid ${isToday ? 'var(--border-strong)' : 'var(--border)'}`,
-                  overflow: 'hidden',
-                  opacity: isPast ? 0.72 : 1,
-                }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>
+              Cargando eventos…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>
+              Sin eventos en esta categoría.
+            </div>
+          ) : (
+            <div>
+              {filtered.map((e, idx) => {
+                const iso        = toISODate(e.fecha) || '';
+                const isPast     = iso < hoyStr;
+                const isToday    = iso === hoyStr;
+                const pList      = participantesMap[e.id] || [];
+                const pCount     = pList.length;
+                const isExpanded = expandedId === e.id;
+                const costo      = parseFloat(e.costo) || 0;
 
-                  {/* Fila principal */}
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 16px',
-                    background: isToday ? 'var(--surface-2)' : (TIPO_CELL_BG[e.tipo] || 'var(--surface)'),
-                    flexWrap: 'wrap',
+                return (
+                  <div key={e.id} style={{
+                    border: `1px solid ${GRAY_200}`,
+                    borderRadius: 'var(--r-lg)',
+                    overflow: 'hidden',
+                    marginBottom: idx < filtered.length - 1 ? 14 : 0,
+                    opacity: isPast && !isToday ? 0.75 : 1,
                   }}>
-                    <div style={{ color: 'var(--muted)', flexShrink: 0 }}><I.pin size={15} /></div>
-                    <div style={{ flex: 1, minWidth: 140 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{e.nombre}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1, display: 'flex', gap: 10 }}>
-                        <span>{fmtFechaShort(e.fecha)}</span>
-                        {costo > 0 && (
-                          <span style={{ fontWeight: 600, color: 'var(--ink-2)' }}>Costo: {fmtMoney(costo)}</span>
-                        )}
+
+                    {/* Event top */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '16px 18px', background: GRAY_50,
+                      borderBottom: `1px solid ${GRAY_200}`, flexWrap: 'wrap',
+                    }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: NAVY_100, color: NAVY_700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <I.pin size={20} />
                       </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                      {isToday && (
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--black)', color: 'white' }}>
-                          Hoy
-                        </span>
-                      )}
+                      <div style={{ flex: 1, minWidth: 120 }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: NAVY, marginBottom: 4 }}>{e.nombre}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: GRAY_500, flexWrap: 'wrap' }}>
+                          <span>{fmtFechaShort(e.fecha)}</span>
+                          {isToday && (
+                            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: NAVY, color: 'white' }}>Hoy</span>
+                          )}
+                          {costo > 0 && (
+                            <>
+                              <span style={{ width: 3, height: 3, borderRadius: '50%', background: GRAY_300, display: 'inline-block' }} />
+                              <span>Costo <b style={{ color: NAVY_700 }}>{fmtAmt(costo)}</b></span>
+                            </>
+                          )}
+                          <span style={{ width: 3, height: 3, borderRadius: '50%', background: GRAY_300, display: 'inline-block' }} />
+                          <span>{pCount} inscritos</span>
+                        </div>
+                      </div>
                       {e.tipo && (
                         <span style={{
-                          fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                          background: TIPO_BG[e.tipo] || 'var(--surface-3)',
-                          color: TIPO_COLOR[e.tipo] || 'var(--ink-2)',
+                          fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 6, flexShrink: 0,
+                          background: TIPO_BG[e.tipo] || ORANGE_50,
+                          color: TIPO_COLOR[e.tipo] || ORANGE_600,
                         }}>
                           {e.tipo}
                         </span>
                       )}
-                      {isPast && !isToday && <span style={{ fontSize: 11, color: 'var(--muted)' }}>Pasado</span>}
                     </div>
-                  </div>
 
-                  {/* Fila acciones */}
-                  <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '7px 12px 7px 16px',
-                    background: 'var(--surface)',
-                    borderTop: '1px solid var(--border)',
-                    gap: 8, flexWrap: 'wrap',
-                  }}>
-                    <button
-                      onClick={() => setExpandedId(isExpanded ? null : e.id)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 5,
-                        background: 'transparent', border: 'none',
-                        padding: '4px 6px', borderRadius: 6,
-                        fontSize: 12.5, color: 'var(--ink-2)', cursor: 'pointer',
-                        fontFamily: 'var(--font-ui)',
-                      }}
-                    >
-                      <I.users size={13} />
-                      <span>{pCount} participante{pCount !== 1 ? 's' : ''}</span>
-                      <span style={{ display: 'inline-flex', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.18s' }}>
-                        <I.chevR size={11} />
-                      </span>
-                    </button>
-                    {canWrite && (
+                    {/* Event actions */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '12px 18px', borderBottom: `1px solid ${GRAY_100}`,
+                      flexWrap: 'wrap',
+                    }}>
                       <button
-                        className="btn btn-primary"
-                        style={{ fontSize: 12, padding: '5px 12px' }}
-                        onClick={() => openModal(e)}
+                        onClick={() => setExpandedId(isExpanded ? null : e.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 7,
+                          fontSize: 12.5, fontWeight: 600, color: NAVY_700,
+                          background: 'transparent', border: 'none',
+                          padding: '4px 0', cursor: 'pointer', marginRight: 'auto',
+                          fontFamily: 'var(--font-ui)',
+                        }}
                       >
-                        <I.plus size={12} /> Registrar participante
+                        <I.users size={16} style={{ color: GRAY_500 }} />
+                        <span>{pCount} participante{pCount !== 1 ? 's' : ''}</span>
+                        <span style={{ display: 'inline-flex', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.18s' }}>
+                          <I.chevR size={11} />
+                        </span>
                       </button>
-                    )}
-                    <button
-                      className="btn"
-                      style={{
-                        fontSize: 12, padding: '5px 12px',
-                        border: '1.5px solid var(--border)',
-                        background: 'var(--surface)',
-                        color: 'var(--ink-2)',
-                      }}
-                      onClick={() => openCorteModal(e)}
-                    >
-                      <I.cash size={12} /> Corte
-                    </button>
-                    <button
-                      className="btn"
-                      style={{
-                        fontSize: 12, padding: '5px 12px',
-                        border: '1.5px solid var(--border)',
-                        background: 'var(--surface)',
-                        color: 'var(--ink-2)',
-                      }}
-                      onClick={() => descargarExcel(e)}
-                      title="Descargar Excel con participantes"
-                    >
-                      <I.download size={12} /> Excel
-                    </button>
-                  </div>
+                      {canWrite && (
+                        <button
+                          className="btn btn-primary"
+                          style={{ padding: '8px 13px', fontSize: 13 }}
+                          onClick={() => openModal(e)}
+                        >
+                          <I.plus size={15} /> Registrar
+                        </button>
+                      )}
+                      <button
+                        className="btn btn-ghost"
+                        style={{ padding: '8px 13px', fontSize: 13 }}
+                        onClick={() => openCorteModal(e)}
+                      >
+                        <I.cash size={15} /> Corte
+                      </button>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ padding: '8px 13px', fontSize: 13 }}
+                        onClick={() => descargarExcel(e)}
+                      >
+                        <I.download size={15} /> Excel
+                      </button>
+                    </div>
 
-                  {/* Lista participantes (expandible) */}
-                  {isExpanded && (
-                    <div>
-                      {pList.length === 0 ? (
-                        <div style={{
-                          padding: '10px 16px', fontSize: 13, color: 'var(--muted)',
-                          borderTop: '1px solid var(--border)', background: 'var(--surface)',
-                        }}>
-                          Sin participantes registrados. Usa el botón de arriba para agregar.
-                        </div>
-                      ) : (
-                        pList.map((p) => {
-                          const pAbonos     = abonosMap[p.id] || [];
-                          const totalPagado = pAbonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
-                          const saldo       = costo > 0 ? costo - totalPagado : null;
-                          const liquidado   = saldo !== null && saldo <= 0;
-                          const pExpanded   = expandedParticipantes.has(p.id);
+                    {/* Participants list (expandible) */}
+                    {isExpanded && (
+                      <div>
+                        {pList.length === 0 ? (
+                          <div style={{ padding: 22, textAlign: 'center', fontSize: 12.5, color: GRAY_500 }}>
+                            Aún sin participantes registrados · sé el primero en inscribir
+                          </div>
+                        ) : (
+                          pList.map(p => {
+                            const pAbonos     = abonosMap[p.id] || [];
+                            const totalPagado = pAbonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
+                            const saldo       = costo > 0 ? costo - totalPagado : null;
+                            const status      = costo > 0
+                              ? (saldo <= 0 ? 'liquidado' : totalPagado > 0 ? 'parcial' : 'pendiente')
+                              : null;
+                            const pExpanded = expandedParticipantes.has(p.id);
 
-                          return (
-                            <div key={p.id} style={{ borderTop: '1px solid var(--border)' }}>
-                              <div style={{
-                                display: 'flex', alignItems: 'center', gap: 10,
-                                padding: '9px 12px 9px 16px',
-                                background: 'var(--white, #fff)',
-                                flexWrap: 'wrap',
-                              }}>
-                                <div style={{ flex: 1, minWidth: 140, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                                  <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ink)' }}>{p.nombre}</span>
-                                  <span style={{
-                                    fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 99, flexShrink: 0,
-                                    background: p.tipo_persona === 'invitado' ? 'rgba(245,158,11,0.13)' : 'rgba(16,185,129,0.11)',
-                                    color: p.tipo_persona === 'invitado' ? '#B45309' : '#047857',
+                            const statusStyle = {
+                              liquidado: { background: '#E6F5EC', color: GREEN },
+                              parcial:   { background: '#FBF2DC', color: AMBER },
+                              pendiente: { background: '#FBEAE9', color: RED },
+                            };
+
+                            return (
+                              <div key={p.id} style={{ borderTop: `1px solid ${GRAY_100}` }}>
+                                <div style={{
+                                  display: 'flex', alignItems: 'center', gap: 12,
+                                  padding: '12px 18px', background: 'white',
+                                  transition: 'background .1s',
+                                }}>
+                                  {/* Avatar */}
+                                  <div style={{
+                                    width: 34, height: 34, borderRadius: '50%',
+                                    background: NAVY_700, color: 'white',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontWeight: 700, fontSize: 12, flexShrink: 0,
                                   }}>
-                                    {p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen'}
-                                  </span>
-                                  {p.whatsapp && (
-                                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>WA: {p.whatsapp}</span>
-                                  )}
-                                  {p.whatsapp && p.edad && (
-                                    <span style={{ fontSize: 11, color: 'var(--border-strong)' }}>·</span>
-                                  )}
-                                  {p.edad && (
-                                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{p.edad} años</span>
-                                  )}
-                                </div>
-
-                                {costo > 0 && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                                      {fmtMoney(totalPagado)} / {fmtMoney(costo)}
-                                    </span>
-                                    <span style={{
-                                      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                                      background: liquidado ? 'rgba(16,185,129,0.12)' : 'rgba(220,38,38,0.10)',
-                                      color: liquidado ? '#047857' : 'var(--danger)',
-                                    }}>
-                                      {liquidado ? 'Liquidado' : `Debe ${fmtMoney(saldo)}`}
-                                    </span>
+                                    {initials(p.nombre)}
                                   </div>
-                                )}
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                                  {/* Body */}
+                                  <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                      {p.nombre}
+                                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5, background: NAVY_100, color: NAVY_700 }}>
+                                        {p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen'}
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 2, display: 'flex', gap: 9, flexWrap: 'wrap' }}>
+                                      {p.whatsapp && <span>WA {p.whatsapp}</span>}
+                                      {p.whatsapp && p.edad && <span>·</span>}
+                                      {p.edad && <span>{p.edad} años</span>}
+                                    </div>
+                                  </div>
+
+                                  {/* Payment info */}
+                                  {costo > 0 && (
+                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                      <div style={{ fontSize: 12.5, fontWeight: 700, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+                                        {fmtAmt(totalPagado)} <span style={{ color: GRAY_500, fontWeight: 500 }}>/ {fmtAmt(costo)}</span>
+                                      </div>
+                                      {status && (
+                                        <span style={{
+                                          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 5,
+                                          marginTop: 3, display: 'inline-block',
+                                          ...statusStyle[status],
+                                        }}>
+                                          {status === 'liquidado' ? 'Liquidado' : status === 'parcial' ? 'Parcial' : 'Pendiente'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Abono history toggle */}
                                   {pAbonos.length > 0 && (
                                     <button
                                       onClick={() => toggleExpandParticipante(p.id)}
@@ -703,7 +800,7 @@ export default function PuntoEncuentroViewPage() {
                                         background: 'transparent', border: 'none',
                                         padding: '3px 7px', borderRadius: 6,
                                         fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer',
-                                        fontFamily: 'var(--font-ui)',
+                                        fontFamily: 'var(--font-ui)', flexShrink: 0,
                                       }}
                                       title="Ver abonos"
                                     >
@@ -714,90 +811,255 @@ export default function PuntoEncuentroViewPage() {
                                       </span>
                                     </button>
                                   )}
+
+                                  {/* Abono button */}
                                   {canWrite && (
-                                    <button
-                                      className="btn btn-primary"
-                                      style={{ fontSize: 11, padding: '3px 9px' }}
-                                      onClick={() => openAbonoModal(p, e)}
-                                    >
-                                      <I.plus size={11} /> Abono
-                                    </button>
+                                    status === 'liquidado' ? (
+                                      <button style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                                        fontSize: 11.5, fontWeight: 600, padding: '7px 11px', borderRadius: 7,
+                                        background: 'white', color: GRAY_500, border: `1px solid ${GRAY_200}`,
+                                        cursor: 'default', flexShrink: 0,
+                                      }}>
+                                        Liquidado
+                                      </button>
+                                    ) : (
+                                      <button onClick={() => openAbonoModal(p, e)} style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                                        fontSize: 11.5, fontWeight: 600, padding: '7px 11px', borderRadius: 7,
+                                        background: NAVY, color: 'white', border: 0, cursor: 'pointer', flexShrink: 0,
+                                      }}>
+                                        <I.plus size={12} /> Abono
+                                      </button>
+                                    )
                                   )}
+
+                                  {/* Delete */}
                                   {canWrite && (
                                     <button
-                                      className="icon-btn"
                                       onClick={() => handleDeleteParticipante(p)}
                                       disabled={deletingId === p.id}
-                                      style={{ width: 28, height: 28, color: 'var(--danger)', flexShrink: 0 }}
+                                      style={{
+                                        width: 30, height: 30, borderRadius: 7,
+                                        border: `1px solid ${GRAY_200}`, background: 'white',
+                                        color: GRAY_300, display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+                                      }}
                                       title="Eliminar participante"
                                     >
-                                      <I.trash size={13} />
+                                      <I.trash size={14} />
                                     </button>
                                   )}
                                 </div>
-                              </div>
 
-                              {pExpanded && pAbonos.length > 0 && (
-                                <div style={{
-                                  padding: '6px 12px 8px 16px',
-                                  borderTop: '1px dashed var(--border)',
-                                  background: 'var(--surface)',
-                                  display: 'flex', flexWrap: 'wrap', gap: 6,
-                                }}>
-                                  {pAbonos.map(a => (
-                                    <div key={a.id} style={{
-                                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                                      padding: '3px 7px 3px 9px',
-                                      borderRadius: 99,
-                                      background: 'var(--surface-2)',
-                                      border: '1px solid var(--border)',
-                                      fontSize: 11.5,
-                                    }}>
-                                      <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{fmtMoney(a.monto)}</span>
-                                      <span style={{ color: 'var(--muted)' }}>·</span>
-                                      <span style={{ color: 'var(--ink-2)', textTransform: 'capitalize' }}>{a.metodo}</span>
-                                      <span style={{ color: 'var(--muted)' }}>·</span>
-                                      <span style={{ color: 'var(--muted)' }}>{fmtFechaShort(a.fecha)}</span>
-                                      {a.comprobante_url && (
-                                        <a
-                                          href={a.comprobante_url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          style={{ color: 'var(--chart-primary)', marginLeft: 2, lineHeight: 1 }}
-                                          title="Ver comprobante"
-                                        >
-                                          <I.paperclip size={10} />
-                                        </a>
-                                      )}
-                                      {canWrite && (
-                                        <button
-                                          className="icon-btn"
-                                          onClick={() => handleDeleteAbono(a)}
-                                          disabled={deletingAbonoId === a.id}
-                                          style={{ width: 16, height: 16, color: 'var(--danger)', flexShrink: 0, marginLeft: 1 }}
-                                          title="Eliminar abono"
-                                        >
-                                          <I.x size={9} />
-                                        </button>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
+                                {/* Abonos detalle */}
+                                {pExpanded && pAbonos.length > 0 && (
+                                  <div style={{
+                                    padding: '6px 12px 8px 16px',
+                                    borderTop: `1px dashed ${GRAY_200}`,
+                                    background: GRAY_50,
+                                    display: 'flex', flexWrap: 'wrap', gap: 6,
+                                  }}>
+                                    {pAbonos.map(a => (
+                                      <div key={a.id} style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                                        padding: '3px 7px 3px 9px', borderRadius: 99,
+                                        background: 'white', border: `1px solid ${GRAY_200}`,
+                                        fontSize: 11.5,
+                                      }}>
+                                        <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{fmtMoney(a.monto)}</span>
+                                        <span style={{ color: GRAY_500 }}>·</span>
+                                        <span style={{ color: 'var(--ink-2)', textTransform: 'capitalize' }}>{a.metodo}</span>
+                                        <span style={{ color: GRAY_500 }}>·</span>
+                                        <span style={{ color: GRAY_500 }}>{fmtFechaShort(a.fecha)}</span>
+                                        {a.comprobante_url && (
+                                          <a href={a.comprobante_url} target="_blank" rel="noopener noreferrer"
+                                            style={{ color: 'var(--chart-primary)', marginLeft: 2, lineHeight: 1 }}
+                                            title="Ver comprobante">
+                                            <I.paperclip size={10} />
+                                          </a>
+                                        )}
+                                        {canWrite && (
+                                          <button
+                                            className="icon-btn"
+                                            onClick={() => handleDeleteAbono(a)}
+                                            disabled={deletingAbonoId === a.id}
+                                            style={{ width: 16, height: 16, color: 'var(--danger)', flexShrink: 0, marginLeft: 1 }}
+                                            title="Eliminar abono"
+                                          >
+                                            <I.x size={9} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── DERECHA: Panel lateral ──────────────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* Próximo evento — feature card navy */}
+          {!loading && proximo && (
+            <div style={{
+              background: NAVY, borderRadius: 'var(--r-xl)', padding: 22, color: 'white',
+              position: 'relative', overflow: 'hidden', boxShadow: 'var(--shadow-md)',
+            }}>
+              {/* Decorative circle */}
+              <div style={{
+                position: 'absolute', right: -40, top: -40, width: 160, height: 160,
+                borderRadius: '50%', border: '1px solid rgba(255,255,255,0.07)',
+                pointerEvents: 'none',
+              }} />
+
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: ORANGE_400, marginBottom: 12 }}>
+                Próximo evento
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.15, marginBottom: 8 }}>
+                {proximo.nombre}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: NAVY_300, fontSize: 12.5, flexWrap: 'wrap', marginBottom: 18 }}>
+                <span>{fmtFecha(proximo.fecha)}</span>
+                {proximo.tipo && (
+                  <>
+                    <span style={{ width: 3, height: 3, borderRadius: '50%', background: NAVY_300, display: 'inline-block' }} />
+                    <span style={{ fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 6, background: 'rgba(255,138,82,0.16)', color: ORANGE_400 }}>
+                      {proximo.tipo}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 22, marginBottom: 18 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
+                    {diasFaltantes}
+                  </span>
+                  <span style={{ fontSize: 11, color: NAVY_300, fontWeight: 600 }}>días faltan</span>
                 </div>
-              );
-            })}
-          </div>
-        )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
+                    {proximoInscritos}
+                  </span>
+                  <span style={{ fontSize: 11, color: NAVY_300, fontWeight: 600 }}>inscritos</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', color: '#3DD68C' }}>
+                    {fmtAmt(proximoRecaudado)}
+                  </span>
+                  <span style={{ fontSize: 11, color: NAVY_300, fontWeight: 600 }}>recaudado</span>
+                </div>
+              </div>
+
+              {canWrite && (
+                <div style={{ display: 'flex', gap: 9, position: 'relative', zIndex: 1 }}>
+                  <button className="btn btn-primary" onClick={() => openModal(proximo)}>
+                    <I.plus size={15} /> Registrar participante
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Recaudación — para el próximo evento */}
+          {!loading && proximo && (() => {
+            const pList  = participantesMap[proximo.id] || [];
+            const costo  = parseFloat(proximo.costo) || 0;
+            const meta   = costo * pList.length;
+            const recaud = pList.reduce((s, p) =>
+              s + (abonosMap[p.id] || []).reduce((ss, a) => ss + parseFloat(a.monto || 0), 0), 0);
+            const pct = meta > 0 ? Math.min(100, Math.round(recaud / meta * 100)) : 0;
+
+            const breakdown = {
+              liquidado: { count: 0, total: 0 },
+              parcial:   { count: 0, total: 0 },
+              pendiente: { count: 0, total: 0 },
+            };
+            pList.forEach(p => {
+              const pagado = (abonosMap[p.id] || []).reduce((s, a) => s + parseFloat(a.monto || 0), 0);
+              const sal = costo > 0 ? costo - pagado : 0;
+              if (costo > 0) {
+                if (sal <= 0)      { breakdown.liquidado.count++; breakdown.liquidado.total += pagado; }
+                else if (pagado > 0) { breakdown.parcial.count++;   breakdown.parcial.total   += pagado; }
+                else               { breakdown.pendiente.count++;  breakdown.pendiente.total += pagado; }
+              }
+            });
+
+            return (
+              <div className="card">
+                <div className="card-head" style={{ marginBottom: 12 }}>
+                  <div>
+                    <h3 className="card-title">Recaudación</h3>
+                    <div className="card-sub">
+                      {proximo.nombre}{costo > 0 && meta > 0 ? ` · meta ${fmtAmt(meta)}` : ''}
+                    </div>
+                  </div>
+                </div>
+                {/* Barra */}
+                <div style={{ height: 10, borderRadius: 999, background: GRAY_100, overflow: 'hidden', marginBottom: 6 }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: GREEN, borderRadius: 999, transition: 'width .5s' }} />
+                </div>
+                <div style={{ fontSize: 11.5, color: GRAY_500, marginBottom: 14 }}>
+                  {pct}% cobrado · {fmtAmt(recaud)} de {fmtAmt(meta)}
+                </div>
+                {/* Desglose */}
+                <div style={{ borderTop: `1px solid ${GRAY_100}`, paddingTop: 6 }}>
+                  {[
+                    { key: 'liquidado', label: 'Liquidado', color: GREEN   },
+                    { key: 'parcial',   label: 'Parcial',   color: AMBER   },
+                    { key: 'pendiente', label: 'Pendiente', color: RED     },
+                  ].map(({ key, label, color }) => (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: GRAY_700, fontWeight: 500 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                        {label}
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: breakdown[key].count > 0 ? color : GRAY_500 }}>
+                        {fmtAmt(breakdown[key].total)} · {breakdown[key].count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Tipos de reunión */}
+          {!loading && tipoEntries.length > 0 && (
+            <div className="card">
+              <div className="card-head" style={{ marginBottom: 8 }}>
+                <div>
+                  <h3 className="card-title">Tipos de reunión</h3>
+                </div>
+              </div>
+              {tipoEntries.map(([tipo, count]) => (
+                <div key={tipo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid ${GRAY_100}` }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: GRAY_700, fontWeight: 500 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: TIPO_COLOR[tipo] || GRAY_500, display: 'inline-block' }} />
+                    {tipo}
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+                    {count} evento{count !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── Modal registrar participante ────────────────────────────────────── */}
+      {/* ── Modal registrar participante — PRESERVED EXACTLY ────────────────── */}
       {modalOpen && (
         <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setModalOpen(false); }}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
@@ -889,16 +1151,11 @@ export default function PuntoEncuentroViewPage() {
                 />
               </div>
 
-              {/* ── Primer abono (opcional) ── */}
-              <div style={{
-                borderTop: '1px dashed var(--border)',
-                paddingTop: 14,
-                display: 'flex', flexDirection: 'column', gap: 12,
-              }}>
+              {/* Primer abono (opcional) */}
+              <div style={{ borderTop: '1px dashed var(--border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   Primer abono <span style={{ fontWeight: 500, textTransform: 'none' }}>(opcional)</span>
                 </div>
-
                 <AbonoFields
                   monto={primerAbono.monto}
                   onMonto={v => setPrimerAbono(f => ({ ...f, monto: v }))}
@@ -914,7 +1171,6 @@ export default function PuntoEncuentroViewPage() {
                   cantidadRequerida={false}
                 />
               </div>
-
             </div>
 
             {formError && (
@@ -940,7 +1196,7 @@ export default function PuntoEncuentroViewPage() {
         </div>
       )}
 
-      {/* ── Modal agregar abono (abonos posteriores) ─────────────────────────── */}
+      {/* ── Modal agregar abono — PRESERVED EXACTLY ─────────────────────────── */}
       {abonoModalOpen && (
         <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setAbonoModalOpen(false); }}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
@@ -1002,7 +1258,7 @@ export default function PuntoEncuentroViewPage() {
         </div>
       )}
 
-      {/* ── Modal corte de caja ──────────────────────────────────────────────── */}
+      {/* ── Modal corte de caja — PRESERVED EXACTLY ─────────────────────────── */}
       {corteModalOpen && (
         <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setCorteModalOpen(false); }}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
@@ -1026,16 +1282,8 @@ export default function PuntoEncuentroViewPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {corteResumen.map(p => (
-                  <div key={p.fecha} style={{
-                    borderRadius: 10,
-                    border: '1px solid var(--border)',
-                    overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      padding: '7px 14px',
-                      background: 'var(--surface-2)',
-                      fontWeight: 700, fontSize: 13, color: 'var(--ink)',
-                    }}>
+                  <div key={p.fecha} style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
+                    <div style={{ padding: '7px 14px', background: 'var(--surface-2)', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
                       {fmtFecha(p.fecha)}
                     </div>
                     <div style={{ padding: '8px 14px', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.7 }}>
@@ -1050,7 +1298,6 @@ export default function PuntoEncuentroViewPage() {
                   </div>
                 ))}
 
-                {/* Gran total */}
                 {(() => {
                   const gt = corteResumen.reduce(
                     (acc, p) => ({
@@ -1063,10 +1310,8 @@ export default function PuntoEncuentroViewPage() {
                   );
                   return (
                     <div style={{
-                      padding: '10px 14px',
-                      borderRadius: 10,
-                      background: 'var(--surface-2)',
-                      border: '1.5px solid var(--border-strong)',
+                      padding: '10px 14px', borderRadius: 10,
+                      background: 'var(--surface-2)', border: '1.5px solid var(--border-strong)',
                       fontSize: 13, lineHeight: 1.7,
                     }}>
                       <span style={{ fontWeight: 700, color: 'var(--ink)' }}>
