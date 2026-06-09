@@ -502,66 +502,83 @@ export default function IngresosPage() {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.1fr', gap: 18, alignItems: 'start' }}>
 
         {/* Month list */}
-        <div className="card" style={{ padding: '20px 20px 16px' }}>
-          <div style={{ marginBottom: 16 }}>
+        <div className="card" style={{ padding: '20px 20px 4px' }}>
+          <div style={{ marginBottom: 4 }}>
             <h3 className="card-title">Resumen por mes</h3>
-            <div className="card-sub">{year} · haz clic para ver detalle en la gráfica</div>
+            <div className="card-sub">{year} · haz clic en un mes para ver el detalle</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {resumenMeses.map(r => {
-              const activo = mesSeleccionado === r.mes;
-              const totM   = r.efectivo + r.terminal + r.transfer;
-              const pctEfM = totM > 0 ? Math.round(r.efectivo / totM * 100) : 0;
-              const pctTeM = totM > 0 ? Math.round(r.terminal / totM * 100) : 0;
-              const pctTrM = totM > 0 ? 100 - pctEfM - pctTeM : 0;
-              return (
-                <button
-                  key={r.mes}
-                  onClick={() => toggleMes(r.mes)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    gap: '6px 12px', padding: '10px 12px 10px 10px',
-                    borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                    background: activo ? 'rgba(255,107,43,0.06)' : 'transparent',
-                    border: 'none',
-                    borderLeft: activo ? '3px solid var(--chart-secondary)' : '3px solid transparent',
-                    transition: 'background 0.15s, border-left-color 0.15s',
-                    color: 'var(--ink)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 110 }}>
-                    <span style={{ fontSize: 14.5, fontWeight: 600 }}>{r.label}</span>
-                    <span style={{
-                      fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, flexShrink: 0,
-                      background: activo ? 'var(--chart-secondary)' : 'var(--surface)',
-                      color: activo ? 'white' : 'var(--muted)',
-                      transition: 'background 0.15s, color 0.15s',
-                    }}>
-                      {activo ? 'Ocultar' : 'Ver detalle'}
+          {resumenMeses.map((r, idx) => {
+            const activo = mesSeleccionado === r.mes;
+            const totM   = r.efectivo + r.terminal + r.transfer;
+            const pctEfM = totM > 0 ? Math.round(r.efectivo / totM * 100) : 0;
+            const pctTeM = totM > 0 ? Math.round(r.terminal / totM * 100) : 0;
+            const pctTrM = totM > 0 ? 100 - pctEfM - pctTeM : 0;
+            const isLast = idx === resumenMeses.length - 1;
+            return (
+              <div key={r.mes} style={{
+                display: 'flex', flexDirection: 'column', gap: 9,
+                padding: '13px 0',
+                borderBottom: isLast ? 'none' : '1px solid var(--border)',
+                background: activo ? 'rgba(255,107,43,0.04)' : 'transparent',
+                marginLeft: activo ? -4 : 0,
+                paddingLeft: activo ? 4 : 0,
+                borderLeft: activo ? '3px solid var(--chart-secondary)' : 'none',
+                transition: 'background 0.15s',
+              }}>
+                {/* Top line: name | meta | right */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+
+                  {/* Month name — fixed 62px */}
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--black)', width: 62, flexShrink: 0 }}>
+                    {r.label}
+                  </span>
+
+                  {/* Meta: count + ver detalle btn + ofrendas/% */}
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                      <b style={{ color: 'var(--black)' }}>{r.count}</b> dom.
                     </span>
+                    <button
+                      onClick={() => toggleMes(r.mes)}
+                      style={{
+                        fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6, cursor: 'pointer',
+                        color:       activo ? 'white'                   : 'var(--chart-secondary)',
+                        background:  activo ? 'var(--chart-secondary)'  : '#FFF4EE',
+                        border:      activo ? '1px solid var(--chart-secondary)' : '1px solid #FFE4D1',
+                        transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+                      }}
+                    >
+                      {activo ? 'Ocultar' : 'Ver detalle'}
+                    </button>
+                    {r.ofrendasM > 0 && r.participMes !== null && (
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                        <b style={{ color: 'var(--black)' }}>{r.ofrendasM}</b> ofrendas · <b style={{ color: 'var(--black)' }}>{r.participMes}%</b>
+                      </span>
+                    )}
                   </div>
 
-                  <div style={{ flex: 1, minWidth: 60, maxWidth: 90 }}>
-                    <div style={{ display: 'flex', height: 7, borderRadius: 999, overflow: 'hidden', background: 'var(--surface)' }}>
-                      <div style={{ width: `${pctEfM}%`, background: 'var(--black)' }} />
-                      <div style={{ width: `${pctTeM}%`, background: NAVY_600 }} />
-                      <div style={{ width: `${pctTrM}%`, background: NAVY_300 }} />
-                    </div>
-                    <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 3 }}>
-                      {r.count} dom.{r.participMes !== null ? ` · ${r.participMes}%` : ''}
-                    </div>
-                  </div>
-
+                  {/* Right: total + efectivo/terminal breakdown */}
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font-mono)',
-                      color: activo ? 'var(--chart-secondary)' : 'var(--black)' }}>
+                    <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-.03em', color: activo ? 'var(--chart-secondary)' : 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
                       {fmt(r.total)}
                     </div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      Efectivo {fmt(r.efectivo)} · Terminal {fmt(r.terminal)}
+                    </div>
                   </div>
-                </button>
-              );
-            })}
-          </div>
+                </div>
+
+                {/* Full-width stacked bar */}
+                <div style={{ display: 'flex', height: 7, borderRadius: 999, overflow: 'hidden', background: 'var(--surface)' }}>
+                  {totM > 0 && <>
+                    <div style={{ width: `${pctEfM}%`, background: 'var(--black)' }} />
+                    <div style={{ width: `${pctTeM}%`, background: NAVY_600 }} />
+                    <div style={{ width: `${pctTrM}%`, background: NAVY_300 }} />
+                  </>}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Line chart */}
