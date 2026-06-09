@@ -3,43 +3,57 @@ import { asistenciaApi } from '../../services/api';
 import { useAsistenciaStewModal } from '../../context/AsistenciaStewModalContext';
 import { fmtFecha, mesNombre } from '../../utils/fecha';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Design tokens ──────────────────────────────────────────────────────────
+const NAVY     = '#112540';
+const NAVY_700 = '#244169';
+const NAVY_300 = '#9CB0CC';
+const NAVY_100 = '#DCE4EF';
+const ORANGE   = '#FF6B2B';
+const ORANGE_600 = '#E0561B';
+const GREEN    = '#15915A';
+const GRAY_500 = '#7A8699';
+const GRAY_200 = '#E2E6EC';
+const GRAY_100 = '#EEF1F5';
+const GRAY_50  = '#F6F7F9';
 
-
+// ── Helpers ────────────────────────────────────────────────────────────────
 function rowTotal(r) {
   return (r.adultos || 0) + (r.voluntarios || 0) + (r.ninos || 0) + (r.bebes || 0);
 }
 
-// ── Chart constants ───────────────────────────────────────────────────────────
-
-const CAT_LABEL = '#1e40af';
-const CAT_VALUE = '#1e3a8a';
-
-const TEAL = '#14b8a6';
-const VW   = 900, VH  = 280;
-const PAD  = { left: 50, right: 24, top: 24, bottom: 44 };
-
-function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevos = 0 }) {
-  const num = { fontFamily: 'var(--font-mono)', color: CAT_VALUE, fontWeight: 700 };
+// ── Desglose de categorías ────────────────────────────────────────────────
+function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevos = 0, feature = false }) {
+  const borderColor = feature ? 'rgba(255,255,255,0.12)' : GRAY_100;
+  const labelColor  = feature ? NAVY_300 : GRAY_500;
+  const boldColor   = feature ? 'white'  : NAVY_700;
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 8px', marginTop: 9, fontSize: 11.5, lineHeight: 1.6 }}>
-      <span style={{ color: CAT_LABEL }}>Adultos <span style={num}>{adultos}</span></span>
-      <span style={{ color: CAT_LABEL }}>Voluntarios <span style={num}>{voluntarios}</span></span>
-      <span style={{ color: CAT_LABEL }}>Niños <span style={num}>{ninos}</span></span>
-      <span style={{ color: CAT_LABEL }}>Bebés <span style={num}>{bebes}</span></span>
-      {nuevos > 0 && <span style={{ color: CAT_LABEL }}>Nuevos <span style={num}>{nuevos}</span></span>}
+    <div style={{
+      marginTop: 9, paddingTop: 9, borderTop: `1px solid ${borderColor}`,
+      fontSize: 11, color: labelColor, display: 'flex', gap: 8, flexWrap: 'wrap',
+    }}>
+      <span>Ad <b style={{ color: boldColor, fontWeight: 700 }}>{adultos}</b></span>
+      <span>Vol <b style={{ color: boldColor, fontWeight: 700 }}>{voluntarios}</b></span>
+      <span>Niños <b style={{ color: boldColor, fontWeight: 700 }}>{ninos}</b></span>
+      <span>Bebés <b style={{ color: boldColor, fontWeight: 700 }}>{bebes}</b></span>
+      {nuevos > 0 && (
+        <span style={{ color: ORANGE_600, fontWeight: 700 }}>
+          Nuevos <b style={{ color: ORANGE_600 }}>{nuevos}</b>
+        </span>
+      )}
     </div>
   );
 }
 
-// ── Attendance Area Chart (SVG, igual estilo a Ingresos) ─────────────────────
+// ── SVG Area Chart ─────────────────────────────────────────────────────────
+const VW  = 900, VH  = 280;
+const PAD = { left: 48, right: 24, top: 28, bottom: 44 };
 
 function AttendanceAreaChart({ data, onPointClick }) {
   const [hovered, setHovered] = useState(null);
 
   if (!data || data.length < 2) {
     return (
-      <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
+      <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
         Sin suficientes datos para mostrar la gráfica
       </div>
     );
@@ -68,49 +82,64 @@ function AttendanceAreaChart({ data, onPointClick }) {
       >
         <defs>
           <linearGradient id="asistGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor={TEAL} stopOpacity="0.22" />
-            <stop offset="100%" stopColor={TEAL} stopOpacity="0"    />
+            <stop offset="0%"   stopColor={NAVY} stopOpacity="0.16" />
+            <stop offset="100%" stopColor={NAVY} stopOpacity="0"    />
           </linearGradient>
         </defs>
 
+        {/* Grid lines */}
         {yTicks.map(v => (
           <g key={v}>
             <line x1={PAD.left} x2={VW - PAD.right} y1={toY(v)} y2={toY(v)}
-              stroke="#ddd5c8" strokeWidth={v === 0 ? 1.2 : 0.65} strokeDasharray={v === 0 ? '' : '3 3'} />
-            <text x={PAD.left - 8} y={toY(v) + 4} textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="var(--font-mono)">
+              stroke={GRAY_100} strokeWidth={v === 0 ? 1.2 : 1} />
+            <text x={PAD.left - 8} y={toY(v) + 4} textAnchor="end" fontSize={10}
+              fill={GRAY_500} fontFamily="var(--font-mono)">
               {v}
             </text>
           </g>
         ))}
 
-        <line x1={PAD.left} x2={VW - PAD.right} y1={PAD.top + chartH} y2={PAD.top + chartH} stroke="#ddd5c8" strokeWidth={1} />
+        <line x1={PAD.left} x2={VW - PAD.right} y1={PAD.top + chartH} y2={PAD.top + chartH}
+          stroke={GRAY_200} strokeWidth={1} />
 
+        {/* X-axis labels — last point in orange */}
         {pts.map((p, i) => (
-          <text key={i} x={p.x} y={PAD.top + chartH + 16} textAnchor="middle" fontSize={10} fill="#b0a090">
+          <text key={i} x={p.x} y={PAD.top + chartH + 16} textAnchor="middle" fontSize={10}
+            fill={i === pts.length - 1 ? ORANGE : GRAY_500}
+            fontWeight={i === pts.length - 1 ? 700 : 400}>
             {p.d.label}
           </text>
         ))}
 
+        {/* Area + Line */}
         <path d={areaPath} fill="url(#asistGrad)" />
-        <path d={linePath} fill="none" stroke={TEAL} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+        <path d={linePath} fill="none" stroke={NAVY} strokeWidth={2.8}
+          strokeLinejoin="round" strokeLinecap="round" />
 
+        {/* Hover crosshair */}
         {hovered !== null && (
           <line x1={pts[hovered].x} x2={pts[hovered].x} y1={PAD.top} y2={PAD.top + chartH}
-            stroke={TEAL} strokeWidth={1} strokeDasharray="4 3" opacity={0.4} />
+            stroke={NAVY} strokeWidth={1} strokeDasharray="4 3" opacity={0.3} />
         )}
 
-        {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y}
-            r={hovered === i ? 6.5 : 4}
-            fill={hovered === i ? TEAL : 'white'}
-            stroke={TEAL} strokeWidth={2}
-            style={{ cursor: onPointClick ? 'pointer' : 'default' }}
-            onMouseEnter={() => setHovered(i)}
-            onClick={() => onPointClick && onPointClick(i)}
-          />
-        ))}
+        {/* Data points — last point in orange */}
+        {pts.map((p, i) => {
+          const isLast = i === pts.length - 1;
+          const color  = isLast ? ORANGE : NAVY;
+          const r      = hovered === i ? 6.5 : (isLast ? 5.5 : 4);
+          return (
+            <circle key={i} cx={p.x} cy={p.y} r={r}
+              fill={hovered === i ? color : 'white'}
+              stroke={color} strokeWidth={2.4}
+              style={{ cursor: onPointClick ? 'pointer' : 'default' }}
+              onMouseEnter={() => setHovered(i)}
+              onClick={() => onPointClick && onPointClick(i)}
+            />
+          );
+        })}
       </svg>
 
+      {/* Tooltip */}
       {hovered !== null && (() => {
         const p    = pts[hovered];
         const lPct = (p.x / VW) * 100;
@@ -128,7 +157,7 @@ function AttendanceAreaChart({ data, onPointClick }) {
             <div style={{ fontWeight: 700, marginBottom: 3, color: 'rgba(255,255,255,0.9)' }}>
               {p.d.label}
             </div>
-            <div style={{ color: TEAL, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 15 }}>
+            <div style={{ color: ORANGE, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 15 }}>
               {p.d.value} asistentes
             </div>
           </div>
@@ -155,12 +184,11 @@ function AttendanceChart({ resumenMeses, mesSeleccionado, records, onMonthSelect
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
+// ── Page ───────────────────────────────────────────────────────────────────
 export default function AsistenciaViewPage() {
   const { refreshKey } = useAsistenciaStewModal();
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [records,        setRecords] = useState([]);
+  const [loading,        setLoading] = useState(true);
   const [mesSeleccionado, setMesSelec] = useState(null);
 
   const year = new Date().getFullYear();
@@ -186,24 +214,25 @@ export default function AsistenciaViewPage() {
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
+  // ── Agregados ──────────────────────────────────────────────────────────
   const ultimo      = records[0];
   const totalUltimo = ultimo ? rowTotal(ultimo) : 0;
   const n           = records.length;
   const promedio    = n > 0 ? Math.round(records.reduce((s, r) => s + rowTotal(r), 0) / n) : 0;
   const maximo      = n > 0 ? Math.max(...records.map(rowTotal)) : 0;
+  const maximoRecord= n > 0 ? records.reduce((best, r) => rowTotal(r) > rowTotal(best) ? r : best, records[0]) : null;
+  const diffDelRecord = maximo > 0 && totalUltimo < maximo ? maximo - totalUltimo : 0;
 
   const promAdultos     = n > 0 ? Math.round(records.reduce((s, r) => s + (r.adultos     || 0), 0) / n) : 0;
   const promVoluntarios = n > 0 ? Math.round(records.reduce((s, r) => s + (r.voluntarios || 0), 0) / n) : 0;
   const promNinos       = n > 0 ? Math.round(records.reduce((s, r) => s + (r.ninos       || 0), 0) / n) : 0;
   const promBebes       = n > 0 ? Math.round(records.reduce((s, r) => s + (r.bebes       || 0), 0) / n) : 0;
-  const promNuevos      = n > 0 ? Math.round(records.reduce((s, r) => s + (r.nuevos      || 0), 0) / n) : 0;
 
-  const hoy           = new Date();
-  const mesActual     = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  const hoy            = new Date();
+  const mesActual      = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
   const mesActualLabel = mesNombre(mesActual);
 
-  // ── Resumen por mes (SUMA + desglose) ────────────────────────────────────
+  // ── Resumen por mes ────────────────────────────────────────────────────
   const mesesDisponibles = [...new Set(records.map(r => r.fecha.slice(0, 7)))].sort();
   const resumenMeses = mesesDisponibles.map(m => {
     const rows = records.filter(r => r.fecha.startsWith(m));
@@ -218,7 +247,7 @@ export default function AsistenciaViewPage() {
 
   const mesActualData = resumenMeses.find(m => m.mes === mesActual) || null;
 
-  // ── Tabla totals (must be before donutSource) ─────────────────────────────
+  // ── Totales de tabla ───────────────────────────────────────────────────
   const totAdultos     = records.reduce((s, r) => s + (r.adultos     || 0), 0);
   const totVoluntarios = records.reduce((s, r) => s + (r.voluntarios || 0), 0);
   const totNinos       = records.reduce((s, r) => s + (r.ninos       || 0), 0);
@@ -226,12 +255,29 @@ export default function AsistenciaViewPage() {
   const totNuevos      = records.reduce((s, r) => s + (r.nuevos      || 0), 0);
   const totTotal       = records.reduce((s, r) => s + rowTotal(r), 0);
 
+  // ── Chart footer stats ─────────────────────────────────────────────────
+  const promMensual = resumenMeses.length > 0
+    ? Math.round(resumenMeses.reduce((s, r) => s + r.total, 0) / resumenMeses.length)
+    : 0;
+  const mejorMes = resumenMeses.length > 0
+    ? resumenMeses.reduce((b, r) => r.total > b.total ? r : b, resumenMeses[0])
+    : null;
+  const primerMesData = resumenMeses[0];
+  const ultimoMesData = resumenMeses[resumenMeses.length - 1];
+  const crecPct = primerMesData && ultimoMesData && primerMesData.mes !== ultimoMesData.mes && primerMesData.total > 0
+    ? Math.round((ultimoMesData.total - primerMesData.total) / primerMesData.total * 100)
+    : null;
+  const crecLabel = primerMesData && ultimoMesData && primerMesData.mes !== ultimoMesData.mes
+    ? `${primerMesData.label.slice(0, 3)}–${ultimoMesData.label.slice(0, 3)}`
+    : null;
+
+  // ── Chart head text ────────────────────────────────────────────────────
   const chartTitle = mesSeleccionado
     ? `Domingos de ${mesNombre(mesSeleccionado)}`
     : `Total por mes · ${year}`;
   const chartSub = mesSeleccionado
     ? `${resumenMeses.find(r => r.mes === mesSeleccionado)?.count || 0} domingos · haz clic en ← para volver`
-    : `${resumenMeses.length} meses · haz clic en una barra para ver sus domingos`;
+    : `${resumenMeses.length} meses · haz clic en un punto para ver sus domingos`;
 
   if (loading) {
     return (
@@ -242,43 +288,55 @@ export default function AsistenciaViewPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      {/* ── A: tarjetas ── */}
+      {/* ── KPIs (5 tarjetas) ─────────────────────────────────────────────── */}
       {records.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
 
-          {/* Último domingo */}
-          <div className="card" style={{ padding: '16px 18px', background: '#f0fdfa', border: '2px solid #2dd4bf', boxShadow: '0 2px 10px rgba(45,212,191,0.18)' }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Último domingo</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#5eead4', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+          {/* Último domingo — feature (navy oscuro) */}
+          <div style={{
+            background: NAVY, border: `1px solid ${NAVY}`,
+            borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: NAVY_300, marginBottom: 9 }}>
+              Último domingo
+            </div>
+            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: 'white', fontVariantNumeric: 'tabular-nums' }}>
               {totalUltimo}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+            <div style={{ fontSize: 11.5, color: NAVY_300, marginTop: 7 }}>
               {ultimo ? fmtFecha(ultimo.fecha) : '—'}
             </div>
             {ultimo && (
-              <DesgloseCat
+              <DesgloseCat feature
                 adultos={ultimo.adultos || 0} voluntarios={ultimo.voluntarios || 0}
-                ninos={ultimo.ninos || 0} bebes={ultimo.bebes || 0}
+                ninos={ultimo.ninos || 0}     bebes={ultimo.bebes || 0}
+                nuevos={ultimo.nuevos || 0}
               />
             )}
           </div>
 
           {/* Mes actual */}
-          <div className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{mesActualLabel}</div>
+          <div style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
+              {mesActualLabel}
+            </div>
             {mesActualData ? (
               <>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#2dd4bf', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+                <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
                   {mesActualData.total}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>
                   {mesActualData.count} {mesActualData.count === 1 ? 'domingo' : 'domingos'}
                 </div>
                 <DesgloseCat
                   adultos={mesActualData.adultos} voluntarios={mesActualData.voluntarios}
-                  ninos={mesActualData.ninos} bebes={mesActualData.bebes}
+                  ninos={mesActualData.ninos}     bebes={mesActualData.bebes}
+                  nuevos={mesActualData.nuevos}
                 />
               </>
             ) : (
@@ -287,50 +345,78 @@ export default function AsistenciaViewPage() {
           </div>
 
           {/* Promedio */}
-          <div className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Promedio</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#14b8a6', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+          <div style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
+              Promedio
+            </div>
+            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
               {promedio}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{n} domingos</div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>
+              {n} domingos
+            </div>
             <DesgloseCat
               adultos={promAdultos} voluntarios={promVoluntarios}
-              ninos={promNinos} bebes={promBebes}
+              ninos={promNinos}     bebes={promBebes}
             />
           </div>
 
           {/* Máximo histórico */}
-          <div className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Máximo histórico</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#0d9488', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+          <div style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
+              Máximo histórico
+            </div>
+            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
               {maximo}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Total asistentes</div>
+            {maximoRecord && (
+              <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>
+                {fmtFecha(maximoRecord.fecha)}
+              </div>
+            )}
+            {diffDelRecord > 0 && (
+              <div style={{ marginTop: 9, paddingTop: 9, borderTop: `1px solid ${GRAY_100}`, fontSize: 11, color: GRAY_500, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span>A <b style={{ color: NAVY_700, fontWeight: 700 }}>{diffDelRecord}</b> del récord hoy</span>
+              </div>
+            )}
           </div>
 
           {/* Total del año */}
-          <div className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Total del año</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#0f766e', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
-              {totTotal}
+          <div style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
+              Total del año
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{n} domingos · {year}</div>
+            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+              {totTotal.toLocaleString('es-MX')}
+            </div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>
+              {n} domingos · {year}
+            </div>
             <DesgloseCat
               adultos={totAdultos} voluntarios={totVoluntarios}
-              ninos={totNinos} bebes={totBebes}
+              ninos={totNinos}     bebes={totBebes}
             />
           </div>
 
         </div>
       )}
 
-      {/* ── B: 2 columnas ── */}
+      {/* ── Resumen por mes + Gráfica ─────────────────────────────────────── */}
       {records.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 14, alignItems: 'stretch' }}>
 
-          {/* Izquierda: Resumen por mes (suma) */}
-          <div className="card" style={{ padding: '20px 20px 16px' }}>
-            <div className="card-head" style={{ marginBottom: 16 }}>
+          {/* Izquierda: Resumen por mes */}
+          <div className="card">
+            <div className="card-head" style={{ marginBottom: 4 }}>
               <div>
                 <h3 className="card-title">Resumen por mes</h3>
                 <div className="card-sub">{year} · total de asistencia · clic para filtrar la gráfica</div>
@@ -342,58 +428,60 @@ export default function AsistenciaViewPage() {
                 Sin registros en {year}.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {resumenMeses.map(r => {
+              <div>
+                {resumenMeses.map((r, idx) => {
                   const activo = mesSeleccionado === r.mes;
+                  const isLast = idx === resumenMeses.length - 1;
                   return (
-                    <button
+                    <div
                       key={r.mes}
                       onClick={() => toggleMes(r.mes)}
                       style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '10px 12px 10px 10px', borderRadius: 8, cursor: 'pointer',
-                        background: activo ? 'rgba(0,180,216,0.07)' : 'transparent',
-                        color: 'var(--ink)', border: 'none',
-                        borderLeft: activo ? '3px solid var(--chart-primary)' : '3px solid transparent',
-                        width: '100%', textAlign: 'left',
-                        transition: 'background 0.15s, border-left-color 0.15s',
+                        display: 'flex', flexDirection: 'column', gap: 6,
+                        padding: '12px 10px',
+                        borderBottom: isLast ? 'none' : `1px solid ${GRAY_100}`,
+                        cursor: 'pointer',
+                        background: activo ? GRAY_50 : 'transparent',
+                        borderLeft: activo ? `3px solid ${NAVY}` : '3px solid transparent',
+                        margin: activo ? '0 -10px 0 -10px' : '0',
+                        paddingLeft: activo ? 13 : 10,
+                        borderRadius: activo ? 8 : 0,
+                        transition: 'background .13s',
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 }}>
-                          <span style={{ fontSize: 15, fontWeight: 600 }}>{r.label}</span>
-                          <span style={{ fontSize: 12, color: 'var(--muted)' }}>{r.count} dom.</span>
-                          <span style={{
-                            marginLeft: 'auto', fontSize: 17, fontWeight: 800,
-                            fontFamily: 'var(--font-mono)',
-                            color: activo ? 'var(--chart-primary)' : 'var(--ink)',
-                          }}>
-                            {r.total}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px', fontSize: 11.5 }}>
-                          {[
-                            { label: 'Adultos',     v: r.adultos },
-                            { label: 'Vol.',        v: r.voluntarios },
-                            { label: 'Niños',       v: r.ninos },
-                            { label: 'Bebés',       v: r.bebes },
-                            ...(r.nuevos > 0 ? [{ label: 'Nuevos', v: r.nuevos }] : []),
-                          ].map(({ label, v }) => (
-                            <span key={label} style={{ color: CAT_LABEL }}>
-                              {label} <span style={{ fontFamily: 'var(--font-mono)', color: CAT_VALUE, fontWeight: 700 }}>{v}</span>
-                            </span>
-                          ))}
-                        </div>
+                      {/* Fila: nombre + domingos + total */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: activo ? NAVY : NAVY }}>
+                          {r.label}
+                        </span>
+                        <span style={{ fontSize: 11, color: GRAY_500, fontWeight: 500 }}>
+                          {r.count} dom.
+                        </span>
+                        <span style={{ marginLeft: 'auto', fontSize: 18, fontWeight: 800, letterSpacing: '-0.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+                          {r.total}
+                        </span>
                       </div>
-                    </button>
+                      {/* Desglose */}
+                      <div style={{ fontSize: 11, color: GRAY_500, display: 'flex', gap: 9, flexWrap: 'wrap' }}>
+                        <span>Adultos <b style={{ color: NAVY_700, fontWeight: 700 }}>{r.adultos}</b></span>
+                        <span>Vol <b style={{ color: NAVY_700, fontWeight: 700 }}>{r.voluntarios}</b></span>
+                        <span>Niños <b style={{ color: NAVY_700, fontWeight: 700 }}>{r.ninos}</b></span>
+                        <span>Bebés <b style={{ color: NAVY_700, fontWeight: 700 }}>{r.bebes}</b></span>
+                        {r.nuevos > 0 && (
+                          <span style={{ color: ORANGE_600, fontWeight: 700 }}>
+                            Nuevos {r.nuevos}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
             )}
           </div>
 
-          {/* Derecha: Gráfica de barras */}
-          <div className="card" style={{ padding: '20px 20px 16px' }}>
+          {/* Derecha: Gráfica */}
+          <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="card-head chart-head" style={{ marginBottom: 14 }}>
               <div>
                 <h3 className="card-title">{chartTitle}</h3>
@@ -404,9 +492,9 @@ export default function AsistenciaViewPage() {
                   onClick={() => setMesSelec(null)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 5,
-                    background: 'none', border: '1px solid var(--border)',
+                    background: 'none', border: `1px solid ${GRAY_200}`,
                     borderRadius: 6, padding: '4px 10px',
-                    fontSize: 12, color: 'var(--muted)', cursor: 'pointer',
+                    fontSize: 12, color: GRAY_500, cursor: 'pointer',
                     whiteSpace: 'nowrap', flexShrink: 0,
                   }}
                 >
@@ -414,17 +502,51 @@ export default function AsistenciaViewPage() {
                 </button>
               )}
             </div>
-            <AttendanceChart
-              resumenMeses={resumenMeses}
-              mesSeleccionado={mesSeleccionado}
-              records={records}
-              onMonthSelect={(mes) => setMesSelec(mes)}
-            />
+
+            <div style={{ flex: 1, minHeight: 220 }}>
+              <AttendanceChart
+                resumenMeses={resumenMeses}
+                mesSeleccionado={mesSeleccionado}
+                records={records}
+                onMonthSelect={(mes) => setMesSelec(mes)}
+              />
+            </div>
+
+            {/* Chart footer — solo en vista anual */}
+            {!mesSeleccionado && resumenMeses.length > 1 && (
+              <div style={{
+                display: 'flex', justifyContent: 'space-between',
+                marginTop: 14, paddingTop: 14, borderTop: `1px solid ${GRAY_100}`,
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ fontSize: 11, color: GRAY_500, fontWeight: 600 }}>Promedio mensual</span>
+                  <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+                    {promMensual}
+                  </span>
+                </div>
+                {mejorMes && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ fontSize: 11, color: GRAY_500, fontWeight: 600 }}>Mejor mes</span>
+                    <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+                      {mejorMes.label.slice(0, 3)} · {mejorMes.total}
+                    </span>
+                  </div>
+                )}
+                {crecPct !== null && crecLabel && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ fontSize: 11, color: GRAY_500, fontWeight: 600 }}>Crecimiento {crecLabel}</span>
+                    <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', color: crecPct >= 0 ? GREEN : '#D23B36' }}>
+                      {crecPct >= 0 ? '▲' : '▼'} {Math.abs(crecPct)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* ── C: Historial ── */}
+      {/* ── Historial de asistencia ───────────────────────────────────────── */}
       <div className="card">
         <div className="card-head">
           <div>
@@ -449,7 +571,7 @@ export default function AsistenciaViewPage() {
                   <th style={{ textAlign: 'right' }}>Voluntarios</th>
                   <th style={{ textAlign: 'right' }}>Niños</th>
                   <th style={{ textAlign: 'right' }}>Bebés</th>
-                  <th style={{ textAlign: 'right', color: 'var(--warn)' }}>Nuevos</th>
+                  <th style={{ textAlign: 'right', color: ORANGE_600 }}>Nuevos</th>
                   <th style={{ textAlign: 'right' }}>Total</th>
                 </tr>
               </thead>
@@ -461,17 +583,22 @@ export default function AsistenciaViewPage() {
                       <td style={{ fontWeight: 500 }}>
                         {fmtFecha(r.fecha)}
                         {i === 0 && (
-                          <span className="cat-pill" style={{ marginLeft: 8 }}>Más reciente</span>
+                          <span style={{
+                            fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+                            background: NAVY_100, color: NAVY_700, marginLeft: 8,
+                          }}>
+                            Más reciente
+                          </span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'right' }}>{r.adultos   ?? '—'}</td>
-                      <td style={{ textAlign: 'right' }}>{r.voluntarios ?? '—'}</td>
-                      <td style={{ textAlign: 'right' }}>{r.ninos     ?? '—'}</td>
-                      <td style={{ textAlign: 'right' }}>{r.bebes     ?? '—'}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--warn)', fontWeight: 600 }}>
+                      <td style={{ textAlign: 'right', color: NAVY_700, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{r.adultos   ?? '—'}</td>
+                      <td style={{ textAlign: 'right', color: NAVY_700, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{r.voluntarios ?? '—'}</td>
+                      <td style={{ textAlign: 'right', color: NAVY_700, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{r.ninos     ?? '—'}</td>
+                      <td style={{ textAlign: 'right', color: NAVY_700, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{r.bebes     ?? '—'}</td>
+                      <td style={{ textAlign: 'right', color: ORANGE_600, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                         {r.nuevos > 0 ? r.nuevos : '—'}
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>
+                      <td style={{ textAlign: 'right', fontWeight: 800, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
                         {total}
                       </td>
                     </tr>
@@ -483,13 +610,13 @@ export default function AsistenciaViewPage() {
                   <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
                     Totales
                   </td>
-                  <td style={{ textAlign: 'right' }}>{totAdultos}</td>
-                  <td style={{ textAlign: 'right' }}>{totVoluntarios}</td>
-                  <td style={{ textAlign: 'right' }}>{totNinos}</td>
-                  <td style={{ textAlign: 'right' }}>{totBebes}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--warn)' }}>{totNuevos || '—'}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--ink)', fontSize: 14 }}>
-                    {totTotal}
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: NAVY_700 }}>{totAdultos}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: NAVY_700 }}>{totVoluntarios}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: NAVY_700 }}>{totNinos}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: NAVY_700 }}>{totBebes}</td>
+                  <td style={{ textAlign: 'right', color: ORANGE_600, fontWeight: 700 }}>{totNuevos || '—'}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 800, color: NAVY, fontSize: 14 }}>
+                    {totTotal.toLocaleString('es-MX')}
                   </td>
                 </tr>
               </tbody>
