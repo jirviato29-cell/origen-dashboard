@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { mockGastos } from '../../data/mockData';
 import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi } from '../../services/api';
 import { SALDO_INICIAL_CAJA } from '../../utils/config';
@@ -66,6 +67,8 @@ const CATEGORIAS_GASTO = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'D
 
 export default function StewardshipDashboard() {
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const base = '/' + role;
   const { openModal: openOfrendas } = useOfrendasModal();
 
   const isMobile  = useIsMobile(640);
@@ -214,12 +217,12 @@ export default function StewardshipDashboard() {
           <h3 className="card-title">Acceso rápido</h3>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: quickCols, gap: 12, marginTop: 8 }}>
-          <QuickBtn icon={I.arrowBarUp}   label="Ingresos"           color="var(--chart-primary)" onClick={() => navigate('/stewardship/ingresos')} />
-          <QuickBtn icon={I.receipt}      label="Gastos"             color="var(--danger)"        onClick={() => navigate('/stewardship/gastos')} />
-          <QuickBtn icon={I.scale}        label="Finanzas"           color="var(--good)"          onClick={() => navigate('/stewardship/balance')} />
-          <QuickBtn icon={I.users}        label="Asistencia"         color="#14b8a6"              onClick={() => navigate('/stewardship/asistencia')} />
-          <QuickBtn icon={I.pin}          label="Punto de Encuentro" color="var(--muted)"         onClick={() => navigate('/stewardship/punto-encuentro')} />
-          <QuickBtn icon={I.calendar}     label="Calendario"         color="var(--warn)"          onClick={() => navigate('/stewardship/calendario')} />
+          <QuickBtn icon={I.arrowBarUp}   label="Ingresos"           color="var(--chart-primary)" onClick={() => navigate(`${base}/ingresos`)} />
+          <QuickBtn icon={I.receipt}      label="Gastos"             color="var(--danger)"        onClick={() => navigate(`${base}/gastos`)} />
+          <QuickBtn icon={I.scale}        label="Finanzas"           color="var(--good)"          onClick={() => navigate(`${base}/balance`)} />
+          <QuickBtn icon={I.users}        label="Asistencia"         color="#14b8a6"              onClick={() => navigate(`${base}/asistencia`)} />
+          <QuickBtn icon={I.pin}          label="Punto de Encuentro" color="var(--muted)"         onClick={() => navigate(`${base}/punto-encuentro`)} />
+          <QuickBtn icon={I.calendar}     label="Calendario"         color="var(--warn)"          onClick={() => navigate(`${base}/calendario`)} />
         </div>
       </div>
 
@@ -231,7 +234,7 @@ export default function StewardshipDashboard() {
               <h3 className="card-title">Egresos por categoría</h3>
               <div className="card-sub">{mesLabel} · ${fmt(gastosMes)} total</div>
             </div>
-            <button className="btn btn-ghost" onClick={() => navigate('/stewardship/finanzas')}>
+            <button className="btn btn-ghost" onClick={() => navigate(`${base}/balance`)}>
               Ver finanzas <I.chevR size={14} />
             </button>
           </div>
@@ -264,7 +267,7 @@ export default function StewardshipDashboard() {
         <div className="card">
           <div className="card-head">
             <h3 className="card-title">Próximos eventos</h3>
-            <button className="btn btn-ghost" onClick={() => navigate('/stewardship/calendario')}>
+            <button className="btn btn-ghost" onClick={() => navigate(`${base}/calendario`)}>
               Ver todos <I.chevR size={14} />
             </button>
           </div>
