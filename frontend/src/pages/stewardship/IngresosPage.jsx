@@ -7,15 +7,76 @@ import { I } from '../../components/Icons';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 
-// Navy mid-tones not in CSS vars
-const NAVY_600 = '#305181';
-const NAVY_300 = '#9CB0CC';
+// Navy mid-tones not in global CSS vars
+const NAVY_600   = '#305181';
+const NAVY_300   = '#9CB0CC';
+const GREEN_600  = '#15915A';
+const GREEN_400  = '#3DD68C';
+const NAVY_500   = '#3E6499';
 
 function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
 }
+function fmtNum(n) {
+  return Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
+}
 
-// ── SVG Line Chart ─────────────────────────────────────────────────────────────
+// ── Sparkline SVG (96×32, no axes, preserveAspectRatio="none") ─────────────────
+function Sparkline({ values, color, filled = false, gradId, gradColor, dashed = false }) {
+  const W = 100, H = 32, TOP = 2, BOT = 30;
+
+  if (dashed || !values || values.length === 0) {
+    return (
+      <svg style={{ width: 96, height: 32, flexShrink: 0 }} viewBox="0 0 100 32" preserveAspectRatio="none">
+        <line x1="0" y1="16" x2="100" y2="16" stroke={color} strokeWidth={2}
+          strokeDasharray="3 4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (values.length === 1) {
+    return (
+      <svg style={{ width: 96, height: 32, flexShrink: 0 }} viewBox="0 0 100 32" preserveAspectRatio="none">
+        <line x1="0" y1="16" x2="100" y2="16" stroke={color} strokeWidth={2} strokeLinecap="round" />
+        <circle cx="100" cy="16" r="2.6" fill={color} />
+      </svg>
+    );
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * W;
+    const y = BOT - ((v - min) / range) * (BOT - TOP);
+    return [+x.toFixed(1), +y.toFixed(1)];
+  });
+  const polyStr = pts.map(([x, y]) => `${x},${y}`).join(' ');
+  const [lx, ly] = pts[pts.length - 1];
+  const [fx]     = pts[0];
+
+  return (
+    <svg style={{ width: 96, height: 32, flexShrink: 0 }} viewBox="0 0 100 32" preserveAspectRatio="none">
+      {filled && gradId && (
+        <defs>
+          <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%"   stopColor={gradColor || color} stopOpacity="0.22" />
+            <stop offset="100%" stopColor={gradColor || color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+      )}
+      {filled && gradId && (
+        <path d={`M${fx},${pts[0][1]} ${pts.slice(1).map(([x,y]) => `L${x},${y}`).join(' ')} L${lx},32 L${fx},32 Z`}
+          fill={`url(#${gradId})`} />
+      )}
+      <polyline points={polyStr} fill="none" stroke={color} strokeWidth={2}
+        strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lx} cy={ly} r="2.6" fill={color} />
+    </svg>
+  );
+}
+
+// ── Big line chart (full-width area below grid2) ───────────────────────────────
 const VW = 900, VH = 280;
 const PAD = { left: 88, right: 20, top: 24, bottom: 50 };
 
@@ -49,16 +110,13 @@ function LineChart({ data }) {
 
   return (
     <div style={{ position: 'relative' }}>
-      <svg
-        viewBox={`0 0 ${VW} ${VH}`}
+      <svg viewBox={`0 0 ${VW} ${VH}`}
         style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
-        onMouseLeave={() => setHovered(null)}
-      >
+        onMouseLeave={() => setHovered(null)}>
         {yTicks.map(v => (
           <g key={v}>
             <line x1={PAD.left} x2={VW - PAD.right} y1={toY(v)} y2={toY(v)}
-              stroke="var(--border)" strokeWidth={v === 0 ? 1.2 : 0.7}
-              strokeDasharray={v === 0 ? '' : '3 4'} />
+              stroke="var(--border)" strokeWidth={v === 0 ? 1.2 : 0.7} strokeDasharray={v === 0 ? '' : '3 4'} />
             <text x={PAD.left - 10} y={toY(v) + 4} textAnchor="end" fontSize={10}
               fill="var(--muted)" fontFamily="var(--font-mono)">
               {v === 0 ? '$0' : `$${(v / 1000).toFixed(0)}k`}
@@ -67,30 +125,25 @@ function LineChart({ data }) {
         ))}
         <line x1={PAD.left} x2={VW - PAD.right} y1={PAD.top + chartH} y2={PAD.top + chartH}
           stroke="var(--border)" strokeWidth={1} />
-
         {pts.map((p, i) => (
           <text key={i} x={p.x} y={PAD.top + chartH + 16} textAnchor="middle" fontSize={10} fill="var(--muted)">
             {p.d.label}
           </text>
         ))}
-
         <path d={areaPath} fill="var(--chart-secondary)" opacity={0.10} />
         <path d={linePath} fill="none" stroke="var(--chart-secondary)" strokeWidth={2.5}
           strokeLinejoin="round" strokeLinecap="round" />
-
         {hovered !== null && (
           <line x1={pts[hovered].x} x2={pts[hovered].x} y1={PAD.top} y2={PAD.top + chartH}
             stroke="var(--chart-secondary)" strokeWidth={1} strokeDasharray="4 3" opacity={0.4} />
         )}
-
         {pts.map((p, i) => (
           <circle key={i} cx={p.x} cy={p.y}
             r={hovered === i ? 6.5 : 4}
             fill={hovered === i ? 'var(--chart-secondary)' : 'white'}
             stroke="var(--chart-secondary)" strokeWidth={2}
             style={{ cursor: 'pointer' }}
-            onMouseEnter={() => setHovered(i)}
-          />
+            onMouseEnter={() => setHovered(i)} />
         ))}
       </svg>
 
@@ -213,9 +266,9 @@ export default function IngresosPage() {
       const den = (a?.adultos ?? 0) + (a?.voluntarios ?? 0);
       if (den > 0) { sobresM += Number(d.ofrendas); denomM += den; }
     });
-    const efM  = rows.reduce((s, d) => s + Number(d.efectivo), 0);
-    const teM  = rows.reduce((s, d) => s + Number(d.terminal), 0);
-    const trM  = rows.reduce((s, d) => s + Number(d.transferencia || 0), 0);
+    const efM = rows.reduce((s, d) => s + Number(d.efectivo), 0);
+    const teM = rows.reduce((s, d) => s + Number(d.terminal), 0);
+    const trM = rows.reduce((s, d) => s + Number(d.transferencia || 0), 0);
     return {
       mes:         m,
       label:       mesNombre(m),
@@ -228,6 +281,25 @@ export default function IngresosPage() {
       participMes: denomM > 0 ? Math.round(sobresM / denomM * 100) : null,
     };
   });
+
+  // ── Sparkline data ────────────────────────────────────────────────────────
+  // Card 1: last 6 domingo totals (chronological)
+  const spark1 = sorted.slice(0, 6).reverse().map(d => Number(d.total_ofrenda));
+
+  // Card 2: monthly participation % (last 6 months with data)
+  const spark2 = resumenMeses
+    .filter(r => r.participMes !== null)
+    .slice(-6)
+    .map(r => r.participMes);
+
+  // Card 3: current month domingo totals (or dashed if none)
+  const spark3 = ofrendasMesActual
+    .slice().sort((a, b) => a.fecha.localeCompare(b.fecha))
+    .map(d => Number(d.total_ofrenda));
+
+  // Card 4: cumulative total per month (running sum)
+  let running = 0;
+  const spark4 = resumenMeses.map(r => { running += r.total; return running; });
 
   const chartData = mesSeleccionado
     ? [...ofrendas]
@@ -282,109 +354,152 @@ export default function IngresosPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* ── KPI cards ── */}
+      {/* ── KPI cards (4-col) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
 
+        {/* 1 · Último domingo */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Último domingo</div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', color: 'var(--black)', marginTop: 8, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(Number(ultimoDomingo.total_ofrenda))}
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10 }}>
+            Último domingo
           </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)' }}>
-            {fmtFecha(ultimoDomingo.fecha)}
-            {participacionUltimo !== null && (
-              <> · Participación <strong style={{ color: 'var(--black)' }}>{participacionUltimo}%</strong></>
-            )}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600, marginRight: 1 }}>$</span>
+              {fmtNum(Number(ultimoDomingo.total_ofrenda))}
+            </div>
+            <Sparkline values={spark1} color="var(--chart-secondary)" />
+          </div>
+          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <span>Efectivo <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.efectivo))}</b></span>
+            <span style={{ color: 'var(--border)' }}>·</span>
+            <span>Terminal <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.terminal))}</b></span>
+            <span style={{ color: 'var(--border)' }}>·</span>
+            <span>Sobres <b style={{ color: 'var(--black)' }}>{Number(ultimoDomingo.ofrendas ?? 0)}</b></span>
           </div>
         </div>
 
+        {/* 2 · Promedio participación */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Promedio participación</div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', color: 'var(--black)', marginTop: 8, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {promedioParticipacion !== null ? `${promedioParticipacion}%` : '—'}
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10 }}>
+            Promedio de participación
           </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)' }}>
-            Total ofrendas del año: <strong style={{ color: 'var(--black)' }}>{totalOfrendasAnio}</strong>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
+              {promedioParticipacion !== null ? promedioParticipacion : '—'}
+              {promedioParticipacion !== null && (
+                <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600 }}>%</span>
+              )}
+            </div>
+            <Sparkline values={spark2.length >= 2 ? spark2 : null} color={NAVY_500}
+              dashed={spark2.length < 2} />
+          </div>
+          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
+            <span>Total de ofrendas del año: <b style={{ color: 'var(--black)' }}>{totalOfrendasAnio}</b></span>
           </div>
         </div>
 
+        {/* 3 · Mes actual */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Mes actual · {mesLabelCap}</div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', color: 'var(--black)', marginTop: 8, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(totalMesActual)}
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10 }}>
+            Mes actual · {mesLabelCap}
           </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)' }}>
-            {ofrendasMesActual.length === 0
-              ? `${mesLabelCap} aún sin registros`
-              : `${ofrendasMesActual.length} ${ofrendasMesActual.length === 1 ? 'domingo' : 'domingos'} registrados`}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1,
+              color: spark3.length === 0 ? 'var(--muted)' : 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600, marginRight: 1 }}>$</span>
+              {fmtNum(totalMesActual)}
+            </div>
+            <Sparkline values={spark3.length >= 2 ? spark3 : null}
+              color="var(--chart-secondary)" dashed={spark3.length < 2} />
+          </div>
+          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
+            <span>
+              {ofrendasMesActual.length === 0
+                ? `${mesLabelCap} aún sin registros`
+                : `${ofrendasMesActual.length} ${ofrendasMesActual.length === 1 ? 'domingo' : 'domingos'} registrados`}
+            </span>
           </div>
         </div>
 
+        {/* 4 · Acumulado del año */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Acumulado del año</div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', color: 'var(--black)', marginTop: 8, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(acumuladoAnio)}
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10 }}>
+            Acumulado del año
           </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)' }}>
-            {ofrendas.length} domingos · {year}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: GREEN_600, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 18, color: GREEN_400, fontWeight: 600, marginRight: 1 }}>$</span>
+              {fmtNum(acumuladoAnio)}
+            </div>
+            <Sparkline values={spark4.length >= 2 ? spark4 : null} color={GREEN_600}
+              filled gradId="accGrad" gradColor={GREEN_600}
+              dashed={spark4.length < 2} />
+          </div>
+          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
+            <b style={{ color: 'var(--black)' }}>{ofrendas.length}</b>
+            <span style={{ color: 'var(--border)' }}>·</span>
+            <span>{year}</span>
           </div>
         </div>
       </div>
 
-      {/* ── Method totals ── */}
+      {/* ── Method totals (3-col) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
 
+        {/* Efectivo */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Efectivo</div>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'rgba(17,37,64,0.08)', color: 'var(--black)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Total efectivo del año</div>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: 'rgba(17,37,64,0.08)', color: 'var(--black)' }}>
               {pctEfectivo}%
             </span>
           </div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', color: 'var(--black)', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(totalEfectivo)}
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
+            <span style={{ fontSize: 18, opacity: 0.6 }}>$</span>{fmtNum(totalEfectivo)}
           </div>
-          <div style={{ marginTop: 12, height: 7, borderRadius: 999, overflow: 'hidden', background: 'var(--surface)' }}>
+          <div style={{ height: 8, borderRadius: 999, background: 'var(--surface)', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pctEfectivo}%`, borderRadius: 999, background: 'var(--black)' }} />
           </div>
-          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>{pctEfectivo}% del total recaudado</div>
+          <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 9 }}>{pctEfectivo}% del total recaudado en el año</div>
         </div>
 
+        {/* Terminal */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Terminal</div>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'rgba(48,81,129,0.10)', color: NAVY_600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Total terminal del año</div>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: 'rgba(48,81,129,0.10)', color: NAVY_600 }}>
               {pctTerminal}%
             </span>
           </div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', color: NAVY_600, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(totalTerminal)}
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: NAVY_600, fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
+            <span style={{ fontSize: 18, opacity: 0.6 }}>$</span>{fmtNum(totalTerminal)}
           </div>
-          <div style={{ marginTop: 12, height: 7, borderRadius: 999, overflow: 'hidden', background: 'var(--surface)' }}>
+          <div style={{ height: 8, borderRadius: 999, background: 'var(--surface)', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pctTerminal}%`, borderRadius: 999, background: NAVY_600 }} />
           </div>
-          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>{pctTerminal}% del total recaudado</div>
+          <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 9 }}>{pctTerminal}% del total recaudado en el año</div>
         </div>
 
+        {/* Transferencias */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Transferencias</div>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'rgba(156,176,204,0.18)', color: NAVY_300 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Total transferencias del año</div>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: 'rgba(156,176,204,0.18)', color: 'var(--muted)' }}>
               {pctTransferencia}%
             </span>
           </div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', color: NAVY_300, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(totalTransferencia)}
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: NAVY_300, fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
+            <span style={{ fontSize: 18, opacity: 0.6 }}>$</span>{fmtNum(totalTransferencia)}
           </div>
-          <div style={{ marginTop: 12, height: 7, borderRadius: 999, overflow: 'hidden', background: 'var(--surface)' }}>
+          <div style={{ height: 8, borderRadius: 999, background: 'var(--surface)', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pctTransferencia}%`, borderRadius: 999, background: NAVY_300 }} />
           </div>
-          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>{pctTransferencia}% del total recaudado</div>
+          <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 9 }}>{pctTransferencia}% del total recaudado en el año</div>
         </div>
       </div>
 
       {/* ── Grid2: month list + chart ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.1fr', gap: 18, alignItems: 'start' }}>
 
         {/* Month list */}
         <div className="card" style={{ padding: '20px 20px 16px' }}>
@@ -438,7 +553,8 @@ export default function IngresosPage() {
                   </div>
 
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font-mono)', color: activo ? 'var(--chart-secondary)' : 'var(--black)' }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font-mono)',
+                      color: activo ? 'var(--chart-secondary)' : 'var(--black)' }}>
                       {fmt(r.total)}
                     </div>
                   </div>
@@ -498,12 +614,9 @@ export default function IngresosPage() {
               border: `1px solid ${tablaMesFiltro === null ? 'var(--chart-secondary)' : 'var(--border)'}`,
               transition: 'background 0.15s, color 0.15s',
             }}
-          >
-            Todos
-          </button>
+          >Todos</button>
           {mesesDisponibles.map(m => (
-            <button
-              key={m}
+            <button key={m}
               onClick={() => setTablaMesFiltro(prev => prev === m ? null : m)}
               style={{
                 padding: '4px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -512,9 +625,7 @@ export default function IngresosPage() {
                 border: `1px solid ${tablaMesFiltro === m ? 'var(--chart-secondary)' : 'var(--border)'}`,
                 transition: 'background 0.15s, color 0.15s',
               }}
-            >
-              {mesNombre(m)}
-            </button>
+            >{mesNombre(m)}</button>
           ))}
         </div>
 
@@ -531,12 +642,8 @@ export default function IngresosPage() {
             { label: 'Total',          value: tablaEfectivo + tablaTerminal + tablaTransferencia, color: 'var(--chart-secondary)', bold: true },
           ].map(({ label, value, color, bold }, i, arr) => (
             <div key={label} style={{ padding: '10px 16px', borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)', marginBottom: 3 }}>
-                {label}
-              </div>
-              <div style={{ fontSize: bold ? 16 : 14, fontWeight: bold ? 800 : 700, fontFamily: 'var(--font-mono)', color }}>
-                {fmt(value)}
-              </div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)', marginBottom: 3 }}>{label}</div>
+              <div style={{ fontSize: bold ? 16 : 14, fontWeight: bold ? 800 : 700, fontFamily: 'var(--font-mono)', color }}>{fmt(value)}</div>
             </div>
           ))}
         </div>
@@ -559,33 +666,20 @@ export default function IngresosPage() {
               {tablaRows.map(d => (
                 <tr key={d.fecha}>
                   <td style={{ fontWeight: 500 }}>{fmtFecha(d.fecha)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--black)' }}>
-                    {fmt(Number(d.efectivo))}
-                  </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: NAVY_600 }}>
-                    {fmt(Number(d.terminal))}
-                  </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: NAVY_300 }}>
-                    {fmt(Number(d.transferencia || 0))}
-                  </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                    {Number(d.ofrendas ?? 0) || '—'}
-                  </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                    {d.participDom !== null ? `${d.participDom}%` : '—'}
-                  </td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--black)' }}>{fmt(Number(d.efectivo))}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: NAVY_600 }}>{fmt(Number(d.terminal))}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: NAVY_300 }}>{fmt(Number(d.transferencia || 0))}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{Number(d.ofrendas ?? 0) || '—'}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{d.participDom !== null ? `${d.participDom}%` : '—'}</td>
                   <td style={{ textAlign: 'center' }}>
                     {canWrite && (
-                      <button
-                        onClick={() => openModal(d)}
-                        className="edit-btn-row"
+                      <button onClick={() => openModal(d)} className="edit-btn-row"
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4,
                           background: 'none', border: '1px solid var(--border)',
                           borderRadius: 6, padding: '3px 8px',
                           fontSize: 11.5, color: 'var(--muted)', cursor: 'pointer', lineHeight: 1,
-                        }}
-                      >
+                        }}>
                         <I.edit size={11} /> Editar
                       </button>
                     )}
