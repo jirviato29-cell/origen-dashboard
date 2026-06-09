@@ -1,12 +1,29 @@
 import { useState, useEffect } from 'react';
 import { ofrendasApi, gastosApi } from '../../services/api';
-import { fmtFecha, fmtFechaShort } from '../../utils/fecha';
+import { fmtFecha } from '../../utils/fecha';
 import { CATEGORIAS, CAT_COLORS } from '../../utils/categorias';
 import { SALDO_INICIAL_CAJA } from '../../utils/config';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Cell, ResponsiveContainer } from 'recharts';
 
-// ── Formatters ────────────────────────────────────────────────────────────────
+// ── Design tokens ──────────────────────────────────────────────────────────
+const NAVY     = '#112540';
+const NAVY_700 = '#244169';
+const NAVY_600 = '#305181';
+const NAVY_300 = '#9CB0CC';
+const NAVY_100 = '#DCE4EF';
+const GREEN    = '#15915A';
+const GREEN_400= '#3DD68C';
+const RED      = '#D23B36';
+const GRAY_500 = '#7A8699';
+const GRAY_300 = '#CBD2DC';
+const GRAY_200 = '#E2E6EC';
+const GRAY_100 = '#EEF1F5';
+const GRAY_50  = '#F6F7F9';
+const ORANGE   = '#FF6B2B';
+const ORANGE_50= '#FFF4EE';
+const ORANGE_100='#FFE5D6';
 
+// ── Formatters ─────────────────────────────────────────────────────────────
 function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
 }
@@ -16,8 +33,7 @@ function mesNombre(isoMes) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-// ── Data builders ─────────────────────────────────────────────────────────────
-
+// ── Data builders (unchanged logic) ───────────────────────────────────────
 function buildMonthlyData(ofrendas, gastos) {
   const meses = [...new Set(ofrendas.map(d => d.fecha.slice(0, 7)))].sort();
   return meses.map(mes => {
@@ -27,18 +43,10 @@ function buildMonthlyData(ofrendas, gastos) {
     const gasMes = gastos
       .filter(g => g.fecha.startsWith(mes))
       .reduce((s, g) => s + Number(g.monto), 0);
-    return {
-      mes,
-      label:    mesNombre(mes),
-      ingresos: ingMes,
-      gastos:   gasMes,
-      balance:  ingMes - gasMes,
-    };
+    return { mes, label: mesNombre(mes), ingresos: ingMes, gastos: gasMes, balance: ingMes - gasMes };
   });
 }
 
-// Una fila por domingo. Gastos asignados al período
-// (prevDomingo < fecha_gasto <= domingo_actual).
 function buildWeeklyData(ofrendas, gastos) {
   if (ofrendas.length === 0) return [];
   const sorted = [...ofrendas].sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -51,23 +59,15 @@ function buildWeeklyData(ofrendas, gastos) {
     cumIngresos += Number(d.total_ofrenda);
     cumGastos   += gastosDelPeriodo;
     return {
-      fecha:         d.fecha,
-      efectivo:      Number(d.efectivo),
-      ingresos:      Number(d.total_ofrenda),
-      gastos:        gastosDelPeriodo,
+      fecha: d.fecha, efectivo: Number(d.efectivo),
+      ingresos: Number(d.total_ofrenda), gastos: gastosDelPeriodo,
       balanceSemana: Number(d.total_ofrenda) - gastosDelPeriodo,
-      cumIngresos,
-      cumGastos,
-      balance:       cumIngresos - cumGastos,
+      cumIngresos, cumGastos, balance: cumIngresos - cumGastos,
     };
   });
 }
 
-// ── Balance Bar Chart ─────────────────────────────────────────────────────────
-
-const BAR_GREEN = '#5C7A6F';
-const BAR_RED   = '#FF6B2B';
-
+// ── Bar chart ──────────────────────────────────────────────────────────────
 function BalanceBarChart({ data }) {
   if (!data || data.length === 0) {
     return (
@@ -80,20 +80,20 @@ function BalanceBarChart({ data }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 4 }}>
-        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#b0a090' }} axisLine={false} tickLine={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 11, fill: GRAY_500 }} axisLine={false} tickLine={false} />
         <YAxis
           tickFormatter={v => v === 0 ? '$0' : `${v < 0 ? '-' : ''}$${Math.abs(Math.round(v) / 1000).toFixed(0)}k`}
-          tick={{ fontSize: 10, fill: '#b0a090' }} axisLine={false} tickLine={false} width={44}
+          tick={{ fontSize: 10, fill: GRAY_500 }} axisLine={false} tickLine={false} width={44}
         />
         <Tooltip
           formatter={(value) => [fmt(value), 'Saldo']}
           labelFormatter={(name) => { const d = chartData.find(x => x.name === name); return d?.label || name; }}
-          contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
+          contentStyle={{ fontSize: 12.5, borderRadius: 8, border: `1px solid ${GRAY_200}` }}
         />
-        <ReferenceLine y={0} stroke="#ddd5c8" strokeWidth={1.5} />
+        <ReferenceLine y={0} stroke={GRAY_300} strokeWidth={1.5} />
         <Bar dataKey="balance" radius={[3, 3, 0, 0]} maxBarSize={48}>
           {chartData.map((entry, i) => (
-            <Cell key={i} fill={entry.balance >= 0 ? BAR_GREEN : BAR_RED} />
+            <Cell key={i} fill={entry.balance >= 0 ? GREEN : RED} />
           ))}
         </Bar>
       </BarChart>
@@ -101,8 +101,51 @@ function BalanceBarChart({ data }) {
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Reusable KPI card ──────────────────────────────────────────────────────
+function KpiCard({ label, value, valueSuffix, foot, feature = false, valColor }) {
+  return (
+    <div style={{
+      background: feature ? NAVY : 'var(--surface)',
+      border: `1px solid ${feature ? NAVY : 'var(--border)'}`,
+      borderRadius: 'var(--r-lg)', padding: '18px 20px',
+      boxShadow: 'var(--shadow-sm)', transition: '.15s',
+    }}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: feature ? NAVY_300 : GRAY_500, marginBottom: 11 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: valColor, fontVariantNumeric: 'tabular-nums', display: 'flex', alignItems: 'center', gap: 8 }}>
+        {value}
+      </div>
+      <div style={{ marginTop: 11, paddingTop: 11, borderTop: `1px solid ${feature ? 'rgba(255,255,255,0.12)' : GRAY_100}`, fontSize: 11.5, color: feature ? NAVY_300 : GRAY_500 }}>
+        {foot}
+      </div>
+    </div>
+  );
+}
 
+// ── Method (payment method) card ───────────────────────────────────────────
+function MethodCard({ label, value, pct, barColor, valColor }) {
+  const pctBadgeBg    = pct === 0 ? GRAY_100 : NAVY_100;
+  const pctBadgeColor = pct === 0 ? GRAY_500  : NAVY_700;
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500 }}>{label}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: pctBadgeBg, color: pctBadgeColor }}>{pct}%</span>
+      </div>
+      <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, fontVariantNumeric: 'tabular-nums', marginBottom: 11, color: valColor }}>
+        <span style={{ fontSize: 16, opacity: 0.6 }}>$</span>
+        {Math.round(value).toLocaleString('es-MX', { maximumFractionDigits: 0 })}
+      </div>
+      <div style={{ height: 7, borderRadius: 999, background: GRAY_100, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: barColor }} />
+      </div>
+      <div style={{ fontSize: 11, color: GRAY_500, marginTop: 8 }}>del total de ofrendas del año</div>
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
 export default function BalancePage() {
   const year = new Date().getFullYear();
 
@@ -129,22 +172,20 @@ export default function BalancePage() {
     load();
   }, [year]);
 
-  if (loading) {
-    return (
-      <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
-        Cargando balance…
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+      Cargando balance…
+    </div>
+  );
 
   const weeklyData = buildWeeklyData(ofrendas, gastos);
 
-  // ── KPIs ──
-  const totalIngresos = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
-  const totalGastos   = gastos.reduce((s, g) => s + Number(g.monto), 0);
-  const balanceNeto   = totalIngresos - totalGastos;
-  const totalEfectivo      = ofrendas.reduce((s, d) => s + Number(d.efectivo),            0);
-  const totalTerminal      = ofrendas.reduce((s, d) => s + Number(d.terminal),            0);
+  // ── Aggregates (unchanged logic) ──
+  const totalIngresos      = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
+  const totalGastos        = gastos.reduce((s, g) => s + Number(g.monto), 0);
+  const balanceNeto        = totalIngresos - totalGastos;
+  const totalEfectivo      = ofrendas.reduce((s, d) => s + Number(d.efectivo),           0);
+  const totalTerminal      = ofrendas.reduce((s, d) => s + Number(d.terminal),           0);
   const totalTransferencia = ofrendas.reduce((s, d) => s + Number(d.transferencia || 0), 0);
   const cajaChica          = SALDO_INICIAL_CAJA + totalEfectivo - totalGastos;
 
@@ -152,20 +193,15 @@ export default function BalancePage() {
   const pctTerminal      = totalIngresos > 0 ? Math.round(totalTerminal      / totalIngresos * 100) : 0;
   const pctTransferencia = totalIngresos > 0 ? 100 - pctEfectivo - pctTerminal                      : 0;
 
-  // ── Gastos por categoría ──
   const catTotales = CATEGORIAS.map(cat => ({
     cat,
-    total: gastos
-      .filter(g => (g.categoria_nombre ?? g.categoria) === cat)
-      .reduce((s, g) => s + Number(g.monto), 0),
+    total: gastos.filter(g => (g.categoria_nombre ?? g.categoria) === cat).reduce((s, g) => s + Number(g.monto), 0),
   }));
 
-  // ── Resumen mensual ──
   const monthlyData = buildMonthlyData(ofrendas, gastos);
+  const toggleMes   = m => setMesSelec(prev => prev === m ? null : m);
 
-  const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
-
-  // ── Caja de Efectivo ──
+  // Caja de efectivo
   const cajaData = [];
   let saldo = SALDO_INICIAL_CAJA;
   for (const row of weeklyData) {
@@ -174,158 +210,106 @@ export default function BalancePage() {
     cajaData.push({ ...row, saldoInicial, saldoFinal });
     saldo = saldoFinal;
   }
-  const cajaRows    = [...cajaData].reverse();
-  const saldoEnCaja = cajaData.length > 0 ? cajaData[cajaData.length - 1].saldoFinal : 0;
-  const totalGastosWeekly = weeklyData.reduce((s, r) => s + r.gastos, 0);
+  const cajaRows         = [...cajaData].reverse();
+  const saldoEnCaja      = cajaData.length > 0 ? cajaData[cajaData.length - 1].saldoFinal : 0;
+  const totalGastosWeekly= weeklyData.reduce((s, r) => s + r.gastos, 0);
+
+  // Arrow icon for Balance neto card
+  const ArrowUp = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" width="20" height="20"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  );
+  const ArrowDown = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" width="20" height="20"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5v14M19 12l-7 7-7-7" />
+    </svg>
+  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      {/* ── Fila 1: 4 tarjetas ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14 }}>
+      {/* ── KPIs (4 tarjetas) ─────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
 
-        <div className="card" style={{
-          padding: '18px 20px',
-          background: cajaChica >= 0 ? 'rgba(79,138,91,0.07)' : 'rgba(180,74,58,0.07)',
+        {/* Efectivo en caja */}
+        <KpiCard
+          label="Efectivo en caja"
+          value={<>{cajaChica >= 0 ? <span style={{ fontSize: 18, color: '#3DD68C', fontWeight: 600 }}>+$</span> : <span style={{ fontSize: 18, color: RED, fontWeight: 600 }}>−$</span>}{Math.abs(Math.round(cajaChica)).toLocaleString('es-MX')}</>}
+          valColor={cajaChica >= 0 ? GREEN : RED}
+          foot="Disponible hoy"
+        />
+
+        {/* Acumulado ingresos */}
+        <KpiCard
+          label="Acumulado ingresos"
+          value={<><span style={{ fontSize: 18, color: '#3DD68C', fontWeight: 600 }}>$</span>{Math.round(totalIngresos).toLocaleString('es-MX')}</>}
+          valColor={GREEN}
+          foot={<><b style={{ color: NAVY }}>{ofrendas.length}</b> domingos · {year}</>}
+        />
+
+        {/* Total gastos */}
+        <KpiCard
+          label="Total gastos del año"
+          value={<><span style={{ fontSize: 18, color: '#F2635E', fontWeight: 600 }}>$</span>{Math.round(totalGastos).toLocaleString('es-MX')}</>}
+          valColor={RED}
+          foot={<><b style={{ color: NAVY }}>{gastos.length}</b> registros · {year}</>}
+        />
+
+        {/* Balance neto — feature card (navy) */}
+        <div style={{
+          background: NAVY, border: `1px solid ${NAVY}`,
+          borderRadius: 'var(--r-lg)', padding: '18px 20px',
+          boxShadow: 'var(--shadow-sm)',
         }}>
-          <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Efectivo en caja
-          </div>
-          <div style={{
-            fontSize: 27, fontWeight: 800, marginTop: 10,
-            fontFamily: 'var(--font-mono)', lineHeight: 1,
-            color: cajaChica >= 0 ? 'var(--good)' : 'var(--danger)',
-          }}>
-            {cajaChica >= 0 ? '+' : ''}{fmt(cajaChica)}
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '18px 20px' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Acumulado ingresos
-          </div>
-          <div style={{ fontSize: 27, fontWeight: 800, color: '#5C7A6F', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(totalIngresos)}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            {ofrendas.length} domingos · {year}
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '18px 20px' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Total gastos del año
-          </div>
-          <div style={{ fontSize: 27, fontWeight: 800, color: 'var(--danger)', marginTop: 10, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(totalGastos)}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            {gastos.length} registros · {year}
-          </div>
-        </div>
-
-        <div className="card" style={{
-          padding: '18px 20px',
-          background: balanceNeto >= 0 ? 'rgba(79,138,91,0.10)' : 'rgba(180,74,58,0.10)',
-          border: `1.5px solid ${balanceNeto >= 0 ? 'rgba(79,138,91,0.25)' : 'rgba(180,74,58,0.25)'}`,
-        }}>
-          <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: NAVY_300, marginBottom: 11 }}>
             Balance neto
           </div>
           <div style={{
-            fontSize: 27, fontWeight: 800, marginTop: 10,
-            fontFamily: 'var(--font-mono)', lineHeight: 1,
-            color: balanceNeto >= 0 ? 'var(--good)' : 'var(--danger)',
+            fontSize: 30, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
+            color: balanceNeto >= 0 ? GREEN_400 : RED,
+            fontVariantNumeric: 'tabular-nums',
+            display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            {balanceNeto >= 0 ? '▲ ' : '▼ '}{fmt(Math.abs(balanceNeto))}
+            <span style={{ color: balanceNeto >= 0 ? GREEN_400 : RED }}>
+              {balanceNeto >= 0 ? <ArrowUp /> : <ArrowDown />}
+            </span>
+            <span>
+              <span style={{ fontSize: 18, fontWeight: 600, color: balanceNeto >= 0 ? 'rgba(61,214,140,0.7)' : 'rgba(242,99,94,0.7)' }}>$</span>
+              {Math.abs(Math.round(balanceNeto)).toLocaleString('es-MX')}
+            </span>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-            {balanceNeto >= 0 ? 'Superávit' : 'Déficit'} acumulado {year}
+          <div style={{ marginTop: 11, paddingTop: 11, borderTop: 'rgba(255,255,255,0.12) 1px solid', fontSize: 11.5, color: NAVY_300 }}>
+            Balance neto acumulado {year}
           </div>
         </div>
       </div>
 
-      {/* ── Fila 2: 4 tarjetas secundarias ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+      {/* ── Métodos de pago + Gastos por categoría ────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
 
-        <div className="card" style={{ padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-              Total efectivo recibido
-            </div>
-            <span style={{
-              fontSize: 12, fontWeight: 800, padding: '2px 9px', borderRadius: 99,
-              background: 'rgba(79,138,91,0.12)', color: 'var(--good)',
-            }}>
-              {pctEfectivo}%
-            </span>
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--good)', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(totalEfectivo)}
-          </div>
-          <div style={{ marginTop: 14, height: 5, borderRadius: 99, background: 'var(--border)' }}>
-            <div style={{ height: '100%', width: `${pctEfectivo}%`, borderRadius: 99, background: 'var(--good)', opacity: 0.8 }} />
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>Del total de ofrendas del año</div>
-        </div>
+        <MethodCard label="Efectivo recibido"    value={totalEfectivo}      pct={pctEfectivo}      barColor={NAVY}     valColor={NAVY} />
+        <MethodCard label="Terminal recibido"    value={totalTerminal}      pct={pctTerminal}      barColor={NAVY_600} valColor={NAVY_700} />
+        <MethodCard label="Transferencia"        value={totalTransferencia} pct={pctTransferencia} barColor={NAVY_300} valColor={NAVY_300} />
 
-        <div className="card" style={{ padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-              Total terminal recibido
-            </div>
-            <span style={{
-              fontSize: 12, fontWeight: 800, padding: '2px 9px', borderRadius: 99,
-              background: 'rgba(0,180,216,0.12)', color: 'var(--chart-primary)',
-            }}>
-              {pctTerminal}%
-            </span>
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--chart-primary)', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(totalTerminal)}
-          </div>
-          <div style={{ marginTop: 14, height: 5, borderRadius: 99, background: 'var(--border)' }}>
-            <div style={{ height: '100%', width: `${pctTerminal}%`, borderRadius: 99, background: 'var(--chart-primary)', opacity: 0.8 }} />
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>Del total de ofrendas del año</div>
-        </div>
-
-        <div className="card" style={{ padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-              Total transferencia recibido
-            </div>
-            <span style={{
-              fontSize: 12, fontWeight: 800, padding: '2px 9px', borderRadius: 99,
-              background: 'rgba(13,148,136,0.12)', color: '#0d9488',
-            }}>
-              {pctTransferencia}%
-            </span>
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#0d9488', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {fmt(totalTransferencia)}
-          </div>
-          <div style={{ marginTop: 14, height: 5, borderRadius: 99, background: 'var(--border)' }}>
-            <div style={{ height: '100%', width: `${pctTransferencia}%`, borderRadius: 99, background: '#0d9488', opacity: 0.8 }} />
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>Del total de ofrendas del año</div>
-        </div>
-
-        <div className="card" style={{ padding: '18px 20px' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
+        {/* Gastos por categoría */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 13 }}>
             Gastos por categoría
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             {[...catTotales].sort((a, b) => b.total - a.total).map(({ cat, total }) => {
               const pct = totalGastos > 0 ? (total / totalGastos) * 100 : 0;
               return (
-                <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: CAT_COLORS[cat], flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, color: 'var(--ink)', flex: 1 }}>{cat}</span>
-                  <div style={{ width: 60, height: 4, borderRadius: 99, background: 'var(--border)', flexShrink: 0 }}>
-                    <div style={{ height: '100%', width: `${pct}%`, borderRadius: 99, background: CAT_COLORS[cat] }} />
+                <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 3, background: CAT_COLORS[cat], flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: '#3D4654', fontWeight: 500, flex: 1, minWidth: 0 }}>{cat}</span>
+                  <div style={{ width: 54, height: 5, borderRadius: 999, background: GRAY_100, overflow: 'hidden', flexShrink: 0 }}>
+                    <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: CAT_COLORS[cat] }} />
                   </div>
-                  <span style={{ fontSize: 11.5, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--muted)', minWidth: 54, textAlign: 'right' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: NAVY, fontVariantNumeric: 'tabular-nums', width: 58, textAlign: 'right' }}>
                     {fmt(total)}
                   </span>
                 </div>
@@ -335,60 +319,66 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {/* ── Resumen por mes + Pastel ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 14 }}>
+      {/* ── Resumen por mes + Gráfica ──────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 14, alignItems: 'stretch' }}>
 
-        {/* Resumen por mes */}
-        <div className="card" style={{ padding: '20px 20px 16px' }}>
-          <div className="card-head" style={{ marginBottom: 16 }}>
+        {/* Resumen mensual */}
+        <div className="card">
+          <div className="card-head" style={{ marginBottom: 4 }}>
             <div>
               <h3 className="card-title">Resumen por mes</h3>
               <div className="card-sub">{year} · haz clic en un mes para ver su detalle</div>
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {monthlyData.map(r => {
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {monthlyData.map((r, idx) => {
               const activo = mesSeleccionado === r.mes;
+              const isLast = idx === monthlyData.length - 1;
               return (
-                <button
-                  key={r.mes}
-                  onClick={() => toggleMes(r.mes)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '11px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                    background: activo ? 'var(--black)' : 'transparent',
-                    color: activo ? 'white' : 'var(--ink)',
-                    transition: 'background 0.15s',
-                    textAlign: 'left', width: '100%',
-                  }}
-                >
-                  <span style={{ fontSize: 15, fontWeight: 600, flexShrink: 0 }}>{r.label}</span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 6px', justifyContent: 'flex-end' }}>
-                    <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, color: activo ? 'rgba(255,255,255,0.8)' : '#00B4D8', whiteSpace: 'nowrap' }}>
+                <div key={r.mes} style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '13px 8px',
+                  borderBottom: isLast ? 'none' : `1px solid ${GRAY_100}`,
+                  background: activo ? NAVY : 'transparent',
+                  borderRadius: activo ? 8 : 0,
+                  transition: 'background .15s',
+                }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: activo ? 'white' : NAVY, width: 70, flexShrink: 0 }}>
+                    {r.label}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 14, fontSize: 11.5, flexWrap: 'wrap' }}>
+                    <span style={{ color: activo ? 'rgba(61,214,140,0.9)' : GREEN, fontWeight: 600, whiteSpace: 'nowrap' }}>
                       Ing: {fmt(r.ingresos)}
                     </span>
-                    <span style={{ color: activo ? 'rgba(255,255,255,0.3)' : 'var(--border)' }}>·</span>
-                    <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: activo ? 'rgba(255,255,255,0.65)' : 'var(--danger)', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: activo ? 'rgba(242,99,94,0.8)' : RED, fontWeight: 600, whiteSpace: 'nowrap' }}>
                       Gas: {fmt(r.gastos)}
                     </span>
-                    <span style={{ color: activo ? 'rgba(255,255,255,0.3)' : 'var(--border)' }}>·</span>
-                    <span style={{
-                      fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 800, whiteSpace: 'nowrap',
-                      color: activo
-                        ? (r.balance >= 0 ? '#90d4a8' : '#f4a070')
-                        : (r.balance >= 0 ? 'var(--good)' : 'var(--danger)'),
-                    }}>
-                      {r.balance >= 0 ? '+' : ''}{fmt(r.balance)}
-                    </span>
                   </div>
-                </button>
+                  <span style={{
+                    fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em',
+                    fontVariantNumeric: 'tabular-nums', flexShrink: 0,
+                    color: activo
+                      ? (r.balance >= 0 ? '#3DD68C' : '#F2635E')
+                      : (r.balance >= 0 ? GREEN : RED),
+                  }}>
+                    {r.balance >= 0 ? '+' : ''}{fmt(r.balance)}
+                  </span>
+                  <button onClick={() => toggleMes(r.mes)} style={{
+                    fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6, cursor: 'pointer', flexShrink: 0,
+                    color: activo ? 'white' : ORANGE,
+                    background: activo ? 'rgba(255,255,255,0.12)' : ORANGE_50,
+                    border: `1px solid ${activo ? 'rgba(255,255,255,0.20)' : ORANGE_100}`,
+                  }}>
+                    {activo ? 'Cerrar' : 'Ver detalle'}
+                  </button>
+                </div>
               );
             })}
           </div>
         </div>
 
-        {/* Gráfica de barras de saldo mensual */}
-        <div className="card" style={{ padding: '20px 20px 16px' }}>
+        {/* Gráfica de barras */}
+        <div className="card">
           <div className="card-head" style={{ marginBottom: 16 }}>
             <div>
               <h3 className="card-title">Balance {year}</h3>
@@ -399,7 +389,7 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {/* ── Tabla: Caja de Efectivo ── */}
+      {/* ── Caja de Efectivo ──────────────────────────────────────────────── */}
       <div className="card">
         <div className="card-head" style={{ marginBottom: 16 }}>
           <div>
@@ -416,86 +406,84 @@ export default function BalancePage() {
           </div>
         ) : (
           <>
-          {/* Banda de totales superior */}
-          <div style={{
-            display: 'flex', flexWrap: 'wrap', gap: 0,
-            background: 'var(--surface)', border: '1px solid var(--border)',
-            borderRadius: 10, marginBottom: 12, overflow: 'hidden',
-          }}>
-            {[
-              { label: 'Total ingresos',  value: totalEfectivo,       color: 'var(--good)',   bold: false },
-              { label: 'Total gastos',    value: totalGastosWeekly,   color: 'var(--danger)', bold: false },
-              { label: 'Saldo en caja',   value: saldoEnCaja,         color: saldoEnCaja < 0 ? 'var(--danger)' : 'var(--ink)', bold: true },
-            ].map(({ label, value, color, bold }, i, arr) => (
-              <div key={label} style={{
-                flex: '1 1 140px', padding: '10px 16px',
-                borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
-              }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>
-                  {label}
+            {/* Banda de totales — 3-col grid con separadores */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 1, background: GRAY_200,
+              border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-md)',
+              overflow: 'hidden', marginBottom: 16,
+            }}>
+              {[
+                { label: 'Total ingresos efectivo', value: totalEfectivo,     valColor: GREEN },
+                { label: 'Total gastos',            value: totalGastosWeekly, valColor: RED   },
+                { label: 'Saldo en caja',           value: saldoEnCaja,       valColor: saldoEnCaja < 0 ? RED : NAVY },
+              ].map(({ label, value, valColor }) => (
+                <div key={label} style={{ background: 'var(--surface)', padding: '14px 18px' }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 5 }}>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', color: valColor }}>
+                    {fmt(value)}
+                  </div>
                 </div>
-                <div style={{ fontSize: bold ? 16 : 14, fontWeight: bold ? 800 : 700, fontFamily: 'var(--font-mono)', color }}>
-                  {fmt(value)}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
-            <table className="table anf-table">
-              <thead>
-                <tr>
-                  <th>Domingo</th>
-                  <th style={{ textAlign: 'right' }}>Saldo inicial</th>
-                  <th style={{ textAlign: 'right' }}>Ingresos</th>
-                  <th style={{ textAlign: 'right' }}>Gastos</th>
-                  <th style={{ textAlign: 'right' }}>Saldo final</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cajaRows.map(row => (
-                  <tr key={row.fecha}>
-                    <td style={{ fontWeight: 500 }}>{fmtFecha(row.fecha)}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>
-                      {fmt(row.saldoInicial)}
+            <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
+              <table className="table anf-table">
+                <thead>
+                  <tr>
+                    <th>Domingo</th>
+                    <th style={{ textAlign: 'right' }}>Saldo inicial</th>
+                    <th style={{ textAlign: 'right' }}>Ingresos</th>
+                    <th style={{ textAlign: 'right' }}>Gastos</th>
+                    <th style={{ textAlign: 'right' }}>Saldo final</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cajaRows.map(row => (
+                    <tr key={row.fecha}>
+                      <td style={{ fontWeight: 600 }}>{fmtFecha(row.fecha)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: GRAY_500 }}>
+                        {fmt(row.saldoInicial)}
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.efectivo > 0 ? GREEN : GRAY_500, fontWeight: row.efectivo > 0 ? 600 : 400 }}>
+                        {row.efectivo > 0 ? fmt(row.efectivo) : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? RED : GRAY_500, fontWeight: row.gastos > 0 ? 600 : 400 }}>
+                        {row.gastos > 0 ? fmt(row.gastos) : '—'}
+                      </td>
+                      <td style={{
+                        textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800,
+                        color: row.saldoFinal < 0 ? RED : NAVY,
+                      }}>
+                        {fmt(row.saldoFinal)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tbody>
+                  <tr className="anf-totals-row">
+                    <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
+                      Saldo final {year}
                     </td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                      {row.efectivo > 0 ? fmt(row.efectivo) : '—'}
+                    <td />
+                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: GREEN }}>
+                      {fmt(totalEfectivo)}
                     </td>
-                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? 'var(--danger)' : 'var(--muted)' }}>
-                      {row.gastos > 0 ? fmt(row.gastos) : '—'}
+                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: RED }}>
+                      {fmt(totalGastosWeekly)}
                     </td>
                     <td style={{
-                      textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700,
-                      color: row.saldoFinal < 0 ? 'var(--danger)' : 'var(--ink)',
+                      textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 14,
+                      color: saldoEnCaja < 0 ? RED : NAVY,
                     }}>
-                      {fmt(row.saldoFinal)}
+                      {fmt(saldoEnCaja)}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-              <tbody>
-                <tr className="anf-totals-row">
-                  <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
-                    Saldo final {year}
-                  </td>
-                  <td />
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                    {fmt(totalEfectivo)}
-                  </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
-                    {fmt(totalGastosWeekly)}
-                  </td>
-                  <td style={{
-                    textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 14,
-                    color: saldoEnCaja < 0 ? 'var(--danger)' : 'var(--ink)',
-                  }}>
-                    {fmt(saldoEnCaja)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </div>
