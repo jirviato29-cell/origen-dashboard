@@ -4,6 +4,8 @@ import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
 import * as XLSX from 'xlsx';
 import { I } from '../../components/Icons';
 import { TIPO_COLOR, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
+import { useAuth } from '../../context/AuthContext';
+import { puedeRegistrar } from '../../permissions';
 
 function fmtMoney(n) {
   return `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -142,6 +144,8 @@ function AbonoFields({
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function PuntoEncuentroViewPage() {
+  const { permisos } = useAuth();
+  const canWrite = puedeRegistrar(permisos, 'punto_encuentro');
   const [filter,  setFilter]  = useState('todos');
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -593,13 +597,15 @@ export default function PuntoEncuentroViewPage() {
                         <I.chevR size={11} />
                       </span>
                     </button>
-                    <button
-                      className="btn btn-primary"
-                      style={{ fontSize: 12, padding: '5px 12px' }}
-                      onClick={() => openModal(e)}
-                    >
-                      <I.plus size={12} /> Registrar participante
-                    </button>
+                    {canWrite && (
+                      <button
+                        className="btn btn-primary"
+                        style={{ fontSize: 12, padding: '5px 12px' }}
+                        onClick={() => openModal(e)}
+                      >
+                        <I.plus size={12} /> Registrar participante
+                      </button>
+                    )}
                     <button
                       className="btn"
                       style={{
@@ -708,22 +714,26 @@ export default function PuntoEncuentroViewPage() {
                                       </span>
                                     </button>
                                   )}
-                                  <button
-                                    className="btn btn-primary"
-                                    style={{ fontSize: 11, padding: '3px 9px' }}
-                                    onClick={() => openAbonoModal(p, e)}
-                                  >
-                                    <I.plus size={11} /> Abono
-                                  </button>
-                                  <button
-                                    className="icon-btn"
-                                    onClick={() => handleDeleteParticipante(p)}
-                                    disabled={deletingId === p.id}
-                                    style={{ width: 28, height: 28, color: 'var(--danger)', flexShrink: 0 }}
-                                    title="Eliminar participante"
-                                  >
-                                    <I.trash size={13} />
-                                  </button>
+                                  {canWrite && (
+                                    <button
+                                      className="btn btn-primary"
+                                      style={{ fontSize: 11, padding: '3px 9px' }}
+                                      onClick={() => openAbonoModal(p, e)}
+                                    >
+                                      <I.plus size={11} /> Abono
+                                    </button>
+                                  )}
+                                  {canWrite && (
+                                    <button
+                                      className="icon-btn"
+                                      onClick={() => handleDeleteParticipante(p)}
+                                      disabled={deletingId === p.id}
+                                      style={{ width: 28, height: 28, color: 'var(--danger)', flexShrink: 0 }}
+                                      title="Eliminar participante"
+                                    >
+                                      <I.trash size={13} />
+                                    </button>
+                                  )}
                                 </div>
                               </div>
 
@@ -759,15 +769,17 @@ export default function PuntoEncuentroViewPage() {
                                           <I.paperclip size={10} />
                                         </a>
                                       )}
-                                      <button
-                                        className="icon-btn"
-                                        onClick={() => handleDeleteAbono(a)}
-                                        disabled={deletingAbonoId === a.id}
-                                        style={{ width: 16, height: 16, color: 'var(--danger)', flexShrink: 0, marginLeft: 1 }}
-                                        title="Eliminar abono"
-                                      >
-                                        <I.x size={9} />
-                                      </button>
+                                      {canWrite && (
+                                        <button
+                                          className="icon-btn"
+                                          onClick={() => handleDeleteAbono(a)}
+                                          disabled={deletingAbonoId === a.id}
+                                          style={{ width: 16, height: 16, color: 'var(--danger)', flexShrink: 0, marginLeft: 1 }}
+                                          title="Eliminar abono"
+                                        >
+                                          <I.x size={9} />
+                                        </button>
+                                      )}
                                     </div>
                                   ))}
                                 </div>

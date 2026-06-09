@@ -3,6 +3,8 @@ import { gastosApi } from '../../services/api';
 import { useGastosModal } from '../../context/GastosModalContext';
 import { fmtFecha, fmtFechaShort } from '../../utils/fecha';
 import { CATEGORIAS, CAT_COLORS, CAT_BG } from '../../utils/categorias';
+import { useAuth } from '../../context/AuthContext';
+import { puedeRegistrar } from '../../permissions';
 
 function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
@@ -19,6 +21,8 @@ function metodoPago() {
 export default function GastosPorPagarPage() {
   const year = new Date().getFullYear();
   const { refreshKey } = useGastosModal();
+  const { permisos } = useAuth();
+  const canWrite = puedeRegistrar(permisos, 'gastos');
 
   const [gastos,        setGastos]        = useState([]);
   const [gastosPagados, setGastosPagados] = useState([]);
@@ -138,18 +142,20 @@ export default function GastosPorPagarPage() {
                         {fmt(Number(g.monto))}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button
-                          onClick={() => handlePagar(g.id)}
-                          disabled={isPagando}
-                          style={{
-                            fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 6,
-                            border: '1.5px solid var(--good)', background: 'rgba(79,138,91,0.08)',
-                            color: 'var(--good)', cursor: isPagando ? 'not-allowed' : 'pointer',
-                            opacity: isPagando ? 0.5 : 1, whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {isPagando ? 'Guardando…' : 'Marcar pagado'}
-                        </button>
+                        {canWrite && (
+                          <button
+                            onClick={() => handlePagar(g.id)}
+                            disabled={isPagando}
+                            style={{
+                              fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 6,
+                              border: '1.5px solid var(--good)', background: 'rgba(79,138,91,0.08)',
+                              color: 'var(--good)', cursor: isPagando ? 'not-allowed' : 'pointer',
+                              opacity: isPagando ? 0.5 : 1, whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {isPagando ? 'Guardando…' : 'Marcar pagado'}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ofrendasApi, gastosApi } from '../../services/api';
 import { I } from '../../components/Icons';
+import { useAuth } from '../../context/AuthContext';
+import { puedeRegistrar } from '../../permissions';
 
 const CATEGORIAS_GASTO = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'Decoración'];
 
@@ -33,6 +35,8 @@ const HOY_MES = (() => {
 })();
 
 export default function FinanzasPage() {
+  const { permisos } = useAuth();
+  const canWrite = puedeRegistrar(permisos, 'finanzas');
   const [ingresos,  setIngresos]  = useState([]);
   const [gastos,    setGastos]    = useState([]);
   const [loading,   setLoading]   = useState(true);
@@ -211,12 +215,16 @@ export default function FinanzasPage() {
             )}
           </div>
           <div className="card-actions">
-            <button className="btn btn-ghost" onClick={openIngreso}>
-              <I.plus size={14} /> Ingreso
-            </button>
-            <button className="btn btn-primary" onClick={openGasto} style={{ background: 'var(--danger)', borderColor: 'var(--danger)' }}>
-              <I.plus size={14} /> Egreso
-            </button>
+            {canWrite && (
+              <button className="btn btn-ghost" onClick={openIngreso}>
+                <I.plus size={14} /> Ingreso
+              </button>
+            )}
+            {canWrite && (
+              <button className="btn btn-primary" onClick={openGasto} style={{ background: 'var(--danger)', borderColor: 'var(--danger)' }}>
+                <I.plus size={14} /> Egreso
+              </button>
+            )}
           </div>
         </div>
 

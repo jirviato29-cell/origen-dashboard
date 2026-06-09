@@ -4,6 +4,8 @@ import { fmtFecha, fmtFechaShort, mesNombre, toISODate } from '../../utils/fecha
 import { useIsMobile } from '../../utils/useIsMobile';
 import { useOfrendasModal } from '../../context/OfrendasModalContext';
 import { I } from '../../components/Icons';
+import { useAuth } from '../../context/AuthContext';
+import { puedeRegistrar } from '../../permissions';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -158,6 +160,8 @@ export default function IngresosPage() {
   const [tablaMesFiltro, setTablaMesFiltro] = useState(null);
   const isMobile = useIsMobile();
   const { openModal } = useOfrendasModal();
+  const { permisos } = useAuth();
+  const canWrite = puedeRegistrar(permisos, 'ingresos');
 
   const year = new Date().getFullYear();
 
@@ -608,19 +612,21 @@ export default function IngresosPage() {
                     {d.participDom !== null ? `${d.participDom}%` : '—'}
                   </td>
                   <td style={{ textAlign: 'center' }}>
-                    <button
-                      onClick={() => openModal(d)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        background: 'none', border: '1px solid var(--border)',
-                        borderRadius: 6, padding: '3px 8px',
-                        fontSize: 11.5, color: 'var(--muted)', cursor: 'pointer',
-                        lineHeight: 1,
-                      }}
-                    >
-                      <I.edit size={11} />
-                      Editar
-                    </button>
+                    {canWrite && (
+                      <button
+                        onClick={() => openModal(d)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          background: 'none', border: '1px solid var(--border)',
+                          borderRadius: 6, padding: '3px 8px',
+                          fontSize: 11.5, color: 'var(--muted)', cursor: 'pointer',
+                          lineHeight: 1,
+                        }}
+                      >
+                        <I.edit size={11} />
+                        Editar
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
