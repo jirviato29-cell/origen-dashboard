@@ -19,9 +19,13 @@ const navByRole = {
   ],
   [ROLES.PASTOR]: [
     { group: 'Pastor', items: [
-      { to: '/pastor',            label: 'Resumen General', icon: I.home,   end: true },
-      { to: '/pastor/finanzas',   label: 'Finanzas',        icon: I.wallet },
-      { to: '/pastor/asistencia', label: 'Asistencia',      icon: I.users },
+      { to: '/pastor',                 label: 'Dashboard',          icon: I.dashboard, end: true },
+      { to: '/pastor/ingresos',        label: 'Ingresos',           icon: I.arrowBarDown },
+      { to: '/pastor/gastos',          label: 'Gastos pagados',     icon: I.arrowBarUp },
+      { to: '/pastor/balance',         label: 'Finanzas',           icon: I.scale },
+      { to: '/pastor/asistencia',      label: 'Asistencia',         icon: I.users },
+      { to: '/pastor/punto-encuentro', label: 'Punto de Encuentro', icon: I.pin },
+      { to: '/pastor/calendario',      label: 'Calendario',         icon: I.calendar },
     ]},
   ],
   [ROLES.ANFITRIONES]: [

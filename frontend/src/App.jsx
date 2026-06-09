@@ -11,7 +11,6 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import IngresosPage from './pages/admin/IngresosPage';
 import GastosPage from './pages/admin/GastosPage';
 import VistaMensual from './pages/admin/VistaMensual';
-import ComingSoon from './pages/ComingSoon';
 import RegistrarAsistencia from './pages/anfitriones/RegistrarAsistencia';
 import EstadisticasAsistencia from './pages/anfitriones/EstadisticasAsistencia';
 import HistorialAsistencia from './pages/anfitriones/HistorialAsistencia';
@@ -57,9 +56,13 @@ function AppRoutes() {
       <Route path="/pastor" element={
         <ProtectedRoute routeRole="pastor"><Layout /></ProtectedRoute>
       }>
-        <Route index element={<ComingSoon role="Pastor" />} />
-        <Route path="finanzas"   element={<ComingSoon role="Pastor - Finanzas" />} />
-        <Route path="asistencia" element={<ComingSoon role="Pastor - Asistencia" />} />
+        <Route index                   element={<StewardshipDashboard />} />
+        <Route path="ingresos"         element={<StewardshipIngresosPage />} />
+        <Route path="gastos"           element={<StewardshipGastosPage />} />
+        <Route path="balance"          element={<StewardshipBalancePage />} />
+        <Route path="asistencia"       element={<AsistenciaViewPage />} />
+        <Route path="punto-encuentro"  element={<PuntoEncuentroViewPage />} />
+        <Route path="calendario"       element={<CalendarioPage />} />
       </Route>
 
       {/* ── Anfitriones ────────────────────────────────────────────────── */}
