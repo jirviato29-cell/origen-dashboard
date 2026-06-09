@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { PieChart, Pie, Cell, Tooltip, Label, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { asistenciaApi } from '../../services/api';
 import { useAsistenciaStewModal } from '../../context/AsistenciaStewModalContext';
 import { fmtFecha, mesNombre } from '../../utils/fecha';
@@ -16,12 +16,8 @@ function rowTotal(r) {
 const CAT_LABEL = '#1e40af';
 const CAT_VALUE = '#1e3a8a';
 
-const DONUT_COLORS = {
-  adultos:     '#0f766e',
-  voluntarios: '#14b8a6',
-  ninos:       '#5eead4',
-  bebes:       '#99f6e4',
-};
+const BAR_MONTHLY = '#14b8a6';
+const BAR_WEEKLY  = '#0d9488';
 
 function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevos = 0 }) {
   const num = { fontFamily: 'var(--font-mono)', color: CAT_VALUE, fontWeight: 700 };
@@ -36,64 +32,53 @@ function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevo
   );
 }
 
-// ── Attendance Donut Chart ────────────────────────────────────────────────────
+// ── Attendance Bar Chart (anual + drill-down por mes) ────────────────────────
 
-function AttendanceDonutChart({ slices, total }) {
-  if (!slices || total === 0) {
+function AttendanceBarChart({ resumenMeses, mesSeleccionado, records, onBarClick }) {
+  if (resumenMeses.length === 0) {
     return (
-      <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
+      <div style={{ height: 340, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
         Sin registros para mostrar
       </div>
     );
   }
-  return (
-    <div>
-      <ResponsiveContainer width="100%" height={360}>
-        <PieChart>
-          <Pie
-            data={slices}
-            cx="50%"
-            cy="50%"
-            innerRadius={85}
-            outerRadius={130}
-            dataKey="value"
-            paddingAngle={2}
-            strokeWidth={0}
-          >
-            <Label
-              content={({ viewBox: { cx, cy } }) => (
-                <text x={cx} y={cy} textAnchor="middle">
-                  <tspan x={cx} dy="-6" fontSize="30" fontWeight="800" fill="var(--ink)" fontFamily="var(--font-mono)">{total}</tspan>
-                  <tspan x={cx} dy="22" fontSize="12" fill="#9ca3af">asistentes</tspan>
-                </text>
-              )}
-              position="center"
-            />
-            {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
-          </Pie>
+
+  if (mesSeleccionado) {
+    const domingos = records
+      .filter(r => r.fecha.startsWith(mesSeleccionado))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))
+      .map(r => ({ name: String(parseInt(r.fecha.slice(8), 10)), value: rowTotal(r) }));
+    return (
+      <ResponsiveContainer width="100%" height={340}>
+        <BarChart data={domingos} margin={{ top: 16, right: 12, left: 0, bottom: 0 }} barCategoryGap="40%">
+          <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+          <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={38} />
           <Tooltip
-            formatter={(value, name) => {
-              const pct = total > 0 ? Math.round(value / total * 100) : 0;
-              return [`${value} · ${pct}%`, name];
-            }}
+            formatter={(v) => [v, 'Asistentes']}
+            labelFormatter={(label) => `Día ${label}`}
             contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
           />
-        </PieChart>
+          <Bar dataKey="value" fill={BAR_WEEKLY} radius={[5, 5, 0, 0]} maxBarSize={60} />
+        </BarChart>
       </ResponsiveContainer>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px 22px', marginTop: 2, paddingBottom: 4 }}>
-        {slices.map(s => {
-          const pct = total > 0 ? Math.round(s.value / total * 100) : 0;
-          return (
-            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 11, height: 11, borderRadius: 3, background: s.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12.5, color: '#374151' }}>{s.name}</span>
-              <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#111827' }}>{s.value}</span>
-              <span style={{ fontSize: 11.5, color: '#6b7280' }}>{pct}%</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    );
+  }
+
+  const data = resumenMeses.map(r => ({ name: r.label.slice(0, 3), value: r.total, mes: r.mes }));
+  return (
+    <ResponsiveContainer width="100%" height={340}>
+      <BarChart data={data} margin={{ top: 16, right: 12, left: 0, bottom: 0 }} barCategoryGap="30%">
+        <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+        <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+        <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={38} />
+        <Tooltip
+          formatter={(v) => [v, 'Asistentes']}
+          contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
+        />
+        <Bar dataKey="value" fill={BAR_MONTHLY} radius={[5, 5, 0, 0]} maxBarSize={70} cursor="pointer" onClick={(d) => onBarClick(d.mes)} />
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -168,28 +153,12 @@ export default function AsistenciaViewPage() {
   const totNuevos      = records.reduce((s, r) => s + (r.nuevos      || 0), 0);
   const totTotal       = records.reduce((s, r) => s + rowTotal(r), 0);
 
-  // ── Donut data ─────────────────────────────────────────────────────────────
-  const donutSource = mesSeleccionado
-    ? (resumenMeses.find(r => r.mes === mesSeleccionado) || null)
-    : { adultos: totAdultos, voluntarios: totVoluntarios, ninos: totNinos, bebes: totBebes };
-
-  const donutSlices = donutSource
-    ? [
-        { name: 'Adultos',     value: donutSource.adultos     || 0, color: DONUT_COLORS.adultos },
-        { name: 'Voluntarios', value: donutSource.voluntarios || 0, color: DONUT_COLORS.voluntarios },
-        { name: 'Niños',       value: donutSource.ninos       || 0, color: DONUT_COLORS.ninos },
-        { name: 'Bebés',       value: donutSource.bebes       || 0, color: DONUT_COLORS.bebes },
-      ]
-    : [];
-
-  const donutTotal = donutSlices.reduce((s, x) => s + x.value, 0);
-
   const chartTitle = mesSeleccionado
-    ? `Asistencia ${mesNombre(mesSeleccionado)} ${year}`
-    : `Asistencia ${year}`;
+    ? `Domingos de ${mesNombre(mesSeleccionado)}`
+    : `Total por mes · ${year}`;
   const chartSub = mesSeleccionado
-    ? `${resumenMeses.find(r => r.mes === mesSeleccionado)?.count || 0} domingos · distribución por categoría`
-    : `${resumenMeses.length} meses · distribución por categoría · clic en un mes para filtrar`;
+    ? `${resumenMeses.find(r => r.mes === mesSeleccionado)?.count || 0} domingos · haz clic en ← para volver`
+    : `${resumenMeses.length} meses · haz clic en una barra para ver sus domingos`;
 
   if (loading) {
     return (
@@ -350,7 +319,7 @@ export default function AsistenciaViewPage() {
             )}
           </div>
 
-          {/* Derecha: Gráfica de dona */}
+          {/* Derecha: Gráfica de barras */}
           <div className="card" style={{ padding: '20px 20px 16px' }}>
             <div className="card-head chart-head" style={{ marginBottom: 14 }}>
               <div>
@@ -372,7 +341,12 @@ export default function AsistenciaViewPage() {
                 </button>
               )}
             </div>
-            <AttendanceDonutChart slices={donutSlices} total={donutTotal} />
+            <AttendanceBarChart
+              resumenMeses={resumenMeses}
+              mesSeleccionado={mesSeleccionado}
+              records={records}
+              onBarClick={(mes) => setMesSelec(mes)}
+            />
           </div>
         </div>
       )}
