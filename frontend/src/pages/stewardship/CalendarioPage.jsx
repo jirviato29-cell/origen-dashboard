@@ -427,10 +427,10 @@ export default function CalendarioPage() {
                     <div key={ci}
                       onClick={day ? () => setSelectedDay(isSelected ? null : iso) : undefined}
                       style={{
-                        minHeight: 90,
+                        minHeight: 46,
                         borderRight: (ci + 1) % 7 !== 0 ? `1px solid ${GRAY_100}` : 'none',
                         borderBottom: `1px solid ${GRAY_100}`,
-                        padding: '6px 7px', display: 'flex', flexDirection: 'column', gap: 3,
+                        padding: '5px 6px', display: 'flex', flexDirection: 'column', gap: 2,
                         cursor: day ? 'pointer' : 'default',
                         background: isSelected
                           ? `${ORANGE}10`
