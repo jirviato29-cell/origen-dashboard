@@ -5,6 +5,7 @@ import { asistenciaApi, ofrendasApi, gastosApi } from '../../services/api';
 import { SALDO_INICIAL_CAJA } from '../../utils/config';
 import { I } from '../../components/Icons';
 import { useOfrendasModal } from '../../context/OfrendasModalContext';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 function fmt(n) {
   return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -65,6 +66,11 @@ const CATEGORIAS_GASTO = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'D
 export default function StewardshipDashboard() {
   const navigate = useNavigate();
   const { openModal: openOfrendas } = useOfrendasModal();
+
+  const isMobile  = useIsMobile(640);
+  const isTablet  = useIsMobile(1100);
+  const statCols  = isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)';
+  const quickCols = isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)';
 
   const year     = new Date().getFullYear();
   const hoy      = new Date();
@@ -156,7 +162,7 @@ export default function StewardshipDashboard() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 14 }}>
         <StatCard
           label="Asistencia"
           value={vAsistencia}
@@ -200,7 +206,7 @@ export default function StewardshipDashboard() {
         <div className="card-head">
           <h3 className="card-title">Acceso rápido</h3>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12, marginTop: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: quickCols, gap: 12, marginTop: 8 }}>
           <QuickBtn icon={I.arrowBarUp}   label="Ingresos"           color="var(--chart-primary)" onClick={() => navigate('/stewardship/ingresos')} />
           <QuickBtn icon={I.receipt}      label="Gastos"             color="var(--danger)"        onClick={() => navigate('/stewardship/gastos')} />
           <QuickBtn icon={I.scale}        label="Finanzas"           color="var(--good)"          onClick={() => navigate('/stewardship/balance')} />
