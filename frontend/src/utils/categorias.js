@@ -1,17 +1,17 @@
 export const CATEGORIAS = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'Decoración'];
 
 export const CAT_COLORS = {
-  'Operación':  '#0EA5E9',
-  'Alimentos':  '#F97316',
-  'Materiales': '#8B5CF6',
-  'Eventos':    '#10B981',
-  'Decoración': '#F59E0B',
+  'Operación':  '#112540',  // --navy-900
+  'Alimentos':  '#244169',  // --navy-700
+  'Materiales': '#3E6499',  // --navy-500
+  'Eventos':    '#FF6B2B',  // --orange-500
+  'Decoración': '#9CB0CC',  // --navy-300
 };
 
 export const CAT_BG = {
-  'Operación':  'rgba(14,165,233,0.12)',
-  'Alimentos':  'rgba(249,115,22,0.12)',
-  'Materiales': 'rgba(139,92,246,0.12)',
-  'Eventos':    'rgba(16,185,129,0.12)',
-  'Decoración': 'rgba(245,158,11,0.12)',
+  'Operación':  'rgba(17,37,64,0.10)',
+  'Alimentos':  'rgba(36,65,105,0.10)',
+  'Materiales': 'rgba(62,100,153,0.10)',
+  'Eventos':    '#FFF4EE',
+  'Decoración': 'rgba(156,176,204,0.18)',
 };
