@@ -18,7 +18,18 @@ const PERMISOS = {
     },
   },
   stewardship:    { total: true, secciones: {} },
-  pastor:         { total: true, secciones: {} },
+  pastor: {
+    total: false,
+    secciones: {
+      dashboard:       { ver: true, registrar: false, modificar: false },
+      ingresos:        { ver: true, registrar: false, modificar: false },
+      gastos:          { ver: true, registrar: false, modificar: false },
+      finanzas:        { ver: true, registrar: false, modificar: false },
+      asistencia:      { ver: true, registrar: false, modificar: false },
+      punto_encuentro: { ver: true, registrar: false, modificar: false },
+      calendario:      { ver: true, registrar: false, modificar: false },
+    },
+  },
   administracion: { total: true, secciones: {} },
 };
 
