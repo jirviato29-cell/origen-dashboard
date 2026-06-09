@@ -123,6 +123,13 @@ const realCortesApi = {
   upsert:      (records)   => http.post('/cortes/upsert', records),
 };
 
+// ─── Visitantes ───────────────────────────────────────────────────────────────
+const realVisitantesApi = {
+  getAll:  ()         => http.get('/visitantes'),
+  create:  (data)     => http.post('/visitantes', data),
+  update:  (id, data) => http.put(`/visitantes/${id}`, data),
+};
+
 // ─── Voluntarios ──────────────────────────────────────────────────────────────
 const realVoluntariosApi = {
   getAll:  ()         => http.get('/voluntarios'),
@@ -156,3 +163,4 @@ export const abonosApi                = realAbonosApi;
 export const cortesApi                = realCortesApi;
 export const usuariosApi              = realUsuariosApi;
 export const voluntariosApi           = realVoluntariosApi;
+export const visitantesApi            = realVisitantesApi;

@@ -24,6 +24,7 @@ import StewardshipGastosPorPagarPage from './pages/stewardship/GastosPorPagarPag
 import StewardshipBalancePage from './pages/stewardship/BalancePage';
 import CalendarioPage from './pages/stewardship/CalendarioPage';
 import VoluntariosPage from './pages/stewardship/VoluntariosPage';
+import BienvenidaCasaPage from './pages/anfitriones/BienvenidaCasaPage';
 import './index.css';
 
 // Protege una sección de rutas: redirige a / si no hay sesión,
@@ -72,8 +73,9 @@ function AppRoutes() {
         <Route index               element={<Navigate to="/anfitriones/asistencia" replace />} />
         <Route path="estadisticas" element={<Navigate to="/anfitriones/asistencia" replace />} />
         <Route path="historial"    element={<Navigate to="/anfitriones/asistencia" replace />} />
-        <Route path="asistencia"   element={<AsistenciaViewPage />} />
-        <Route path="calendario"   element={<CalendarioPage />} />
+        <Route path="asistencia"        element={<AsistenciaViewPage />} />
+        <Route path="calendario"        element={<CalendarioPage />} />
+        <Route path="bienvenida-a-casa" element={<BienvenidaCasaPage />} />
       </Route>
 
       {/* ── Punto de Encuentro ─────────────────────────────────────────── */}

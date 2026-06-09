@@ -19,6 +19,7 @@ const serviciosDominicalesRouter = require('./routes/serviciosDominicales');
 const participantesRouter        = require('./routes/participantes');
 const abonosRouter               = require('./routes/abonos');
 const cortesRouter               = require('./routes/cortes');
+const visitantesRouter           = require('./routes/visitantes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -46,6 +47,7 @@ app.use('/api/servicios-dominicales', serviciosDominicalesRouter);
 app.use('/api/participantes',         participantesRouter);
 app.use('/api/abonos',               abonosRouter);
 app.use('/api/cortes',               cortesRouter);
+app.use('/api/visitantes',           visitantesRouter);
 
 app.use((err, req, res, _next) => {
   console.error(err.stack);

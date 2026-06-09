@@ -28,6 +28,7 @@ const ROUTE_INFO = {
   '/pastor/calendario':                 { section: 'Pastor',  title: 'Calendario' },
   '/anfitriones/asistencia':            { section: 'Anfitriones',       title: 'Asistencia' },
   '/anfitriones/calendario':            { section: 'Anfitriones',       title: 'Calendario' },
+  '/anfitriones/bienvenida-a-casa':     { section: 'Anfitriones',       title: 'Bienvenida a Casa' },
   '/punto_encuentro':                   { section: 'Punto de Encuentro', title: 'Punto de Encuentro' },
   '/punto_encuentro/asistencia':        { section: 'Punto de Encuentro', title: 'Asistencia' },
   '/punto_encuentro/calendario':        { section: 'Punto de Encuentro', title: 'Calendario' },
