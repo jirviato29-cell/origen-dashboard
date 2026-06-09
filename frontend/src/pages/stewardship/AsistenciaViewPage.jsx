@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { asistenciaApi } from '../../services/api';
 import { useAsistenciaStewModal } from '../../context/AsistenciaStewModalContext';
 import { fmtFecha, mesNombre } from '../../utils/fecha';
@@ -16,8 +15,9 @@ function rowTotal(r) {
 const CAT_LABEL = '#1e40af';
 const CAT_VALUE = '#1e3a8a';
 
-const BAR_MONTHLY = '#14b8a6';
-const BAR_WEEKLY  = '#0d9488';
+const TEAL = '#14b8a6';
+const VW   = 900, VH  = 280;
+const PAD  = { left: 50, right: 24, top: 24, bottom: 44 };
 
 function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevos = 0 }) {
   const num = { fontFamily: 'var(--font-mono)', color: CAT_VALUE, fontWeight: 700 };
@@ -32,53 +32,126 @@ function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevo
   );
 }
 
-// ── Attendance Bar Chart (anual + drill-down por mes) ────────────────────────
+// ── Attendance Area Chart (SVG, igual estilo a Ingresos) ─────────────────────
 
-function AttendanceBarChart({ resumenMeses, mesSeleccionado, records, onBarClick }) {
-  if (resumenMeses.length === 0) {
+function AttendanceAreaChart({ data, onPointClick }) {
+  const [hovered, setHovered] = useState(null);
+
+  if (!data || data.length < 2) {
     return (
-      <div style={{ height: 340, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
-        Sin registros para mostrar
+      <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
+        Sin suficientes datos para mostrar la gráfica
       </div>
     );
   }
 
+  const chartW = VW - PAD.left - PAD.right;
+  const chartH = VH - PAD.top - PAD.bottom;
+  const maxVal = Math.max(...data.map(d => d.value));
+  const yStep  = maxVal > 400 ? 100 : maxVal > 200 ? 50 : 25;
+  const yMax   = Math.ceil(maxVal / yStep) * yStep || yStep;
+  const yTicks = Array.from({ length: Math.floor(yMax / yStep) + 1 }, (_, i) => i * yStep);
+
+  const toX = i => PAD.left + (i / (data.length - 1)) * chartW;
+  const toY = v => PAD.top + chartH - (v / yMax) * chartH;
+  const pts  = data.map((d, i) => ({ x: toX(i), y: toY(d.value), d }));
+
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const areaPath = `${linePath} L${pts[pts.length - 1].x.toFixed(1)},${(PAD.top + chartH).toFixed(1)} L${PAD.left},${(PAD.top + chartH).toFixed(1)} Z`;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <svg
+        viewBox={`0 0 ${VW} ${VH}`}
+        style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
+        onMouseLeave={() => setHovered(null)}
+      >
+        <defs>
+          <linearGradient id="asistGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor={TEAL} stopOpacity="0.22" />
+            <stop offset="100%" stopColor={TEAL} stopOpacity="0"    />
+          </linearGradient>
+        </defs>
+
+        {yTicks.map(v => (
+          <g key={v}>
+            <line x1={PAD.left} x2={VW - PAD.right} y1={toY(v)} y2={toY(v)}
+              stroke="#ddd5c8" strokeWidth={v === 0 ? 1.2 : 0.65} strokeDasharray={v === 0 ? '' : '3 3'} />
+            <text x={PAD.left - 8} y={toY(v) + 4} textAnchor="end" fontSize={10} fill="#b0a090" fontFamily="var(--font-mono)">
+              {v}
+            </text>
+          </g>
+        ))}
+
+        <line x1={PAD.left} x2={VW - PAD.right} y1={PAD.top + chartH} y2={PAD.top + chartH} stroke="#ddd5c8" strokeWidth={1} />
+
+        {pts.map((p, i) => (
+          <text key={i} x={p.x} y={PAD.top + chartH + 16} textAnchor="middle" fontSize={10} fill="#b0a090">
+            {p.d.label}
+          </text>
+        ))}
+
+        <path d={areaPath} fill="url(#asistGrad)" />
+        <path d={linePath} fill="none" stroke={TEAL} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+
+        {hovered !== null && (
+          <line x1={pts[hovered].x} x2={pts[hovered].x} y1={PAD.top} y2={PAD.top + chartH}
+            stroke={TEAL} strokeWidth={1} strokeDasharray="4 3" opacity={0.4} />
+        )}
+
+        {pts.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y}
+            r={hovered === i ? 6.5 : 4}
+            fill={hovered === i ? TEAL : 'white'}
+            stroke={TEAL} strokeWidth={2}
+            style={{ cursor: onPointClick ? 'pointer' : 'default' }}
+            onMouseEnter={() => setHovered(i)}
+            onClick={() => onPointClick && onPointClick(i)}
+          />
+        ))}
+      </svg>
+
+      {hovered !== null && (() => {
+        const p    = pts[hovered];
+        const lPct = (p.x / VW) * 100;
+        const tPct = (p.y / VH) * 100;
+        const tx   = lPct > 72 ? '-92%' : lPct < 20 ? '8%' : '-50%';
+        const ty   = tPct < 30 ? '14%' : '-115%';
+        return (
+          <div style={{
+            position: 'absolute', left: `${lPct}%`, top: `${tPct}%`,
+            transform: `translate(${tx}, ${ty})`, pointerEvents: 'none',
+            background: '#1A1A1A', color: 'white', borderRadius: 10,
+            padding: '10px 14px', fontSize: 12.5, lineHeight: 1.7,
+            boxShadow: '0 6px 24px rgba(0,0,0,0.28)', whiteSpace: 'nowrap', zIndex: 20,
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 3, color: 'rgba(255,255,255,0.9)' }}>
+              {p.d.label}
+            </div>
+            <div style={{ color: TEAL, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 15 }}>
+              {p.d.value} asistentes
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function AttendanceChart({ resumenMeses, mesSeleccionado, records, onMonthSelect }) {
   if (mesSeleccionado) {
-    const domingos = records
+    const data = records
       .filter(r => r.fecha.startsWith(mesSeleccionado))
       .sort((a, b) => a.fecha.localeCompare(b.fecha))
-      .map(r => ({ name: String(parseInt(r.fecha.slice(8), 10)), value: rowTotal(r) }));
-    return (
-      <ResponsiveContainer width="100%" height={340}>
-        <BarChart data={domingos} margin={{ top: 16, right: 12, left: 0, bottom: 0 }} barCategoryGap="40%">
-          <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-          <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={38} />
-          <Tooltip
-            formatter={(v) => [v, 'Asistentes']}
-            labelFormatter={(label) => `Día ${label}`}
-            contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
-          />
-          <Bar dataKey="value" fill={BAR_WEEKLY} radius={[5, 5, 0, 0]} maxBarSize={60} />
-        </BarChart>
-      </ResponsiveContainer>
-    );
+      .map(r => ({ label: String(parseInt(r.fecha.slice(8), 10)), value: rowTotal(r) }));
+    return <AttendanceAreaChart data={data} />;
   }
-
-  const data = resumenMeses.map(r => ({ name: r.label.slice(0, 3), value: r.total, mes: r.mes }));
+  const data = resumenMeses.map(r => ({ label: r.label.slice(0, 3), value: r.total, mes: r.mes }));
   return (
-    <ResponsiveContainer width="100%" height={340}>
-      <BarChart data={data} margin={{ top: 16, right: 12, left: 0, bottom: 0 }} barCategoryGap="30%">
-        <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-        <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={38} />
-        <Tooltip
-          formatter={(v) => [v, 'Asistentes']}
-          contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
-        />
-        <Bar dataKey="value" fill={BAR_MONTHLY} radius={[5, 5, 0, 0]} maxBarSize={70} cursor="pointer" onClick={(d) => onBarClick(d.mes)} />
-      </BarChart>
-    </ResponsiveContainer>
+    <AttendanceAreaChart
+      data={data}
+      onPointClick={(i) => onMonthSelect(data[i].mes)}
+    />
   );
 }
 
@@ -341,11 +414,11 @@ export default function AsistenciaViewPage() {
                 </button>
               )}
             </div>
-            <AttendanceBarChart
+            <AttendanceChart
               resumenMeses={resumenMeses}
               mesSeleccionado={mesSeleccionado}
               records={records}
-              onBarClick={(mes) => setMesSelec(mes)}
+              onMonthSelect={(mes) => setMesSelec(mes)}
             />
           </div>
         </div>
