@@ -17,10 +17,10 @@ const CAT_LABEL = '#1e40af';
 const CAT_VALUE = '#1e3a8a';
 
 const DONUT_COLORS = {
-  adultos:     '#fb923c',
-  voluntarios: '#93c5fd',
-  ninos:       '#fde047',
-  bebes:       '#f9a8d4',
+  adultos:     '#0f766e',
+  voluntarios: '#14b8a6',
+  ninos:       '#5eead4',
+  bebes:       '#99f6e4',
 };
 
 function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevos = 0 }) {
@@ -38,25 +38,6 @@ function DesgloseCat({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0, nuevo
 
 // ── Attendance Donut Chart ────────────────────────────────────────────────────
 
-function renderDonutLabel({ cx, cy, midAngle, outerRadius, name, percent }) {
-  const RADIAN = Math.PI / 180;
-  const r = outerRadius + 32;
-  const x = cx + r * Math.cos(-midAngle * RADIAN);
-  const y = cy + r * Math.sin(-midAngle * RADIAN);
-  const pct = Math.round(percent * 100);
-  return (
-    <text
-      x={x} y={y}
-      fill="#374151"
-      fontSize={11}
-      textAnchor={x > cx ? 'start' : 'end'}
-      dominantBaseline="central"
-    >
-      {pct >= 8 ? `${name} ${pct}%` : `${pct}%`}
-    </text>
-  );
-}
-
 function AttendanceDonutChart({ slices, total }) {
   if (!slices || total === 0) {
     return (
@@ -66,40 +47,53 @@ function AttendanceDonutChart({ slices, total }) {
     );
   }
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <PieChart>
-        <Pie
-          data={slices}
-          cx="50%"
-          cy="50%"
-          innerRadius={68}
-          outerRadius={90}
-          dataKey="value"
-          paddingAngle={2}
-          strokeWidth={0}
-          label={renderDonutLabel}
-          labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
-        >
-          <Label
-            content={({ viewBox: { cx, cy } }) => (
-              <text x={cx} y={cy} textAnchor="middle">
-                <tspan x={cx} dy="-6" fontSize="26" fontWeight="800" fill="var(--ink)" fontFamily="var(--font-mono)">{total}</tspan>
-                <tspan x={cx} dy="20" fontSize="11" fill="#b0a090">asistentes</tspan>
-              </text>
-            )}
-            position="center"
+    <div>
+      <ResponsiveContainer width="100%" height={360}>
+        <PieChart>
+          <Pie
+            data={slices}
+            cx="50%"
+            cy="50%"
+            innerRadius={85}
+            outerRadius={130}
+            dataKey="value"
+            paddingAngle={2}
+            strokeWidth={0}
+          >
+            <Label
+              content={({ viewBox: { cx, cy } }) => (
+                <text x={cx} y={cy} textAnchor="middle">
+                  <tspan x={cx} dy="-6" fontSize="30" fontWeight="800" fill="var(--ink)" fontFamily="var(--font-mono)">{total}</tspan>
+                  <tspan x={cx} dy="22" fontSize="12" fill="#9ca3af">asistentes</tspan>
+                </text>
+              )}
+              position="center"
+            />
+            {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
+          </Pie>
+          <Tooltip
+            formatter={(value, name) => {
+              const pct = total > 0 ? Math.round(value / total * 100) : 0;
+              return [`${value} · ${pct}%`, name];
+            }}
+            contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
           />
-          {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
-        </Pie>
-        <Tooltip
-          formatter={(value, name) => {
-            const pct = total > 0 ? Math.round(value / total * 100) : 0;
-            return [`${value} · ${pct}%`, name];
-          }}
-          contentStyle={{ fontSize: 12.5, borderRadius: 8, border: '1px solid var(--border)' }}
-        />
-      </PieChart>
-    </ResponsiveContainer>
+        </PieChart>
+      </ResponsiveContainer>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px 22px', marginTop: 2, paddingBottom: 4 }}>
+        {slices.map(s => {
+          const pct = total > 0 ? Math.round(s.value / total * 100) : 0;
+          return (
+            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 11, height: 11, borderRadius: 3, background: s.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12.5, color: '#374151' }}>{s.name}</span>
+              <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#111827' }}>{s.value}</span>
+              <span style={{ fontSize: 11.5, color: '#6b7280' }}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
