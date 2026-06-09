@@ -55,15 +55,6 @@ function isSoon(isoDate) {
   return `en ${diff} días`;
 }
 
-const chipStyle = (active) => ({
-  fontSize: 12.5, fontWeight: 600, padding: '8px 13px', borderRadius: 8,
-  border: `1px solid ${active ? NAVY : GRAY_200}`,
-  background: active ? NAVY : 'white',
-  color: active ? 'white' : GRAY_700,
-  cursor: 'pointer', transition: '.12s', whiteSpace: 'nowrap',
-  fontFamily: 'var(--font-ui)',
-});
-
 // ── Lista de áreas de servicio ─────────────────────────────────────────────
 export const MINISTERIOS = [
   'Alabanza Worship',
@@ -438,8 +429,7 @@ export default function VoluntariosPage() {
   const [kioskSaving, setKioskSaving] = useState(false);
   const [kioskError,  setKioskError]  = useState('');
 
-  const [search,    setSearch]    = useState('');
-  const [minFilter, setMinFilter] = useState('todos');
+  const [search, setSearch] = useState('');
 
   const fetchVoluntarios = useCallback(async () => {
     setLoading(true);
@@ -564,23 +554,29 @@ export default function VoluntariosPage() {
   const jovenesPct   = ageTotal > 0 ? Math.round(jovenesCount / ageTotal * 100) : 0;
   const adultosPct   = ageTotal > 0 ? 100 - jovenesPct : 0;
 
-  // Ministry chips (distinct values used)
-  const ministeriosChips = [...ministeriosSet].sort();
-
-  // Filtered list
-  const filtered = voluntarios.filter(v => {
-    if (minFilter !== 'todos') {
-      const mins = [v.ministerio1, v.ministerio2, v.ministerio3].filter(Boolean);
-      if (!mins.includes(minFilter)) return false;
-    }
-    if (search.trim()) {
+  // Filtered + sorted list (por mes/día de cumpleaños, sin fecha al final)
+  const filtered = voluntarios
+    .filter(v => {
+      if (!search.trim()) return true;
       const q = search.trim().toLowerCase();
       const texto = [v.nombre, v.whatsapp, v.ministerio1, v.ministerio2, v.ministerio3, v.otra_area]
         .filter(Boolean).join(' ').toLowerCase();
-      if (!texto.includes(q)) return false;
-    }
-    return true;
-  });
+      return texto.includes(q);
+    })
+    .sort((a, b) => {
+      const toMD = iso => {
+        if (!iso) return null;
+        const d = new Date(iso.slice(0, 10) + 'T00:00:00');
+        if (isNaN(d)) return null;
+        return d.getMonth() * 100 + d.getDate();
+      };
+      const ma = toMD(a.cumpleanos);
+      const mb = toMD(b.cumpleanos);
+      if (ma === null && mb === null) return 0;
+      if (ma === null) return 1;
+      if (mb === null) return -1;
+      return ma - mb;
+    });
 
   // ── KPI card style helpers ───────────────────────────────────────────────
   const kpiCard = {
@@ -710,17 +706,6 @@ export default function VoluntariosPage() {
               />
             </div>
 
-            {/* Chips de ministerio */}
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', flex: '2 1 300px' }}>
-              <button style={chipStyle(minFilter === 'todos')} onClick={() => setMinFilter('todos')}>
-                Todos
-              </button>
-              {ministeriosChips.map(m => (
-                <button key={m} style={chipStyle(minFilter === m)} onClick={() => setMinFilter(m)}>
-                  {m}
-                </button>
-              ))}
-            </div>
           </div>
 
           {error && (
@@ -750,7 +735,7 @@ export default function VoluntariosPage() {
                 ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={canWrite ? 6 : 5} style={{ textAlign: 'center', padding: 32, color: GRAY_500 }}>
-                      {search.trim() || minFilter !== 'todos' ? 'Sin resultados para este filtro' : 'Sin voluntarios registrados'}
+                      {search.trim() ? 'Sin resultados para esta búsqueda' : 'Sin voluntarios registrados'}
                     </td>
                   </tr>
                 ) : (
