@@ -61,9 +61,10 @@ function AppRoutes() {
         <Route path="ingresos"         element={<StewardshipIngresosPage />} />
         <Route path="gastos"           element={<StewardshipGastosPage />} />
         <Route path="balance"          element={<StewardshipBalancePage />} />
-        <Route path="asistencia"       element={<AsistenciaViewPage />} />
-        <Route path="punto-encuentro"  element={<PuntoEncuentroViewPage />} />
-        <Route path="calendario"       element={<CalendarioPage />} />
+        <Route path="asistencia"         element={<AsistenciaViewPage />} />
+        <Route path="punto-encuentro"    element={<PuntoEncuentroViewPage />} />
+        <Route path="bienvenida-a-casa"  element={<BienvenidaCasaPage />} />
+        <Route path="calendario"         element={<CalendarioPage />} />
       </Route>
 
       {/* ── Anfitriones ────────────────────────────────────────────────── */}
@@ -96,11 +97,12 @@ function AppRoutes() {
         <Route path="gastos"           element={<StewardshipGastosPage />} />
         <Route path="gastos-por-pagar" element={<StewardshipGastosPorPagarPage />} />
         <Route path="balance"          element={<StewardshipBalancePage />} />
-        <Route path="asistencia"       element={<AsistenciaViewPage />} />
-        <Route path="punto-encuentro"  element={<PuntoEncuentroViewPage />} />
-        <Route path="voluntarios"      element={<VoluntariosPage />} />
-        <Route path="calendario"       element={<CalendarioPage />} />
-        <Route path="configuracion"    element={<ConfiguracionPage />} />
+        <Route path="asistencia"         element={<AsistenciaViewPage />} />
+        <Route path="punto-encuentro"    element={<PuntoEncuentroViewPage />} />
+        <Route path="bienvenida-a-casa"  element={<BienvenidaCasaPage />} />
+        <Route path="voluntarios"        element={<VoluntariosPage />} />
+        <Route path="calendario"         element={<CalendarioPage />} />
+        <Route path="configuracion"      element={<ConfiguracionPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
