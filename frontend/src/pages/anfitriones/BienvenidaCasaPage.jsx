@@ -31,6 +31,20 @@ const WaIcon = ({ size = 16, color = TEAL }) => (
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
+// ─── Ediciones (agrega aquí nuevas ediciones con su rango) ──────────────────
+const EDICIONES = [
+  { id: 'actual', label: 'Actual',                     from: '2026-03-23', to: null         },
+  { id: 'mar22',  label: 'Bienvenida del 22 de marzo', from: '2026-01-01', to: '2026-03-22' },
+];
+
+function inEdicion(v, ed) {
+  if (!v.fecha) return false;
+  const d = v.fecha.slice(0, 10);
+  if (ed.from && d < ed.from) return false;
+  if (ed.to   && d > ed.to)   return false;
+  return true;
+}
+
 function initials(nombre) {
   if (!nombre) return '?';
   return nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0].toUpperCase()).join('');
@@ -245,6 +259,7 @@ export default function BienvenidaCasaPage() {
   const [page, setPage]             = useState(1);
   const [showModal, setShowModal]   = useState(false);
   const [editing, setEditing]       = useState(null);
+  const [edicion, setEdicion]       = useState('actual');
   const PAGE_SIZE = 15;
 
   const load = useCallback(async () => {
@@ -260,23 +275,27 @@ export default function BienvenidaCasaPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── KPIs ──────────────────────────────────────────────────────────────────
+  // ── Edición activa ────────────────────────────────────────────────────────
+  const edDef    = EDICIONES.find(e => e.id === edicion) ?? EDICIONES[0];
+  const enEdicion = visitantes.filter(v => inEdicion(v, edDef));
+
+  // ── KPIs (sobre el período seleccionado) ──────────────────────────────────
   const now = new Date();
   const thisMonth = now.getMonth();
   const thisYear  = now.getFullYear();
 
-  const totalCount        = visitantes.length;
-  const quierenSeguirCount = visitantes.filter(v => v.relacion_con_origen === 'Me interesa seguir').length;
-  const nuevosFeCount      = visitantes.filter(v => v.estado_fe === 'Soy nuevo').length;
-  const esteMesCount       = visitantes.filter(v => {
+  const totalCount         = enEdicion.length;
+  const quierenSeguirCount = enEdicion.filter(v => v.relacion_con_origen === 'Me interesa seguir').length;
+  const nuevosFeCount      = enEdicion.filter(v => v.estado_fe === 'Soy nuevo').length;
+  const esteMesCount       = enEdicion.filter(v => {
     if (!v.fecha) return false;
     const d = new Date(v.fecha + 'T00:00:00');
     return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
   }).length;
   const quierenPct = totalCount > 0 ? Math.round((quierenSeguirCount / totalCount) * 100) : 0;
 
-  // ── Filter ────────────────────────────────────────────────────────────────
-  const filtered = visitantes.filter(v => {
+  // ── Filter (dentro del período seleccionado) ─────────────────────────────
+  const filtered = enEdicion.filter(v => {
     const q = search.toLowerCase();
     const matchSearch = !q || [v.nombre, v.colonia, v.como_se_entero, v.whatsapp]
       .some(s => s?.toLowerCase().includes(q));
@@ -303,7 +322,8 @@ export default function BienvenidaCasaPage() {
     window.open(`https://wa.me/${num.replace(/\D/g, '')}`, '_blank');
   }
 
-  function changeFiltro(f) { setFiltro(f); setPage(1); }
+  function changeEdicion(id) { setEdicion(id); setFiltro('todos'); setSearch(''); setPage(1); }
+  function changeFiltro(f)  { setFiltro(f); setPage(1); }
   function changeSearch(v)  { setSearch(v);  setPage(1); }
 
   const chipSt = (active) => ({
@@ -370,6 +390,29 @@ export default function BienvenidaCasaPage() {
         <KpiCard icon={I.heart}    iconBg={ORANGE_50} iconColor={ORANGE_600} value={quierenSeguirCount} label="Quieren seguir"    footer={`Del total · ${quierenPct}%`} valueColor={ORANGE_600} />
         <KpiCard icon={I.plus}     iconBg={TEAL_50}   iconColor={TEAL}       value={nuevosFeCount}      label="Nuevos en la fe"   footer="Soy nuevo" />
         <KpiCard icon={I.calendar} iconBg={NAVY_100}  iconColor={NAVY_700}   value={esteMesCount}       label="Este mes"          footer={MESES[thisMonth]} />
+      </div>
+
+      {/* ── Selector de edición ─────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: GRAY_500, textTransform: 'uppercase', letterSpacing: '.08em', flexShrink: 0 }}>
+          Edición
+        </span>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {EDICIONES.map(e => {
+            const active = edicion === e.id;
+            return (
+              <button key={e.id} onClick={() => changeEdicion(e.id)} style={{
+                padding: '6px 16px', borderRadius: 20, fontSize: 12.5, fontWeight: 600,
+                border: `1px solid ${active ? NAVY_900 : GRAY_200}`,
+                background: active ? NAVY_900 : '#fff',
+                color: active ? '#fff' : GRAY_500,
+                cursor: 'pointer',
+              }}>
+                {e.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Table card ──────────────────────────────────────────────────── */}
