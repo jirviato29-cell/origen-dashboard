@@ -200,12 +200,13 @@ export default function StewardshipDashboard() {
         <div className="card-head">
           <h3 className="card-title">Acceso rápido</h3>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginTop: 8 }}>
-          <QuickBtn icon={I.coin}     label="Ofrendas y Diezmos"  color="var(--ink)"          onClick={openOfrendas} />
-          <QuickBtn icon={I.cash}     label="Finanzas"             color="var(--chart-primary)"   onClick={() => navigate('/stewardship/finanzas')} />
-          <QuickBtn icon={I.users}    label="Asistencia"           color="var(--chart-secondary)" onClick={() => navigate('/stewardship/asistencia')} />
-          <QuickBtn icon={I.pin}      label="Punto de Encuentro"   color="var(--muted)"      onClick={() => navigate('/stewardship/punto-encuentro')} />
-          <QuickBtn icon={I.settings} label="Configuración"        color="var(--ink)"        onClick={() => navigate('/stewardship/configuracion')} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12, marginTop: 8 }}>
+          <QuickBtn icon={I.arrowBarUp}   label="Ingresos"           color="var(--chart-primary)" onClick={() => navigate('/stewardship/ingresos')} />
+          <QuickBtn icon={I.receipt}      label="Gastos"             color="var(--danger)"        onClick={() => navigate('/stewardship/gastos')} />
+          <QuickBtn icon={I.scale}        label="Finanzas"           color="var(--good)"          onClick={() => navigate('/stewardship/balance')} />
+          <QuickBtn icon={I.users}        label="Asistencia"         color="#14b8a6"              onClick={() => navigate('/stewardship/asistencia')} />
+          <QuickBtn icon={I.pin}          label="Punto de Encuentro" color="var(--muted)"         onClick={() => navigate('/stewardship/punto-encuentro')} />
+          <QuickBtn icon={I.calendar}     label="Calendario"         color="var(--warn)"          onClick={() => navigate('/stewardship/calendario')} />
         </div>
       </div>
 
