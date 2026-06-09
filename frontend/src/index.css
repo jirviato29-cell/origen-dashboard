@@ -63,9 +63,9 @@
   --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   /* Chart accent colors — ONLY in charts/graphs */
-  --chart-primary:      #00B4D8;
+  --chart-primary:      #305181;
   --chart-secondary:    #FF6B2B;
-  --chart-primary-soft: rgba(0,180,216,0.12);
+  --chart-primary-soft: rgba(48,81,129,0.12);
   --chart-secondary-soft: rgba(255,107,43,0.12);
 }
 

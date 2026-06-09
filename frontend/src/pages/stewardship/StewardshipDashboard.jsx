@@ -145,7 +145,7 @@ function ComboChart({ data }) {
 
         <Bar yAxisId="ofrenda" dataKey="ofrenda" name="Ofrendas" radius={[4, 4, 0, 0]} maxBarSize={38}>
           {data.map((_, i) => (
-            <Cell key={i} fill={D_CYAN} opacity={i === data.length - 1 ? 1 : 0.55} />
+            <Cell key={i} fill={D_NAVY_600} opacity={i === data.length - 1 ? 1 : 0.55} />
           ))}
         </Bar>
 
@@ -479,7 +479,7 @@ export default function StewardshipDashboard() {
             {/* Legend */}
             <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 12 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: D_GRAY_500, fontWeight: 600 }}>
-                <span style={{ width: 11, height: 11, borderRadius: 3, background: D_CYAN, opacity: 0.85, display: 'inline-block' }} />
+                <span style={{ width: 11, height: 11, borderRadius: 3, background: D_NAVY_600, opacity: 0.85, display: 'inline-block' }} />
                 Ofrendas
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: D_GRAY_500, fontWeight: 600 }}>
