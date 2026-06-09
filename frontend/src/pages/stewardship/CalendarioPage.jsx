@@ -8,13 +8,27 @@ import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 import { useIsMobile } from '../../utils/useIsMobile';
 
-// Prioridad para pintar la celda (de mayor a menor)
-const TIPO_PRIORIDAD = ['Alpha', 'Reunión de mujeres', 'Reunión de hombres', 'Especial', 'Servicio dominical'];
+// ── Design tokens ──────────────────────────────────────────────────────────
+const NAVY     = '#112540';
+const NAVY_700 = '#244169';
+const NAVY_100 = '#DCE4EF';
+const ORANGE   = '#FF6B2B';
+const ORANGE_600 = '#E0561B';
+const ORANGE_50  = '#FFF4EE';
+const GRAY_700 = '#3D4654';
+const GRAY_500 = '#7A8699';
+const GRAY_300 = '#CBD2DC';
+const GRAY_200 = '#E2E6EC';
+const GRAY_100 = '#EEF1F5';
+const GRAY_50  = '#F6F7F9';
 
-const DIAS_HEADER = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+// ── Helpers ────────────────────────────────────────────────────────────────
+const TIPO_PRIORIDAD = ['Alpha', 'Reunión de mujeres', 'Reunión de hombres', 'Especial', 'Servicio dominical'];
+const DIAS_HEADER    = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MESES_ES       = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
 function buildGrid(year, month) {
-  const firstDow = new Date(year, month, 1).getDay();
+  const firstDow   = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells = [];
   for (let i = 0; i < firstDow; i++) cells.push(null);
@@ -32,15 +46,53 @@ function isDomingo(iso) {
   return new Date(y, m - 1, d).getDay() === 0;
 }
 
+function getSundayOfWeek(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
+// Event pill (used in grid + week view)
+function EvPill({ nombre, tipo }) {
+  return (
+    <span style={{
+      fontSize: 10.5, fontWeight: 600, padding: '3px 7px', borderRadius: 5, lineHeight: 1.25,
+      display: 'flex', alignItems: 'center', gap: 5,
+      overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+      background: TIPO_BG[tipo] || GRAY_100, color: TIPO_COLOR[tipo] || GRAY_700,
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: TIPO_COLOR[tipo] || GRAY_500 }} />
+      {nombre}
+    </span>
+  );
+}
+
+// Type pill for table
+function TipoPill({ tipo }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 6,
+      background: TIPO_BG[tipo] || GRAY_100, color: TIPO_COLOR[tipo] || GRAY_700,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: TIPO_COLOR[tipo] || GRAY_500 }} />
+      {tipo}
+    </span>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────
 export default function CalendarioPage() {
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'calendario');
   const isMobile = useIsMobile();
   const { refreshKey, openModal, openEditModal } = useCalendarioModal();
 
-  const now = new Date();
+  const now      = new Date();
   const todayISO = isoFromParts(now.getFullYear(), now.getMonth(), now.getDate());
 
+  // ── State ────────────────────────────────────────────────────────────────
   const [viewYear,  setViewYear]  = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [eventos,   setEventos]   = useState([]);
@@ -52,6 +104,11 @@ export default function CalendarioPage() {
   const [savingPredica, setSavingPredica] = useState(false);
   const [deleting,      setDeleting]      = useState(null);
 
+  // View mode: 'mes' | 'semana' | 'lista'
+  const [viewMode,   setViewMode]   = useState('mes');
+  const [weekStart,  setWeekStart]  = useState(() => getSundayOfWeek(new Date()));
+
+  // ── Data loading — PRESERVED EXACTLY ─────────────────────────────────────
   useEffect(() => {
     setLoading(true);
     Promise.all([
@@ -66,7 +123,6 @@ export default function CalendarioPage() {
       .finally(() => setLoading(false));
   }, [viewYear, refreshKey]);
 
-  // Inicializa el campo "predica" al seleccionar un domingo
   useEffect(() => {
     if (selectedDay) {
       const found = servicios.find(s => (s.fecha || '').slice(0, 10) === selectedDay);
@@ -74,19 +130,16 @@ export default function CalendarioPage() {
     } else {
       setPredicaInput('');
     }
-    // servicios omitido intencionalmente: solo inicializar al cambiar día
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDay]);
 
+  // ── Derived data ─────────────────────────────────────────────────────────
   const grid = buildGrid(viewYear, viewMonth);
 
   const eventsByDate = {};
   eventos.forEach(e => {
     const iso = toISODate(e.fecha);
-    if (iso) {
-      if (!eventsByDate[iso]) eventsByDate[iso] = [];
-      eventsByDate[iso].push(e);
-    }
+    if (iso) { if (!eventsByDate[iso]) eventsByDate[iso] = []; eventsByDate[iso].push(e); }
   });
 
   const serviciosByDate = {};
@@ -99,6 +152,16 @@ export default function CalendarioPage() {
     .toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
     .replace(/^\w/, c => c.toUpperCase());
 
+  // Week label
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekLabel = weekStart.getMonth() === weekEnd.getMonth()
+    ? `${weekStart.getDate()} – ${weekEnd.getDate()} de ${MESES_ES[weekStart.getMonth()]} ${weekStart.getFullYear()}`
+    : `${weekStart.getDate()} de ${MESES_ES[weekStart.getMonth()]} – ${weekEnd.getDate()} de ${MESES_ES[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`;
+
+  const periodLabel = viewMode === 'semana' ? weekLabel : monthLabel;
+
+  // ── Navigation — PRESERVED EXACTLY ───────────────────────────────────────
   const prevMonth = () => {
     if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
     else setViewMonth(m => m - 1);
@@ -109,20 +172,38 @@ export default function CalendarioPage() {
     else setViewMonth(m => m + 1);
     setSelectedDay(null);
   };
+  const prevWeek = () => setWeekStart(ws => { const d = new Date(ws); d.setDate(d.getDate() - 7); return d; });
+  const nextWeek = () => setWeekStart(ws => { const d = new Date(ws); d.setDate(d.getDate() + 7); return d; });
 
+  const handlePrev = () => { if (viewMode === 'semana') prevWeek(); else prevMonth(); };
+  const handleNext = () => { if (viewMode === 'semana') nextWeek(); else nextMonth(); };
+
+  // ── KPI calculations ──────────────────────────────────────────────────────
+  const mesEventos = eventos.filter(e => {
+    const iso = toISODate(e.fecha);
+    if (!iso) return false;
+    const [y, m] = iso.split('-').map(Number);
+    return y === viewYear && m - 1 === viewMonth;
+  });
+
+  const daysInViewMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  let dominicalesCount = 0;
+  for (let d = 1; d <= daysInViewMonth; d++) {
+    if (new Date(viewYear, viewMonth, d).getDay() === 0) dominicalesCount++;
+  }
+  const alphaCount    = mesEventos.filter(e => e.tipo === 'Alpha').length;
+  const especialCount = mesEventos.filter(e => e.tipo === 'Especial').length;
+  const totalEventos  = mesEventos.length + dominicalesCount;
+
+  // ── Handlers — PRESERVED EXACTLY ─────────────────────────────────────────
   const selectedDayEvents = selectedDay ? (eventsByDate[selectedDay] || []) : [];
-  const allSorted = [...eventos].sort((a, b) => toISODate(a.fecha).localeCompare(toISODate(b.fecha)));
 
   const handleDelete = async (id) => {
     setDeleting(id);
     try {
       await calendarioApi.remove(id);
       setEventos(prev => prev.filter(e => e.id !== id));
-    } catch {
-      // noop
-    } finally {
-      setDeleting(null);
-    }
+    } catch { } finally { setDeleting(null); }
   };
 
   const handleSavePredica = async () => {
@@ -138,21 +219,17 @@ export default function CalendarioPage() {
         if (exists) return prev.map(s => (s.fecha || '').slice(0, 10) === selectedDay ? data : s);
         return [...prev, data];
       });
-    } catch {
-      // noop
-    } finally {
-      setSavingPredica(false);
-    }
+    } catch { } finally { setSavingPredica(false); }
   };
 
-  // Vista de lista para móvil: todos los items del mes (domingos + eventos), ordenados por día
+  // ── Mobile list — PRESERVED EXACTLY ──────────────────────────────────────
   const diasSem = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const monthListItems = (() => {
     const total = new Date(viewYear, viewMonth + 1, 0).getDate();
     const items = [];
     for (let d = 1; d <= total; d++) {
-      const iso = isoFromParts(viewYear, viewMonth, d);
-      const dow = new Date(viewYear, viewMonth, d).getDay();
+      const iso     = isoFromParts(viewYear, viewMonth, d);
+      const dow     = new Date(viewYear, viewMonth, d).getDay();
       const dayAbbr = diasSem[dow];
       if (isDomingo(iso)) {
         const predica = serviciosByDate[iso]?.predica;
@@ -169,219 +246,370 @@ export default function CalendarioPage() {
     return items;
   })();
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+  // ── View style helpers ────────────────────────────────────────────────────
+  const viewTabStyle = (active) => ({
+    fontSize: 12.5, fontWeight: 600, padding: '6px 13px', borderRadius: 7, border: 0,
+    background: active ? 'white' : 'transparent',
+    color: active ? NAVY : GRAY_500,
+    cursor: 'pointer', fontFamily: 'var(--font-ui)',
+    boxShadow: active ? '0 1px 2px rgba(11,26,47,.06)' : 'none',
+    transition: '.12s',
+  });
 
-      {/* ── CALENDARIO MENSUAL ──────────────────────────────────────────────── */}
+  const calArrow = {
+    width: 36, height: 36, borderRadius: 9, border: `1px solid ${GRAY_200}`,
+    background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: NAVY_700, cursor: 'pointer',
+  };
+
+  const miniBtn = {
+    width: 30, height: 30, borderRadius: 7, border: `1px solid ${GRAY_200}`,
+    background: 'white', color: GRAY_500,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', marginLeft: 5,
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* ── KPIs ─────────────────────────────────────────────────────────── */}
+      {!loading && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
+
+          <div style={{ background: 'white', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 7 }}>
+              Eventos este mes
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+              {totalEventos}
+            </div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>
+              {monthLabel}
+            </div>
+          </div>
+
+          <div style={{ background: 'white', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 7 }}>
+              Servicios dominicales
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+              {dominicalesCount}
+            </div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>cada domingo</div>
+          </div>
+
+          <div style={{ background: 'white', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 7 }}>
+              Grupos en Casa · Alpha
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+              {alphaCount}
+            </div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>eventos Alpha este mes</div>
+          </div>
+
+          <div style={{ background: 'white', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 7 }}>
+              Eventos especiales
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+              {especialCount}
+            </div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>tipo Especial este mes</div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ── Calendar card ────────────────────────────────────────────────── */}
       <div className="card" style={{ padding: '20px 20px 16px' }}>
 
-        {/* Navegación de mes */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <button className="icon-btn" onClick={prevMonth} aria-label="Mes anterior">
-            <I.back size={16} />
-          </button>
-          <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>
-            {monthLabel}
-          </h2>
-          <button className="icon-btn" onClick={nextMonth} aria-label="Mes siguiente"
-            style={{ transform: 'scaleX(-1)' }}>
-            <I.back size={16} />
-          </button>
+        {/* cal-head */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+
+          {/* Left: nav */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button style={calArrow} onClick={handlePrev} aria-label="Anterior">
+              <I.back size={15} />
+            </button>
+            <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-.02em', color: NAVY, minWidth: 180, textAlign: 'center' }}>
+              {periodLabel}
+            </span>
+            <button style={{ ...calArrow, transform: 'scaleX(-1)' }} onClick={handleNext} aria-label="Siguiente">
+              <I.back size={15} />
+            </button>
+          </div>
+
+          {/* Right: view toggle + registrar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {/* Mes / Semana / Lista toggle */}
+            <div style={{ display: 'flex', gap: 6, background: GRAY_100, padding: 3, borderRadius: 9 }}>
+              {[
+                { key: 'mes',    label: 'Mes'    },
+                { key: 'semana', label: 'Semana' },
+                { key: 'lista',  label: 'Lista'  },
+              ].map(({ key, label }) => (
+                <button key={key} onClick={() => setViewMode(key)} style={viewTabStyle(viewMode === key)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {canWrite && (
+              <button className="btn btn-primary" onClick={() => openModal(selectedDay || todayISO)}>
+                <I.plus size={14} /> Registrar evento
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Cuadrícula (escritorio) / Lista (móvil) */}
-        {isMobile ? (
-          monthListItems.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)', fontSize: 14 }}>
-              Sin eventos este mes.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {monthListItems.map((item, idx) => {
-                const isSel = selectedDay === item.iso;
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedDay(isSel ? null : item.iso)}
-                    style={{
+        {/* ── Vista MES ──────────────────────────────────────────────────── */}
+        {viewMode === 'mes' && (
+          isMobile ? (
+            /* Móvil: lista — PRESERVED EXACTLY */
+            monthListItems.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)', fontSize: 14 }}>
+                Sin eventos este mes.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {monthListItems.map((item, idx) => {
+                  const isSel = selectedDay === item.iso;
+                  return (
+                    <button key={idx} onClick={() => setSelectedDay(isSel ? null : item.iso)} style={{
                       display: 'flex', alignItems: 'flex-start', gap: 12,
-                      padding: '10px 12px', borderRadius: 10,
+                      padding: '10px 12px', borderRadius: 10, width: '100%',
                       background: isSel ? 'rgba(0,180,216,0.08)' : (TIPO_CELL_BG[item.tipo] || 'var(--surface)'),
                       border: `1px solid ${isSel ? 'var(--chart-primary)' : 'var(--border)'}`,
-                      cursor: 'pointer', fontFamily: 'var(--font-ui)', textAlign: 'left', width: '100%',
-                    }}
-                  >
-                    <div style={{ width: 40, flexShrink: 0, textAlign: 'center', paddingTop: 2 }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, color: isSel ? 'var(--chart-primary)' : 'var(--ink)' }}>
-                        {item.day}
+                      cursor: 'pointer', fontFamily: 'var(--font-ui)', textAlign: 'left',
+                    }}>
+                      <div style={{ width: 40, flexShrink: 0, textAlign: 'center', paddingTop: 2 }}>
+                        <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, color: isSel ? 'var(--chart-primary)' : 'var(--ink)' }}>{item.day}</div>
+                        <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{item.dayAbbr}</div>
                       </div>
-                      <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>
-                        {item.dayAbbr}
+                      <div style={{ width: 3, alignSelf: 'stretch', minHeight: 34, borderRadius: 99, background: TIPO_COLOR[item.tipo] || '#888', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35, whiteSpace: 'normal', wordWrap: 'break-word' }}>{item.name}</div>
+                        {item.nota && <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, whiteSpace: 'normal', wordWrap: 'break-word' }}>{item.nota}</div>}
+                        <span style={{
+                          display: 'inline-block', marginTop: 6, fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
+                          background: TIPO_BG[item.tipo] || 'var(--surface-3)', color: TIPO_COLOR[item.tipo] || 'var(--ink-2)',
+                        }}>{item.tipo}</span>
                       </div>
-                    </div>
-                    <div style={{ width: 3, alignSelf: 'stretch', minHeight: 34, borderRadius: 99, background: TIPO_COLOR[item.tipo] || '#888', flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35, whiteSpace: 'normal', wordWrap: 'break-word' }}>
-                        {item.name}
-                      </div>
-                      {item.nota && (
-                        <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, whiteSpace: 'normal', wordWrap: 'break-word' }}>{item.nota}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            /* Desktop: cuadrícula mensual */
+            <div style={{ border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
+              {/* DOW header */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', background: GRAY_50, borderBottom: `1px solid ${GRAY_200}` }}>
+                {DIAS_HEADER.map(d => (
+                  <div key={d} style={{ padding: '10px 12px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: GRAY_500 }}>{d}</div>
+                ))}
+              </div>
+              {/* Weeks */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
+                {grid.map((day, ci) => {
+                  const iso            = day ? isoFromParts(viewYear, viewMonth, day) : null;
+                  const dayEvts        = iso ? (eventsByDate[iso] || []) : [];
+                  const esDomingo      = iso ? isDomingo(iso) : false;
+                  const isToday        = iso === todayISO;
+                  const isSelected     = iso === selectedDay;
+                  const tiposEnCelda   = new Set(dayEvts.map(ev => ev.tipo));
+                  if (esDomingo) tiposEnCelda.add('Servicio dominical');
+                  const tipoPrioritario = TIPO_PRIORIDAD.find(t => tiposEnCelda.has(t));
+
+                  return (
+                    <div key={ci}
+                      onClick={day ? () => setSelectedDay(isSelected ? null : iso) : undefined}
+                      style={{
+                        minHeight: 104,
+                        borderRight: (ci + 1) % 7 !== 0 ? `1px solid ${GRAY_100}` : 'none',
+                        borderBottom: `1px solid ${GRAY_100}`,
+                        padding: 8, display: 'flex', flexDirection: 'column', gap: 5,
+                        cursor: day ? 'pointer' : 'default',
+                        background: isSelected
+                          ? `${ORANGE}10`
+                          : !day ? GRAY_50
+                          : isToday ? ORANGE_50
+                          : tipoPrioritario ? TIPO_CELL_BG[tipoPrioritario] : 'white',
+                        boxShadow: isSelected ? `inset 0 0 0 2px ${ORANGE}` : 'none',
+                        position: 'relative',
+                      }}
+                    >
+                      {day && (
+                        <>
+                          <div style={{ marginBottom: 2 }}>
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              width: 24, height: 24, borderRadius: 7, fontSize: 12.5, fontWeight: 700, lineHeight: 1,
+                              background: isToday ? ORANGE : 'transparent',
+                              color: isToday ? 'white' : esDomingo ? ORANGE_600 : NAVY_700,
+                            }}>
+                              {day}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {esDomingo && (
+                              <EvPill
+                                nombre={serviciosByDate[iso]?.predica ? `Servicio — ${serviciosByDate[iso].predica}` : 'Servicio dominical'}
+                                tipo="Servicio dominical"
+                              />
+                            )}
+                            {dayEvts.map((ev, ei) => (
+                              <EvPill key={ei} nombre={ev.nombre} tipo={ev.tipo} />
+                            ))}
+                          </div>
+                        </>
                       )}
-                      <span style={{
-                        display: 'inline-block', marginTop: 6,
-                        fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
-                        background: TIPO_BG[item.tipo] || 'var(--surface-3)',
-                        color: TIPO_COLOR[item.tipo] || 'var(--ink-2)',
-                      }}>
-                        {item.tipo}
-                      </span>
                     </div>
-                  </button>
+                  );
+                })}
+              </div>
+            </div>
+          )
+        )}
+
+        {/* ── Vista SEMANA ───────────────────────────────────────────────── */}
+        {viewMode === 'semana' && (
+          <div style={{ border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
+            {/* DOW header with day numbers */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', background: GRAY_50, borderBottom: `1px solid ${GRAY_200}` }}>
+              {DIAS_HEADER.map((dow, i) => {
+                const d = new Date(weekStart);
+                d.setDate(weekStart.getDate() + i);
+                const isT = isoFromParts(d.getFullYear(), d.getMonth(), d.getDate()) === todayISO;
+                return (
+                  <div key={dow} style={{ padding: '10px 12px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: isT ? ORANGE : GRAY_500 }}>
+                      {dow}
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: isT ? ORANGE : NAVY_700, lineHeight: 1, marginTop: 4 }}>
+                      {d.getDate()}
+                    </div>
+                  </div>
                 );
               })}
             </div>
-          )
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{
-              width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed',
-              minWidth: 480,
-            }}>
-              <thead>
-                <tr>
-                  {DIAS_HEADER.map(d => (
-                    <th key={d} style={{
-                      border: '1px solid var(--border)',
-                      padding: '7px 4px',
-                      textAlign: 'center',
-                      fontSize: 11, fontWeight: 700,
-                      color: 'var(--muted)',
-                      textTransform: 'uppercase',
-                      background: 'var(--surface)',
-                      letterSpacing: '0.04em',
-                    }}>
-                      {d}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const rows = [];
-                  for (let i = 0; i < grid.length; i += 7) rows.push(grid.slice(i, i + 7));
-                  return rows.map((row, ri) => (
-                    <tr key={ri}>
-                      {row.map((day, ci) => {
-                        const iso     = day ? isoFromParts(viewYear, viewMonth, day) : null;
-                        const dayEvts = iso ? (eventsByDate[iso] || []) : [];
-                        const esDomingo  = iso ? isDomingo(iso) : false;
-                        const isToday    = iso === todayISO;
-                        const isSelected = iso === selectedDay;
-                        const tiposEnCelda = new Set(dayEvts.map(ev => ev.tipo));
-                        if (esDomingo) tiposEnCelda.add('Servicio dominical');
-                        const tipoPrioritario = TIPO_PRIORIDAD.find(t => tiposEnCelda.has(t));
+            {/* Single row of cells */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
+              {DIAS_HEADER.map((_, i) => {
+                const d = new Date(weekStart);
+                d.setDate(weekStart.getDate() + i);
+                const iso        = isoFromParts(d.getFullYear(), d.getMonth(), d.getDate());
+                const dayEvts    = eventsByDate[iso] || [];
+                const esDomingo  = i === 0;
+                const isToday    = iso === todayISO;
+                const isSelected = iso === selectedDay;
 
-                        return (
-                          <td key={ci}
-                            onClick={day ? () => setSelectedDay(isSelected ? null : iso) : undefined}
-                            style={{
-                              border: '1px solid var(--border)',
-                              verticalAlign: 'top',
-                              padding: '8px 8px 6px',
-                              minHeight: 110,
-                              height: 'auto',
-                              cursor: day ? 'pointer' : 'default',
-                              background: isSelected
-                                ? 'rgba(0,180,216,0.08)'
-                                : !day
-                                  ? 'var(--surface)'
-                                  : tipoPrioritario
-                                    ? TIPO_CELL_BG[tipoPrioritario]
-                                    : 'var(--white, #fff)',
-                              boxShadow: isSelected
-                                ? 'inset 0 0 0 2px var(--chart-primary)'
-                                : 'none',
-                            }}
-                          >
-                            {day && (
-                              <>
-                                <div style={{ marginBottom: 4 }}>
-                                  <span style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center', justifyContent: 'center',
-                                    width: 22, height: 22, borderRadius: '50%',
-                                    background: isToday ? 'var(--chart-primary)' : 'transparent',
-                                    color: isToday ? '#fff' : 'var(--ink)',
-                                    fontSize: 12, fontWeight: isToday ? 700 : 500,
-                                    lineHeight: 1,
-                                  }}>
-                                    {day}
-                                  </span>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                  {/* Domingo automático */}
-                                  {esDomingo && (
-                                    <span style={{
-                                      display: 'block',
-                                      fontSize: 10, fontWeight: 600, lineHeight: 1.4,
-                                      color: TIPO_COLOR['Servicio dominical'],
-                                      background: TIPO_BG['Servicio dominical'],
-                                      borderRadius: 3,
-                                      padding: '2px 5px',
-                                      whiteSpace: 'normal',
-                                      wordWrap: 'break-word',
-                                    }}>
-                                      {serviciosByDate[iso]?.predica
-                                        ? `Servicio dominical — ${serviciosByDate[iso].predica}`
-                                        : 'Servicio dominical'}
-                                    </span>
-                                  )}
-                                  {/* Eventos manuales */}
-                                  {dayEvts.map((ev, ei) => (
-                                    <span key={ei} style={{
-                                      display: 'block',
-                                      fontSize: 10, fontWeight: 600, lineHeight: 1.4,
-                                      color: TIPO_COLOR[ev.tipo] || '#888',
-                                      background: TIPO_BG[ev.tipo] || 'transparent',
-                                      borderRadius: 3,
-                                      padding: '2px 5px',
-                                      whiteSpace: 'normal',
-                                      wordWrap: 'break-word',
-                                    }}>
-                                      {ev.nombre}
-                                    </span>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ));
-                })()}
-              </tbody>
-            </table>
+                return (
+                  <div key={i}
+                    onClick={() => setSelectedDay(isSelected ? null : iso)}
+                    style={{
+                      minHeight: 180,
+                      borderRight: i < 6 ? `1px solid ${GRAY_100}` : 'none',
+                      padding: 8, display: 'flex', flexDirection: 'column', gap: 4,
+                      background: isSelected ? `${ORANGE}10` : isToday ? ORANGE_50 : 'white',
+                      boxShadow: isSelected ? `inset 0 0 0 2px ${ORANGE}` : 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {esDomingo && (
+                      <EvPill
+                        nombre={serviciosByDate[iso]?.predica ? `Servicio — ${serviciosByDate[iso].predica}` : 'Servicio dominical'}
+                        tipo="Servicio dominical"
+                      />
+                    )}
+                    {dayEvts.map((ev, ei) => (
+                      <EvPill key={ei} nombre={ev.nombre} tipo={ev.tipo} />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* Leyenda de tipos */}
-        <div style={{
-          display: 'flex', gap: 14, flexWrap: 'wrap',
-          marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)',
-        }}>
+        {/* ── Vista LISTA ─────────────────────────────────────────────────── */}
+        {viewMode === 'lista' && (
+          loading ? (
+            <p style={{ color: GRAY_500, fontSize: 13.5 }}>Cargando…</p>
+          ) : mesEventos.length === 0 ? (
+            <p style={{ color: GRAY_500, fontSize: 13.5 }}>Sin eventos registrados este mes.</p>
+          ) : (
+            <div style={{ border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-md)', overflow: 'hidden', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 13, minWidth: 520 }}>
+                <thead>
+                  <tr>
+                    {['Fecha', 'Nombre', 'Tipo', 'Nota', ''].map((h, i) => (
+                      <th key={i} style={{
+                        textAlign: i === 4 ? 'right' : 'left',
+                        fontSize: 10.5, letterSpacing: '.07em', textTransform: 'uppercase',
+                        color: GRAY_500, fontWeight: 700, padding: '12px 16px',
+                        background: GRAY_50, borderBottom: `1px solid ${GRAY_200}`,
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...mesEventos]
+                    .sort((a, b) => toISODate(a.fecha).localeCompare(toISODate(b.fecha)))
+                    .map(ev => (
+                      <tr key={ev.id} style={{ transition: '.1s' }}>
+                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, color: GRAY_500, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                          {fmtFecha(ev.fecha)}
+                        </td>
+                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, fontWeight: 600, color: 'var(--ink)' }}>
+                          {ev.nombre}
+                        </td>
+                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}` }}>
+                          <TipoPill tipo={ev.tipo} />
+                        </td>
+                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, color: GRAY_500, fontSize: 12, maxWidth: 220 }}>
+                          {ev.nota || '—'}
+                        </td>
+                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          {canWrite && (
+                            <>
+                              <button onClick={() => openEditModal(ev)} style={miniBtn} title="Editar">
+                                <I.edit size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(ev.id)}
+                                disabled={deleting === ev.id}
+                                style={{ ...miniBtn, color: 'var(--danger)' }}
+                                title="Eliminar"
+                              >
+                                <I.trash size={14} />
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
+
+        {/* ── Leyenda de tipos ──────────────────────────────────────────── */}
+        <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${GRAY_200}` }}>
           {Object.entries(TIPO_COLOR).map(([tipo, color]) => (
-            <div key={tipo} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{tipo}</span>
+            <div key={tipo} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: TIPO_BG[tipo] || color, border: `1px solid ${color}60`, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: GRAY_700, fontWeight: 500 }}>{tipo}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── DÍA SELECCIONADO ────────────────────────────────────────────────── */}
-      {selectedDay && (
+      {/* ── Día seleccionado (mes y semana) — PRESERVED EXACTLY ─────────── */}
+      {selectedDay && viewMode !== 'lista' && (
         <div className="card" style={{ padding: '16px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>
@@ -400,7 +628,6 @@ export default function CalendarioPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-            {/* Servicio dominical — solo domingos */}
             {isDomingo(selectedDay) && (
               <div style={{
                 padding: '12px 14px', borderRadius: 10,
@@ -408,16 +635,9 @@ export default function CalendarioPage() {
                 border: `1px solid ${TIPO_COLOR['Servicio dominical']}40`,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: TIPO_COLOR['Servicio dominical'], flexShrink: 0,
-                  }} />
-                  <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
-                    Servicio dominical
-                  </div>
-                  <span style={{ fontSize: 11.5, color: TIPO_COLOR['Servicio dominical'], fontWeight: 600, flexShrink: 0 }}>
-                    Servicio dominical
-                  </span>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: TIPO_COLOR['Servicio dominical'], flexShrink: 0 }} />
+                  <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Servicio dominical</div>
+                  <span style={{ fontSize: 11.5, color: TIPO_COLOR['Servicio dominical'], fontWeight: 600, flexShrink: 0 }}>Servicio dominical</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, paddingLeft: 16 }}>
                   <input
@@ -444,7 +664,6 @@ export default function CalendarioPage() {
               </div>
             )}
 
-            {/* Eventos manuales */}
             {selectedDayEvents.map(ev => (
               <div key={ev.id} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
@@ -452,116 +671,98 @@ export default function CalendarioPage() {
                 background: TIPO_BG[ev.tipo] || 'var(--surface)',
                 border: `1px solid ${TIPO_COLOR[ev.tipo] || 'var(--border)'}30`,
               }}>
-                <span style={{
-                  width: 8, height: 8, borderRadius: '50%',
-                  background: TIPO_COLOR[ev.tipo] || '#888', flexShrink: 0,
-                }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: TIPO_COLOR[ev.tipo] || '#888', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
-                    {ev.nombre}
-                  </div>
-                  {ev.nota && (
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                      {ev.nota}
-                    </div>
-                  )}
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{ev.nombre}</div>
+                  {ev.nota && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{ev.nota}</div>}
                 </div>
-                <span style={{
-                  fontSize: 11.5, color: TIPO_COLOR[ev.tipo] || 'var(--muted)',
-                  fontWeight: 600, flexShrink: 0,
-                }}>
+                <span style={{ fontSize: 11.5, color: TIPO_COLOR[ev.tipo] || 'var(--muted)', fontWeight: 600, flexShrink: 0 }}>
                   {ev.tipo}
                 </span>
-                <button className="icon-btn" onClick={() => openEditModal(ev)}
-                  style={{ width: 28, height: 28, flexShrink: 0 }} title="Editar">
-                  <I.edit size={14} />
-                </button>
+                {canWrite && (
+                  <button className="icon-btn" onClick={() => openEditModal(ev)}
+                    style={{ width: 28, height: 28, flexShrink: 0 }} title="Editar">
+                    <I.edit size={14} />
+                  </button>
+                )}
               </div>
             ))}
 
-            {/* "Sin eventos" solo si no es domingo y no hay eventos manuales */}
             {selectedDayEvents.length === 0 && !isDomingo(selectedDay) && (
-              <p style={{ fontSize: 13.5, color: 'var(--muted)', margin: 0 }}>
-                Sin eventos este día.
-              </p>
+              <p style={{ fontSize: 13.5, color: 'var(--muted)', margin: 0 }}>Sin eventos este día.</p>
             )}
           </div>
         </div>
       )}
 
-      {/* ── LISTA DE EVENTOS ────────────────────────────────────────────────── */}
-      <div className="card" style={{ padding: '20px 20px 16px' }}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 16px' }}>
-          Todos los eventos
-        </h2>
+      {/* ── Tabla todos los eventos (año completo) — solo fuera de lista ─── */}
+      {viewMode !== 'lista' && (
+        <div className="card" style={{ padding: '20px 20px 16px' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 16px', color: NAVY }}>
+            Todos los eventos · {viewYear}
+          </h2>
 
-        {loading ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13.5 }}>Cargando…</p>
-        ) : allSorted.length === 0 ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13.5 }}>Sin eventos registrados.</p>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
-              <thead>
-                <tr>
-                  {['Fecha', 'Nombre', 'Tipo', 'Nota', ''].map(h => (
-                    <th key={h} style={{
-                      textAlign: 'left', fontSize: 11.5, fontWeight: 700,
-                      color: 'var(--muted)', textTransform: 'uppercase',
-                      letterSpacing: '0.05em', padding: '8px 12px',
-                      borderBottom: '1.5px solid var(--border)',
-                    }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {allSorted.map(ev => (
-                  <tr key={ev.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '10px 12px', fontSize: 13.5, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>
-                      {fmtFecha(ev.fecha)}
-                    </td>
-                    <td style={{ padding: '10px 12px', fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>
-                      {ev.nombre}
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
-                        background: TIPO_BG[ev.tipo] || 'var(--surface)',
-                        color: TIPO_COLOR[ev.tipo] || 'var(--ink)',
-                      }}>
-                        <span style={{
-                          width: 6, height: 6, borderRadius: '50%',
-                          background: TIPO_COLOR[ev.tipo] || '#888',
-                        }} />
-                        {ev.tipo}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 12px', fontSize: 13, color: 'var(--muted)', maxWidth: 220 }}>
-                      {ev.nota || '—'}
-                    </td>
-                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-                      {canWrite && (
-                        <>
-                          <button className="icon-btn" onClick={() => openEditModal(ev)}
-                            style={{ width: 28, height: 28, marginRight: 4 }} title="Editar">
-                            <I.edit size={14} />
-                          </button>
-                          <button className="icon-btn" onClick={() => handleDelete(ev.id)}
-                            disabled={deleting === ev.id}
-                            style={{ width: 28, height: 28, color: 'var(--danger)' }} title="Eliminar">
-                            <I.trash size={14} />
-                          </button>
-                        </>
-                      )}
-                    </td>
+          {loading ? (
+            <p style={{ color: GRAY_500, fontSize: 13.5 }}>Cargando…</p>
+          ) : eventos.length === 0 ? (
+            <p style={{ color: GRAY_500, fontSize: 13.5 }}>Sin eventos registrados.</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 13, minWidth: 520 }}>
+                <thead>
+                  <tr>
+                    {['Fecha', 'Nombre', 'Tipo', 'Nota', ''].map((h, i) => (
+                      <th key={i} style={{
+                        textAlign: i === 4 ? 'right' : 'left',
+                        fontSize: 10.5, letterSpacing: '.07em', textTransform: 'uppercase',
+                        color: GRAY_500, fontWeight: 700, padding: '12px 16px',
+                        background: GRAY_50, borderBottom: `1px solid ${GRAY_200}`,
+                      }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {[...eventos]
+                    .sort((a, b) => toISODate(a.fecha).localeCompare(toISODate(b.fecha)))
+                    .map(ev => (
+                      <tr key={ev.id}>
+                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, color: GRAY_500, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                          {fmtFecha(ev.fecha)}
+                        </td>
+                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, fontWeight: 600, color: 'var(--ink)' }}>
+                          {ev.nombre}
+                        </td>
+                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}` }}>
+                          <TipoPill tipo={ev.tipo} />
+                        </td>
+                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, color: GRAY_500, fontSize: 12, maxWidth: 220 }}>
+                          {ev.nota || '—'}
+                        </td>
+                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          {canWrite && (
+                            <>
+                              <button onClick={() => openEditModal(ev)} style={miniBtn} title="Editar">
+                                <I.edit size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(ev.id)}
+                                disabled={deleting === ev.id}
+                                style={{ ...miniBtn, color: 'var(--danger)' }}
+                                title="Eliminar"
+                              >
+                                <I.trash size={14} />
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
