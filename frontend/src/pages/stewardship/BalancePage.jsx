@@ -3,7 +3,7 @@ import { ofrendasApi, gastosApi } from '../../services/api';
 import { fmtFecha } from '../../utils/fecha';
 import { CATEGORIAS, CAT_COLORS } from '../../utils/categorias';
 import { SALDO_INICIAL_CAJA } from '../../utils/config';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Cell, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Cell, ResponsiveContainer, LabelList } from 'recharts';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const NAVY     = '#112540';
@@ -68,6 +68,25 @@ function buildWeeklyData(ofrendas, gastos) {
 }
 
 // ── Bar chart ──────────────────────────────────────────────────────────────
+function fmtK(v) {
+  const absK = Math.abs(v) / 1000;
+  const sign = v >= 0 ? '+' : '-';
+  return sign + (absK >= 10 ? Math.round(absK) : absK.toFixed(1)) + 'k';
+}
+
+function BarValueLabel({ x, y, width, height, value }) {
+  if (!value) return null;
+  const isPos = value >= 0;
+  const cx = x + width / 2;
+  const cy = isPos ? y - 5 : y + Math.abs(height) + 13;
+  return (
+    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="auto"
+      fill={isPos ? GREEN : RED} fontSize={10} fontWeight={700}>
+      {fmtK(value)}
+    </text>
+  );
+}
+
 function BalanceBarChart({ data }) {
   if (!data || data.length === 0) {
     return (
@@ -79,7 +98,7 @@ function BalanceBarChart({ data }) {
   const chartData = data.map(r => ({ name: r.label.slice(0, 3), balance: r.balance, label: r.label }));
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 4 }}>
+      <BarChart data={chartData} margin={{ top: 24, right: 8, left: 0, bottom: 4 }}>
         <XAxis dataKey="name" tick={{ fontSize: 11, fill: GRAY_500 }} axisLine={false} tickLine={false} />
         <YAxis
           tickFormatter={v => v === 0 ? '$0' : `${v < 0 ? '-' : ''}$${Math.abs(Math.round(v) / 1000).toFixed(0)}k`}
@@ -95,6 +114,7 @@ function BalanceBarChart({ data }) {
           {chartData.map((entry, i) => (
             <Cell key={i} fill={entry.balance >= 0 ? GREEN : RED} />
           ))}
+          <LabelList dataKey="balance" content={BarValueLabel} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -382,7 +402,7 @@ export default function BalancePage() {
           <div className="card-head" style={{ marginBottom: 16 }}>
             <div>
               <h3 className="card-title">Balance {year}</h3>
-              <div className="card-sub">Año completo · saldo por mes</div>
+              <div className="card-sub">Saldo neto por mes · verde positivo / rojo negativo</div>
             </div>
           </div>
           <BalanceBarChart data={monthlyData} />
