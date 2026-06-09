@@ -209,7 +209,7 @@ export default function AsistenciaViewPage() {
           {/* Último domingo */}
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Último domingo</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: CAT_VALUE, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#5eead4', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               {totalUltimo}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
@@ -228,7 +228,7 @@ export default function AsistenciaViewPage() {
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{mesActualLabel}</div>
             {mesActualData ? (
               <>
-                <div style={{ fontSize: 28, fontWeight: 800, color: CAT_VALUE, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#2dd4bf', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
                   {mesActualData.total}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
@@ -247,7 +247,7 @@ export default function AsistenciaViewPage() {
           {/* Promedio */}
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Promedio</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: CAT_VALUE, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#14b8a6', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               {promedio}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{n} domingos</div>
@@ -260,7 +260,7 @@ export default function AsistenciaViewPage() {
           {/* Máximo histórico */}
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Máximo histórico</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: CAT_VALUE, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#0d9488', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               {maximo}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Total asistentes</div>
@@ -269,7 +269,7 @@ export default function AsistenciaViewPage() {
           {/* Total del año */}
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Total del año</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: CAT_VALUE, marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#0f766e', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               {totTotal}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{n} domingos · {year}</div>
