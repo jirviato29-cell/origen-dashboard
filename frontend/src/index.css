@@ -3,8 +3,9 @@
 /* ─── Design system tokens ───────────────────────────────────────────────── */
 
 :root {
-  --black:   #1A1A1A;
-  --black-2: #2B2B2B;
+  --black:       #1A1A1A;
+  --black-2:     #2B2B2B;
+  --sidebar-bg:  #112540;
   --white:   #FFFFFF;
 
   --gray-50:  #FAFAFA;
@@ -102,7 +103,7 @@ body {
 /* ─── Sidebar ────────────────────────────────────────────────────────────── */
 
 .sidebar {
-  background: var(--black);
+  background: var(--sidebar-bg);
   color: var(--white);
   display: flex;
   flex-direction: column;
