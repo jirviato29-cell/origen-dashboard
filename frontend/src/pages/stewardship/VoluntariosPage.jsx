@@ -2,8 +2,69 @@ import { useState, useEffect, useCallback } from 'react';
 import { voluntariosApi } from '../../services/api';
 import { fmtFecha } from '../../utils/fecha';
 import { I } from '../../components/Icons';
+import { useAuth } from '../../context/AuthContext';
+import { puedeRegistrar } from '../../permissions';
 
-// ── Lista de áreas de servicio (orden alfabético) ─────────────────────────────
+// ── Design tokens ──────────────────────────────────────────────────────────
+const NAVY     = '#112540';
+const NAVY_700 = '#244169';
+const NAVY_300 = '#9CB0CC';
+const NAVY_100 = '#DCE4EF';
+const ORANGE_600 = '#E0561B';
+const ORANGE_50  = '#FFF4EE';
+const GRAY_700 = '#3D4654';
+const GRAY_500 = '#7A8699';
+const GRAY_300 = '#CBD2DC';
+const GRAY_200 = '#E2E6EC';
+const GRAY_100 = '#EEF1F5';
+
+const MESES_ES = [
+  'enero','febrero','marzo','abril','mayo','junio',
+  'julio','agosto','septiembre','octubre','noviembre','diciembre',
+];
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function initials(nombre) {
+  return (nombre || '').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
+}
+
+function calcAge(isoDate) {
+  if (!isoDate) return null;
+  const d = new Date(isoDate + 'T00:00:00');
+  if (isNaN(d)) return null;
+  const today = new Date();
+  let age = today.getFullYear() - d.getFullYear();
+  const m = today.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+  return age;
+}
+
+function isSoon(isoDate) {
+  if (!isoDate) return null;
+  const d = new Date(isoDate + 'T00:00:00');
+  if (isNaN(d)) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const year = today.getFullYear();
+  let next = new Date(year, d.getMonth(), d.getDate());
+  if (next < today) next = new Date(year + 1, d.getMonth(), d.getDate());
+  const diff = Math.round((next - today) / 86400000);
+  if (diff > 7) return null;
+  if (diff === 0) return 'hoy';
+  if (diff === 1) return 'mañana';
+  return `en ${diff} días`;
+}
+
+const chipStyle = (active) => ({
+  fontSize: 12.5, fontWeight: 600, padding: '8px 13px', borderRadius: 8,
+  border: `1px solid ${active ? NAVY : GRAY_200}`,
+  background: active ? NAVY : 'white',
+  color: active ? 'white' : GRAY_700,
+  cursor: 'pointer', transition: '.12s', whiteSpace: 'nowrap',
+  fontFamily: 'var(--font-ui)',
+});
+
+// ── Lista de áreas de servicio ─────────────────────────────────────────────
 export const MINISTERIOS = [
   'Alabanza Worship',
   'Anfitriones Bienvenida',
@@ -26,8 +87,6 @@ export const MINISTERIOS = [
   'Staff Producción Crew',
   'Staff Producción y carga',
 ];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const EMPTY_FORM = {
   nombre: '', cumpleanos: '', whatsapp: '',
@@ -54,7 +113,7 @@ function optsFor(allMin, exclude1, exclude2) {
   return allMin.filter(m => m !== exclude1 && m !== exclude2);
 }
 
-// ─── Selector de área ────────────────────────────────────────────────────────
+// ── Selector de área ──────────────────────────────────────────────────────
 function AreaSelect({ label, value, onChange, available, required }) {
   return (
     <div>
@@ -77,12 +136,12 @@ function AreaSelect({ label, value, onChange, available, required }) {
   );
 }
 
-// ─── Bloque de ministerios (reutilizado en modal y kiosco) ───────────────────
+// ── Bloque de ministerios ─────────────────────────────────────────────────
 function AreasBlock({ form, setForm, showHeader }) {
   const { ministerio1, ministerio2, ministerio3 } = form;
-  const opts1 = optsFor(MINISTERIOS, ministerio2, ministerio3);
-  const opts2 = optsFor(MINISTERIOS, ministerio1, ministerio3);
-  const opts3 = optsFor(MINISTERIOS, ministerio1, ministerio2);
+  const opts1    = optsFor(MINISTERIOS, ministerio2, ministerio3);
+  const opts2    = optsFor(MINISTERIOS, ministerio1, ministerio3);
+  const opts3    = optsFor(MINISTERIOS, ministerio1, ministerio2);
   const optsOtra = optsFor(MINISTERIOS, ministerio1, ministerio2).filter(m => m !== ministerio3);
 
   return (
@@ -116,7 +175,7 @@ function AreasBlock({ form, setForm, showHeader }) {
   );
 }
 
-// ─── Modal Editar ─────────────────────────────────────────────────────────────
+// ── Modal Editar — PRESERVED EXACTLY ─────────────────────────────────────
 function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
   const canSave = form.nombre.trim() && form.ministerio1;
 
@@ -190,7 +249,7 @@ function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
   );
 }
 
-// ─── Kiosco: pantalla de formulario ──────────────────────────────────────────
+// ── Kiosco: formulario — PRESERVED EXACTLY ────────────────────────────────
 function KioskForm({ form, setForm, onSave, saving, error }) {
   const canSave = form.nombre.trim() && form.ministerio1;
 
@@ -204,7 +263,6 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
     }}>
       <div style={{ width: '100%', maxWidth: 480 }}>
 
-        {/* Encabezado */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{
             fontSize: 11.5, fontWeight: 700, letterSpacing: '0.12em',
@@ -221,7 +279,6 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
           </p>
         </div>
 
-        {/* Tarjeta del formulario */}
         <div style={{
           background: 'white', borderRadius: 16,
           border: '1px solid var(--border)',
@@ -229,7 +286,6 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
           boxShadow: '0 4px 32px rgba(0,0,0,0.07)',
           display: 'flex', flexDirection: 'column', gap: 16,
         }}>
-          {/* Datos personales */}
           <div>
             <label style={labelStyle}>Nombre completo *</label>
             <input
@@ -264,7 +320,6 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
             </div>
           </div>
 
-          {/* Áreas */}
           <AreasBlock form={form} setForm={setForm} showHeader />
         </div>
 
@@ -292,7 +347,7 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
   );
 }
 
-// ─── Kiosco: pantalla de agradecimiento ──────────────────────────────────────
+// ── Kiosco: agradecimiento — PRESERVED EXACTLY ────────────────────────────
 function KioskThanks({ onNext, onExit }) {
   return (
     <div style={{
@@ -363,8 +418,11 @@ function KioskThanks({ onNext, onExit }) {
   );
 }
 
-// ─── Página principal ─────────────────────────────────────────────────────────
+// ── Página principal ──────────────────────────────────────────────────────
 export default function VoluntariosPage() {
+  const { permisos } = useAuth();
+  const canWrite = puedeRegistrar(permisos, 'voluntarios');
+
   const [voluntarios, setVoluntarios] = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
@@ -375,10 +433,13 @@ export default function VoluntariosPage() {
   const [saving,  setSaving]  = useState(false);
   const [formErr, setFormErr] = useState('');
 
-  const [kiosk,       setKiosk]       = useState(null); // null | 'form' | 'thanks'
+  const [kiosk,       setKiosk]       = useState(null);
   const [kioskForm,   setKioskForm]   = useState(EMPTY_FORM);
   const [kioskSaving, setKioskSaving] = useState(false);
   const [kioskError,  setKioskError]  = useState('');
+
+  const [search,    setSearch]    = useState('');
+  const [minFilter, setMinFilter] = useState('todos');
 
   const fetchVoluntarios = useCallback(async () => {
     setLoading(true);
@@ -458,6 +519,90 @@ export default function VoluntariosPage() {
   const openKiosk = () => { setKioskForm(EMPTY_FORM); setKioskError(''); setKiosk('form'); };
   const kioskNext = () => { setKioskForm(EMPTY_FORM); setKioskError(''); setKiosk('form'); };
 
+  // ── KPI calculations ─────────────────────────────────────────────────────
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const thisMonth = today.getMonth();
+  const nextMonth = (thisMonth + 1) % 12;
+
+  // Voluntarios total
+  const totalVol = voluntarios.length;
+
+  // Ministerios distintos
+  const ministeriosSet = new Set(
+    voluntarios.flatMap(v => [v.ministerio1, v.ministerio2, v.ministerio3].filter(Boolean))
+  );
+  const ministeriosCount = ministeriosSet.size;
+
+  // Cumpleaños: este mes + el próximo
+  const bdayEntries = voluntarios
+    .filter(v => v.cumpleanos)
+    .map(v => {
+      const iso = v.cumpleanos.slice(0, 10);
+      const d = new Date(iso + 'T00:00:00');
+      if (isNaN(d)) return null;
+      const m = d.getMonth();
+      const day = d.getDate();
+      let nextBday = new Date(today.getFullYear(), m, day);
+      if (nextBday < today) nextBday = new Date(today.getFullYear() + 1, m, day);
+      return { v, month: m, day, nextBday, iso };
+    })
+    .filter(e => e && (e.month === thisMonth || e.month === nextMonth))
+    .sort((a, b) => a.nextBday - b.nextBday);
+
+  const bdayCount     = bdayEntries.length;
+  const proximoBday   = bdayEntries[0];
+  const bdayFooter    = proximoBday
+    ? `${proximoBday.v.nombre.split(' ')[0]} el ${proximoBday.day} de ${MESES_ES[proximoBday.month]}`
+    : 'Sin cumpleaños próximos';
+
+  // Jóvenes / Adultos (< 30 / >= 30)
+  const conFecha     = voluntarios.filter(v => v.cumpleanos);
+  const jovenesCount = conFecha.filter(v => { const a = calcAge(v.cumpleanos.slice(0, 10)); return a !== null && a < 30; }).length;
+  const adultosCount = conFecha.filter(v => { const a = calcAge(v.cumpleanos.slice(0, 10)); return a !== null && a >= 30; }).length;
+  const ageTotal     = jovenesCount + adultosCount;
+  const jovenesPct   = ageTotal > 0 ? Math.round(jovenesCount / ageTotal * 100) : 0;
+  const adultosPct   = ageTotal > 0 ? 100 - jovenesPct : 0;
+
+  // Ministry chips (distinct values used)
+  const ministeriosChips = [...ministeriosSet].sort();
+
+  // Filtered list
+  const filtered = voluntarios.filter(v => {
+    if (minFilter !== 'todos') {
+      const mins = [v.ministerio1, v.ministerio2, v.ministerio3].filter(Boolean);
+      if (!mins.includes(minFilter)) return false;
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const texto = [v.nombre, v.whatsapp, v.ministerio1, v.ministerio2, v.ministerio3, v.otra_area]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!texto.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // ── KPI card style helpers ───────────────────────────────────────────────
+  const kpiCard = {
+    background: 'var(--surface)', border: `1px solid ${GRAY_200}`,
+    borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
+  };
+  const kpiLabel = (extra = {}) => ({
+    fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+    color: GRAY_500, marginBottom: 9, display: 'flex', alignItems: 'center', gap: 7,
+    ...extra,
+  });
+  const kpiIcon = (bg = NAVY_100, color = NAVY_700) => ({
+    width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center',
+    justifyContent: 'center', background: bg, color, flexShrink: 0,
+  });
+  const kpiVal = {
+    fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
+    color: NAVY, fontVariantNumeric: 'tabular-nums',
+  };
+  const kpiFootStyle = { marginTop: 9, fontSize: 11.5, color: GRAY_500 };
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       {kiosk === 'form' && (
@@ -467,27 +612,123 @@ export default function VoluntariosPage() {
         <KioskThanks onNext={kioskNext} onExit={() => setKiosk(null)} />
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+        {/* ── KPIs ─────────────────────────────────────────────────────────── */}
+        {!loading && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
+
+            {/* Voluntarios */}
+            <div style={kpiCard}>
+              <div style={kpiLabel()}>
+                <span style={kpiIcon()}><I.users size={15} /></span>
+                Voluntarios
+              </div>
+              <div style={kpiVal}>{totalVol}</div>
+              <div style={kpiFootStyle}>
+                {totalVol === 1 ? 'registrado' : 'registrados en el directorio'}
+              </div>
+            </div>
+
+            {/* Ministerios */}
+            <div style={kpiCard}>
+              <div style={kpiLabel()}>
+                <span style={kpiIcon()}><I.pin size={15} /></span>
+                Ministerios
+              </div>
+              <div style={kpiVal}>{ministeriosCount}</div>
+              <div style={kpiFootStyle}>áreas distintas activas</div>
+            </div>
+
+            {/* Cumpleaños */}
+            <div style={kpiCard}>
+              <div style={kpiLabel()}>
+                <span style={kpiIcon(ORANGE_50, ORANGE_600)}><I.calendar size={15} /></span>
+                Cumpleaños · {MESES_ES[thisMonth]}
+              </div>
+              <div style={kpiVal}>{bdayCount}</div>
+              <div style={kpiFootStyle}>{bdayFooter}</div>
+            </div>
+
+            {/* Jóvenes / Adultos */}
+            <div style={kpiCard}>
+              <div style={kpiLabel()}>
+                <span style={kpiIcon()}><I.users size={15} /></span>
+                Jóvenes / Adultos
+              </div>
+              <div style={{ ...kpiVal, display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                {jovenesCount}
+                <span style={{ color: GRAY_300, fontSize: 20, fontWeight: 600 }}>/ {adultosCount}</span>
+              </div>
+              <div style={kpiFootStyle}>
+                {ageTotal > 0
+                  ? `${jovenesPct}% jóvenes · ${adultosPct}% adultos`
+                  : 'sin fechas de nacimiento'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Tabla principal ──────────────────────────────────────────────── */}
         <div className="card">
-          <div className="card-head">
+          <div className="card-head" style={{ marginBottom: 14 }}>
             <div>
               <h3 className="card-title">Directorio de voluntarios</h3>
               <div className="card-sub">
-                {loading ? 'Cargando…' : `${voluntarios.length} voluntario${voluntarios.length !== 1 ? 's' : ''} registrado${voluntarios.length !== 1 ? 's' : ''}`}
+                {loading ? 'Cargando…' : `${filtered.length} de ${totalVol} voluntario${totalVol !== 1 ? 's' : ''}`}
               </div>
             </div>
             <div className="card-actions">
-              <button className="btn btn-primary" onClick={openKiosk}>
-                <I.plus size={14} /> Registrar voluntario
+              {canWrite && (
+                <button className="btn btn-primary" onClick={openKiosk}>
+                  <I.plus size={14} /> Registrar voluntario
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Toolbar: buscador + chips */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+            {/* Buscador */}
+            <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 220 }}>
+              <div style={{
+                position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
+                color: GRAY_500, pointerEvents: 'none', display: 'flex',
+              }}>
+                <I.search size={15} />
+              </div>
+              <input
+                type="text"
+                placeholder="Buscar por nombre, ministerio o WhatsApp…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{
+                  width: '100%', padding: '9px 12px 9px 34px', borderRadius: 9,
+                  border: `1.5px solid ${GRAY_200}`, fontSize: 13,
+                  outline: 'none', fontFamily: 'var(--font-ui)', boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Chips de ministerio */}
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', flex: '2 1 300px' }}>
+              <button style={chipStyle(minFilter === 'todos')} onClick={() => setMinFilter('todos')}>
+                Todos
               </button>
+              {ministeriosChips.map(m => (
+                <button key={m} style={chipStyle(minFilter === m)} onClick={() => setMinFilter(m)}>
+                  {m}
+                </button>
+              ))}
             </div>
           </div>
 
           {error && (
-            <p style={{ fontSize: 13, color: 'var(--danger)', margin: '8px 0 0' }}>{error}</p>
+            <p style={{ fontSize: 13, color: 'var(--danger)', marginBottom: 8 }}>{error}</p>
           )}
 
-          <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)', marginTop: 8 }}>
+          {/* Tabla */}
+          <div className="tbl-wrap" style={{ borderRadius: 10, border: `1px solid ${GRAY_200}` }}>
             <table className="table anf-table">
               <thead>
                 <tr>
@@ -496,53 +737,157 @@ export default function VoluntariosPage() {
                   <th>WhatsApp</th>
                   <th>Ministerios</th>
                   <th>Otra área</th>
-                  <th style={{ textAlign: 'right' }}>Acciones</th>
+                  {canWrite && <th style={{ textAlign: 'right' }}>Acciones</th>}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--muted)' }}>Cargando…</td></tr>
-                ) : voluntarios.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--muted)' }}>Sin voluntarios registrados</td></tr>
+                  <tr>
+                    <td colSpan={canWrite ? 6 : 5} style={{ textAlign: 'center', padding: 32, color: GRAY_500 }}>
+                      Cargando…
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={canWrite ? 6 : 5} style={{ textAlign: 'center', padding: 32, color: GRAY_500 }}>
+                      {search.trim() || minFilter !== 'todos' ? 'Sin resultados para este filtro' : 'Sin voluntarios registrados'}
+                    </td>
+                  </tr>
                 ) : (
-                  voluntarios.map(v => (
-                    <tr key={v.id}>
-                      <td style={{ fontWeight: 600, fontSize: 14 }}>{v.nombre}</td>
-                      <td style={{ fontSize: 13, color: 'var(--muted)' }}>
-                        {v.cumpleanos ? fmtFecha(v.cumpleanos) : '—'}
-                      </td>
-                      <td style={{ fontSize: 13, color: 'var(--muted)' }}>{v.whatsapp || '—'}</td>
-                      <td style={{ fontSize: 13 }}>
-                        {[v.ministerio1, v.ministerio2, v.ministerio3].filter(Boolean).map((m, i) => (
-                          <span key={i} style={{
-                            display: 'inline-block', marginRight: 6, marginBottom: 2,
-                            fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
-                            background: 'var(--surface)', border: '1px solid var(--border)',
-                            color: 'var(--ink-2)',
-                          }}>{m}</span>
-                        ))}
-                      </td>
-                      <td style={{ fontSize: 13, color: 'var(--muted)', maxWidth: 180 }}>
-                        {v.otra_area || '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <button className="icon-btn" onClick={() => openEdit(v)} title="Editar"
-                          style={{ width: 28, height: 28, marginRight: 4 }}>
-                          <I.edit size={14} />
-                        </button>
-                        <button className="icon-btn" onClick={() => handleDelete(v)} title="Eliminar"
-                          style={{ width: 28, height: 28, color: 'var(--danger)' }}>
-                          <I.trash size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  filtered.map(v => {
+                    const iso     = v.cumpleanos ? v.cumpleanos.slice(0, 10) : null;
+                    const age     = iso ? calcAge(iso) : null;
+                    const soon    = iso ? isSoon(iso) : null;
+                    const mins    = [v.ministerio1, v.ministerio2, v.ministerio3].filter(Boolean);
+
+                    return (
+                      <tr key={v.id}>
+                        {/* Nombre + avatar + edad */}
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                            <div style={{
+                              width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                              background: NAVY_700, color: 'white',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontWeight: 700, fontSize: 12,
+                            }}>
+                              {initials(v.nombre)}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 700, color: NAVY, fontSize: 13.5, lineHeight: 1.3 }}>
+                                {v.nombre}
+                              </div>
+                              {age !== null && (
+                                <div style={{ fontSize: 11, color: GRAY_500, marginTop: 1 }}>
+                                  {age} años
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Cumpleaños + soon badge */}
+                        <td>
+                          {iso ? (
+                            <span style={{ color: GRAY_700, fontVariantNumeric: 'tabular-nums', fontSize: 12.5 }}>
+                              {fmtFecha(iso)}
+                              {soon && (
+                                <span style={{
+                                  display: 'inline-block', marginLeft: 6,
+                                  fontSize: 10, fontWeight: 700,
+                                  color: ORANGE_600, background: ORANGE_50,
+                                  padding: '1px 7px', borderRadius: 5,
+                                }}>
+                                  {soon}
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            <span style={{ color: GRAY_300 }}>—</span>
+                          )}
+                        </td>
+
+                        {/* WhatsApp */}
+                        <td>
+                          {v.whatsapp ? (
+                            <span style={{
+                              fontFamily: 'var(--font-mono, monospace)',
+                              fontSize: 12, color: GRAY_700,
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                            }}>
+                              <svg viewBox="0 0 24 24" fill="currentColor" width={12} height={12} style={{ color: '#25D366', flexShrink: 0 }}>
+                                <path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.8-1.4A10 10 0 1 0 12 2zm5.5 14.3c-.2.6-1.2 1.1-1.7 1.2-.4 0-.9.1-2.8-.6-2.3-.8-3.8-3.1-3.9-3.3-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 .9-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.7 1.7c.1.2.1.4 0 .6l-.5.7.5.8c.6.9 1.3 1.5 2.2 1.9.3.1.5.1.7-.1l.5-.7c.2-.2.4-.2.6-.1l1.8.8c.2.1.4.2.4.4-.1.8-.3 1.8-.6 2z"/>
+                              </svg>
+                              {v.whatsapp}
+                            </span>
+                          ) : (
+                            <span style={{ color: GRAY_300 }}>—</span>
+                          )}
+                        </td>
+
+                        {/* Ministerios */}
+                        <td>
+                          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                            {mins.map((m, i) => (
+                              <span key={i} style={{
+                                fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 6,
+                                whiteSpace: 'nowrap',
+                                background: i === 0 ? ORANGE_50  : NAVY_100,
+                                color:      i === 0 ? ORANGE_600 : NAVY_700,
+                              }}>
+                                {m}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+
+                        {/* Otra área */}
+                        <td>
+                          {v.otra_area
+                            ? <span style={{ fontSize: 12, color: GRAY_700, fontWeight: 500 }}>{v.otra_area}</span>
+                            : <span style={{ color: GRAY_300 }}>—</span>
+                          }
+                        </td>
+
+                        {/* Acciones */}
+                        {canWrite && (
+                          <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <button
+                              onClick={() => openEdit(v)}
+                              title="Editar"
+                              style={{
+                                width: 30, height: 30, borderRadius: 7, marginRight: 6,
+                                border: `1px solid ${GRAY_200}`, background: 'white', color: GRAY_500,
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <I.edit size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(v)}
+                              title="Eliminar"
+                              style={{
+                                width: 30, height: 30, borderRadius: 7,
+                                border: `1px solid ${GRAY_200}`, background: 'white', color: 'var(--danger)',
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <I.trash size={14} />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
         </div>
 
+        {/* Modal editar */}
         {modal && (
           <VoluntarioModal
             form={form}
