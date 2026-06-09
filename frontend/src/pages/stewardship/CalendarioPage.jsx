@@ -57,8 +57,8 @@ function getSundayOfWeek(date) {
 function EvPill({ nombre, tipo }) {
   return (
     <span style={{
-      fontSize: 10.5, fontWeight: 600, padding: '3px 7px', borderRadius: 5, lineHeight: 1.25,
-      display: 'flex', alignItems: 'center', gap: 5,
+      fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, lineHeight: 1.2,
+      display: 'flex', alignItems: 'center', gap: 4,
       overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
       background: TIPO_BG[tipo] || GRAY_100, color: TIPO_COLOR[tipo] || GRAY_700,
     }}>
@@ -427,10 +427,10 @@ export default function CalendarioPage() {
                     <div key={ci}
                       onClick={day ? () => setSelectedDay(isSelected ? null : iso) : undefined}
                       style={{
-                        minHeight: 104,
+                        minHeight: 90,
                         borderRight: (ci + 1) % 7 !== 0 ? `1px solid ${GRAY_100}` : 'none',
                         borderBottom: `1px solid ${GRAY_100}`,
-                        padding: 8, display: 'flex', flexDirection: 'column', gap: 5,
+                        padding: '6px 7px', display: 'flex', flexDirection: 'column', gap: 3,
                         cursor: day ? 'pointer' : 'default',
                         background: isSelected
                           ? `${ORANGE}10`
@@ -443,10 +443,10 @@ export default function CalendarioPage() {
                     >
                       {day && (
                         <>
-                          <div style={{ marginBottom: 2 }}>
+                          <div style={{ marginBottom: 1 }}>
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              width: 24, height: 24, borderRadius: 7, fontSize: 12.5, fontWeight: 700, lineHeight: 1,
+                              width: 22, height: 22, borderRadius: 6, fontSize: 11.5, fontWeight: 700, lineHeight: 1,
                               background: isToday ? ORANGE : 'transparent',
                               color: isToday ? 'white' : esDomingo ? ORANGE_600 : NAVY_700,
                             }}>
@@ -510,9 +510,9 @@ export default function CalendarioPage() {
                   <div key={i}
                     onClick={() => setSelectedDay(isSelected ? null : iso)}
                     style={{
-                      minHeight: 180,
+                      minHeight: 130,
                       borderRight: i < 6 ? `1px solid ${GRAY_100}` : 'none',
-                      padding: 8, display: 'flex', flexDirection: 'column', gap: 4,
+                      padding: '6px 7px', display: 'flex', flexDirection: 'column', gap: 3,
                       background: isSelected ? `${ORANGE}10` : isToday ? ORANGE_50 : 'white',
                       boxShadow: isSelected ? `inset 0 0 0 2px ${ORANGE}` : 'none',
                       cursor: 'pointer',
