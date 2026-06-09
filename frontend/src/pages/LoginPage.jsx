@@ -130,8 +130,8 @@ export default function LoginPage() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
-              gap: 11,
-              padding: '0 20px 20px',
+              gap: 14,
+              padding: '0 22px 22px',
             }}>
               {ROLES_LIST.map((r) => {
                 const Ic  = r.icon;
@@ -146,7 +146,7 @@ export default function LoginPage() {
                     style={{
                       background: 'white',
                       border: `1.5px solid ${isH ? ORANGE_100 : GRAY_200}`,
-                      borderRadius: 14, padding: 15,
+                      borderRadius: 14, padding: 18,
                       cursor: 'pointer', display: 'flex', flexDirection: 'column',
                       transform: isH ? 'translateY(-2px)' : 'none',
                       transition: 'border-color .14s, transform .14s, box-shadow .14s',
@@ -189,7 +189,7 @@ export default function LoginPage() {
                     {/* Chip */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: chip.dot, flexShrink: 0 }} />
-                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', color: GRAY_500 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: GRAY_500 }}>
                         {chip.label}
                       </span>
                     </div>
