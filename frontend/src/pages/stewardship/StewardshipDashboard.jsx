@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockAsistencia, mockIngresos, mockGastos, mockEventos } from '../../data/mockData';
+import { mockGastos, mockEventos } from '../../data/mockData';
+import { asistenciaApi, ofrendasApi, gastosApi } from '../../services/api';
+import { SALDO_INICIAL_CAJA } from '../../utils/config';
 import { I } from '../../components/Icons';
 import { useOfrendasModal } from '../../context/OfrendasModalContext';
 
@@ -12,7 +15,7 @@ function fmtDate(d) {
   return new Date(d + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function StatCard({ label, value, sub, color, icon: Icon }) {
+function StatCard({ label, value, sub, extra, color, icon: Icon }) {
   return (
     <div className="card" style={{ padding: '18px 20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -23,6 +26,7 @@ function StatCard({ label, value, sub, color, icon: Icon }) {
         {value}
       </div>
       <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 5 }}>{sub}</div>
+      {extra && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>{extra}</div>}
     </div>
   );
 }
@@ -58,25 +62,64 @@ export default function StewardshipDashboard() {
   const navigate = useNavigate();
   const { openModal: openOfrendas } = useOfrendasModal();
 
-  const ultimaAsistencia = [...mockAsistencia].sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
-  const totalUltimaAsistencia = ultimaAsistencia
-    ? (ultimaAsistencia.adultos + ultimaAsistencia.voluntarios + ultimaAsistencia.ninos + ultimaAsistencia.bebes)
-    : 0;
-
-  const ultimoDomingoFecha = ultimaAsistencia?.fecha;
-  const ofrendasUltimoDomingo = mockIngresos
-    .filter(i => i.fecha === ultimoDomingoFecha)
-    .reduce((s, i) => s + i.monto, 0);
-
-  const hoy = new Date();
-  const mes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  const year     = new Date().getFullYear();
+  const hoy      = new Date();
+  const mes      = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
   const mesLabel = hoy.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+  const hoyStr   = hoy.toISOString().slice(0, 10);
 
-  const gastosMesArr  = mockGastos.filter(g => g.fecha.startsWith(mes));
-  const ingresosMes   = mockIngresos.filter(i => i.fecha.startsWith(mes)).reduce((s, i) => s + i.monto, 0);
-  const gastosMes     = gastosMesArr.reduce((s, g) => s + g.monto, 0);
-  const balanceMes    = ingresosMes - gastosMes;
+  // ── API state ──────────────────────────────────────────────────────────────
+  const [asistencia, setAsistencia] = useState([]);
+  const [ofrendas,   setOfrendas]   = useState([]);
+  const [gastos,     setGastos]     = useState([]);
+  const [loading,    setLoading]    = useState(true);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [ra, ro, rg] = await Promise.all([
+          asistenciaApi.getAll({ year, limit: 200 }),
+          ofrendasApi.getAll({ year }),
+          gastosApi.getAll({ year, pagado: 'true' }),
+        ]);
+        if (!cancelled) {
+          setAsistencia(ra.data || []);
+          setOfrendas(ro.data   || []);
+          setGastos(rg.data     || []);
+        }
+      } catch { /* mantiene arrays vacíos; cards muestran — */ }
+      finally   { if (!cancelled) setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [year]);
+
+  // ── Último servicio ────────────────────────────────────────────────────────
+  const ultimoServicio = [...asistencia].sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? null;
+  const ultimaFecha    = ultimoServicio?.fecha ?? null;
+  const totalAsist     = ultimoServicio
+    ? (ultimoServicio.adultos || 0) + (ultimoServicio.voluntarios || 0)
+      + (ultimoServicio.ninos || 0) + (ultimoServicio.bebes || 0)
+    : null;
+
+  // ── Ofrendas + participación del último servicio ───────────────────────────
+  const ultimaOfrenda = ofrendas.find(o => o.fecha === ultimaFecha) ?? null;
+  const totalOfrenda  = ultimaOfrenda
+    ? (Number(ultimaOfrenda.efectivo)        || 0)
+      + (Number(ultimaOfrenda.terminal)      || 0)
+      + (Number(ultimaOfrenda.transferencia) || 0)
+    : null;
+  const participacion = ultimaOfrenda?.participacion ?? null;
+  const nuevos        = ultimoServicio?.nuevos        ?? null;
+
+  // ── Saldo en caja (acumulado del año) ──────────────────────────────────────
+  const totalEfectivoCaja = ofrendas.reduce((s, o) => s + (Number(o.efectivo) || 0), 0);
+  const totalGastosCaja   = gastos.reduce((s, g)   => s + (Number(g.monto)    || 0), 0);
+  const saldoCaja         = SALDO_INICIAL_CAJA + totalEfectivoCaja - totalGastosCaja;
+
+  // ── Secciones no migradas (mock) ───────────────────────────────────────────
+  const gastosMesArr = mockGastos.filter(g => g.fecha.startsWith(mes));
+  const gastosMes    = gastosMesArr.reduce((s, g) => s + g.monto, 0);
   const catBreakdown = CATEGORIAS_GASTO
     .map(cat => ({
       cat,
@@ -85,47 +128,65 @@ export default function StewardshipDashboard() {
         .reduce((s, g) => s + g.monto, 0),
     }))
     .filter(c => c.total > 0);
-
-  const hoyStr = hoy.toISOString().slice(0, 10);
   const proximosEventos = mockEventos
     .filter(e => e.fecha >= hoyStr)
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
     .slice(0, 4);
 
-  const balanceColor = balanceMes >= 0 ? 'var(--good)' : 'var(--danger)';
+  // ── Valores para las tarjetas ──────────────────────────────────────────────
+  const D = '—';
+  const vAsistencia    = loading ? D : totalAsist    !== null ? String(totalAsist)          : D;
+  const vOfrenda       = loading ? D : totalOfrenda  !== null ? `$${fmt(totalOfrenda)}`     : D;
+  const vParticipacion = loading ? D : participacion !== null ? `${participacion}%`         : D;
+  const vNuevos        = loading ? D : nuevos        !== null ? String(nuevos)               : D;
+  const vSaldo         = loading ? D
+    : `${saldoCaja >= 0 ? '' : '−'}$${fmt(Math.abs(saldoCaja))}`;
+
+  const subAsist  = !loading && ultimaFecha ? fmtDate(ultimaFecha) : D;
+  const extraAsist = !loading && ultimoServicio
+    ? `Ad ${ultimoServicio.adultos ?? 0} · Vol ${ultimoServicio.voluntarios ?? 0} · Niños ${ultimoServicio.ninos ?? 0} · Bbs ${ultimoServicio.bebes ?? 0}`
+    : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
         <StatCard
-          label="Asistencia último domingo"
-          value={totalUltimaAsistencia}
-          sub={ultimaAsistencia ? fmtDate(ultimaAsistencia.fecha) : '—'}
-          color="var(--chart-primary)"
+          label="Asistencia"
+          value={vAsistencia}
+          sub={subAsist}
+          extra={extraAsist}
+          color="#14b8a6"
           icon={I.users}
         />
         <StatCard
-          label="Ofrendas último domingo"
-          value={`$${fmt(ofrendasUltimoDomingo)}`}
-          sub={ultimoDomingoFecha ? fmtDate(ultimoDomingoFecha) : '—'}
+          label="Ofrendas"
+          value={vOfrenda}
+          sub={!loading && ultimaFecha ? fmtDate(ultimaFecha) : D}
+          color="var(--chart-primary)"
+          icon={I.coin}
+        />
+        <StatCard
+          label="Participación"
+          value={vParticipacion}
+          sub="del último servicio"
           color="var(--chart-secondary)"
           icon={I.coin}
         />
         <StatCard
-          label={`Balance ${mesLabel}`}
-          value={`${balanceMes >= 0 ? '+' : '-'}$${fmt(Math.abs(balanceMes))}`}
-          sub={balanceMes >= 0 ? 'Superávit del mes' : 'Déficit del mes'}
-          color={balanceColor}
-          icon={I.cash}
+          label="Nuevos visitantes"
+          value={vNuevos}
+          sub="visitantes nuevos"
+          color="var(--warn)"
+          icon={I.users}
         />
         <StatCard
-          label="Próximos eventos"
-          value={proximosEventos.length}
-          sub={proximosEventos[0] ? proximosEventos[0].nombre : 'Sin eventos próximos'}
-          color="var(--warn)"
-          icon={I.calendar}
+          label="Saldo en caja"
+          value={vSaldo}
+          sub={`efectivo disponible · acumulado ${year}`}
+          color={!loading && saldoCaja < 0 ? 'var(--danger)' : 'var(--good)'}
+          icon={I.cash}
         />
       </div>
 
