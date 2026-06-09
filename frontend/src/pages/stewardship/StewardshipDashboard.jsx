@@ -5,7 +5,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
-import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi } from '../../services/api';
+import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi, voluntariosApi } from '../../services/api';
 import { SALDO_INICIAL_CAJA } from '../../utils/config';
 import { I } from '../../components/Icons';
 import { useIsMobile } from '../../utils/useIsMobile';
@@ -30,6 +30,8 @@ const D_GREEN_400 = '#3DD68C';
 const D_RED_600   = '#D23B36';
 const D_AMBER_600 = '#C98A14';
 const D_CYAN      = '#00B4D8'; // chart primary
+
+const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -342,19 +344,21 @@ export default function StewardshipDashboard() {
   const [gastosPorPagar, setGastosPorPagar] = useState([]);
   const [calendario,     setCalendario]     = useState([]);
   const [participantes,  setParticipantes]  = useState([]);
+  const [voluntarios,    setVoluntarios]    = useState([]);
   const [loading,        setLoading]        = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [ra, ro, rg, rgp, rc, rp] = await Promise.all([
+        const [ra, ro, rg, rgp, rc, rp, rv] = await Promise.all([
           asistenciaApi.getAll({ year, limit: 200 }),
           ofrendasApi.getAll({ year }),
           gastosApi.getAll({ year, pagado: 'true' }),
           gastosApi.getAll({ year, pagado: 'false' }),
           calendarioApi.getAll({ year }),
           participantesApi.getAll(),
+          voluntariosApi.getAll(),
         ]);
         if (!cancelled) {
           setAsistencia(ra.data      || []);
@@ -363,12 +367,28 @@ export default function StewardshipDashboard() {
           setGastosPorPagar(rgp.data || []);
           setCalendario(rc.data      || []);
           setParticipantes(rp.data   || []);
+          setVoluntarios(rv.data     || []);
         }
       } catch { /* keeps empty arrays; cards show — */ }
       finally   { if (!cancelled) setLoading(false); }
     })();
     return () => { cancelled = true; };
   }, [year]);
+
+  // ── Cumpleaños de este mes ─────────────────────────────────────────────────
+  const bdayThisMonth = useMemo(() => {
+    const mesActual = hoy.getMonth();
+    return voluntarios
+      .filter(v => v.cumpleanos)
+      .map(v => {
+        const iso = v.cumpleanos.slice(0, 10);
+        const d = new Date(iso + 'T00:00:00');
+        if (isNaN(d)) return null;
+        return { nombre: v.nombre, ministerio1: v.ministerio1, day: d.getDate(), month: d.getMonth() };
+      })
+      .filter(e => e && e.month === mesActual)
+      .sort((a, b) => a.day - b.day);
+  }, [voluntarios, hoy]);
 
   // ── Último servicio ────────────────────────────────────────────────────────
   const ultimoServicio = [...asistencia].sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? null;
@@ -590,20 +610,41 @@ export default function StewardshipDashboard() {
             />
           </div>
 
-          {/* Cumpleaños — placeholder */}
+          {/* Cumpleaños de este mes */}
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <h3 style={cardTitleStyle}>Cumpleaños de este mes</h3>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '14px 0', color: D_GRAY_500 }}>
-              <div style={{ width: 46, height: 46, borderRadius: 12, background: D_ORANGE_50, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D_ORANGE }}>
-                <I.users size={22} />
+            {loading ? (
+              <div style={{ color: D_GRAY_500, fontSize: 13, padding: '14px 0' }}>Cargando…</div>
+            ) : bdayThisMonth.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '14px 0' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: D_GRAY_100, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D_GRAY_500 }}>
+                  <I.users size={20} />
+                </div>
+                <div style={{ fontSize: 13, color: D_GRAY_500 }}>Nadie cumple años este mes</div>
               </div>
-              <div style={{ fontWeight: 700, fontSize: 13.5, color: D_NAVY_900 }}>Próximamente</div>
-              <div style={{ fontSize: 12, textAlign: 'center', maxWidth: 210, lineHeight: 1.5, color: D_GRAY_500 }}>
-                Cumpleaños del mes de los miembros de la congregación.
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {bdayThisMonth.map((p, i) => {
+                  const initials = (p.nombre || '').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 9, background: D_NAVY_800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                        {initials}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: D_NAVY_900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nombre}</div>
+                        {p.ministerio1 && <div style={{ fontSize: 11, color: D_GRAY_500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.ministerio1}</div>}
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: D_ORANGE, flexShrink: 0 }}>
+                        {p.day} de {MESES_ES[p.month]}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Resumen del mes */}
