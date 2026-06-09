@@ -15,7 +15,7 @@ function formatDateLong(iso) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-const makeEmpty = () => ({ fecha: todayISO(), concepto: '', categoria: '', monto: '' });
+const makeEmpty = () => ({ fecha: todayISO(), concepto: '', categoria: '', monto: '', fecha_vencimiento: '' });
 
 // ── Shared input style ────────────────────────────────────────────────────────
 const inputStyle = {
@@ -105,12 +105,13 @@ export default function GlobalGastosModal() {
     setSaving(true);
     try {
       await gastosApi.create({
-        fecha:           form.fecha,
-        concepto:        form.concepto.trim(),
-        categoria:       form.categoria,
+        fecha:             form.fecha,
+        concepto:          form.concepto.trim(),
+        categoria:         form.categoria,
         monto,
         pagado,
-        comprobante_url: comprobanteUrl,
+        comprobante_url:   comprobanteUrl,
+        fecha_vencimiento: form.fecha_vencimiento || null,
       });
       setSavedData({ fecha: form.fecha, concepto: form.concepto.trim(), categoria: form.categoria, monto });
       setSaved(true);
@@ -204,6 +205,19 @@ export default function GlobalGastosModal() {
                     style={{ ...inputStyle, padding: '10px 12px 10px 26px', fontFamily: 'var(--font-mono)', fontSize: 16 }} />
                 </div>
               </div>
+
+              {/* Fecha de vencimiento — solo para gastos por pagar */}
+              {!pagado && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Fecha de vencimiento
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
+                  </label>
+                  <input type="date" value={form.fecha_vencimiento}
+                    onChange={e => setForm(f => ({ ...f, fecha_vencimiento: e.target.value }))}
+                    style={inputStyle} />
+                </div>
+              )}
 
               {/* Comprobante */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
