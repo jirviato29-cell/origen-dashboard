@@ -579,6 +579,7 @@ body {
 
 .anf-table th { background: var(--surface-2); }
 .anf-totals-row td { background: var(--surface-3); border-top: 1px solid var(--border-strong); border-bottom: 0 !important; font-weight: 700; }
+.edit-btn-row:hover { color: var(--chart-secondary) !important; border-color: var(--chart-secondary) !important; background: rgba(255,107,43,0.06) !important; }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 
