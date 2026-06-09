@@ -10,9 +10,13 @@ function fmt(n) {
   return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Normaliza timestamps ISO completos ("2026-06-07T00:00:00.000Z") y strings "YYYY-MM-DD"
+function toDateISO(d) { return d ? String(d).slice(0, 10) : null; }
+
 function fmtDate(d) {
-  if (!d) return '—';
-  return new Date(d + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  const iso = toDateISO(d);
+  if (!iso) return '—';
+  return new Date(iso + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function StatCard({ label, value, sub, extra, color, icon: Icon }) {
@@ -103,7 +107,8 @@ export default function StewardshipDashboard() {
     : null;
 
   // ── Ofrendas + participación del último servicio ───────────────────────────
-  const ultimaOfrenda = ofrendas.find(o => o.fecha === ultimaFecha) ?? null;
+  const ultimaFechaISO = toDateISO(ultimaFecha);
+  const ultimaOfrenda  = ofrendas.find(o => toDateISO(o.fecha) === ultimaFechaISO) ?? null;
   const totalOfrenda  = ultimaOfrenda
     ? (Number(ultimaOfrenda.efectivo)        || 0)
       + (Number(ultimaOfrenda.terminal)      || 0)
