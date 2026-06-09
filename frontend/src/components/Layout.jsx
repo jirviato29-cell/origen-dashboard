@@ -3,7 +3,6 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
-import { useOfrendasModal } from '../context/OfrendasModalContext';
 import { useGastosModal } from '../context/GastosModalContext';
 import { useAsistenciaStewModal } from '../context/AsistenciaStewModalContext';
 import { useCalendarioModal } from '../context/CalendarioModalContext';
@@ -45,7 +44,6 @@ const ROUTE_INFO = {
 export default function Layout() {
   const { role, userName, permisos } = useAuth();
   const { openModal }                    = useRegistrarModal();
-  const { openModal: openOfrendasModal } = useOfrendasModal();
   const { openModal: openGastosModal }   = useGastosModal();
   const { openModal: openAsistenciaModal } = useAsistenciaStewModal();
   const { openModal: openCalendarioModal } = useCalendarioModal();
@@ -70,11 +68,6 @@ export default function Layout() {
   const canRegCalendario  = puedeRegistrar(permisos, 'calendario');
   const canRegPE          = puedeRegistrar(permisos, 'punto_encuentro');
 
-  // Stewardship: "Registrar Ofrenda" aparece en ingresos/dashboard, no en secciones que tienen su propio botón
-  const showOfrendaBtn = isStewardship && !isGastos && !isGastosPorPagar && !isAsistencia && !isCalendario
-    && path !== '/stewardship/balance'
-    && path !== '/stewardship/punto-encuentro'
-    && path !== '/stewardship/configuracion';
 
   return (
     <div className="app" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -129,12 +122,6 @@ export default function Layout() {
 
           <div className="topbar-right">
 
-            {/* Stewardship — Registrar Ofrenda (en páginas de ingresos/dashboard) */}
-            {showOfrendaBtn && (
-              <button className="btn btn-primary" onClick={openOfrendasModal}>
-                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Ofrenda</span>
-              </button>
-            )}
 
             {/* Stewardship — Registrar gasto por pagar */}
             {isStewardship && isGastosPorPagar && (
