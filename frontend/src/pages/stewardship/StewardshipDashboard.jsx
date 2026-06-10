@@ -614,6 +614,11 @@ export default function StewardshipDashboard() {
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <h3 style={cardTitleStyle}>Cumpleaños de este mes</h3>
+              {bdayThisMonth.length > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#244169', background: D_NAVY_100, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                  {MESES_ES[hoy.getMonth()].charAt(0).toUpperCase() + MESES_ES[hoy.getMonth()].slice(1)} · {bdayThisMonth.length}
+                </span>
+              )}
             </div>
             {loading ? (
               <div style={{ color: D_GRAY_500, fontSize: 13, padding: '14px 0' }}>Cargando…</div>
@@ -625,35 +630,48 @@ export default function StewardshipDashboard() {
                 <div style={{ fontSize: 13, color: D_GRAY_500 }}>Nadie cumple años este mes</div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {(() => {
                   const todayDay = hoy.getDate();
-                  const proxIdx  = bdayThisMonth.findIndex(p => p.day >= todayDay);
+                  const proxIdx  = bdayThisMonth.findIndex(p => p.day > todayDay);
                   return bdayThisMonth.map((p, i) => {
-                    const isProx   = i === proxIdx;
+                    const isHoy    = p.day === todayDay;
+                    const isProx   = !isHoy && i === proxIdx;
                     const initials = (p.nombre || '').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
+                    const diasFaltan = p.day - todayDay;
                     return (
-                      <div key={i} style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: isProx ? '8px 10px 8px 12px' : '4px 0',
-                        borderRadius: isProx ? 10 : 0,
-                        background: isProx ? D_ORANGE_50 : 'transparent',
-                        borderLeft: isProx ? `3px solid ${D_ORANGE}` : '3px solid transparent',
-                        transition: '.15s',
-                      }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 9, background: D_NAVY_800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                          width: 36, height: 36, borderRadius: '50%',
+                          background: isHoy ? D_ORANGE : D_NAVY_600,
+                          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 12, fontWeight: 700, flexShrink: 0,
+                        }}>
                           {initials}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: D_NAVY_900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nombre}</span>
-                            {isProx && <span style={{ fontSize: 10, fontWeight: 700, color: D_ORANGE, background: 'rgba(255,107,43,0.12)', borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>Próximo</span>}
+                          <div style={{ fontSize: 14, fontWeight: 700, color: D_NAVY_900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {p.nombre}
                           </div>
-                          {p.ministerio1 && <div style={{ fontSize: 11, color: D_GRAY_500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.ministerio1}</div>}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: D_GRAY_500, marginTop: 1 }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                              <rect x="3" y="10" width="18" height="11" rx="2"/><path d="M3 10h18"/><path d="M8 10V7"/><path d="M12 10V7"/><path d="M16 10V7"/><circle cx="8" cy="6" r="1"/><circle cx="12" cy="6" r="1"/><circle cx="16" cy="6" r="1"/>
+                            </svg>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {p.day} de {MESES_ES[p.month]}{p.ministerio1 ? ` · ${p.ministerio1}` : ''}
+                            </span>
+                          </div>
                         </div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: D_ORANGE, flexShrink: 0 }}>
-                          {p.day} de {MESES_ES[p.month]}
-                        </div>
+                        {isHoy && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#E0561B', background: D_ORANGE_50, borderRadius: 20, padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            ¡Hoy!
+                          </span>
+                        )}
+                        {isProx && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#244169', background: D_NAVY_100, borderRadius: 20, padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            en {diasFaltan} días
+                          </span>
+                        )}
                       </div>
                     );
                   });
