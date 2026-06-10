@@ -965,7 +965,13 @@ export default function PuntoEncuentroViewPage() {
 
               {canWrite && (
                 <div style={{ display: 'flex', gap: 9, position: 'relative', zIndex: 1 }}>
-                  <button className="btn btn-primary" onClick={() => openModal(proximo)}>
+                  <button
+                    className="btn"
+                    onClick={() => openModal(proximo)}
+                    style={{ background: '#FF6B2B', color: 'white', fontWeight: 700, border: 'none' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#E0561B'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#FF6B2B'}
+                  >
                     <I.plus size={15} /> Registrar participante
                   </button>
                 </div>
