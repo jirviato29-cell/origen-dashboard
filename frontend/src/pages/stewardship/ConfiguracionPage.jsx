@@ -51,7 +51,7 @@ const ROLES_LISTA = [
   },
   {
     id: 'pastor',
-    label: 'Pastor Principal',
+    label: 'Pastor',
     desc: 'Vista completa del dashboard',
     perms: ['Todo · solo lectura', 'Dashboard'],
     tileBg: NAVY_900, tileColor: '#fff',
