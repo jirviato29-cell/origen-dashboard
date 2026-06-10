@@ -442,19 +442,17 @@ export default function StewardshipDashboard() {
     });
   }, [asistencia, ofrendas]);
 
-  // Stats 1 & 2 — mes actual únicamente
-  const mesNombreActual   = MESES_ES[hoy.getMonth()].charAt(0).toUpperCase() + MESES_ES[hoy.getMonth()].slice(1);
-  const asistMesActual    = asistencia.filter(a => toDateISO(a.fecha)?.startsWith(mes));
-  const promAsist         = asistMesActual.length
-    ? Math.round(asistMesActual.reduce((s, a) =>
-        s + (a.adultos||0) + (a.voluntarios||0) + (a.ninos||0) + (a.bebes||0), 0) / asistMesActual.length)
+  // Stats 1 & 2 — histórico completo (idéntico a página Asistencia)
+  const promAsist  = asistencia.length
+    ? Math.round(asistencia.reduce((s, a) =>
+        s + (a.adultos||0) + (a.voluntarios||0) + (a.ninos||0) + (a.bebes||0), 0) / asistencia.length)
     : 0;
-  const promOfrMes        = asistMesActual.length
-    ? asistMesActual.reduce((s, a) => {
+  const promOfrMes = asistencia.length
+    ? asistencia.reduce((s, a) => {
         const iso = toDateISO(a.fecha);
         const ofr = ofrendas.find(o => toDateISO(o.fecha) === iso);
         return s + (ofr ? (Number(ofr.efectivo)||0) + (Number(ofr.terminal)||0) + (Number(ofr.transferencia)||0) : 0);
-      }, 0) / asistMesActual.length
+      }, 0) / asistencia.length
     : 0;
 
   // Stat 3 — mayor asistencia histórica (todos los domingos)
@@ -542,8 +540,8 @@ export default function StewardshipDashboard() {
             {chartData.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D_GRAY_100}` }}>
                 {[
-                  { l: 'Asistencia promedio', v: asistMesActual.length ? `${promAsist} personas` : '—', sub: `por domingo · ${mesNombreActual}`, green: false },
-                  { l: 'Ofrenda promedio',    v: asistMesActual.length ? `$${fmt(promOfrMes)}` : '—',   sub: `por domingo · ${mesNombreActual}`, green: true },
+                  { l: 'Asistencia promedio', v: asistencia.length ? `${promAsist} personas` : '—', sub: 'por domingo · promedio histórico', green: false },
+                  { l: 'Ofrenda promedio',    v: asistencia.length ? `$${fmt(promOfrMes)}` : '—',   sub: 'por domingo · promedio histórico', green: true },
                   { l: 'Mayor asistencia',    v: mejorDomHistLabel, sub: mejorDomHist ? `${mejorDomHist.total} personas` : '', green: false },
                   { l: 'Nuevos por semana',   v: histTotales.length >= 2 ? (avgChange >= 0 ? `▲ ${avgChange} p/sem` : `▼ ${Math.abs(avgChange)} p/sem`) : '—', green: avgChange >= 0 },
                 ].map(({ l, v, green, sub }) => (
