@@ -643,7 +643,7 @@ export default function StewardshipDashboard() {
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{
                           width: 36, height: 36, borderRadius: '50%',
-                          background: isHoy ? D_ORANGE : D_NAVY_600,
+                          background: (isHoy || isProx) ? D_ORANGE : D_NAVY_600,
                           color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: 12, fontWeight: 700, flexShrink: 0,
                         }}>
