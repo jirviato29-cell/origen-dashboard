@@ -31,7 +31,8 @@ const D_RED_600   = '#D23B36';
 const D_AMBER_600 = '#C98A14';
 const D_CYAN      = '#00B4D8'; // chart primary
 
-const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESES_ES    = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESES_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -424,24 +425,25 @@ export default function StewardshipDashboard() {
   const porPagarTotal = gastosPorPagar.reduce((s, g) => s + (Number(g.monto) || 0), 0);
   const balanceMes    = ingresosMes - egresosMes;
 
-  // ── Chart data (last 8 services) ───────────────────────────────────────────
+  // ── Chart data — por mes (Ene … mes actual) ───────────────────────────────
   const chartData = useMemo(() => {
-    const sorted = [...asistencia].sort((a, b) => toDateISO(a.fecha).localeCompare(toDateISO(b.fecha)));
-    const last8  = sorted.slice(-8);
-    return last8.map((row, i) => {
-      const iso    = toDateISO(row.fecha);
-      const ofr    = ofrendas.find(o => toDateISO(o.fecha) === iso);
-      const oTotal = ofr
-        ? (Number(ofr.efectivo) || 0) + (Number(ofr.terminal) || 0) + (Number(ofr.transferencia) || 0)
-        : 0;
-      const total  = (row.adultos || 0) + (row.voluntarios || 0) + (row.ninos || 0) + (row.bebes || 0);
-      return { label: iso === hoyStr ? 'Hoy' : `S${i + 1}`, asistencia: total, ofrenda: oTotal };
+    const currentMonth = hoy.getMonth(); // 0-based
+    return Array.from({ length: currentMonth + 1 }, (_, m) => {
+      const mesStr  = `${year}-${String(m + 1).padStart(2, '0')}`;
+      const ofRows  = ofrendas.filter(o => toDateISO(o.fecha)?.startsWith(mesStr));
+      const ofrenda = ofRows.reduce((s, o) =>
+        s + (Number(o.efectivo) || 0) + (Number(o.terminal) || 0) + (Number(o.transferencia) || 0), 0);
+      const asRows   = asistencia.filter(a => toDateISO(a.fecha)?.startsWith(mesStr));
+      const asTotal  = asRows.reduce((s, a) =>
+        s + (a.adultos || 0) + (a.voluntarios || 0) + (a.ninos || 0) + (a.bebes || 0), 0);
+      const asistAvg = asRows.length > 0 ? Math.round(asTotal / asRows.length) : 0;
+      return { label: MESES_SHORT[m], ofrenda, asistencia: asistAvg };
     });
-  }, [asistencia, ofrendas, hoyStr]);
+  }, [asistencia, ofrendas, year, mes]);
 
   const promAsist = chartData.length ? Math.round(chartData.reduce((s, d) => s + d.asistencia, 0) / chartData.length) : 0;
   const promOfr   = chartData.length ? chartData.reduce((s, d) => s + d.ofrenda, 0) / chartData.length : 0;
-  const mejorDom  = chartData.reduce((best, d) => d.asistencia > (best?.asistencia ?? 0) ? d : best, null);
+  const mejorMes  = chartData.reduce((best, d) => d.asistencia > (best?.asistencia ?? 0) ? d : best, null);
   const tendencia = chartData.length >= 2
     ? chartData[chartData.length - 1].asistencia - chartData[chartData.length - 2].asistencia
     : 0;
@@ -516,8 +518,8 @@ export default function StewardshipDashboard() {
                 {[
                   { l: 'Asistencia promedio', v: String(promAsist), green: false },
                   { l: 'Ofrenda promedio',    v: `$${fmt(promOfr)}`, green: true },
-                  { l: 'Mejor domingo',       v: mejorDom ? String(mejorDom.asistencia) : '—', green: false },
-                  { l: 'Tendencia 8 sem.',    v: tendencia >= 0 ? `▲ ${tendencia}` : `▼ ${Math.abs(tendencia)}`, green: tendencia >= 0 },
+                  { l: 'Mejor mes',           v: mejorMes ? mejorMes.label : '—', green: false },
+                  { l: 'Tendencia',           v: tendencia >= 0 ? `▲ ${tendencia}` : `▼ ${Math.abs(tendencia)}`, green: tendencia >= 0 },
                 ].map(({ l, v, green }) => (
                   <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <span style={{ fontSize: 11, color: D_GRAY_500, fontWeight: 600 }}>{l}</span>
