@@ -264,8 +264,10 @@ export default function AsistenciaViewPage() {
     : null;
   const primerMesData = resumenMeses[0];
   const ultimoMesData = resumenMeses[resumenMeses.length - 1];
-  const crecPct = primerMesData && ultimoMesData && primerMesData.mes !== ultimoMesData.mes && primerMesData.total > 0
-    ? Math.round((ultimoMesData.total - primerMesData.total) / primerMesData.total * 100)
+  const promPrimerMes = (primerMesData?.count ?? 0) > 0 ? primerMesData.total / primerMesData.count : 0;
+  const promUltimoMes = (ultimoMesData?.count  ?? 0) > 0 ? ultimoMesData.total  / ultimoMesData.count  : 0;
+  const crecPct = primerMesData && ultimoMesData && primerMesData.mes !== ultimoMesData.mes && promPrimerMes > 0
+    ? Math.round((promUltimoMes - promPrimerMes) / promPrimerMes * 100)
     : null;
   const crecLabel = primerMesData && ultimoMesData && primerMesData.mes !== ultimoMesData.mes
     ? `${primerMesData.label.slice(0, 3)}–${ultimoMesData.label.slice(0, 3)}`
