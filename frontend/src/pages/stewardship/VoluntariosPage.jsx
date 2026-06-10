@@ -31,6 +31,7 @@ const FORZAR_F = new Set([
   'belen', 'raquel', 'carmen', 'isabel', 'beatriz', 'ester', 'esther',
   'soledad', 'mercedes', 'ines', 'pilar', 'dolores', 'guadalupe',
   'concepcion', 'asuncion', 'lupe', 'abril', 'nube',
+  'sarahy', 'jazmin', 'elizabeth', 'nayeli', 'jackeline', 'evelyn',
 ]);
 
 // Hombres cuyo primer nombre SÍ termina en "a" → forzar M
