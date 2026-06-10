@@ -566,6 +566,33 @@ export default function AsistenciaViewPage() {
             Sin registros disponibles.
           </div>
         ) : (
+          <>
+            {/* Banda de totales — estilo Caja de Efectivo */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: 1, background: GRAY_200,
+              border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-md)',
+              overflow: 'hidden', marginBottom: 16,
+            }}>
+              {[
+                { label: 'Adultos',     value: totAdultos,     highlight: false },
+                { label: 'Voluntarios', value: totVoluntarios, highlight: false },
+                { label: 'Niños',       value: totNinos,       highlight: false },
+                { label: 'Bebés',       value: totBebes,       highlight: false },
+                { label: 'Total',       value: totTotal,       highlight: true  },
+              ].map(({ label, value, highlight }) => (
+                <div key={label} style={{ background: highlight ? NAVY_100 : 'var(--surface)', padding: '14px 18px' }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 5 }}>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums', color: NAVY }}>
+                    {value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
           <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
             <table className="table anf-table">
               <thead>
@@ -579,19 +606,6 @@ export default function AsistenciaViewPage() {
                   <th style={{ textAlign: 'right' }}>Total</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr style={{ background: GRAY_50, borderBottom: `2px solid ${NAVY_100}` }}>
-                  <td style={{ fontWeight: 800, fontSize: 11.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAVY, whiteSpace: 'nowrap' }}>
-                    Total · {records.length} {records.length === 1 ? 'domingo' : 'domingos'}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 800, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>{totAdultos}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 800, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>{totVoluntarios}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 800, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>{totNinos}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 800, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>{totBebes}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700, color: ORANGE_600, fontVariantNumeric: 'tabular-nums' }}>{totNuevos || '—'}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 800, color: NAVY, fontVariantNumeric: 'tabular-nums', fontSize: 15 }}>{totTotal.toLocaleString('es-MX')}</td>
-                </tr>
-              </tbody>
               <tbody>
                 {records.map((r, i) => {
                   const total = rowTotal(r);
@@ -639,6 +653,7 @@ export default function AsistenciaViewPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
