@@ -8,10 +8,12 @@ import { puedeRegistrar } from '../../permissions';
 // ── Design tokens ──────────────────────────────────────────────────────────
 const NAVY     = '#112540';
 const NAVY_700 = '#244169';
+const NAVY_600 = '#305181';
 const NAVY_300 = '#9CB0CC';
 const NAVY_100 = '#DCE4EF';
 const ORANGE_600 = '#E0561B';
 const ORANGE_50  = '#FFF4EE';
+const PURPLE   = '#8466C4';
 const GRAY_700 = '#3D4654';
 const GRAY_500 = '#7A8699';
 const GRAY_300 = '#CBD2DC';
@@ -22,6 +24,30 @@ const MESES_ES = [
   'enero','febrero','marzo','abril','mayo','junio',
   'julio','agosto','septiembre','octubre','noviembre','diciembre',
 ];
+
+// ── Género heurístico ──────────────────────────────────────────────────────
+// Mujeres cuyo primer nombre NO termina en "a" → forzar F
+const FORZAR_F = new Set([
+  'belen', 'raquel', 'carmen', 'isabel', 'beatriz', 'ester', 'esther',
+  'soledad', 'mercedes', 'ines', 'pilar', 'dolores', 'guadalupe',
+  'concepcion', 'asuncion', 'lupe', 'abril', 'nube',
+]);
+
+// Hombres cuyo primer nombre SÍ termina en "a" → forzar M
+const FORZAR_M = new Set([
+  'elias', 'isaias', 'jeremias', 'matias', 'tobias', 'bautista',
+]);
+
+function guessGenero(nombreCompleto) {
+  const primer = (nombreCompleto || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().trim()
+    .split(/\s+/)[0];
+  if (!primer) return 'M';
+  if (FORZAR_F.has(primer)) return 'F';
+  if (FORZAR_M.has(primer)) return 'M';
+  return primer.endsWith('a') ? 'F' : 'M';
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function initials(nombre) {
@@ -752,7 +778,8 @@ export default function VoluntariosPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                             <div style={{
                               width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                              background: NAVY_700, color: 'white',
+                              background: guessGenero(v.nombre) === 'F' ? PURPLE : NAVY_600,
+                              color: 'white',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontWeight: 700, fontSize: 12,
                             }}>
