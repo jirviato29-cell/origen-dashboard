@@ -569,11 +569,11 @@ export default function IngresosPage() {
                 </div>
 
                 {/* Full-width stacked bar */}
-                <div style={{ display: 'flex', height: 7, borderRadius: 999, overflow: 'hidden', background: 'var(--surface)' }}>
+                <div style={{ display: 'flex', height: 7, borderRadius: 999, overflow: 'hidden', background: '#DCE4EF' }}>
                   {totM > 0 && <>
                     <div style={{ width: `${pctEfM}%`, background: 'var(--black)' }} />
-                    <div style={{ width: `${pctTeM}%`, background: NAVY_600 }} />
-                    <div style={{ width: `${pctTrM}%`, background: NAVY_300 }} />
+                    <div style={{ width: `${pctTeM}%`, background: '#DCE4EF' }} />
+                    <div style={{ width: `${pctTrM}%`, background: '#E2E6EC' }} />
                   </>}
                 </div>
               </div>
