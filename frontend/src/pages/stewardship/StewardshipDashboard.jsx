@@ -5,7 +5,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
-import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi, voluntariosApi } from '../../services/api';
+import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi, voluntariosApi, visitantesApi } from '../../services/api';
 import { SALDO_INICIAL_CAJA } from '../../utils/config';
 import { I } from '../../components/Icons';
 import { useIsMobile } from '../../utils/useIsMobile';
@@ -346,13 +346,14 @@ export default function StewardshipDashboard() {
   const [calendario,     setCalendario]     = useState([]);
   const [participantes,  setParticipantes]  = useState([]);
   const [voluntarios,    setVoluntarios]    = useState([]);
+  const [visitantes,     setVisitantes]     = useState([]);
   const [loading,        setLoading]        = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [ra, ro, rg, rgp, rc, rp, rv] = await Promise.all([
+        const [ra, ro, rg, rgp, rc, rp, rv, rvt] = await Promise.all([
           asistenciaApi.getAll({ year, limit: 200 }),
           ofrendasApi.getAll({ year }),
           gastosApi.getAll({ year, pagado: 'true' }),
@@ -360,6 +361,7 @@ export default function StewardshipDashboard() {
           calendarioApi.getAll({ year }),
           participantesApi.getAll(),
           voluntariosApi.getAll(),
+          visitantesApi.getAll(),
         ]);
         if (!cancelled) {
           setAsistencia(ra.data      || []);
@@ -369,6 +371,7 @@ export default function StewardshipDashboard() {
           setCalendario(rc.data      || []);
           setParticipantes(rp.data   || []);
           setVoluntarios(rv.data     || []);
+          setVisitantes(rvt.data     || []);
         }
       } catch { /* keeps empty arrays; cards show — */ }
       finally   { if (!cancelled) setLoading(false); }
@@ -464,13 +467,14 @@ export default function StewardshipDashboard() {
     ? (() => { const d = new Date(toDateISO(mejorDomHist.fecha) + 'T00:00:00'); return isNaN(d) ? '—' : `${d.getDate()} ${MESES_SHORT[d.getMonth()]}`; })()
     : '—';
 
-  // Stat 4 — promedio del cambio semana a semana (todo el histórico)
-  const histTotales = [...asistencia]
-    .sort((a, b) => toDateISO(a.fecha).localeCompare(toDateISO(b.fecha)))
-    .map(a => (a.adultos||0) + (a.voluntarios||0) + (a.ninos||0) + (a.bebes||0));
-  const avgChange = histTotales.length >= 2
-    ? Math.round(histTotales.slice(1).reduce((s, v, i) => s + (v - histTotales[i]), 0) / (histTotales.length - 1))
-    : 0;
+  // Stat 4 — nuevos por semana · visitantes de últimas 4 semanas (28 días)
+  const hace28 = new Date(hoy); hace28.setDate(hoy.getDate() - 27); hace28.setHours(0, 0, 0, 0);
+  const visitantesRecientes = visitantes.filter(v => {
+    const f = toDateISO(v.fecha); if (!f) return false;
+    const d = new Date(f + 'T00:00:00'); return !isNaN(d) && d >= hace28;
+  });
+  const totalNuevos = visitantesRecientes.reduce((s, v) => s + 1 + (Number(v.acompanantes_num) || 0), 0);
+  const avgChange   = totalNuevos / 4;
 
   // ── Próximos eventos ───────────────────────────────────────────────────────
   const proximosEventos = [...calendario]
@@ -543,7 +547,7 @@ export default function StewardshipDashboard() {
                   { l: 'Asistencia promedio', v: asistencia.length ? `${promAsist} personas` : '—', sub: 'por domingo · promedio histórico', green: false },
                   { l: 'Ofrenda promedio',    v: asistencia.length ? `$${fmt(promOfrMes)}` : '—',   sub: 'por domingo · promedio histórico', green: true },
                   { l: 'Mayor asistencia',    v: mejorDomHistLabel, sub: mejorDomHist ? `${mejorDomHist.total} personas` : '', green: false },
-                  { l: 'Nuevos por semana',   v: histTotales.length >= 2 ? (avgChange >= 0 ? `▲ ${avgChange} p/sem` : `▼ ${Math.abs(avgChange)} p/sem`) : '—', green: avgChange >= 0 },
+                  { l: 'Nuevos por semana',   v: totalNuevos === 0 ? '0' : `▲ ${avgChange.toFixed(1)} p/sem`, sub: 'últimas 4 semanas', green: totalNuevos > 0 },
                 ].map(({ l, v, green, sub }) => (
                   <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <span style={{ fontSize: 11, color: D_GRAY_500, fontWeight: 600 }}>{l}</span>
