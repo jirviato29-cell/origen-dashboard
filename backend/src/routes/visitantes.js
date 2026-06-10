@@ -13,10 +13,14 @@ pool.query(`
     whatsapp           TEXT,
     como_se_entero     TEXT,
     acompanantes       TEXT,
+    acompanantes_num   INT DEFAULT 0,
     colonia            TEXT,
     created_at         TIMESTAMPTZ DEFAULT NOW()
   )
 `).catch(e => console.error('visitantes init:', e.message));
+
+pool.query(`ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS acompanantes_num INT DEFAULT 0`)
+  .catch(e => console.error('visitantes alter:', e.message));
 
 router.get('/', async (req, res) => {
   try {
@@ -31,11 +35,11 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { fecha, relacion_con_origen, nombre, edad, estado_fe, whatsapp, como_se_entero, acompanantes, colonia } = req.body;
+    const { fecha, relacion_con_origen, nombre, edad, estado_fe, whatsapp, como_se_entero, acompanantes, acompanantes_num, colonia } = req.body;
     if (!nombre?.trim()) return res.status(400).json({ error: 'nombre es requerido' });
     const { rows } = await pool.query(
-      `INSERT INTO visitantes (fecha, relacion_con_origen, nombre, edad, estado_fe, whatsapp, como_se_entero, acompanantes, colonia)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      `INSERT INTO visitantes (fecha, relacion_con_origen, nombre, edad, estado_fe, whatsapp, como_se_entero, acompanantes, acompanantes_num, colonia)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
       [
         fecha || null,
         relacion_con_origen?.trim() || null,
@@ -45,6 +49,7 @@ router.post('/', async (req, res) => {
         whatsapp?.trim() || null,
         como_se_entero?.trim() || null,
         acompanantes?.trim() || null,
+        acompanantes_num != null && acompanantes_num !== '' ? parseInt(acompanantes_num, 10) : 0,
         colonia?.trim() || null,
       ]
     );
@@ -56,12 +61,12 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const { fecha, relacion_con_origen, nombre, edad, estado_fe, whatsapp, como_se_entero, acompanantes, colonia } = req.body;
+    const { fecha, relacion_con_origen, nombre, edad, estado_fe, whatsapp, como_se_entero, acompanantes, acompanantes_num, colonia } = req.body;
     const { rows } = await pool.query(
       `UPDATE visitantes SET
         fecha=$1, relacion_con_origen=$2, nombre=$3, edad=$4,
-        estado_fe=$5, whatsapp=$6, como_se_entero=$7, acompanantes=$8, colonia=$9
-       WHERE id=$10 RETURNING *`,
+        estado_fe=$5, whatsapp=$6, como_se_entero=$7, acompanantes=$8, acompanantes_num=$9, colonia=$10
+       WHERE id=$11 RETURNING *`,
       [
         fecha || null,
         relacion_con_origen?.trim() || null,
@@ -71,6 +76,7 @@ router.put('/:id', async (req, res) => {
         whatsapp?.trim() || null,
         como_se_entero?.trim() || null,
         acompanantes?.trim() || null,
+        acompanantes_num != null && acompanantes_num !== '' ? parseInt(acompanantes_num, 10) : 0,
         colonia?.trim() || null,
         req.params.id,
       ]

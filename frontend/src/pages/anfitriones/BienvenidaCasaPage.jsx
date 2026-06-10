@@ -71,6 +71,7 @@ const mkEmpty = () => ({
   whatsapp: '',
   como_se_entero: '',
   acompanantes: '',
+  acompanantes_num: 0,
   colonia: '',
 });
 
@@ -113,7 +114,7 @@ function KpiCard({ icon, iconBg, iconColor, value, label, footer, valueColor = N
 
 // ─── Modal ───────────────────────────────────────────────────────────────────
 function VisitanteModal({ editing, onClose, onSaved }) {
-  const [form, setForm] = useState(editing ? { ...editing, edad: editing.edad ?? '' } : mkEmpty());
+  const [form, setForm] = useState(editing ? { ...editing, edad: editing.edad ?? '', acompanantes_num: editing.acompanantes_num ?? 0 } : mkEmpty());
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
@@ -134,6 +135,7 @@ function VisitanteModal({ editing, onClose, onSaved }) {
         whatsapp:            form.whatsapp || null,
         como_se_entero:      form.como_se_entero || null,
         acompanantes:        form.acompanantes || null,
+        acompanantes_num:    form.acompanantes_num !== '' ? parseInt(form.acompanantes_num, 10) : 0,
         colonia:             form.colonia || null,
       };
       if (editing) await visitantesApi.update(editing.id, payload);
@@ -226,6 +228,11 @@ function VisitanteModal({ editing, onClose, onSaved }) {
           <div>
             <label style={labelSt}>Acompañantes</label>
             <input style={inputSt} type="text" value={form.acompanantes} onChange={e => set('acompanantes', e.target.value)} placeholder="Nombres de quienes lo acompañan" />
+          </div>
+
+          <div>
+            <label style={labelSt}>¿Cuántos acompañantes?</label>
+            <input style={inputSt} type="number" min="0" value={form.acompanantes_num} onChange={e => set('acompanantes_num', e.target.value)} placeholder="0" />
           </div>
 
           <div>
