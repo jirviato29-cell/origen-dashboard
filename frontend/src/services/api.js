@@ -128,6 +128,7 @@ const realVisitantesApi = {
   getAll:  ()         => http.get('/visitantes'),
   create:  (data)     => http.post('/visitantes', data),
   update:  (id, data) => http.put(`/visitantes/${id}`, data),
+  patch:   (id, data) => http.patch(`/visitantes/${id}`, data),
 };
 
 // ─── Voluntarios ──────────────────────────────────────────────────────────────

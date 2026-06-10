@@ -18,8 +18,10 @@ const GRAY_300 = '#CBD2DC';
 const GRAY_200 = '#E2E6EC';
 const GRAY_100 = '#EEF1F5';
 const GRAY_50  = '#F6F7F9';
-const TEAL    = '#5C7A6F';
-const TEAL_50 = '#EAF1EE';
+const TEAL      = '#5C7A6F';
+const TEAL_50   = '#EAF1EE';
+const GREEN_600 = '#15915A';
+const GREEN_50  = '#E6F5EC';
 
 // ─── Icons ──────────────────────────────────────────────────────────────────
 const WaIcon = ({ size = 16, color = TEAL }) => (
@@ -333,6 +335,16 @@ export default function BienvenidaCasaPage() {
   function changeFiltro(f)  { setFiltro(f); setPage(1); }
   function changeSearch(v)  { setSearch(v);  setPage(1); }
 
+  async function toggleContactado(v) {
+    const nuevo = !v.contactado;
+    setVisitantes(prev => prev.map(x => x.id === v.id ? { ...x, contactado: nuevo } : x));
+    try {
+      await visitantesApi.patch(v.id, { contactado: nuevo });
+    } catch {
+      setVisitantes(prev => prev.map(x => x.id === v.id ? { ...x, contactado: !nuevo } : x));
+    }
+  }
+
   const chipSt = (active) => ({
     padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 600,
     border: `1px solid ${active ? ORANGE_500 : GRAY_200}`,
@@ -459,7 +471,7 @@ export default function BienvenidaCasaPage() {
 
         {/* Table */}
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', minWidth: 1080, borderCollapse: 'collapse', fontSize: 13 }}>
+          <table style={{ width: '100%', minWidth: 1140, borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: GRAY_50 }}>
                 <th style={thSt}>N°</th>
@@ -471,14 +483,15 @@ export default function BienvenidaCasaPage() {
                 <th style={thSt}>¿Cómo se enteró?</th>
                 <th style={thSt}>Acompañantes</th>
                 <th style={thSt}>Colonia</th>
+                <th style={{ ...thSt, textAlign: 'center', width: 90 }}>Contactado</th>
                 <th style={{ ...thSt, width: 70 }}></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} style={{ padding: 40, textAlign: 'center', color: GRAY_300 }}>Cargando...</td></tr>
+                <tr><td colSpan={11} style={{ padding: 40, textAlign: 'center', color: GRAY_300 }}>Cargando...</td></tr>
               ) : paged.length === 0 ? (
-                <tr><td colSpan={10} style={{ padding: 40, textAlign: 'center', color: GRAY_300 }}>
+                <tr><td colSpan={11} style={{ padding: 40, textAlign: 'center', color: GRAY_300 }}>
                   {search || filtro !== 'todos' ? 'Sin resultados para este filtro.' : 'Aún no hay visitantes registrados.'}
                 </td></tr>
               ) : paged.map((v, idx) => {
@@ -487,7 +500,7 @@ export default function BienvenidaCasaPage() {
                 const av  = v.estado_fe === 'Soy nuevo' ? ORANGE_500 : NAVY_600;
                 const n   = (page - 1) * PAGE_SIZE + idx + 1;
                 return (
-                  <tr key={v.id} style={{ background: '#fff' }}>
+                  <tr key={v.id} style={{ background: v.contactado ? GREEN_50 : '#fff' }}>
                     {/* N° */}
                     <td style={tdSt}>
                       <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: GRAY_300, fontWeight: 500 }}>
@@ -568,6 +581,22 @@ export default function BienvenidaCasaPage() {
                       {v.colonia
                         ? <span style={{ fontSize: 12, color: GRAY_700 }}>{v.colonia}</span>
                         : emptyCell}
+                    </td>
+                    {/* Contactado */}
+                    <td style={{ ...tdSt, textAlign: 'center' }}>
+                      <button
+                        onClick={() => toggleContactado(v)}
+                        title={v.contactado ? 'Desmarcar contactado' : 'Marcar como contactado'}
+                        style={{
+                          width: 28, height: 28, borderRadius: 7, cursor: 'pointer',
+                          border: `2px solid ${v.contactado ? GREEN_600 : GRAY_200}`,
+                          background: v.contactado ? GREEN_600 : '#fff',
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#fff', flexShrink: 0,
+                        }}
+                      >
+                        {v.contactado && <I.check size={13} />}
+                      </button>
                     </td>
                     {/* Acciones */}
                     <td style={tdSt}>
