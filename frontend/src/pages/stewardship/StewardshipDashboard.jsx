@@ -625,24 +625,39 @@ export default function StewardshipDashboard() {
                 <div style={{ fontSize: 13, color: D_GRAY_500 }}>Nadie cumple años este mes</div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {bdayThisMonth.map((p, i) => {
-                  const initials = (p.nombre || '').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
-                  return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: 9, background: D_NAVY_800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                        {initials}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {(() => {
+                  const todayDay = hoy.getDate();
+                  const proxIdx  = bdayThisMonth.findIndex(p => p.day >= todayDay);
+                  return bdayThisMonth.map((p, i) => {
+                    const isProx   = i === proxIdx;
+                    const initials = (p.nombre || '').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
+                    return (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: isProx ? '8px 10px 8px 12px' : '4px 0',
+                        borderRadius: isProx ? 10 : 0,
+                        background: isProx ? D_ORANGE_50 : 'transparent',
+                        borderLeft: isProx ? `3px solid ${D_ORANGE}` : '3px solid transparent',
+                        transition: '.15s',
+                      }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 9, background: D_NAVY_800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                          {initials}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: D_NAVY_900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nombre}</span>
+                            {isProx && <span style={{ fontSize: 10, fontWeight: 700, color: D_ORANGE, background: 'rgba(255,107,43,0.12)', borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>Próximo</span>}
+                          </div>
+                          {p.ministerio1 && <div style={{ fontSize: 11, color: D_GRAY_500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.ministerio1}</div>}
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: D_ORANGE, flexShrink: 0 }}>
+                          {p.day} de {MESES_ES[p.month]}
+                        </div>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: D_NAVY_900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nombre}</div>
-                        {p.ministerio1 && <div style={{ fontSize: 11, color: D_GRAY_500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.ministerio1}</div>}
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: D_ORANGE, flexShrink: 0 }}>
-                        {p.day} de {MESES_ES[p.month]}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             )}
           </div>
