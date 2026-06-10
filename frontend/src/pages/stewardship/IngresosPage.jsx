@@ -656,7 +656,7 @@ export default function IngresosPage() {
             { label: 'Efectivo',       value: tablaEfectivo,                                     color: 'var(--black)' },
             { label: 'Terminal',       value: tablaTerminal,                                     color: NAVY_600 },
             { label: 'Transferencias', value: tablaTransferencia,                                color: NAVY_300 },
-            { label: 'Total',          value: tablaEfectivo + tablaTerminal + tablaTransferencia, color: '#15915A' },
+            { label: 'Total',          value: tablaEfectivo + tablaTerminal + tablaTransferencia, color: GREEN_600 },
           ].map(({ label, value, color }, i, arr) => (
             <div key={label} style={{ padding: '10px 16px', borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)', marginBottom: 3 }}>{label}</div>
