@@ -288,20 +288,28 @@ export default function BienvenidaCasaPage() {
   const edDef    = EDICIONES.find(e => e.id === edicion) ?? EDICIONES[0];
   const enEdicion = visitantes.filter(v => inEdicion(v, edDef));
 
-  // ── KPIs (sobre el período seleccionado) ──────────────────────────────────
+  // ── KPIs (siempre sobre TODOS los visitantes del año, independiente del selector de edición) ──
   const now = new Date();
   const thisMonth = now.getMonth();
   const thisYear  = now.getFullYear();
 
-  const totalCount         = enEdicion.length;
-  const quierenSeguirCount = enEdicion.filter(v => v.relacion_con_origen === 'Me interesa seguir').length;
-  const nuevosFeCount      = enEdicion.filter(v => v.estado_fe === 'Soy nuevo').length;
-  const esteMesCount       = enEdicion.filter(v => {
-    if (!v.fecha) return false;
-    const d = new Date(v.fecha + 'T00:00:00');
-    return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
-  }).length;
-  const quierenPct = totalCount > 0 ? Math.round((quierenSeguirCount / totalCount) * 100) : 0;
+  const personas = v => 1 + (v.acompanantes_num || 0);
+
+  const totalPersonas         = visitantes.reduce((s, v) => s + personas(v), 0);
+  const quierenSeguirPersonas = visitantes
+    .filter(v => v.relacion_con_origen === 'Me interesa seguir')
+    .reduce((s, v) => s + personas(v), 0);
+  const nuevosFePersonas      = visitantes
+    .filter(v => v.estado_fe === 'Soy nuevo')
+    .reduce((s, v) => s + personas(v), 0);
+  const esteMesPersonas       = visitantes
+    .filter(v => {
+      if (!v.fecha) return false;
+      const d = new Date(v.fecha + 'T00:00:00');
+      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+    })
+    .reduce((s, v) => s + personas(v), 0);
+  const quierenPct = totalPersonas > 0 ? Math.round((quierenSeguirPersonas / totalPersonas) * 100) : 0;
 
   // ── Filter (dentro del período seleccionado) ─────────────────────────────
   const filtered = enEdicion.filter(v => {
@@ -405,10 +413,10 @@ export default function BienvenidaCasaPage() {
 
       {/* ── KPIs ────────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-        <KpiCard icon={I.users}    iconBg={NAVY_100}  iconColor={NAVY_700}   value={totalCount}        label="Total visitantes"  footer="Todos los registros" />
-        <KpiCard icon={I.heart}    iconBg={ORANGE_50} iconColor={ORANGE_600} value={quierenSeguirCount} label="Quieren seguir"    footer={`Del total · ${quierenPct}%`} valueColor={ORANGE_600} />
-        <KpiCard icon={I.plus}     iconBg={TEAL_50}   iconColor={TEAL}       value={nuevosFeCount}      label="Nuevos en la fe"   footer="Soy nuevo" />
-        <KpiCard icon={I.calendar} iconBg={NAVY_100}  iconColor={NAVY_700}   value={esteMesCount}       label="Este mes"          footer={MESES[thisMonth]} />
+        <KpiCard icon={I.users}    iconBg={NAVY_100}  iconColor={NAVY_700}   value={totalPersonas}         label="Total visitantes"  footer="Todos los registros" />
+        <KpiCard icon={I.heart}    iconBg={ORANGE_50} iconColor={ORANGE_600} value={quierenSeguirPersonas} label="Quieren seguir"    footer={`Del total · ${quierenPct}%`} valueColor={ORANGE_600} />
+        <KpiCard icon={I.plus}     iconBg={TEAL_50}   iconColor={TEAL}       value={nuevosFePersonas}      label="Nuevos en la fe"   footer="Soy nuevo" />
+        <KpiCard icon={I.calendar} iconBg={NAVY_100}  iconColor={NAVY_700}   value={esteMesPersonas}       label="Este mes"          footer={MESES[thisMonth]} />
       </div>
 
       {/* ── Selector de edición ─────────────────────────────────────────── */}
