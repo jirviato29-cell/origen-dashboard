@@ -86,7 +86,7 @@ const ROLES_LIST = [
   {
     id:         ROLES.STEWARDSHIP,
     label:      'Stewardship',
-    desc:       'Ofrendas, finanzas y administración',
+    desc:       'Logística',
     icon:       WalletIcon,
     icBg:       NAVY_100,
     icColor:    NAVY_600,
