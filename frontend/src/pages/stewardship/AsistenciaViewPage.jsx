@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { asistenciaApi } from '../../services/api';
 import { useAsistenciaStewModal } from '../../context/AsistenciaStewModalContext';
 import { fmtFecha, mesNombre } from '../../utils/fecha';
+import { I } from '../../components/Icons';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const NAVY     = '#112540';
@@ -549,6 +550,53 @@ export default function AsistenciaViewPage() {
       )}
 
       {/* ── Historial de asistencia ───────────────────────────────────────── */}
+
+      {/* KPI totals */}
+      {!loading && records.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 14 }}>
+          {[
+            { label: 'Adultos',     value: totAdultos,     icon: <I.users size={14} />, featured: false },
+            { label: 'Voluntarios', value: totVoluntarios, icon: <I.hand  size={14} />, featured: false },
+            { label: 'Niños',       value: totNinos,       icon: <I.child size={14} />, featured: false },
+            { label: 'Bebés',       value: totBebes,       icon: <I.baby  size={14} />, featured: false },
+            { label: 'Total',       value: totTotal,       icon: <I.users size={14} />, featured: true  },
+          ].map(({ label, value, icon, featured }) => (
+            <div key={label} style={{
+              padding: '14px 16px',
+              background: featured ? NAVY : 'var(--surface)',
+              border: `1px solid ${featured ? NAVY : 'var(--border)'}`,
+              borderRadius: 'var(--r-lg, 12px)',
+              boxShadow: 'var(--shadow-sm)',
+            }}>
+              <div style={{
+                fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: featured ? NAVY_300 : GRAY_500,
+                marginBottom: 10,
+                display: 'flex', alignItems: 'center', gap: 7,
+              }}>
+                <span style={{
+                  width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+                  background: featured ? 'rgba(255,255,255,0.12)' : NAVY_100,
+                  color: featured ? 'white' : NAVY,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {icon}
+                </span>
+                {label}
+              </div>
+              <div style={{
+                fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
+                color: featured ? 'white' : NAVY,
+                fontVariantNumeric: 'tabular-nums',
+              }}>
+                {value}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="card">
         <div className="card-head">
           <div>
