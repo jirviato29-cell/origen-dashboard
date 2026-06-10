@@ -653,14 +653,14 @@ export default function IngresosPage() {
           borderRadius: 10, marginBottom: 12, overflow: 'hidden',
         }}>
           {[
-            { label: 'Efectivo',       value: tablaEfectivo,                                    color: 'var(--black)' },
-            { label: 'Terminal',       value: tablaTerminal,                                    color: NAVY_600 },
-            { label: 'Transferencias', value: tablaTransferencia,                               color: NAVY_300 },
-            { label: 'Total',          value: tablaEfectivo + tablaTerminal + tablaTransferencia, color: 'var(--chart-secondary)', bold: true },
-          ].map(({ label, value, color, bold }, i, arr) => (
+            { label: 'Efectivo',       value: tablaEfectivo,                                     color: 'var(--black)' },
+            { label: 'Terminal',       value: tablaTerminal,                                     color: NAVY_600 },
+            { label: 'Transferencias', value: tablaTransferencia,                                color: NAVY_300 },
+            { label: 'Total',          value: tablaEfectivo + tablaTerminal + tablaTransferencia, color: '#15915A' },
+          ].map(({ label, value, color }, i, arr) => (
             <div key={label} style={{ padding: '10px 16px', borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)', marginBottom: 3 }}>{label}</div>
-              <div style={{ fontSize: bold ? 16 : 14, fontWeight: bold ? 800 : 700, fontFamily: 'var(--font-mono)', color }}>{fmt(value)}</div>
+              <div style={{ fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color }}>{fmt(value)}</div>
             </div>
           ))}
         </div>
@@ -683,11 +683,11 @@ export default function IngresosPage() {
               {tablaRows.map(d => (
                 <tr key={d.fecha}>
                   <td style={{ fontWeight: 500 }}>{fmtFecha(d.fecha)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--black)' }}>{fmt(Number(d.efectivo))}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: NAVY_600 }}>{fmt(Number(d.terminal))}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: NAVY_300 }}>{fmt(Number(d.transferencia || 0))}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{Number(d.ofrendas ?? 0) || '—'}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{d.participDom !== null ? `${d.participDom}%` : '—'}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--black)' }}>{fmt(Number(d.efectivo))}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: NAVY_600 }}>{fmt(Number(d.terminal))}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: NAVY_300 }}>{fmt(Number(d.transferencia || 0))}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Number(d.ofrendas ?? 0) || '—'}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.participDom !== null ? `${d.participDom}%` : '—'}</td>
                   <td style={{ textAlign: 'center' }}>
                     {canWrite && (
                       <button onClick={() => openModal(d)} className="edit-btn-row"
@@ -709,11 +709,11 @@ export default function IngresosPage() {
                 <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '.08em' }}>
                   Totales {tablaMesFiltro ? mesNombre(tablaMesFiltro) : year}
                 </td>
-                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--black)' }}>{fmt(tablaEfectivo)}</td>
-                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: NAVY_600 }}>{fmt(tablaTerminal)}</td>
-                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: NAVY_300 }}>{fmt(tablaTransferencia)}</td>
-                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{tablaOfrendas || '—'}</td>
-                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--chart-secondary)', fontSize: 14 }}>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--black)' }}>{fmt(tablaEfectivo)}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: NAVY_600 }}>{fmt(tablaTerminal)}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: NAVY_300 }}>{fmt(tablaTransferencia)}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{tablaOfrendas || '—'}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 800, color: 'var(--chart-secondary)', fontSize: 14 }}>
                   {tablaParticipMes !== null ? `${tablaParticipMes}%` : '—'}
                 </td>
                 <td />
