@@ -278,7 +278,7 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
             <span style={{
               fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', borderRadius: 20, padding: '2px 6px',
               color:      trend.up ? D_GREEN_600 : D_RED_600,
-              background: trend.up ? '#DCFCE7'   : '#FEE2E2',
+              background: trend.up ? '#E6F5EC'   : '#FBEAE9',
             }}>
               {trend.up ? '▲' : '▼'} {trend.label}
             </span>
@@ -520,7 +520,7 @@ export default function StewardshipDashboard() {
     ? { up: totalOfrenda >= totalOfrendaAnterior, label: `${Math.abs(Math.round((totalOfrenda - totalOfrendaAnterior) / totalOfrendaAnterior * 100))}%` }
     : null;
   const trendParticip = participacion !== null && participacionAnterior !== null
-    ? { up: participacion >= participacionAnterior, label: `${Math.abs(participacion - participacionAnterior)} pp` }
+    ? { up: participacion >= participacionAnterior, label: `${Math.abs(participacion - participacionAnterior)}%` }
     : null;
 
   // ── Stat card values ───────────────────────────────────────────────────────
