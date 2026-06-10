@@ -81,7 +81,7 @@ const ROLES_LIST = [
     icBg:       NAVY_900,
     icColor:    '#fff',
     mdotColor:  NAVY_900,
-    meta:       'Acceso de solo lectura',
+    meta:       'Vista general de la iglesia',
   },
   {
     id:         ROLES.STEWARDSHIP,
@@ -91,7 +91,7 @@ const ROLES_LIST = [
     icBg:       NAVY_100,
     icColor:    NAVY_600,
     mdotColor:  NAVY_600,
-    meta:       'Ingresos · Gastos · Balance',
+    meta:       'Administrador del sistema',
   },
   {
     id:         ROLES.ANFITRIONES,
