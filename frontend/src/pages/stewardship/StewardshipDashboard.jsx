@@ -247,9 +247,21 @@ function DonutChart({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0 }) {
   );
 }
 
+// ── FmtMoney — parte entera grande, centavos superíndice pequeño ─────────────
+
+function FmtMoney({ amount }) {
+  const [integer, cents] = fmt(Math.abs(amount)).split('.');
+  return (
+    <span>
+      ${integer}
+      {cents && <span style={{ fontSize: '0.48em', verticalAlign: 'super', fontWeight: 800 }}>.{cents}</span>}
+    </span>
+  );
+}
+
 // ── StatCard ──────────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub, extra, feature = false, icon: Icon }) {
+function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon }) {
   return (
     <div style={{
       background: feature ? D_NAVY_900 : '#fff',
@@ -260,7 +272,18 @@ function StatCard({ label, value, sub, extra, feature = false, icon: Icon }) {
       transition: '.15s',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: feature ? D_NAVY_300 : D_GRAY_500 }}>{label}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: feature ? D_NAVY_300 : D_GRAY_500 }}>{label}</span>
+          {trend && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', borderRadius: 20, padding: '2px 6px',
+              color:      trend.up ? D_GREEN_600 : D_RED_600,
+              background: trend.up ? '#DCFCE7'   : '#FEE2E2',
+            }}>
+              {trend.up ? '▲' : '▼'} {trend.label}
+            </span>
+          )}
+        </div>
         <div style={{
           width: 34, height: 34, borderRadius: 9,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -477,13 +500,36 @@ export default function StewardshipDashboard() {
     .sort((a, b) => toDateISO(a.fecha).localeCompare(toDateISO(b.fecha)))
     .slice(0, 5);
 
+  // ── Tendencias: último vs penúltimo servicio ──────────────────────────────
+  const asistSorted         = [...asistencia].sort((a, b) => toDateISO(a.fecha).localeCompare(toDateISO(b.fecha)));
+  const penultimoServicio   = asistSorted.length >= 2 ? asistSorted[asistSorted.length - 2] : null;
+  const totalAsistAnterior  = penultimoServicio
+    ? (penultimoServicio.adultos||0)+(penultimoServicio.voluntarios||0)+(penultimoServicio.ninos||0)+(penultimoServicio.bebes||0)
+    : null;
+  const penultimaFechaISO     = penultimoServicio ? toDateISO(penultimoServicio.fecha) : null;
+  const penultimaOfrenda      = penultimaFechaISO ? (ofrendas.find(o => toDateISO(o.fecha) === penultimaFechaISO) ?? null) : null;
+  const totalOfrendaAnterior  = penultimaOfrenda
+    ? (Number(penultimaOfrenda.efectivo)||0)+(Number(penultimaOfrenda.terminal)||0)+(Number(penultimaOfrenda.transferencia)||0)
+    : null;
+  const participacionAnterior = penultimaOfrenda?.participacion ?? null;
+
+  const trendAsist   = totalAsist !== null && totalAsistAnterior !== null && totalAsistAnterior > 0
+    ? { up: totalAsist >= totalAsistAnterior, label: `${Math.abs(Math.round((totalAsist - totalAsistAnterior) / totalAsistAnterior * 100))}%` }
+    : null;
+  const trendOfrenda = totalOfrenda !== null && totalOfrendaAnterior !== null && totalOfrendaAnterior > 0
+    ? { up: totalOfrenda >= totalOfrendaAnterior, label: `${Math.abs(Math.round((totalOfrenda - totalOfrendaAnterior) / totalOfrendaAnterior * 100))}%` }
+    : null;
+  const trendParticip = participacion !== null && participacionAnterior !== null
+    ? { up: participacion >= participacionAnterior, label: `${Math.abs(participacion - participacionAnterior)} pp` }
+    : null;
+
   // ── Stat card values ───────────────────────────────────────────────────────
   const D_VAL     = '—';
-  const vAsistencia = loading ? D_VAL : totalAsist    !== null ? String(totalAsist)       : D_VAL;
-  const vOfrenda    = loading ? D_VAL : totalOfrenda  !== null ? `$${fmt(totalOfrenda)}`  : D_VAL;
-  const vParticip   = loading ? D_VAL : participacion !== null ? `${participacion}%`      : D_VAL;
-  const vNuevos     = loading ? D_VAL : nuevos        !== null ? String(nuevos)           : D_VAL;
-  const vSaldo      = loading ? D_VAL : `$${fmt(Math.abs(saldoCaja))}`;
+  const vAsistencia = loading ? D_VAL : totalAsist    !== null ? String(totalAsist)              : D_VAL;
+  const vOfrenda    = loading ? D_VAL : totalOfrenda  !== null ? <FmtMoney amount={totalOfrenda}/> : D_VAL;
+  const vParticip   = loading ? D_VAL : participacion !== null ? `${participacion}%`             : D_VAL;
+  const vNuevos     = loading ? D_VAL : nuevos        !== null ? String(nuevos)                  : D_VAL;
+  const vSaldo      = loading ? D_VAL : <FmtMoney amount={saldoCaja} />;
   const subAsist    = !loading && ultimaFecha ? fmtDate(ultimaFecha) : D_VAL;
   const extraAsist  = !loading && ultimoServicio
     ? `Ad ${ultimoServicio.adultos ?? 0} · Vol ${ultimoServicio.voluntarios ?? 0} · Niños ${ultimoServicio.ninos ?? 0} · Bbs ${ultimoServicio.bebes ?? 0}`
@@ -499,9 +545,9 @@ export default function StewardshipDashboard() {
 
       {/* ── Stat cards ──────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 14 }}>
-        <StatCard label="Asistencia"        value={vAsistencia} sub={subAsist}          extra={extraAsist}     icon={I.users} />
-        <StatCard label="Ofrendas"          value={vOfrenda}    sub="del último servicio"                      icon={I.coin} />
-        <StatCard label="Participación"     value={vParticip}   sub="del último servicio"                      icon={I.coin} />
+        <StatCard label="Asistencia"        value={vAsistencia} sub={subAsist}          extra={extraAsist} trend={trendAsist}    icon={I.users} />
+        <StatCard label="Ofrendas"          value={vOfrenda}    sub="del último servicio"                     trend={trendOfrenda}  icon={I.coin} />
+        <StatCard label="Participación"     value={vParticip}   sub="del último servicio"                     trend={trendParticip} icon={I.coin} />
         <StatCard label="Nuevos visitantes" value={vNuevos}     sub="visitantes nuevos"                        icon={I.users} />
         <StatCard label="Saldo en caja"     value={vSaldo}      sub={`efectivo · acumulado ${year}`} feature   icon={I.cash} />
       </div>
