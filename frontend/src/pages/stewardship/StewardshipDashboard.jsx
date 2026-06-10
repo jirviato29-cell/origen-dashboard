@@ -467,14 +467,9 @@ export default function StewardshipDashboard() {
     ? (() => { const d = new Date(toDateISO(mejorDomHist.fecha) + 'T00:00:00'); return isNaN(d) ? '—' : `${d.getDate()} ${MESES_SHORT[d.getMonth()]}`; })()
     : '—';
 
-  // Stat 4 — nuevos por semana · visitantes de últimas 4 semanas (28 días)
-  const hace28 = new Date(hoy); hace28.setDate(hoy.getDate() - 27); hace28.setHours(0, 0, 0, 0);
-  const visitantesRecientes = visitantes.filter(v => {
-    const f = toDateISO(v.fecha); if (!f) return false;
-    const d = new Date(f + 'T00:00:00'); return !isNaN(d) && d >= hace28;
-  });
-  const totalNuevos = visitantesRecientes.reduce((s, v) => s + 1 + (Number(v.acompanantes_num) || 0), 0);
-  const avgChange   = totalNuevos / 4;
+  // Stat 4 — nuevos por semana · todos los visitantes / domingos históricos
+  const totalNuevos = visitantes.reduce((s, v) => s + 1 + (Number(v.acompanantes_num) || 0), 0);
+  const avgChange   = asistencia.length > 0 ? Math.round(totalNuevos / asistencia.length) : 0;
 
   // ── Próximos eventos ───────────────────────────────────────────────────────
   const proximosEventos = [...calendario]
@@ -547,7 +542,7 @@ export default function StewardshipDashboard() {
                   { l: 'Asistencia promedio', v: asistencia.length ? `${promAsist} personas` : '—', sub: 'por domingo · promedio histórico', green: false },
                   { l: 'Ofrenda promedio',    v: asistencia.length ? `$${fmt(promOfrMes)}` : '—',   sub: 'por domingo · promedio histórico', green: true },
                   { l: 'Mayor asistencia',    v: mejorDomHistLabel, sub: mejorDomHist ? `${mejorDomHist.total} personas` : '', green: false },
-                  { l: 'Nuevos por semana',   v: totalNuevos === 0 ? '0' : `▲ ${avgChange.toFixed(1)} p/sem`, sub: 'últimas 4 semanas', green: totalNuevos > 0 },
+                  { l: 'Nuevos por semana',   v: asistencia.length === 0 ? '—' : `▲ ${avgChange} p/sem`, sub: 'promedio histórico', green: true },
                 ].map(({ l, v, green, sub }) => (
                   <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <span style={{ fontSize: 11, color: D_GRAY_500, fontWeight: 600 }}>{l}</span>
