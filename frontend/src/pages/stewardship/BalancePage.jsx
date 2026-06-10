@@ -169,20 +169,23 @@ function MethodCard({ label, value, pct, barColor, valColor }) {
 export default function BalancePage() {
   const year = new Date().getFullYear();
 
-  const [ofrendas,        setOfrendas] = useState([]);
-  const [gastos,          setGastos]   = useState([]);
-  const [loading,         setLoading]  = useState(true);
+  const [ofrendas,          setOfrendas]          = useState([]);
+  const [gastos,            setGastos]            = useState([]);
+  const [gastosEfectivoAgs, setGastosEfectivoAgs] = useState([]);
+  const [loading,           setLoading]           = useState(true);
   const [mesSeleccionado, setMesSelec] = useState(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const [ro, rg] = await Promise.all([
+        const [ro, rg, rgEfectivo] = await Promise.all([
           ofrendasApi.getAll({ year }),
           gastosApi.getAll({ year, pagado: 'true' }),
+          gastosApi.getAll({ year, pagado: 'true', metodo_pago: 'efectivo_ags' }),
         ]);
         setOfrendas(ro.data || []);
         setGastos(rg.data || []);
+        setGastosEfectivoAgs(rgEfectivo.data || []);
       } catch (e) {
         console.error('BalancePage load error:', e);
       } finally {
@@ -198,16 +201,17 @@ export default function BalancePage() {
     </div>
   );
 
-  const weeklyData = buildWeeklyData(ofrendas, gastos);
+  const weeklyData = buildWeeklyData(ofrendas, gastosEfectivoAgs);
 
-  // ── Aggregates (unchanged logic) ──
-  const totalIngresos      = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
-  const totalGastos        = gastos.reduce((s, g) => s + Number(g.monto), 0);
-  const balanceNeto        = totalIngresos - totalGastos;
-  const totalEfectivo      = ofrendas.reduce((s, d) => s + Number(d.efectivo),           0);
-  const totalTerminal      = ofrendas.reduce((s, d) => s + Number(d.terminal),           0);
-  const totalTransferencia = ofrendas.reduce((s, d) => s + Number(d.transferencia || 0), 0);
-  const cajaChica          = SALDO_INICIAL_CAJA + totalEfectivo - totalGastos;
+  // ── Aggregates ──
+  const totalIngresos        = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
+  const totalGastos          = gastos.reduce((s, g) => s + Number(g.monto), 0);
+  const totalGastosEfAgs     = gastosEfectivoAgs.reduce((s, g) => s + Number(g.monto), 0);
+  const balanceNeto          = totalIngresos - totalGastos;
+  const totalEfectivo        = ofrendas.reduce((s, d) => s + Number(d.efectivo),           0);
+  const totalTerminal        = ofrendas.reduce((s, d) => s + Number(d.terminal),           0);
+  const totalTransferencia   = ofrendas.reduce((s, d) => s + Number(d.transferencia || 0), 0);
+  const cajaChica            = SALDO_INICIAL_CAJA + totalEfectivo - totalGastosEfAgs;
 
   const pctEfectivo      = totalIngresos > 0 ? Math.round(totalEfectivo      / totalIngresos * 100) : 0;
   const pctTerminal      = totalIngresos > 0 ? Math.round(totalTerminal      / totalIngresos * 100) : 0;

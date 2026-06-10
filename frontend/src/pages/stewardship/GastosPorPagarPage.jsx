@@ -178,6 +178,25 @@ function DonutSVG({ segments, total }) {
   );
 }
 
+// ── Método de pago badge ───────────────────────────────────────────────────
+const METODO_CFG = {
+  efectivo_ags: { label: 'Efectivo AGS', color: NAVY_500, bg: NAVY_SOFT  },
+  gdl:          { label: 'Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
+  donacion:     { label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
+  efectivo:     { label: 'Efectivo',     color: NAVY_300, bg: NAVY_SOFT  },
+};
+function MetodoBadge({ metodo }) {
+  const cfg = METODO_CFG[metodo] || METODO_CFG.efectivo;
+  return (
+    <span style={{
+      fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+      background: cfg.bg, color: cfg.color, whiteSpace: 'nowrap',
+    }}>
+      {cfg.label}
+    </span>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function GastosPorPagarPage() {
   const now   = new Date();
@@ -194,6 +213,7 @@ export default function GastosPorPagarPage() {
   const [loading,    setLoading]    = useState(true);
   const [pagando,    setPagando]    = useState(null);
   const [localKey,   setLocalKey]   = useState(0);
+  const [openMenu,   setOpenMenu]   = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -215,10 +235,11 @@ export default function GastosPorPagarPage() {
     return () => { cancelled = true; };
   }, [year, month, refreshKey, localKey]);
 
-  const handlePagar = async (id) => {
+  const handlePagar = async (id, metodo_pago = 'efectivo_ags') => {
+    setOpenMenu(null);
     setPagando(id);
     try {
-      await gastosApi.pagar(id);
+      await gastosApi.pagar(id, metodo_pago);
       setLocalKey(k => k + 1);
     } catch (err) {
       console.error('Error al marcar como pagado:', err);
@@ -283,6 +304,9 @@ export default function GastosPorPagarPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {openMenu !== null && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setOpenMenu(null)} />
+      )}
 
       {/* ── KPIs ──────────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
@@ -446,17 +470,48 @@ export default function GastosPorPagarPage() {
                     −{fmt(Number(g.monto))}
                   </span>
                   {canWrite && (
-                    <button onClick={() => handlePagar(g.id)} disabled={isPagando} style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 8,
-                      border: '1px solid var(--border-strong)', background: 'var(--surface)',
-                      color: NAVY_500, cursor: isPagando ? 'not-allowed' : 'pointer',
-                      flexShrink: 0, opacity: isPagando ? 0.5 : 1,
-                      transition: 'background .12s, color .12s', whiteSpace: 'nowrap',
-                    }}>
-                      <I.check size={14} />
-                      {isPagando ? 'Guardando…' : 'Marcar pagado'}
-                    </button>
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <button
+                        disabled={isPagando}
+                        onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === g.id ? null : g.id); }}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 8,
+                          border: '1px solid var(--border-strong)', background: 'var(--surface)',
+                          color: NAVY_500, cursor: isPagando ? 'not-allowed' : 'pointer',
+                          flexShrink: 0, opacity: isPagando ? 0.5 : 1,
+                          transition: 'background .12s, color .12s', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <I.check size={14} />
+                        {isPagando ? 'Guardando…' : 'Marcar pagado ▾'}
+                      </button>
+                      {openMenu === g.id && (
+                        <div style={{
+                          position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 100,
+                          background: 'var(--surface)', border: '1px solid var(--border-strong)',
+                          borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                          overflow: 'hidden', minWidth: 170,
+                        }}>
+                          {[
+                            { value: 'efectivo_ags', label: 'Efectivo AGS', color: NAVY_500, bg: NAVY_SOFT  },
+                            { value: 'gdl',          label: 'Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
+                            { value: 'donacion',     label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
+                          ].map((m, mi, arr) => (
+                            <button key={m.value} onClick={() => handlePagar(g.id, m.value)} style={{
+                              display: 'flex', alignItems: 'center', gap: 9,
+                              width: '100%', padding: '10px 14px', border: 'none',
+                              borderBottom: mi < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                              background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                              fontSize: 13, fontWeight: 600, color: m.color,
+                            }}>
+                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               );
@@ -487,6 +542,7 @@ export default function GastosPorPagarPage() {
                   <th>Fecha</th>
                   <th>Concepto</th>
                   <th>Categoría</th>
+                  <th>Método</th>
                   <th style={{ textAlign: 'right' }}>Monto</th>
                 </tr>
               </thead>
@@ -506,6 +562,7 @@ export default function GastosPorPagarPage() {
                           {cat}
                         </span>
                       </td>
+                      <td><MetodoBadge metodo={g.metodo_pago} /></td>
                       <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: RED }}>
                         {fmt(Number(g.monto))}
                       </td>
@@ -515,7 +572,7 @@ export default function GastosPorPagarPage() {
               </tbody>
               <tbody>
                 <tr className="anf-totals-row">
-                  <td colSpan={3} style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
+                  <td colSpan={4} style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
                     Total pagado
                   </td>
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: RED, fontSize: 14 }}>

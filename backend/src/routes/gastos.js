@@ -5,7 +5,7 @@ const pool = require('../db/pool');
 // GET /api/gastos?year=2026&month=5&pagado=true|false
 router.get('/', async (req, res) => {
   try {
-    const { year, month, pagado } = req.query;
+    const { year, month, pagado, metodo_pago } = req.query;
     const params = [];
     const conds  = [];
 
@@ -20,6 +20,11 @@ router.get('/', async (req, res) => {
     if (pagado !== undefined) {
       conds.push(`pagado=$${params.length+1}`);
       params.push(pagado === 'true');
+    }
+
+    if (metodo_pago !== undefined) {
+      conds.push(`metodo_pago=$${params.length+1}`);
+      params.push(metodo_pago);
     }
 
     let query = 'SELECT * FROM gastos';
@@ -117,12 +122,14 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// PATCH /api/gastos/:id/pagar  — marca pagado=true
+// PATCH /api/gastos/:id/pagar  — marca pagado=true con metodo_pago
 router.patch('/:id/pagar', async (req, res) => {
   try {
+    const VALID = ['efectivo_ags', 'gdl', 'donacion'];
+    const metodo = VALID.includes(req.body?.metodo_pago) ? req.body.metodo_pago : 'efectivo_ags';
     const { rows } = await pool.query(
-      'UPDATE gastos SET pagado=true WHERE id=$1 RETURNING *',
-      [req.params.id]
+      'UPDATE gastos SET pagado=true, metodo_pago=$1 WHERE id=$2 RETURNING *',
+      [metodo, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
