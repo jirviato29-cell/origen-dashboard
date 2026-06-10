@@ -586,7 +586,7 @@ export default function AsistenciaViewPage() {
                   <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 5 }}>
                     {label}
                   </div>
-                  <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums', color: NAVY }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', color: NAVY }}>
                     {value}
                   </div>
                 </div>
