@@ -457,8 +457,8 @@ export default function IngresosPage() {
           <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
             <span style={{ fontSize: 18, opacity: 0.6 }}>$</span>{fmtNum(totalEfectivo)}
           </div>
-          <div style={{ height: 8, borderRadius: 999, background: 'var(--surface)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pctEfectivo}%`, borderRadius: 999, background: 'var(--black)' }} />
+          <div style={{ position: 'relative', height: 8, borderRadius: 999, background: '#E2E6EC' }}>
+            <div style={{ position: 'absolute', inset: 0, width: `${pctEfectivo}%`, borderRadius: 999, background: 'var(--black)' }} />
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 9 }}>{pctEfectivo}% del total recaudado en el año</div>
         </div>
@@ -474,8 +474,8 @@ export default function IngresosPage() {
           <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: NAVY_600, fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
             <span style={{ fontSize: 18, opacity: 0.6 }}>$</span>{fmtNum(totalTerminal)}
           </div>
-          <div style={{ height: 8, borderRadius: 999, background: 'var(--surface)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pctTerminal}%`, borderRadius: 999, background: NAVY_600 }} />
+          <div style={{ position: 'relative', height: 8, borderRadius: 999, background: '#E2E6EC' }}>
+            <div style={{ position: 'absolute', inset: 0, width: `${pctTerminal}%`, borderRadius: 999, background: NAVY_600 }} />
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 9 }}>{pctTerminal}% del total recaudado en el año</div>
         </div>
@@ -491,8 +491,8 @@ export default function IngresosPage() {
           <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: NAVY_300, fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
             <span style={{ fontSize: 18, opacity: 0.6 }}>$</span>{fmtNum(totalTransferencia)}
           </div>
-          <div style={{ height: 8, borderRadius: 999, background: 'var(--surface)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pctTransferencia}%`, borderRadius: 999, background: NAVY_300 }} />
+          <div style={{ position: 'relative', height: 8, borderRadius: 999, background: '#E2E6EC' }}>
+            <div style={{ position: 'absolute', inset: 0, width: `${pctTransferencia}%`, borderRadius: 999, background: NAVY_300 }} />
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 9 }}>{pctTransferencia}% del total recaudado en el año</div>
         </div>
