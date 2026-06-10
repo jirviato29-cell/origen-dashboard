@@ -675,10 +675,10 @@ export default function StewardshipDashboard() {
               <h3 style={cardTitleStyle}>Composición de asistencia</h3>
             </div>
             <DonutChart
-              adultos={ultimoServicio?.adultos     ?? 0}
-              voluntarios={ultimoServicio?.voluntarios ?? 0}
-              ninos={ultimoServicio?.ninos          ?? 0}
-              bebes={ultimoServicio?.bebes          ?? 0}
+              adultos={asistencia.reduce((s, a) => s + (a.adultos     || 0), 0)}
+              voluntarios={asistencia.reduce((s, a) => s + (a.voluntarios || 0), 0)}
+              ninos={asistencia.reduce((s, a) => s + (a.ninos       || 0), 0)}
+              bebes={asistencia.reduce((s, a) => s + (a.bebes       || 0), 0)}
             />
           </div>
 
