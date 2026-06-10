@@ -269,7 +269,8 @@ export default function PuntoEncuentroViewPage() {
     .sort((a, b) => (toISODate(a.fecha) || '').localeCompare(toISODate(b.fecha) || ''))[0];
 
   // ── KPI calculations ───────────────────────────────────────────────────
-  const eventosActivos     = eventos.filter(e => (toISODate(e.fecha) || '') >= hoyStr).length;
+  const mesActualStr        = hoyStr.slice(0, 7);
+  const eventosActivos     = eventos.filter(e => (toISODate(e.fecha) || '').startsWith(mesActualStr)).length;
   const allParticipantes   = Object.values(participantesMap).flat();
   const totalParticipantes = allParticipantes.length;
   const totalRecaudado     = Object.values(abonosMap).flat().reduce((s, a) => s + parseFloat(a.monto || 0), 0);
@@ -518,7 +519,7 @@ export default function PuntoEncuentroViewPage() {
             <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
               {eventosActivos}
             </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>próximos este año</div>
+            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>próximos este mes</div>
           </div>
 
           {/* Participantes */}
