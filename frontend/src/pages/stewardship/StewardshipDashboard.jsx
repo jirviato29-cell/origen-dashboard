@@ -442,11 +442,36 @@ export default function StewardshipDashboard() {
     });
   }, [asistencia, ofrendas]);
 
-  const promAsist = chartData.length ? Math.round(chartData.reduce((s, d) => s + d.asistencia, 0) / chartData.length) : 0;
-  const promOfr   = chartData.length ? chartData.reduce((s, d) => s + d.ofrenda, 0) / chartData.length : 0;
-  const mejorDom  = chartData.reduce((best, d) => d.asistencia > (best?.asistencia ?? 0) ? d : best, null);
-  const tendencia = chartData.length >= 2
-    ? chartData[chartData.length - 1].asistencia - chartData[chartData.length - 2].asistencia
+  // Stats 1 & 2 — mes actual únicamente
+  const mesNombreActual   = MESES_ES[hoy.getMonth()].charAt(0).toUpperCase() + MESES_ES[hoy.getMonth()].slice(1);
+  const asistMesActual    = asistencia.filter(a => toDateISO(a.fecha)?.startsWith(mes));
+  const promAsist         = asistMesActual.length
+    ? Math.round(asistMesActual.reduce((s, a) =>
+        s + (a.adultos||0) + (a.voluntarios||0) + (a.ninos||0) + (a.bebes||0), 0) / asistMesActual.length)
+    : 0;
+  const promOfrMes        = asistMesActual.length
+    ? asistMesActual.reduce((s, a) => {
+        const iso = toDateISO(a.fecha);
+        const ofr = ofrendas.find(o => toDateISO(o.fecha) === iso);
+        return s + (ofr ? (Number(ofr.efectivo)||0) + (Number(ofr.terminal)||0) + (Number(ofr.transferencia)||0) : 0);
+      }, 0) / asistMesActual.length
+    : 0;
+
+  // Stat 3 — mayor asistencia histórica (todos los domingos)
+  const mejorDomHist = asistencia.reduce((best, a) => {
+    const total = (a.adultos||0) + (a.voluntarios||0) + (a.ninos||0) + (a.bebes||0);
+    return total > (best?.total ?? 0) ? { ...a, total } : best;
+  }, null);
+  const mejorDomHistLabel = mejorDomHist
+    ? (() => { const d = new Date(toDateISO(mejorDomHist.fecha) + 'T00:00:00'); return isNaN(d) ? '—' : `${d.getDate()} ${MESES_SHORT[d.getMonth()]}`; })()
+    : '—';
+
+  // Stat 4 — promedio del cambio semana a semana (todo el histórico)
+  const histTotales = [...asistencia]
+    .sort((a, b) => toDateISO(a.fecha).localeCompare(toDateISO(b.fecha)))
+    .map(a => (a.adultos||0) + (a.voluntarios||0) + (a.ninos||0) + (a.bebes||0));
+  const avgChange = histTotales.length >= 2
+    ? Math.round(histTotales.slice(1).reduce((s, v, i) => s + (v - histTotales[i]), 0) / (histTotales.length - 1))
     : 0;
 
   // ── Próximos eventos ───────────────────────────────────────────────────────
@@ -517,14 +542,15 @@ export default function StewardshipDashboard() {
             {chartData.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D_GRAY_100}` }}>
                 {[
-                  { l: 'Asistencia promedio', v: String(promAsist), green: false },
-                  { l: 'Ofrenda promedio',    v: `$${fmt(promOfr)}`, green: true },
-                  { l: 'Mejor domingo',       v: mejorDom ? mejorDom.label : '—', green: false },
-                  { l: 'Tendencia 8 sem.',    v: tendencia >= 0 ? `▲ ${tendencia}` : `▼ ${Math.abs(tendencia)}`, green: tendencia >= 0 },
-                ].map(({ l, v, green }) => (
-                  <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  { l: 'Asistencia promedio', v: asistMesActual.length ? `${promAsist} personas` : '—', sub: `por domingo · ${mesNombreActual}`, green: false },
+                  { l: 'Ofrenda promedio',    v: asistMesActual.length ? `$${fmt(promOfrMes)}` : '—',   sub: `por domingo · ${mesNombreActual}`, green: true },
+                  { l: 'Mayor asistencia',    v: mejorDomHistLabel, sub: mejorDomHist ? `${mejorDomHist.total} personas` : '', green: false },
+                  { l: 'Nuevos por semana',   v: histTotales.length >= 2 ? (avgChange >= 0 ? `▲ ${avgChange} p/sem` : `▼ ${Math.abs(avgChange)} p/sem`) : '—', green: avgChange >= 0 },
+                ].map(({ l, v, green, sub }) => (
+                  <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <span style={{ fontSize: 11, color: D_GRAY_500, fontWeight: 600 }}>{l}</span>
-                    <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.03em', color: green ? D_GREEN_600 : D_NAVY_900, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
+                    <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.03em', color: green ? D_GREEN_600 : D_NAVY_900, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
+                    {sub && <span style={{ fontSize: 10, color: D_GRAY_500, fontWeight: 500 }}>{sub}</span>}
                   </div>
                 ))}
               </div>
