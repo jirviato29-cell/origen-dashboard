@@ -181,7 +181,7 @@ function DonutSVG({ segments, total }) {
 // ── Método de pago badge ───────────────────────────────────────────────────
 const METODO_CFG = {
   efectivo_ags: { label: 'Efectivo AGS', color: NAVY_500, bg: NAVY_SOFT  },
-  gdl:          { label: 'Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
+  gdl:          { label: 'Transferencia Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
   donacion:     { label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
   efectivo:     { label: 'Efectivo',     color: NAVY_300, bg: NAVY_SOFT  },
 };
@@ -555,7 +555,7 @@ export default function GastosPorPagarPage() {
                         }}>
                           {[
                             { value: 'efectivo_ags', label: 'Efectivo AGS', color: NAVY_500, bg: NAVY_SOFT  },
-                            { value: 'gdl',          label: 'Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
+                            { value: 'gdl',          label: 'Transferencia Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
                             { value: 'donacion',     label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
                           ].map((m, mi, arr) => (
                             <button key={m.value} onClick={() => handlePagar(g.id, m.value)} style={{
