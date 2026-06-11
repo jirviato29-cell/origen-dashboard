@@ -217,7 +217,10 @@ export default function GastosPorPagarPage() {
   const [editGasto,  setEditGasto]  = useState(null);
   const [editForm,   setEditForm]   = useState({ concepto: '', monto: '', categoria: '', fecha_vencimiento: '' });
   const [guardando,  setGuardando]  = useState(false);
-  const [editHoverId, setEditHoverId] = useState(null);
+  const [editHoverId,   setEditHoverId]   = useState(null);
+  const [deleteGasto,   setDeleteGasto]   = useState(null);
+  const [eliminando,    setEliminando]    = useState(false);
+  const [deleteHoverId, setDeleteHoverId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -265,6 +268,29 @@ export default function GastosPorPagarPage() {
   function handleEditClose() {
     if (guardando) return;
     setEditGasto(null);
+  }
+
+  function handleDeleteOpen(g) {
+    setDeleteGasto(g);
+  }
+
+  function handleDeleteClose() {
+    if (eliminando) return;
+    setDeleteGasto(null);
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteGasto || eliminando) return;
+    setEliminando(true);
+    try {
+      await gastosApi.remove(deleteGasto.id);
+      setDeleteGasto(null);
+      setLocalKey(k => k + 1);
+    } catch (err) {
+      console.error('Error al eliminar gasto:', err);
+    } finally {
+      setEliminando(false);
+    }
   }
 
   async function handleEditSave() {
@@ -528,6 +554,23 @@ export default function GastosPorPagarPage() {
                       >
                         <I.edit size={16} />
                       </button>
+                      <button
+                        title="Eliminar gasto"
+                        onClick={() => handleDeleteOpen(g)}
+                        onMouseEnter={() => setDeleteHoverId(g.id)}
+                        onMouseLeave={() => setDeleteHoverId(null)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                          border: `1px solid ${deleteHoverId === g.id ? RED : 'var(--border-strong)'}`,
+                          background: 'var(--surface)',
+                          color: deleteHoverId === g.id ? RED : NAVY,
+                          cursor: 'pointer',
+                          transition: 'border-color .12s, color .12s',
+                        }}
+                      >
+                        <I.trash size={16} />
+                      </button>
                     </>
                   )}
                   {canWrite && (
@@ -645,6 +688,80 @@ export default function GastosPorPagarPage() {
           </div>
         )}
       </div>
+
+      {/* ── Modal confirmar eliminación ──────────────────────────────────── */}
+      {deleteGasto && (
+        <div
+          onClick={handleDeleteClose}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.38)',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--surface)', borderRadius: 16,
+              padding: '28px 28px 24px', width: '100%', maxWidth: 400,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+              fontFamily: '"DM Sans", sans-serif',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: NAVY, margin: 0 }}>¿Eliminar este gasto?</h2>
+              <button
+                onClick={handleDeleteClose}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: GRAY, padding: 4, display: 'flex', alignItems: 'center' }}
+              >
+                <I.x size={18} />
+              </button>
+            </div>
+
+            <div style={{ background: 'var(--surface-3)', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: NAVY, marginBottom: 4 }}>{deleteGasto.concepto}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: RED, letterSpacing: '-0.02em' }}>
+                −{fmt(Number(deleteGasto.monto))}
+              </div>
+            </div>
+
+            <p style={{ fontSize: 13, color: GRAY, margin: '0 0 22px' }}>
+              Esta acción no se puede deshacer.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                onClick={handleDeleteClose}
+                disabled={eliminando}
+                style={{
+                  padding: '9px 18px', borderRadius: 8,
+                  border: 'none', background: 'none',
+                  fontSize: 13.5, fontWeight: 600, color: GRAY,
+                  cursor: eliminando ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={eliminando}
+                style={{
+                  padding: '9px 20px', borderRadius: 8,
+                  border: 'none', background: RED,
+                  fontSize: 13.5, fontWeight: 600, color: '#fff',
+                  cursor: eliminando ? 'not-allowed' : 'pointer',
+                  opacity: eliminando ? 0.6 : 1,
+                  fontFamily: 'inherit',
+                  transition: 'opacity .12s',
+                }}
+              >
+                {eliminando ? 'Eliminando…' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal editar gasto ────────────────────────────────────────────── */}
       {editGasto && (
