@@ -303,11 +303,14 @@ export default function GastosPorPagarPage() {
 
   // KPI aggregates
   const totalPendiente = pendientes.reduce((s, g) => s + Number(g.monto), 0);
-  const vencidoList    = classified.filter(g => g._status === 'vencido');
-  const porVencerList  = classified.filter(g => g._status === 'porvencer');
-  const totalVencido   = vencidoList.reduce((s, g) => s + Number(g.monto), 0);
-  const totalPorVencer = porVencerList.reduce((s, g) => s + Number(g.monto), 0);
-  const totalPagadoMes = pagadosMes.reduce((s, g) => s + Number(g.monto), 0);
+
+  // Per-method totals for current year (derived from pagadosAll)
+  const pagadosEfectivoAgs = pagadosAll.filter(g => g.metodo_pago === 'efectivo_ags');
+  const pagadosGdl         = pagadosAll.filter(g => g.metodo_pago === 'gdl');
+  const pagadosDonacion    = pagadosAll.filter(g => g.metodo_pago === 'donacion');
+  const totalEfectivoAgs   = pagadosEfectivoAgs.reduce((s, g) => s + Number(g.monto), 0);
+  const totalGdl           = pagadosGdl.reduce((s, g) => s + Number(g.monto), 0);
+  const totalDonacion      = pagadosDonacion.reduce((s, g) => s + Number(g.monto), 0);
 
   // Aging groups (only non-empty)
   const agingGroups = [
@@ -358,27 +361,25 @@ export default function GastosPorPagarPage() {
           alertBar={RED}
         />
         <KpiCard
-          label="Vencidos"
-          iconEl={<I.clock size={15} />}
-          iconBg={RED_SOFT} iconColor={RED}
-          value={fmt(totalVencido)} valueColor={vencidoList.length > 0 ? RED : NAVY}
-          foot={<><b style={{ color: NAVY }}>{vencidoList.length}</b> {vencidoList.length === 1 ? 'gasto vencido' : 'gastos vencidos'}</>}
-          alertBar={vencidoList.length > 0 ? RED : undefined}
+          label="Efectivo AGS"
+          iconEl={<I.cash size={15} />}
+          iconBg={NAVY_SOFT} iconColor={NAVY_500}
+          value={fmt(totalEfectivoAgs)} valueColor={NAVY}
+          foot={<><b style={{ color: NAVY }}>{pagadosEfectivoAgs.length}</b> {pagadosEfectivoAgs.length === 1 ? 'pago' : 'pagos'} · {year}</>}
         />
         <KpiCard
-          label="Por vencer · 0–7 días"
-          iconEl={<I.clock size={15} />}
+          label="Transferencia GDL"
+          iconEl={<I.coin size={15} />}
           iconBg={AMBER_SOFT} iconColor={AMBER}
-          value={fmt(totalPorVencer)} valueColor={porVencerList.length > 0 ? AMBER : NAVY}
-          foot={<><b style={{ color: NAVY }}>{porVencerList.length}</b> {porVencerList.length === 1 ? 'gasto' : 'gastos'} · próxima semana</>}
-          alertBar={porVencerList.length > 0 ? AMBER : undefined}
+          value={fmt(totalGdl)} valueColor={NAVY}
+          foot={<><b style={{ color: NAVY }}>{pagadosGdl.length}</b> {pagadosGdl.length === 1 ? 'pago' : 'pagos'} · {year}</>}
         />
         <KpiCard
-          label="Pagado este mes"
-          iconEl={<I.check size={15} />}
+          label="Donación"
+          iconEl={<I.heart size={15} />}
           iconBg={GREEN_SOFT} iconColor={GREEN}
-          value={fmt(totalPagadoMes)}
-          foot={<><b style={{ color: NAVY }}>{pagadosMes.length}</b> {pagadosMes.length === 1 ? 'gasto liquidado' : 'gastos liquidados'}</>}
+          value={fmt(totalDonacion)} valueColor={NAVY}
+          foot={<><b style={{ color: NAVY }}>{pagadosDonacion.length}</b> {pagadosDonacion.length === 1 ? 'pago' : 'pagos'} · {year}</>}
         />
       </div>
 
