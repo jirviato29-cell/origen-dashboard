@@ -4,7 +4,7 @@ import { useGastosModal } from '../../context/GastosModalContext';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 import { fmtFecha, toISODate } from '../../utils/fecha';
-import { CAT_COLORS, CAT_BG } from '../../utils/categorias';
+import { CAT_COLORS, CAT_BG, CATEGORIAS } from '../../utils/categorias';
 import { I } from '../../components/Icons';
 
 // ── Design tokens (matching offline design) ────────────────────────────────
@@ -214,6 +214,10 @@ export default function GastosPorPagarPage() {
   const [pagando,    setPagando]    = useState(null);
   const [localKey,   setLocalKey]   = useState(0);
   const [openMenu,   setOpenMenu]   = useState(null);
+  const [editGasto,  setEditGasto]  = useState(null);
+  const [editForm,   setEditForm]   = useState({ concepto: '', monto: '', categoria: '', fecha_vencimiento: '' });
+  const [guardando,  setGuardando]  = useState(false);
+  const [editHoverId, setEditHoverId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -247,6 +251,41 @@ export default function GastosPorPagarPage() {
       setPagando(null);
     }
   };
+
+  function handleEditOpen(g) {
+    setEditGasto(g);
+    setEditForm({
+      concepto: g.concepto ?? '',
+      monto: g.monto ?? '',
+      categoria: g.categoria_nombre ?? g.categoria ?? CATEGORIAS[0],
+      fecha_vencimiento: g.fecha_vencimiento ? toISODate(g.fecha_vencimiento) : '',
+    });
+  }
+
+  function handleEditClose() {
+    if (guardando) return;
+    setEditGasto(null);
+  }
+
+  async function handleEditSave() {
+    if (!editGasto || guardando) return;
+    setGuardando(true);
+    try {
+      await gastosApi.update(editGasto.id, {
+        fecha: toISODate(editGasto.fecha),
+        concepto: editForm.concepto.trim(),
+        categoria: editForm.categoria,
+        monto: Number(editForm.monto),
+        fecha_vencimiento: editForm.fecha_vencimiento || null,
+      });
+      setEditGasto(null);
+      setLocalKey(k => k + 1);
+    } catch (err) {
+      console.error('Error al guardar gasto:', err);
+    } finally {
+      setGuardando(false);
+    }
+  }
 
   // Classify + sort pending
   const classified = pendientes.map(g => ({
@@ -470,6 +509,27 @@ export default function GastosPorPagarPage() {
                     −{fmt(Number(g.monto))}
                   </span>
                   {canWrite && (
+                    <>
+                      <button
+                        title="Editar gasto"
+                        onClick={() => handleEditOpen(g)}
+                        onMouseEnter={() => setEditHoverId(g.id)}
+                        onMouseLeave={() => setEditHoverId(null)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                          border: `1px solid ${editHoverId === g.id ? '#FF6B2B' : 'var(--border-strong)'}`,
+                          background: 'var(--surface)',
+                          color: editHoverId === g.id ? '#FF6B2B' : NAVY,
+                          cursor: 'pointer',
+                          transition: 'border-color .12s, color .12s',
+                        }}
+                      >
+                        <I.edit size={16} />
+                      </button>
+                    </>
+                  )}
+                  {canWrite && (
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <button
                         disabled={isPagando}
@@ -584,6 +644,153 @@ export default function GastosPorPagarPage() {
           </div>
         )}
       </div>
+
+      {/* ── Modal editar gasto ────────────────────────────────────────────── */}
+      {editGasto && (
+        <div
+          onClick={handleEditClose}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.38)',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--surface)', borderRadius: 16,
+              padding: '28px 28px 24px', width: '100%', maxWidth: 440,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+              fontFamily: '"DM Sans", sans-serif',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: NAVY, margin: 0 }}>Editar gasto</h2>
+              <button
+                onClick={handleEditClose}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: GRAY, padding: 4, display: 'flex', alignItems: 'center' }}
+              >
+                <I.x size={18} />
+              </button>
+            </div>
+
+            {/* Fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: GRAY, marginBottom: 5 }}>
+                  Concepto
+                </label>
+                <input
+                  type="text"
+                  value={editForm.concepto}
+                  onChange={e => setEditForm(f => ({ ...f, concepto: e.target.value }))}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '9px 12px', borderRadius: 8,
+                    border: '1px solid var(--border-strong)',
+                    fontSize: 14, color: NAVY,
+                    fontFamily: 'inherit', background: 'var(--surface)',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: GRAY, marginBottom: 5 }}>
+                  Monto
+                </label>
+                <input
+                  type="number"
+                  value={editForm.monto}
+                  onChange={e => setEditForm(f => ({ ...f, monto: e.target.value }))}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '9px 12px', borderRadius: 8,
+                    border: '1px solid var(--border-strong)',
+                    fontSize: 14, color: Number(editForm.monto) < 0 ? RED : NAVY,
+                    fontFamily: 'inherit', background: 'var(--surface)',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: GRAY, marginBottom: 5 }}>
+                  Categoría
+                </label>
+                <select
+                  value={editForm.categoria}
+                  onChange={e => setEditForm(f => ({ ...f, categoria: e.target.value }))}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '9px 12px', borderRadius: 8,
+                    border: '1px solid var(--border-strong)',
+                    fontSize: 14, color: NAVY,
+                    fontFamily: 'inherit', background: 'var(--surface)',
+                    outline: 'none',
+                  }}
+                >
+                  {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: GRAY, marginBottom: 5 }}>
+                  Fecha de vencimiento{' '}
+                  <span style={{ fontWeight: 400 }}>(vacío = sin fecha)</span>
+                </label>
+                <input
+                  type="date"
+                  value={editForm.fecha_vencimiento}
+                  onChange={e => setEditForm(f => ({ ...f, fecha_vencimiento: e.target.value }))}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '9px 12px', borderRadius: 8,
+                    border: '1px solid var(--border-strong)',
+                    fontSize: 14, color: NAVY,
+                    fontFamily: 'inherit', background: 'var(--surface)',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
+              <button
+                onClick={handleEditClose}
+                disabled={guardando}
+                style={{
+                  padding: '9px 18px', borderRadius: 8,
+                  border: 'none', background: 'none',
+                  fontSize: 13.5, fontWeight: 600, color: GRAY,
+                  cursor: guardando ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEditSave}
+                disabled={guardando || !editForm.concepto.trim() || !editForm.monto}
+                style={{
+                  padding: '9px 20px', borderRadius: 8,
+                  border: 'none', background: NAVY,
+                  fontSize: 13.5, fontWeight: 600, color: '#fff',
+                  cursor: (guardando || !editForm.concepto.trim() || !editForm.monto) ? 'not-allowed' : 'pointer',
+                  opacity: (guardando || !editForm.concepto.trim() || !editForm.monto) ? 0.6 : 1,
+                  fontFamily: 'inherit',
+                  transition: 'opacity .12s',
+                }}
+              >
+                {guardando ? 'Guardando…' : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
