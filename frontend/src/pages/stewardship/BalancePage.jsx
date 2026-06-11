@@ -52,9 +52,14 @@ function buildWeeklyData(ofrendas, gastos) {
   const sorted = [...ofrendas].sort((a, b) => a.fecha.localeCompare(b.fecha));
   let cumIngresos = 0, cumGastos = 0;
   return sorted.map((d, idx) => {
+    const isLast    = idx === sorted.length - 1;
     const prevFecha = idx === 0 ? '' : sorted[idx - 1].fecha;
     const gastosDelPeriodo = gastos
-      .filter(g => idx === 0 ? g.fecha <= d.fecha : g.fecha > prevFecha && g.fecha <= d.fecha)
+      .filter(g => {
+        if (idx === 0) return g.fecha <= d.fecha;
+        if (isLast)   return g.fecha > prevFecha;   // absorbe gastos sin domingo futuro
+        return g.fecha > prevFecha && g.fecha <= d.fecha;
+      })
       .reduce((s, g) => s + Number(g.monto), 0);
     cumIngresos += Number(d.total_ofrenda);
     cumGastos   += gastosDelPeriodo;

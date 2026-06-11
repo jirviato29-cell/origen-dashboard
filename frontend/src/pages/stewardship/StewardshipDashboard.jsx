@@ -249,11 +249,12 @@ function DonutChart({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0 }) {
 
 // ── FmtMoney — parte entera grande, centavos superíndice pequeño ─────────────
 
-function FmtMoney({ amount }) {
+function FmtMoney({ amount, signed = false }) {
+  const isNeg = signed && amount < 0;
   const [integer, cents] = fmt(Math.abs(amount)).split('.');
   return (
     <span>
-      ${integer}
+      {isNeg ? '−' : ''}${integer}
       {cents && <span style={{ fontSize: '0.48em', verticalAlign: 'super', fontWeight: 800 }}>.{cents}</span>}
     </span>
   );
@@ -261,7 +262,7 @@ function FmtMoney({ amount }) {
 
 // ── StatCard ──────────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon }) {
+function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon, valColor }) {
   return (
     <div style={{
       background: feature ? D_NAVY_900 : '#fff',
@@ -297,7 +298,7 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
       </div>
       <div style={{
         fontSize: 34, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
-        color: feature ? D_GREEN_400 : D_NAVY_900,
+        color: valColor !== undefined ? valColor : (feature ? D_GREEN_400 : D_NAVY_900),
         fontVariantNumeric: 'tabular-nums',
       }}>
         {value}
@@ -436,9 +437,11 @@ export default function StewardshipDashboard() {
   const participacion = ultimaOfrenda?.participacion ?? null;
   const nuevos        = ultimoServicio?.nuevos        ?? null;
 
-  // ── Saldo en caja ─────────────────────────────────────────────────────────
-  const totalEfectivoCaja = ofrendas.reduce((s, o) => s + (Number(o.efectivo)  || 0), 0);
-  const totalGastosCaja   = gastos.reduce((s, g)   => s + (Number(g.monto)     || 0), 0);
+  // ── Saldo en caja (solo efectivo_ags: donaciones y GDL no salen de la caja) ──
+  const totalEfectivoCaja = ofrendas.reduce((s, o) => s + (Number(o.efectivo) || 0), 0);
+  const totalGastosCaja   = gastos
+    .filter(g => g.metodo_pago === 'efectivo_ags')
+    .reduce((s, g) => s + (Number(g.monto) || 0), 0);
   const saldoCaja         = SALDO_INICIAL_CAJA + totalEfectivoCaja - totalGastosCaja;
 
   // ── Resumen del mes ────────────────────────────────────────────────────────
@@ -529,7 +532,7 @@ export default function StewardshipDashboard() {
   const vOfrenda    = loading ? D_VAL : totalOfrenda  !== null ? <FmtMoney amount={totalOfrenda}/> : D_VAL;
   const vParticip   = loading ? D_VAL : participacion !== null ? `${participacion}%`             : D_VAL;
   const vNuevos     = loading ? D_VAL : nuevos        !== null ? String(nuevos)                  : D_VAL;
-  const vSaldo      = loading ? D_VAL : <FmtMoney amount={saldoCaja} />;
+  const vSaldo      = loading ? D_VAL : <FmtMoney amount={saldoCaja} signed />;
   const subAsist    = !loading && ultimaFecha ? fmtDate(ultimaFecha) : D_VAL;
   const extraAsist  = !loading && ultimoServicio
     ? `Ad ${ultimoServicio.adultos ?? 0} · Vol ${ultimoServicio.voluntarios ?? 0} · Niños ${ultimoServicio.ninos ?? 0} · Bbs ${ultimoServicio.bebes ?? 0}`
@@ -549,7 +552,9 @@ export default function StewardshipDashboard() {
         <StatCard label="Ofrendas"          value={vOfrenda}    sub="del último servicio"                     trend={trendOfrenda}  icon={I.coin} />
         <StatCard label="Participación"     value={vParticip}   sub="del último servicio"                     trend={trendParticip} icon={I.coin} />
         <StatCard label="Nuevos visitantes" value={vNuevos}     sub="visitantes nuevos"                        icon={I.users} />
-        <StatCard label="Saldo en caja"     value={vSaldo}      sub={`efectivo · acumulado ${year}`} feature   icon={I.cash} />
+        <StatCard label="Saldo en caja"     value={vSaldo}      sub={`efectivo · acumulado ${year}`} feature
+          valColor={loading ? D_GREEN_400 : saldoCaja >= 0 ? D_GREEN_400 : D_RED_600}
+          icon={I.cash} />
       </div>
 
       {/* ── Two-column body ──────────────────────────────────────────────── */}
