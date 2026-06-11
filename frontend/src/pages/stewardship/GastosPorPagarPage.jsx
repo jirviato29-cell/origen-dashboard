@@ -180,7 +180,7 @@ function DonutSVG({ segments, total }) {
 
 // ── Método de pago badge ───────────────────────────────────────────────────
 const METODO_CFG = {
-  efectivo_ags: { label: 'Efectivo AGS', color: NAVY_500, bg: NAVY_SOFT  },
+  efectivo_ags: { label: 'Efectivo Aguascalientes', color: NAVY_500, bg: NAVY_SOFT  },
   gdl:          { label: 'Transferencia Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
   donacion:     { label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
   efectivo:     { label: 'Efectivo',     color: NAVY_300, bg: NAVY_SOFT  },
@@ -361,7 +361,7 @@ export default function GastosPorPagarPage() {
           alertBar={RED}
         />
         <KpiCard
-          label="Efectivo AGS"
+          label="Efectivo Aguascalientes"
           iconEl={<I.cash size={15} />}
           iconBg={NAVY_SOFT} iconColor={NAVY_500}
           value={fmt(totalEfectivoAgs)} valueColor={NAVY}
@@ -555,7 +555,7 @@ export default function GastosPorPagarPage() {
                           overflow: 'hidden', minWidth: 170,
                         }}>
                           {[
-                            { value: 'efectivo_ags', label: 'Efectivo AGS', color: NAVY_500, bg: NAVY_SOFT  },
+                            { value: 'efectivo_ags', label: 'Efectivo Aguascalientes', color: NAVY_500, bg: NAVY_SOFT  },
                             { value: 'gdl',          label: 'Transferencia Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
                             { value: 'donacion',     label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
                           ].map((m, mi, arr) => (
