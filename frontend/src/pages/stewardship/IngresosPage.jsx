@@ -80,7 +80,7 @@ function Sparkline({ values, color, filled = false, gradId, gradColor, dashed = 
 const VW = 900, VH = 280;
 const PAD = { left: 88, right: 20, top: 24, bottom: 50 };
 
-function LineChart({ data }) {
+function LineChart({ data, slim = false }) {
   const [hovered, setHovered] = useState(null);
 
   if (!data || data.length < 2) {
@@ -127,7 +127,7 @@ function LineChart({ data }) {
           stroke="var(--border)" strokeWidth={1} />
         {pts.map((p, i) => (
           <text key={i} x={p.x} y={PAD.top + chartH + 16} textAnchor="middle" fontSize={10} fill="var(--muted)">
-            {p.d.label}
+            {slim ? p.d.label.slice(0, 3) : p.d.label}
           </text>
         ))}
         <path d={areaPath} fill="var(--chart-secondary)" opacity={0.10} />
@@ -194,6 +194,7 @@ export default function IngresosPage() {
   const [mesSeleccionado, setMesSelec]      = useState(null);
   const [tablaMesFiltro,  setTablaMesFiltro] = useState(null);
   const isMobile      = useIsMobile();
+  const isTablet      = useIsMobile(1100);
   const { openModal } = useOfrendasModal();
   const { permisos }  = useAuth();
   const canWrite      = puedeRegistrar(permisos, 'ingresos');
@@ -499,7 +500,7 @@ export default function IngresosPage() {
       </div>
 
       {/* ── Grid2: month list + chart ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.1fr', gap: 18, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr 1.1fr', gap: 18, alignItems: 'start' }}>
 
         {/* Month list */}
         <div className="card" style={{ padding: '20px 20px 4px' }}>
@@ -602,7 +603,7 @@ export default function IngresosPage() {
               </button>
             )}
           </div>
-          <LineChart data={chartData} />
+          <LineChart data={chartData} slim={isMobile} />
         </div>
       </div>
 
@@ -648,7 +649,7 @@ export default function IngresosPage() {
 
         {/* Totals band */}
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
           background: 'var(--surface)', border: '1px solid var(--border)',
           borderRadius: 10, marginBottom: 12, overflow: 'hidden',
         }}>

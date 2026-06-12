@@ -497,7 +497,7 @@ export default function GastosPage() {
 
         {/* Totals band (3 cols) */}
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+          display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
           gap: 1, background: 'var(--border)',
           border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 16,
         }}>

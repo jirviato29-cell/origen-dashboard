@@ -6,6 +6,7 @@ import { puedeRegistrar } from '../../permissions';
 import { fmtFecha, toISODate } from '../../utils/fecha';
 import { CAT_COLORS, CAT_BG, CATEGORIAS } from '../../utils/categorias';
 import { I } from '../../components/Icons';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 // ── Design tokens (matching offline design) ────────────────────────────────
 const RED        = '#D23B36';
@@ -206,6 +207,8 @@ export default function GastosPorPagarPage() {
   const { refreshKey, openModal } = useGastosModal();
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'gastos');
+  const isMobile = useIsMobile();
+  const isTablet = useIsMobile(1100);
 
   const [pendientes, setPendientes] = useState([]);
   const [pagadosMes, setPagadosMes] = useState([]);
@@ -377,7 +380,7 @@ export default function GastosPorPagarPage() {
       )}
 
       {/* ── KPIs ──────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14 }}>
         <KpiCard
           label="Total por pagar"
           iconEl={<I.wallet size={15} />}
@@ -410,7 +413,7 @@ export default function GastosPorPagarPage() {
       </div>
 
       {/* ── Analítica: Antigüedad + Dona ──────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14, alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.4fr 1fr', gap: 14, alignItems: 'stretch' }}>
 
         {/* Antigüedad de saldos */}
         <div className="card">

@@ -3,6 +3,7 @@ import { ofrendasApi, gastosApi } from '../../services/api';
 import { fmtFecha } from '../../utils/fecha';
 import { CATEGORIAS, CAT_COLORS } from '../../utils/categorias';
 import { SALDO_INICIAL_CAJA } from '../../utils/config';
+import { useIsMobile } from '../../utils/useIsMobile';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Cell, ResponsiveContainer, LabelList } from 'recharts';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
@@ -173,6 +174,7 @@ function MethodCard({ label, value, pct, barColor, valColor }) {
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function BalancePage() {
   const year = new Date().getFullYear();
+  const isMobile = useIsMobile();
 
   const [ofrendas,          setOfrendas]          = useState([]);
   const [gastos,            setGastos]            = useState([]);
@@ -261,7 +263,7 @@ export default function BalancePage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* ── KPIs (4 tarjetas) ─────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14 }}>
 
         {/* Efectivo en caja */}
         <KpiCard
@@ -317,7 +319,7 @@ export default function BalancePage() {
       </div>
 
       {/* ── Métodos de pago + Gastos por categoría ────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14 }}>
 
         <MethodCard label="Efectivo recibido"    value={totalEfectivo}      pct={pctEfectivo}      barColor={NAVY}     valColor={NAVY} />
         <MethodCard label="Terminal recibido"    value={totalTerminal}      pct={pctTerminal}      barColor={NAVY_600} valColor={NAVY_700} />
@@ -349,7 +351,7 @@ export default function BalancePage() {
       </div>
 
       {/* ── Resumen por mes + Gráfica ──────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 14, alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.15fr', gap: 14, alignItems: 'stretch' }}>
 
         {/* Resumen mensual */}
         <div className="card">
@@ -437,7 +439,7 @@ export default function BalancePage() {
           <>
             {/* Banda de totales — 3-col grid con separadores */}
             <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+              display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
               gap: 1, background: GRAY_200,
               border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-md)',
               overflow: 'hidden', marginBottom: 16,

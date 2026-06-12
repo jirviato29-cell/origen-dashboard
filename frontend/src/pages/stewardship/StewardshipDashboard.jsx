@@ -800,7 +800,7 @@ export default function StewardshipDashboard() {
             <div style={{ marginBottom: 14 }}>
               <h3 style={cardTitleStyle}>Acceso rápido</h3>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 9 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 9 }}>
               <QuickMiniBtn icon={I.arrowBarDown} label="Ingresos"       accent onClick={() => navigate(`${base}/ingresos`)} />
               <QuickMiniBtn icon={I.receipt}      label="Gastos"         accent onClick={() => navigate(`${base}/gastos`)} />
               <QuickMiniBtn icon={I.scale}        label="Finanzas"       onClick={() => navigate(`${base}/balance`)} />
