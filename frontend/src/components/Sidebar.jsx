@@ -38,9 +38,10 @@ const navByRole = {
   ],
   [ROLES.PUNTO_ENCUENTRO]: [
     { group: 'Punto de Encuentro', items: [
-      { to: '/punto_encuentro',            label: 'Punto de Encuentro', icon: I.pin,      end: true },
-      { to: '/punto_encuentro/calendario', label: 'Calendario',         icon: I.calendar },
-      { to: '/punto_encuentro/asistencia', label: 'Asistencia',         icon: I.users },
+      { to: '/punto_encuentro',                    label: 'Punto de Encuentro', icon: I.pin,      end: true },
+      { to: '/punto_encuentro/bienvenida-a-casa',  label: 'Bienvenida a Casa',  icon: I.home },
+      { to: '/punto_encuentro/calendario',         label: 'Calendario',         icon: I.calendar },
+      { to: '/punto_encuentro/asistencia',         label: 'Asistencia',         icon: I.users },
     ]},
   ],
   [ROLES.STEWARDSHIP]: [

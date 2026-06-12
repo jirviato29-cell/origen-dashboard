@@ -84,9 +84,10 @@ function AppRoutes() {
       <Route path="/punto_encuentro" element={
         <ProtectedRoute routeRole="punto_encuentro"><Layout /></ProtectedRoute>
       }>
-        <Route index             element={<PuntoEncuentroViewPage />} />
-        <Route path="asistencia" element={<AsistenciaViewPage />} />
-        <Route path="calendario" element={<CalendarioPage />} />
+        <Route index                     element={<PuntoEncuentroViewPage />} />
+        <Route path="bienvenida-a-casa"  element={<BienvenidaCasaPage />} />
+        <Route path="asistencia"         element={<AsistenciaViewPage />} />
+        <Route path="calendario"         element={<CalendarioPage />} />
       </Route>
 
       {/* ── Stewardship ────────────────────────────────────────────────── */}
