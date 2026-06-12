@@ -40,4 +40,18 @@ router.post('/', async (req, res) => {
   }
 });
 
+// DELETE /api/servicios-dominicales/:id
+router.delete('/:id', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'DELETE FROM servicios_dominicales WHERE id=$1 RETURNING id',
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    res.json({ deleted: rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

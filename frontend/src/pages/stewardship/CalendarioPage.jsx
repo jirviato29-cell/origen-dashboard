@@ -103,7 +103,8 @@ export default function CalendarioPage() {
 
   const [predicaInput,  setPredicaInput]  = useState('');
   const [savingPredica, setSavingPredica] = useState(false);
-  const [deleting,      setDeleting]      = useState(null);
+  const [deleting,         setDeleting]         = useState(null);
+  const [deletingServicio, setDeletingServicio] = useState(null);
 
   // View mode: 'mes' | 'semana' | 'lista'
   const [viewMode,   setViewMode]   = useState('mes');
@@ -223,6 +224,18 @@ export default function CalendarioPage() {
     } catch { } finally { setSavingPredica(false); }
   };
 
+  const handleDeleteServicio = async (row) => {
+    const ok = window.confirm(
+      `¿Eliminar la prédica registrada para el ${fmtFecha(row.fecha)}?\n\nEsto borra solo la prédica de ese domingo, no el domingo del calendario.`
+    );
+    if (!ok) return;
+    setDeletingServicio(row.id);
+    try {
+      await serviciosDominicalesApi.remove(row.id);
+      setServicios(prev => prev.filter(s => s.id !== row.id));
+    } catch { } finally { setDeletingServicio(null); }
+  };
+
   // ── Mobile list — PRESERVED EXACTLY ──────────────────────────────────────
   const diasSem = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const monthListItems = (() => {
@@ -246,6 +259,21 @@ export default function CalendarioPage() {
     }
     return items;
   })();
+
+  // ── Table rows: eventos + servicios_dominicales combinados ───────────────
+  const tableRows = [
+    ...eventos.map(ev => ({ ...ev, _isServicio: false })),
+    ...servicios
+      .filter(s => s.id)
+      .map(s => ({
+        _isServicio: true,
+        id:     s.id,
+        fecha:  (s.fecha || '').slice(0, 10),
+        nombre: s.predica ? `Servicio — ${s.predica}` : 'Servicio dominical',
+        tipo:   'Servicio dominical',
+        nota:   s.nota || null,
+      })),
+  ].sort((a, b) => toISODate(a.fecha).localeCompare(toISODate(b.fecha)));
 
   // ── View style helpers ────────────────────────────────────────────────────
   const viewTabStyle = (active) => ({
@@ -726,12 +754,13 @@ export default function CalendarioPage() {
                 ...servicios
                   .filter(s => s.predica && s.predica.trim() !== '')
                   .map(s => ({
-                    _key: `serv-${s.id}`,
+                    _key:        `serv-${s.id}`,
                     _isServicio: true,
-                    fecha: (s.fecha || '').slice(0, 10),
-                    nombre: `Servicio — ${s.predica}`,
-                    tipo: 'Servicio dominical',
-                    nota: s.nota || null,
+                    id:          s.id,
+                    fecha:       (s.fecha || '').slice(0, 10),
+                    nombre:      `Servicio — ${s.predica}`,
+                    tipo:        'Servicio dominical',
+                    nota:        s.nota || null,
                   })),
               ]
                 .filter(e => (toISODate(e.fecha) || e.fecha || '') >= todayISO)
@@ -772,16 +801,20 @@ export default function CalendarioPage() {
                             {ev.nota || '—'}
                           </td>
                           <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                            {canWrite && !ev._isServicio && (
+                            {canWrite && (
                               <>
-                                <button onClick={() => openEditModal(ev)} style={miniBtn} title="Editar">
+                                <button
+                                  onClick={() => ev._isServicio ? setSelectedDay(ev.fecha) : openEditModal(ev)}
+                                  style={miniBtn}
+                                  title={ev._isServicio ? 'Editar prédica' : 'Editar'}
+                                >
                                   <I.edit size={14} />
                                 </button>
                                 <button
-                                  onClick={() => handleDelete(ev.id)}
-                                  disabled={deleting === ev.id}
+                                  onClick={() => ev._isServicio ? handleDeleteServicio(ev) : handleDelete(ev.id)}
+                                  disabled={ev._isServicio ? deletingServicio === ev.id : deleting === ev.id}
                                   style={{ ...miniBtn, color: 'var(--danger)' }}
-                                  title="Eliminar"
+                                  title={ev._isServicio ? 'Eliminar prédica' : 'Eliminar'}
                                 >
                                   <I.trash size={14} />
                                 </button>

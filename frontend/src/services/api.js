@@ -99,6 +99,7 @@ const realParticipantesApi = {
 const realServiciosDominicalesApi = {
   getAll: (params) => http.get('/servicios-dominicales', { params }),
   upsert: (data)   => http.post('/servicios-dominicales', data),
+  remove: (id)     => http.delete(`/servicios-dominicales/${id}`),
 };
 
 // ─── Comprobantes ─────────────────────────────────────────────────────────────
