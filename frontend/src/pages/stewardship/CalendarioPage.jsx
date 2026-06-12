@@ -459,8 +459,8 @@ export default function CalendarioPage() {
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                               width: 22, height: 22, borderRadius: 6, fontSize: 11.5, fontWeight: 700, lineHeight: 1,
-                              background: 'transparent',
-                              color: isPast ? GRAY_500 : esDomingo ? ORANGE_600 : NAVY_700,
+                              background: isToday ? ORANGE : 'transparent',
+                              color: isToday ? 'white' : isPast ? GRAY_500 : esDomingo ? ORANGE_600 : NAVY_700,
                             }}>
                               {day}
                             </span>
