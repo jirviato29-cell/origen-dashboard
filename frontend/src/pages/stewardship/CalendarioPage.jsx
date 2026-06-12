@@ -54,15 +54,16 @@ function getSundayOfWeek(date) {
 }
 
 // Event pill (used in grid + week view)
-function EvPill({ nombre, tipo }) {
+function EvPill({ nombre, tipo, dimmed }) {
   return (
     <span style={{
       fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, lineHeight: 1.2,
       display: 'flex', alignItems: 'center', gap: 4,
       overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-      background: TIPO_BG[tipo] || GRAY_100, color: TIPO_COLOR[tipo] || GRAY_700,
+      background: dimmed ? GRAY_100 : (TIPO_BG[tipo] || GRAY_100),
+      color:      dimmed ? GRAY_500 : (TIPO_COLOR[tipo] || GRAY_700),
     }}>
-      <span style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: TIPO_COLOR[tipo] || GRAY_500 }} />
+      <span style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: dimmed ? GRAY_300 : (TIPO_COLOR[tipo] || GRAY_500) }} />
       {nombre}
     </span>
   );
@@ -414,14 +415,29 @@ export default function CalendarioPage() {
               {/* Weeks */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
                 {grid.map((day, ci) => {
-                  const iso            = day ? isoFromParts(viewYear, viewMonth, day) : null;
-                  const dayEvts        = iso ? (eventsByDate[iso] || []) : [];
-                  const esDomingo      = iso ? isDomingo(iso) : false;
-                  const isToday        = iso === todayISO;
-                  const isSelected     = iso === selectedDay;
-                  const tiposEnCelda   = new Set(dayEvts.map(ev => ev.tipo));
+                  const iso             = day ? isoFromParts(viewYear, viewMonth, day) : null;
+                  const dayEvts         = iso ? (eventsByDate[iso] || []) : [];
+                  const esDomingo       = iso ? isDomingo(iso) : false;
+                  const isToday         = iso === todayISO;
+                  const isSelected      = iso === selectedDay;
+                  const isPast          = iso !== null && iso <= todayISO;
+                  const tiposEnCelda    = new Set(dayEvts.map(ev => ev.tipo));
                   if (esDomingo) tiposEnCelda.add('Servicio dominical');
                   const tipoPrioritario = TIPO_PRIORIDAD.find(t => tiposEnCelda.has(t));
+
+                  // Cell background: past → gray, filler → white, selected future → orange tint, future → type color or white
+                  let cellBg;
+                  if (isSelected) {
+                    cellBg = isPast ? `${GRAY_300}40` : `${ORANGE}10`;
+                  } else if (!day) {
+                    cellBg = 'white';
+                  } else if (isPast) {
+                    cellBg = GRAY_100;
+                  } else if (tipoPrioritario) {
+                    cellBg = TIPO_CELL_BG[tipoPrioritario];
+                  } else {
+                    cellBg = 'white';
+                  }
 
                   return (
                     <div key={ci}
@@ -432,12 +448,8 @@ export default function CalendarioPage() {
                         borderBottom: `1px solid ${GRAY_100}`,
                         padding: '5px 6px', display: 'flex', flexDirection: 'column', gap: 2,
                         cursor: day ? 'pointer' : 'default',
-                        background: isSelected
-                          ? `${ORANGE}10`
-                          : !day ? GRAY_50
-                          : isToday ? ORANGE_50
-                          : tipoPrioritario ? TIPO_CELL_BG[tipoPrioritario] : 'white',
-                        boxShadow: isSelected ? `inset 0 0 0 2px ${ORANGE}` : 'none',
+                        background: cellBg,
+                        boxShadow: isSelected ? `inset 0 0 0 2px ${isPast ? GRAY_300 : ORANGE}` : 'none',
                         position: 'relative',
                       }}
                     >
@@ -447,8 +459,8 @@ export default function CalendarioPage() {
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                               width: 22, height: 22, borderRadius: 6, fontSize: 11.5, fontWeight: 700, lineHeight: 1,
-                              background: isToday ? ORANGE : 'transparent',
-                              color: isToday ? 'white' : esDomingo ? ORANGE_600 : NAVY_700,
+                              background: 'transparent',
+                              color: isPast ? GRAY_500 : esDomingo ? ORANGE_600 : NAVY_700,
                             }}>
                               {day}
                             </span>
@@ -458,10 +470,11 @@ export default function CalendarioPage() {
                               <EvPill
                                 nombre={serviciosByDate[iso]?.predica ? `Servicio — ${serviciosByDate[iso].predica}` : 'Servicio dominical'}
                                 tipo="Servicio dominical"
+                                dimmed={isPast}
                               />
                             )}
                             {dayEvts.map((ev, ei) => (
-                              <EvPill key={ei} nombre={ev.nombre} tipo={ev.tipo} />
+                              <EvPill key={ei} nombre={ev.nombre} tipo={ev.tipo} dimmed={isPast} />
                             ))}
                           </div>
                         </>
