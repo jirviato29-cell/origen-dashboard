@@ -407,9 +407,12 @@ export default function CalendarioPage() {
             /* Desktop: cuadrícula mensual */
             <div style={{ border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
               {/* DOW header */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', background: GRAY_50, borderBottom: `1px solid ${GRAY_200}` }}>
-                {DIAS_HEADER.map(d => (
-                  <div key={d} style={{ padding: '10px 12px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: GRAY_500 }}>{d}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', background: GRAY_50, borderBottom: `1px solid ${GRAY_300}` }}>
+                {DIAS_HEADER.map((d, i) => (
+                  <div key={d} style={{
+                    padding: '10px 12px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: GRAY_500,
+                    borderRight: i < 6 ? `1px solid ${GRAY_300}` : 'none',
+                  }}>{d}</div>
                 ))}
               </div>
               {/* Weeks */}
