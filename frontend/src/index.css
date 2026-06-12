@@ -331,7 +331,7 @@ body {
 .tiny-btn:hover { color: var(--ink); background: var(--surface-3); }
 
 /* ─── Table wrapper (scroll on mobile) ──────────────────────────────────── */
-.tbl-wrap { overflow: hidden; }
+.tbl-wrap { overflow-x: auto; }
 
 /* ─── Toolbar / Chips / Search ───────────────────────────────────────────── */
 
@@ -638,6 +638,9 @@ body {
 
   /* Metric numbers: shrink for 2-col layout on narrow screens */
   .metric-value { font-size: 26px; }
+
+  /* Ministry grid: stack to 1 column on mobile */
+  .ministry-grid { grid-template-columns: 1fr; }
 }
 
 /* ─── visually-hidden helper ─────────────────────────────────────────────── */
