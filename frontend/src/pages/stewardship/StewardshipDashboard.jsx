@@ -621,7 +621,7 @@ export default function StewardshipDashboard() {
 
             {/* Footer stats */}
             {chartData.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D_GRAY_100}` }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px 8px' : 0, justifyItems: isMobile ? 'start' : undefined, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D_GRAY_100}` }}>
                 {[
                   { l: 'Asistencia promedio', v: asistencia.length ? `${promAsist} personas` : '—', sub: 'por domingo · promedio histórico', green: false },
                   { l: 'Ofrenda promedio',    v: asistencia.length ? `$${fmt(promOfrMes)}` : '—',   sub: 'por domingo · promedio histórico', green: true },
