@@ -117,8 +117,7 @@ export default function Layout() {
             <div style={{ minWidth: 0 }}>
               <div className="crumbs">
                 <span>{userName ? `Buen día, ${userName}` : 'Origen Aguascalientes'}</span>
-                {info.section && <><span className="sep">/</span><span>{info.section}</span></>}
-                {info.title   && <><span className="sep">/</span><span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>{info.title}</span></>}
+                {info.title && <><span className="sep">/</span><span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>{info.title}</span></>}
               </div>
               <h1 className="page-title"
                 style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
