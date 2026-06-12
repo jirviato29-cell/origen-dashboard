@@ -404,19 +404,19 @@ export default function CalendarioPage() {
               </div>
             )
           ) : (
-            /* Desktop: cuadrícula mensual */
+            /* Desktop: cuadrícula mensual — un solo grid para alineación perfecta */
             <div style={{ border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
-              {/* DOW header */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', background: GRAY_50, borderBottom: `1px solid ${GRAY_300}` }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
+                {/* DOW header — primeros 7 hijos del mismo grid */}
                 {DIAS_HEADER.map((d, i) => (
-                  <div key={d} style={{
-                    padding: '10px 12px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: GRAY_500,
+                  <div key={`h${i}`} style={{
+                    padding: '10px 12px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em',
+                    textTransform: 'uppercase', color: GRAY_500, background: GRAY_50,
                     borderRight: i < 6 ? `1px solid ${GRAY_300}` : 'none',
+                    borderBottom: `1px solid ${GRAY_300}`,
                   }}>{d}</div>
                 ))}
-              </div>
-              {/* Weeks */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
+                {/* Celdas del mes */}
                 {grid.map((day, ci) => {
                   const iso             = day ? isoFromParts(viewYear, viewMonth, day) : null;
                   const dayEvts         = iso ? (eventsByDate[iso] || []) : [];
@@ -428,7 +428,6 @@ export default function CalendarioPage() {
                   if (esDomingo) tiposEnCelda.add('Servicio dominical');
                   const tipoPrioritario = TIPO_PRIORIDAD.find(t => tiposEnCelda.has(t));
 
-                  // Cell background: past → gray, filler → white, selected future → orange tint, future → type color or white
                   let cellBg;
                   if (isSelected) {
                     cellBg = isPast ? `${GRAY_300}40` : `${ORANGE}10`;
