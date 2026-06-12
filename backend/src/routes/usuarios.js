@@ -59,6 +59,24 @@ router.post('/', requireAdmin, async (req, res) => {
   }
 });
 
+// PATCH /api/usuarios/:id/nombre — actualiza el nombre visible del usuario
+router.patch('/:id/nombre', requireAdmin, async (req, res) => {
+  const { nombre } = req.body || {};
+  if (!nombre || !nombre.trim()) return res.status(400).json({ error: 'Falta el nombre' });
+  try {
+    const { rows } = await pool.query(
+      `UPDATE usuarios SET nombre = $1 WHERE id = $2
+       RETURNING id, nombre, rol, activo, created_at`,
+      [nombre.trim(), req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[usuarios] PATCH nombre:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 // PATCH /api/usuarios/:id/toggle — alterna activo/inactivo
 router.patch('/:id/toggle', requireAdmin, async (req, res) => {
   try {

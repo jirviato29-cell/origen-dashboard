@@ -68,7 +68,7 @@ const ROLES_LISTA = [
 ];
 
 const EMPTY_ADD  = { rol: 'anfitriones', clave: '' };
-const EMPTY_EDIT = { clave: '' };
+const EMPTY_EDIT = { nombre: '', clave: '' };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function fmtDate(iso) {
@@ -148,7 +148,7 @@ export default function ConfiguracionPage() {
 
   const openAdd = () => { setAddForm(EMPTY_ADD); setFormErr(''); setModal('add'); };
 
-  const openEdit = (u) => { setEditId(u.id); setEditForm(EMPTY_EDIT); setFormErr(''); setModal('edit'); };
+  const openEdit = (u) => { setEditId(u.id); setEditForm({ nombre: u.nombre, clave: '' }); setFormErr(''); setModal('edit'); };
 
   const handleAdd = async () => {
     if (!addForm.clave.trim()) { setFormErr('La clave no puede estar vacía'); return; }
@@ -159,6 +159,20 @@ export default function ConfiguracionPage() {
       closeModal();
     } catch (e) {
       setFormErr(e.response?.data?.error || 'Error al crear usuario');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditNombre = async () => {
+    if (!editForm.nombre.trim()) { setFormErr('El nombre no puede estar vacío'); return; }
+    setSaving(true); setFormErr('');
+    try {
+      const { data } = await usuariosApi.cambiarNombre(editId, editForm.nombre.trim());
+      setUsuarios(prev => prev.map(u => u.id === editId ? { ...u, nombre: data.nombre } : u));
+      closeModal();
+    } catch (e) {
+      setFormErr(e.response?.data?.error || 'Error al cambiar nombre');
     } finally {
       setSaving(false);
     }
@@ -488,7 +502,7 @@ export default function ConfiguracionPage() {
           </div>
         )}
 
-        {/* ── Modal Cambiar clave ───────────────────────────────────────────── */}
+        {/* ── Modal Editar usuario ─────────────────────────────────────────── */}
         {modal === 'edit' && (
           <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()}>
@@ -496,40 +510,72 @@ export default function ConfiguracionPage() {
               <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div className="anf-modal-eyebrow">Usuario #{editId}</div>
-                  <h3 className="anf-modal-date">Cambiar clave</h3>
+                  <h3 className="anf-modal-date">Editar usuario</h3>
                 </div>
                 <button className="icon-btn" onClick={closeModal} style={{ width: 34, height: 34 }}>
                   <I.x size={16} />
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <label style={labelStyle}>Nueva clave</label>
-                <input
-                  type="text"
-                  placeholder="Nueva clave de acceso"
-                  value={editForm.clave}
-                  onChange={e => { setEditForm(p => ({ ...p, clave: e.target.value })); setFormErr(''); }}
-                  onKeyDown={e => e.key === 'Enter' && handleEditClave()}
-                  style={inputStyle}
-                  autoFocus
-                />
-                <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: 0 }}>
-                  Se re-hasheará automáticamente. La clave anterior quedará inválida.
-                </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* ── Nombre ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <label style={labelStyle}>Nombre</label>
+                  <input
+                    type="text"
+                    placeholder="Nombre que aparece en el saludo"
+                    value={editForm.nombre}
+                    onChange={e => { setEditForm(p => ({ ...p, nombre: e.target.value })); setFormErr(''); }}
+                    onKeyDown={e => e.key === 'Enter' && handleEditNombre()}
+                    style={inputStyle}
+                    autoFocus
+                  />
+                  <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: 0 }}>
+                    Aparece en el saludo "Buen día, {editForm.nombre || '…'}".
+                  </p>
+                </div>
+
+                <button
+                  className="btn btn-primary anf-save-btn"
+                  onClick={handleEditNombre}
+                  disabled={!editForm.nombre.trim() || saving}
+                  style={{ opacity: (!editForm.nombre.trim() || saving) ? 0.45 : 1 }}
+                >
+                  <I.check size={16} />
+                  {saving ? 'Guardando…' : 'Guardar nombre'}
+                </button>
+
+                {/* ── Separador ── */}
+                <div style={{ borderTop: `1px solid ${GRAY_200}`, margin: '2px 0' }} />
+
+                {/* ── Clave ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <label style={labelStyle}>Nueva clave</label>
+                  <input
+                    type="text"
+                    placeholder="Nueva clave de acceso"
+                    value={editForm.clave}
+                    onChange={e => { setEditForm(p => ({ ...p, clave: e.target.value })); setFormErr(''); }}
+                    onKeyDown={e => e.key === 'Enter' && handleEditClave()}
+                    style={inputStyle}
+                  />
+                  <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: 0 }}>
+                    Se re-hasheará automáticamente. La clave anterior quedará inválida.
+                  </p>
+                </div>
+
+                {formErr && <p style={{ fontSize: 13, color: RED_600, margin: 0 }}>{formErr}</p>}
+
+                <button
+                  className="btn btn-primary anf-save-btn"
+                  onClick={handleEditClave}
+                  disabled={!editForm.clave.trim() || saving}
+                  style={{ opacity: (!editForm.clave.trim() || saving) ? 0.45 : 1 }}
+                >
+                  <I.check size={16} />
+                  {saving ? 'Guardando…' : 'Guardar nueva clave'}
+                </button>
               </div>
-
-              {formErr && <p style={{ fontSize: 13, color: RED_600, margin: '4px 0 0' }}>{formErr}</p>}
-
-              <button
-                className="btn btn-primary anf-save-btn"
-                onClick={handleEditClave}
-                disabled={!editForm.clave.trim() || saving}
-                style={{ opacity: (!editForm.clave.trim() || saving) ? 0.45 : 1, marginTop: 8 }}
-              >
-                <I.check size={16} />
-                {saving ? 'Guardando…' : 'Guardar nueva clave'}
-              </button>
             </div>
           </div>
         )}

@@ -141,11 +141,12 @@ const realVoluntariosApi = {
 
 // ─── Usuarios ─────────────────────────────────────────────────────────────────
 const realUsuariosApi = {
-  getAll:      ()              => http.get('/usuarios'),
-  create:      (data)          => http.post('/usuarios', data),
-  toggle:      (id)            => http.patch(`/usuarios/${id}/toggle`),
-  cambiarClave:(id, clave)     => http.patch(`/usuarios/${id}/clave`, { clave }),
-  remove:      (id)            => http.delete(`/usuarios/${id}`),
+  getAll:       ()               => http.get('/usuarios'),
+  create:       (data)           => http.post('/usuarios', data),
+  toggle:       (id)             => http.patch(`/usuarios/${id}/toggle`),
+  cambiarNombre:(id, nombre)     => http.patch(`/usuarios/${id}/nombre`, { nombre }),
+  cambiarClave: (id, clave)      => http.patch(`/usuarios/${id}/clave`, { clave }),
+  remove:       (id)             => http.delete(`/usuarios/${id}`),
 };
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
