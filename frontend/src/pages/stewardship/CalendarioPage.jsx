@@ -738,6 +738,7 @@ export default function CalendarioPage() {
                 </thead>
                 <tbody>
                   {[...eventos]
+                    .filter(e => (toISODate(e.fecha) || '') >= todayISO)
                     .sort((a, b) => toISODate(a.fecha).localeCompare(toISODate(b.fecha)))
                     .map(ev => (
                       <tr key={ev.id}>
