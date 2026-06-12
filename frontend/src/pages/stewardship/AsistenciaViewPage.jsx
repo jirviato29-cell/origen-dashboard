@@ -3,6 +3,7 @@ import { asistenciaApi } from '../../services/api';
 import { useAsistenciaStewModal } from '../../context/AsistenciaStewModalContext';
 import { fmtFecha, mesNombre } from '../../utils/fecha';
 import { I } from '../../components/Icons';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const NAVY     = '#112540';
@@ -193,6 +194,7 @@ export default function AsistenciaViewPage() {
   const [mesSeleccionado, setMesSelec] = useState(null);
 
   const year = new Date().getFullYear();
+  const isMobile = useIsMobile();
 
   const load = useCallback(async () => {
     try {
@@ -295,22 +297,33 @@ export default function AsistenciaViewPage() {
 
       {/* ── KPIs (5 tarjetas) ─────────────────────────────────────────────── */}
       {records.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, 1fr)', gap: 14 }}>
 
           {/* Último domingo — feature (navy oscuro) */}
           <div style={{
             background: NAVY, border: `1px solid ${NAVY}`,
             borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
           }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: NAVY_300, marginBottom: 9 }}>
-              Último domingo
+            <div style={{
+              display: 'flex', flexDirection: isMobile ? 'row' : 'column',
+              justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start',
+              gap: isMobile ? 8 : 0,
+            }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: NAVY_300, marginBottom: isMobile ? 3 : 9 }}>
+                  Último domingo
+                </div>
+                {isMobile && <div style={{ fontSize: 11.5, color: NAVY_300 }}>{ultimo ? fmtFecha(ultimo.fecha) : '—'}</div>}
+              </div>
+              <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: 'white', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {totalUltimo}
+              </div>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: 'white', fontVariantNumeric: 'tabular-nums' }}>
-              {totalUltimo}
-            </div>
-            <div style={{ fontSize: 11.5, color: NAVY_300, marginTop: 7 }}>
-              {ultimo ? fmtFecha(ultimo.fecha) : '—'}
-            </div>
+            {!isMobile && (
+              <div style={{ fontSize: 11.5, color: NAVY_300, marginTop: 7 }}>
+                {ultimo ? fmtFecha(ultimo.fecha) : '—'}
+              </div>
+            )}
             {ultimo && (
               <DesgloseCat feature
                 adultos={ultimo.adultos || 0} voluntarios={ultimo.voluntarios || 0}
@@ -325,25 +338,39 @@ export default function AsistenciaViewPage() {
             background: 'var(--surface)', border: '1px solid var(--border)',
             borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
           }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
-              {mesActualLabel}
+            <div style={{
+              display: 'flex', flexDirection: isMobile ? 'row' : 'column',
+              justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start',
+              gap: isMobile ? 8 : 0,
+            }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 9 }}>
+                  {mesActualLabel}
+                </div>
+                {isMobile && mesActualData && (
+                  <div style={{ fontSize: 11.5, color: GRAY_500 }}>
+                    {mesActualData.count} {mesActualData.count === 1 ? 'domingo' : 'domingos'}
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: mesActualData ? NAVY : GRAY_500, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {mesActualData ? mesActualData.total : '—'}
+              </div>
             </div>
-            {mesActualData ? (
-              <>
-                <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-                  {mesActualData.total}
-                </div>
-                <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>
-                  {mesActualData.count} {mesActualData.count === 1 ? 'domingo' : 'domingos'}
-                </div>
-                <DesgloseCat
-                  adultos={mesActualData.adultos} voluntarios={mesActualData.voluntarios}
-                  ninos={mesActualData.ninos}     bebes={mesActualData.bebes}
-                  nuevos={mesActualData.nuevos}
-                />
-              </>
-            ) : (
+            {!isMobile && mesActualData && (
+              <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>
+                {mesActualData.count} {mesActualData.count === 1 ? 'domingo' : 'domingos'}
+              </div>
+            )}
+            {!isMobile && !mesActualData && (
               <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 10 }}>Sin registros aún</div>
+            )}
+            {mesActualData && (
+              <DesgloseCat
+                adultos={mesActualData.adultos} voluntarios={mesActualData.voluntarios}
+                ninos={mesActualData.ninos}     bebes={mesActualData.bebes}
+                nuevos={mesActualData.nuevos}
+              />
             )}
           </div>
 
@@ -352,15 +379,22 @@ export default function AsistenciaViewPage() {
             background: 'var(--surface)', border: '1px solid var(--border)',
             borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
           }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
-              Promedio
+            <div style={{
+              display: 'flex', flexDirection: isMobile ? 'row' : 'column',
+              justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start',
+              gap: isMobile ? 8 : 0,
+            }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 9 }}>
+                  Promedio
+                </div>
+                {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>{n} domingos</div>}
+              </div>
+              <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {promedio}
+              </div>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-              {promedio}
-            </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>
-              {n} domingos
-            </div>
+            {!isMobile && <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>{n} domingos</div>}
             <DesgloseCat
               adultos={promAdultos} voluntarios={promVoluntarios}
               ninos={promNinos}     bebes={promBebes}
@@ -372,13 +406,24 @@ export default function AsistenciaViewPage() {
             background: 'var(--surface)', border: '1px solid var(--border)',
             borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
           }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
-              Máximo histórico
+            <div style={{
+              display: 'flex', flexDirection: isMobile ? 'row' : 'column',
+              justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start',
+              gap: isMobile ? 8 : 0,
+            }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 9 }}>
+                  Máximo histórico
+                </div>
+                {isMobile && maximoRecord && (
+                  <div style={{ fontSize: 11.5, color: GRAY_500 }}>{fmtFecha(maximoRecord.fecha)}</div>
+                )}
+              </div>
+              <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {maximo}
+              </div>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-              {maximo}
-            </div>
-            {maximoRecord && (
+            {!isMobile && maximoRecord && (
               <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>
                 {fmtFecha(maximoRecord.fecha)}
               </div>
@@ -395,15 +440,26 @@ export default function AsistenciaViewPage() {
             background: 'var(--surface)', border: '1px solid var(--border)',
             borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
           }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
-              Total del año
+            <div style={{
+              display: 'flex', flexDirection: isMobile ? 'row' : 'column',
+              justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start',
+              gap: isMobile ? 8 : 0,
+            }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 9 }}>
+                  Total del año
+                </div>
+                {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>{n} domingos · {year}</div>}
+              </div>
+              <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {totTotal.toLocaleString('es-MX')}
+              </div>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-              {totTotal.toLocaleString('es-MX')}
-            </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>
-              {n} domingos · {year}
-            </div>
+            {!isMobile && (
+              <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 7 }}>
+                {n} domingos · {year}
+              </div>
+            )}
             <DesgloseCat
               adultos={totAdultos} voluntarios={totVoluntarios}
               ninos={totNinos}     bebes={totBebes}
