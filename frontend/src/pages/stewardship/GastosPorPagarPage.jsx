@@ -58,6 +58,7 @@ const STATUS_BAR   = { vencido: RED, porvencer: AMBER, programado: NAVY_300, 'si
 
 // ── KPI Card ───────────────────────────────────────────────────────────────
 function KpiCard({ label, iconEl, iconBg, iconColor, value, valueColor, foot, alertBar }) {
+  const isMobile = useIsMobile();
   return (
     <div style={{
       background: 'var(--surface)', border: '1px solid var(--border)',
@@ -67,33 +68,40 @@ function KpiCard({ label, iconEl, iconBg, iconColor, value, valueColor, foot, al
       {alertBar && (
         <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: alertBar }} />
       )}
-      <div style={{
-        fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em',
-        textTransform: 'uppercase', color: GRAY, marginBottom: 10,
-        display: 'flex', alignItems: 'center', gap: 7,
-      }}>
-        <span style={{
-          width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-          background: iconBg, color: iconColor,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+        <div>
+          <div style={{
+            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em',
+            textTransform: 'uppercase', color: GRAY, marginBottom: isMobile ? 3 : 10,
+            display: 'flex', alignItems: 'center', gap: 7,
+          }}>
+            <span style={{
+              width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+              background: iconBg, color: iconColor,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {iconEl}
+            </span>
+            {label}
+          </div>
+          {isMobile && <div style={{ fontSize: 11.5, color: GRAY }}>{foot}</div>}
+        </div>
+        <div style={{
+          fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
+          color: valueColor || NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0,
         }}>
-          {iconEl}
-        </span>
-        {label}
+          {value}
+        </div>
       </div>
-      <div style={{
-        fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
-        color: valueColor || NAVY, fontVariantNumeric: 'tabular-nums',
-      }}>
-        {value}
-      </div>
-      <div style={{
-        marginTop: 10, paddingTop: 10,
-        borderTop: '1px solid var(--surface-3)',
-        fontSize: 11.5, color: GRAY,
-      }}>
-        {foot}
-      </div>
+      {!isMobile && (
+        <div style={{
+          marginTop: 10, paddingTop: 10,
+          borderTop: '1px solid var(--surface-3)',
+          fontSize: 11.5, color: GRAY,
+        }}>
+          {foot}
+        </div>
+      )}
     </div>
   );
 }
@@ -380,7 +388,7 @@ export default function GastosPorPagarPage() {
       )}
 
       {/* ── KPIs ──────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 14 }}>
         <KpiCard
           label="Total por pagar"
           iconEl={<I.wallet size={15} />}

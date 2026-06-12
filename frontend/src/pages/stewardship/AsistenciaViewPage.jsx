@@ -471,7 +471,7 @@ export default function AsistenciaViewPage() {
 
       {/* ── Resumen por mes + Gráfica ─────────────────────────────────────── */}
       {records.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 14, alignItems: 'stretch' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.15fr', gap: 14, alignItems: 'stretch' }}>
 
           {/* Izquierda: Resumen por mes */}
           <div className="card">

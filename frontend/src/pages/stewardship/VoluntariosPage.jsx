@@ -4,6 +4,7 @@ import { fmtFecha } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const NAVY     = '#112540';
@@ -440,6 +441,7 @@ function KioskThanks({ onNext, onExit }) {
 export default function VoluntariosPage() {
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'voluntarios');
+  const isMobile = useIsMobile();
 
   const [voluntarios, setVoluntarios] = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -639,55 +641,77 @@ export default function VoluntariosPage() {
 
         {/* ── KPIs ─────────────────────────────────────────────────────────── */}
         {!loading && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,1fr)', gap: 14 }}>
 
             {/* Voluntarios */}
             <div style={kpiCard}>
-              <div style={kpiLabel()}>
-                <span style={kpiIcon()}><I.users size={15} /></span>
-                Voluntarios
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+                <div>
+                  <div style={kpiLabel({ marginBottom: isMobile ? 3 : 9 })}>
+                    <span style={kpiIcon()}><I.users size={15} /></span>
+                    Voluntarios
+                  </div>
+                  {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>{totalVol === 1 ? 'registrado' : 'registrados en el directorio'}</div>}
+                </div>
+                <div style={{ ...kpiVal, flexShrink: 0 }}>{totalVol}</div>
               </div>
-              <div style={kpiVal}>{totalVol}</div>
-              <div style={kpiFootStyle}>
-                {totalVol === 1 ? 'registrado' : 'registrados en el directorio'}
-              </div>
+              {!isMobile && <div style={kpiFootStyle}>{totalVol === 1 ? 'registrado' : 'registrados en el directorio'}</div>}
             </div>
 
             {/* Ministerios */}
             <div style={kpiCard}>
-              <div style={kpiLabel()}>
-                <span style={kpiIcon()}><I.pin size={15} /></span>
-                Ministerios
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+                <div>
+                  <div style={kpiLabel({ marginBottom: isMobile ? 3 : 9 })}>
+                    <span style={kpiIcon()}><I.pin size={15} /></span>
+                    Ministerios
+                  </div>
+                  {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>áreas distintas activas</div>}
+                </div>
+                <div style={{ ...kpiVal, flexShrink: 0 }}>{ministeriosCount}</div>
               </div>
-              <div style={kpiVal}>{ministeriosCount}</div>
-              <div style={kpiFootStyle}>áreas distintas activas</div>
+              {!isMobile && <div style={kpiFootStyle}>áreas distintas activas</div>}
             </div>
 
             {/* Cumpleaños */}
             <div style={kpiCard}>
-              <div style={kpiLabel()}>
-                <span style={kpiIcon(ORANGE_50, ORANGE_600)}><I.calendar size={15} /></span>
-                Cumpleaños · {MESES_ES[thisMonth]}
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+                <div>
+                  <div style={kpiLabel({ marginBottom: isMobile ? 3 : 9 })}>
+                    <span style={kpiIcon(ORANGE_50, ORANGE_600)}><I.calendar size={15} /></span>
+                    Cumpleaños · {MESES_ES[thisMonth]}
+                  </div>
+                  {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>{bdayFooter}</div>}
+                </div>
+                <div style={{ ...kpiVal, flexShrink: 0 }}>{bdayCount}</div>
               </div>
-              <div style={kpiVal}>{bdayCount}</div>
-              <div style={kpiFootStyle}>{bdayFooter}</div>
+              {!isMobile && <div style={kpiFootStyle}>{bdayFooter}</div>}
             </div>
 
             {/* Jóvenes / Adultos */}
             <div style={kpiCard}>
-              <div style={kpiLabel()}>
-                <span style={kpiIcon()}><I.users size={15} /></span>
-                Jóvenes / Adultos
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+                <div>
+                  <div style={kpiLabel({ marginBottom: isMobile ? 3 : 9 })}>
+                    <span style={kpiIcon()}><I.users size={15} /></span>
+                    Jóvenes / Adultos
+                  </div>
+                  {isMobile && (
+                    <div style={{ fontSize: 11.5, color: GRAY_500 }}>
+                      {ageTotal > 0 ? `${jovenesPct}% jóvenes · ${adultosPct}% adultos` : 'sin fechas de nacimiento'}
+                    </div>
+                  )}
+                </div>
+                <div style={{ ...kpiVal, display: 'flex', alignItems: 'baseline', gap: 5, flexShrink: 0 }}>
+                  {jovenesCount}
+                  <span style={{ color: GRAY_300, fontSize: 20, fontWeight: 600 }}>/ {adultosCount}</span>
+                </div>
               </div>
-              <div style={{ ...kpiVal, display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                {jovenesCount}
-                <span style={{ color: GRAY_300, fontSize: 20, fontWeight: 600 }}>/ {adultosCount}</span>
-              </div>
-              <div style={kpiFootStyle}>
-                {ageTotal > 0
-                  ? `${jovenesPct}% jóvenes · ${adultosPct}% adultos`
-                  : 'sin fechas de nacimiento'}
-              </div>
+              {!isMobile && (
+                <div style={kpiFootStyle}>
+                  {ageTotal > 0 ? `${jovenesPct}% jóvenes · ${adultosPct}% adultos` : 'sin fechas de nacimiento'}
+                </div>
+              )}
             </div>
           </div>
         )}

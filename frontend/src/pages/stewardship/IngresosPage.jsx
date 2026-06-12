@@ -356,91 +356,135 @@ export default function IngresosPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* ── KPI cards (4-col) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
 
         {/* 1 · Último domingo */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10 }}>
-            Último domingo
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
-              <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600, marginRight: 1 }}>$</span>
-              {fmtNum(Number(ultimoDomingo.total_ofrenda))}
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: isMobile ? 3 : 10 }}>
+                Último domingo
+              </div>
+              {isMobile && (
+                <div style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span>Ef. <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.efectivo))}</b></span>
+                  <span>Term. <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.terminal))}</b></span>
+                  <span>Sobres <b style={{ color: 'var(--black)' }}>{Number(ultimoDomingo.ofrendas ?? 0)}</b></span>
+                </div>
+              )}
             </div>
-            <Sparkline values={spark1} color="var(--chart-secondary)" />
+            <div style={{ display: 'flex', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
+              <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600, marginRight: 1 }}>$</span>
+                {fmtNum(Number(ultimoDomingo.total_ofrenda))}
+              </div>
+              {!isMobile && <Sparkline values={spark1} color="var(--chart-secondary)" />}
+            </div>
           </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <span>Efectivo <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.efectivo))}</b></span>
-            <span style={{ color: 'var(--border)' }}>·</span>
-            <span>Terminal <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.terminal))}</b></span>
-            <span style={{ color: 'var(--border)' }}>·</span>
-            <span>Sobres <b style={{ color: 'var(--black)' }}>{Number(ultimoDomingo.ofrendas ?? 0)}</b></span>
-          </div>
+          {!isMobile && (
+            <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <span>Efectivo <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.efectivo))}</b></span>
+              <span style={{ color: 'var(--border)' }}>·</span>
+              <span>Terminal <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.terminal))}</b></span>
+              <span style={{ color: 'var(--border)' }}>·</span>
+              <span>Sobres <b style={{ color: 'var(--black)' }}>{Number(ultimoDomingo.ofrendas ?? 0)}</b></span>
+            </div>
+          )}
         </div>
 
         {/* 2 · Promedio participación */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10 }}>
-            Promedio de participación
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
-              {promedioParticipacion !== null ? promedioParticipacion : '—'}
-              {promedioParticipacion !== null && (
-                <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600 }}>%</span>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: isMobile ? 3 : 10 }}>
+                Promedio de participación
+              </div>
+              {isMobile && (
+                <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+                  Total ofrendas del año: <b style={{ color: 'var(--black)' }}>{totalOfrendasAnio}</b>
+                </div>
               )}
             </div>
-            <Sparkline values={spark2.length >= 2 ? spark2 : null} color={NAVY_500}
-              dashed={spark2.length < 2} />
+            <div style={{ display: 'flex', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
+              <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
+                {promedioParticipacion !== null ? promedioParticipacion : '—'}
+                {promedioParticipacion !== null && (
+                  <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600 }}>%</span>
+                )}
+              </div>
+              {!isMobile && <Sparkline values={spark2.length >= 2 ? spark2 : null} color={NAVY_500} dashed={spark2.length < 2} />}
+            </div>
           </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
-            <span>Total de ofrendas del año: <b style={{ color: 'var(--black)' }}>{totalOfrendasAnio}</b></span>
-          </div>
+          {!isMobile && (
+            <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
+              <span>Total de ofrendas del año: <b style={{ color: 'var(--black)' }}>{totalOfrendasAnio}</b></span>
+            </div>
+          )}
         </div>
 
         {/* 3 · Mes actual */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10 }}>
-            Mes actual · {mesLabelCap}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1,
-              color: spark3.length === 0 ? 'var(--muted)' : 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
-              <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600, marginRight: 1 }}>$</span>
-              {fmtNum(totalMesActual)}
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: isMobile ? 3 : 10 }}>
+                Mes actual · {mesLabelCap}
+              </div>
+              {isMobile && (
+                <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+                  {ofrendasMesActual.length === 0
+                    ? `${mesLabelCap} aún sin registros`
+                    : `${ofrendasMesActual.length} ${ofrendasMesActual.length === 1 ? 'domingo' : 'domingos'} registrados`}
+                </div>
+              )}
             </div>
-            <Sparkline values={spark3.length >= 2 ? spark3 : null}
-              color="var(--chart-secondary)" dashed={spark3.length < 2} />
+            <div style={{ display: 'flex', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
+              <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1,
+                color: spark3.length === 0 ? 'var(--muted)' : 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600, marginRight: 1 }}>$</span>
+                {fmtNum(totalMesActual)}
+              </div>
+              {!isMobile && <Sparkline values={spark3.length >= 2 ? spark3 : null} color="var(--chart-secondary)" dashed={spark3.length < 2} />}
+            </div>
           </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
-            <span>
-              {ofrendasMesActual.length === 0
-                ? `${mesLabelCap} aún sin registros`
-                : `${ofrendasMesActual.length} ${ofrendasMesActual.length === 1 ? 'domingo' : 'domingos'} registrados`}
-            </span>
-          </div>
+          {!isMobile && (
+            <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
+              <span>
+                {ofrendasMesActual.length === 0
+                  ? `${mesLabelCap} aún sin registros`
+                  : `${ofrendasMesActual.length} ${ofrendasMesActual.length === 1 ? 'domingo' : 'domingos'} registrados`}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 4 · Acumulado del año */}
         <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10 }}>
-            Acumulado del año
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: GREEN_600, fontVariantNumeric: 'tabular-nums' }}>
-              <span style={{ fontSize: 18, color: GREEN_400, fontWeight: 600, marginRight: 1 }}>$</span>
-              {fmtNum(acumuladoAnio)}
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: isMobile ? 3 : 10 }}>
+                Acumulado del año
+              </div>
+              {isMobile && (
+                <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+                  <b style={{ color: 'var(--black)' }}>{ofrendas.length}</b> domingos · {year}
+                </div>
+              )}
             </div>
-            <Sparkline values={spark4.length >= 2 ? spark4 : null} color={GREEN_600}
-              filled gradId="accGrad" gradColor={GREEN_600}
-              dashed={spark4.length < 2} />
+            <div style={{ display: 'flex', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
+              <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: GREEN_600, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: 18, color: GREEN_400, fontWeight: 600, marginRight: 1 }}>$</span>
+                {fmtNum(acumuladoAnio)}
+              </div>
+              {!isMobile && <Sparkline values={spark4.length >= 2 ? spark4 : null} color={GREEN_600} filled gradId="accGrad" gradColor={GREEN_600} dashed={spark4.length < 2} />}
+            </div>
           </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
-            <b style={{ color: 'var(--black)' }}>{ofrendas.length}</b>
-            <span style={{ color: 'var(--border)' }}>·</span>
-            <span>{year}</span>
-          </div>
+          {!isMobile && (
+            <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
+              <b style={{ color: 'var(--black)' }}>{ofrendas.length}</b>
+              <span style={{ color: 'var(--border)' }}>·</span>
+              <span>{year}</span>
+            </div>
+          )}
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import { I } from '../../components/Icons';
 import { TIPO_COLOR, TIPO_BG } from '../../utils/tipoEventoColors';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const NAVY     = '#112540';
@@ -173,6 +174,7 @@ function AbonoFields({
 export default function PuntoEncuentroViewPage() {
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'punto_encuentro');
+  const isMobile = useIsMobile();
   const [filter,  setFilter]  = useState('todos');
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -506,66 +508,92 @@ export default function PuntoEncuentroViewPage() {
 
       {/* ── KPIs (4 tarjetas) ─────────────────────────────────────────────── */}
       {!loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 14 }}>
 
           {/* Eventos activos */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
-              <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: NAVY_100, color: NAVY_700, flexShrink: 0 }}>
-                <I.calendar size={15} />
-              </span>
-              Eventos activos
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 9 }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: NAVY_100, color: NAVY_700, flexShrink: 0 }}>
+                    <I.calendar size={15} />
+                  </span>
+                  Eventos activos
+                </div>
+                {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>próximos este mes</div>}
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {eventosActivos}
+              </div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-              {eventosActivos}
-            </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>próximos este mes</div>
+            {!isMobile && <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>próximos este mes</div>}
           </div>
 
           {/* Participantes */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
-              <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: NAVY_100, color: NAVY_700, flexShrink: 0 }}>
-                <I.users size={15} />
-              </span>
-              Participantes
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 9 }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: NAVY_100, color: NAVY_700, flexShrink: 0 }}>
+                    <I.users size={15} />
+                  </span>
+                  Participantes
+                </div>
+                {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>inscritos en total</div>}
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {totalParticipantes}
+              </div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-              {totalParticipantes}
-            </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>inscritos en total</div>
+            {!isMobile && <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>inscritos en total</div>}
           </div>
 
           {/* Recaudado */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
-              <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#E6F5EC', color: GREEN, flexShrink: 0 }}>
-                <I.cash size={15} />
-              </span>
-              Recaudado
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 9 }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#E6F5EC', color: GREEN, flexShrink: 0 }}>
+                    <I.cash size={15} />
+                  </span>
+                  Recaudado
+                </div>
+                {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>suma de todos los abonos</div>}
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: GREEN, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                <span style={{ fontSize: 17, fontWeight: 600, color: '#3DD68C' }}>$</span>
+                {Math.round(totalRecaudado).toLocaleString('es-MX')}
+              </div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: GREEN, fontVariantNumeric: 'tabular-nums' }}>
-              <span style={{ fontSize: 17, fontWeight: 600, color: '#3DD68C' }}>$</span>
-              {Math.round(totalRecaudado).toLocaleString('es-MX')}
-            </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>suma de todos los abonos</div>
+            {!isMobile && <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>suma de todos los abonos</div>}
           </div>
 
           {/* Por cobrar */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 9 }}>
-              <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FBF2DC', color: AMBER, flexShrink: 0 }}>
-                <I.clock size={15} />
-              </span>
-              Por cobrar
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 9 }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FBF2DC', color: AMBER, flexShrink: 0 }}>
+                    <I.clock size={15} />
+                  </span>
+                  Por cobrar
+                </div>
+                {isMobile && (
+                  <div style={{ fontSize: 11.5, color: GRAY_500 }}>
+                    {countPendientes} {countPendientes === 1 ? 'pago pendiente' : 'pagos pendientes'}
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: AMBER, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                <span style={{ fontSize: 17, fontWeight: 600, opacity: 0.6 }}>$</span>
+                {Math.round(totalPorCobrar).toLocaleString('es-MX')}
+              </div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: AMBER, fontVariantNumeric: 'tabular-nums' }}>
-              <span style={{ fontSize: 17, fontWeight: 600, opacity: 0.6 }}>$</span>
-              {Math.round(totalPorCobrar).toLocaleString('es-MX')}
-            </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>
-              {countPendientes} {countPendientes === 1 ? 'pago pendiente' : 'pagos pendientes'}
-            </div>
+            {!isMobile && (
+              <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 9 }}>
+                {countPendientes} {countPendientes === 1 ? 'pago pendiente' : 'pagos pendientes'}
+              </div>
+            )}
           </div>
 
         </div>

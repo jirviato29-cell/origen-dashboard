@@ -3,6 +3,7 @@ import { visitantesApi } from '../../services/api';
 import { fmtFechaShort } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 import { useAuth, ROLES } from '../../context/AuthContext';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
 const NAVY_900 = '#112540';
@@ -91,26 +92,41 @@ const inputSt = {
 
 // ─── KPI Card ────────────────────────────────────────────────────────────────
 function KpiCard({ icon, iconBg, iconColor, value, label, footer, valueColor = NAVY_900 }) {
+  const isMobile = useIsMobile();
   const Ic = icon;
   return (
-    <div className="card" style={{ padding: '18px 20px', display: 'flex', gap: 14, alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
-      <div style={{
-        width: 40, height: 40, borderRadius: 11, background: iconBg, color: iconColor,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      }}>
-        <Ic size={18} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: valueColor, letterSpacing: '-.03em', lineHeight: 1.1 }}>
-          {value}
-        </div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: GRAY_500, marginTop: 2 }}>{label}</div>
-        {footer && (
-          <div style={{ fontSize: 11, color: GRAY_300, marginTop: 6, borderTop: `1px solid ${GRAY_100}`, paddingTop: 6 }}>
-            {footer}
+    <div className="card" style={{ padding: '18px 20px' }}>
+      {isMobile ? (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: GRAY_500, marginBottom: 3 }}>{label}</div>
+            {footer && <div style={{ fontSize: 11, color: GRAY_300 }}>{footer}</div>}
           </div>
-        )}
-      </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: valueColor, letterSpacing: '-.03em', lineHeight: 1.1, flexShrink: 0 }}>
+            {value}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 11, background: iconBg, color: iconColor,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Ic size={18} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: valueColor, letterSpacing: '-.03em', lineHeight: 1.1 }}>
+              {value}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: GRAY_500, marginTop: 2 }}>{label}</div>
+            {footer && (
+              <div style={{ fontSize: 11, color: GRAY_300, marginTop: 6, borderTop: `1px solid ${GRAY_100}`, paddingTop: 6 }}>
+                {footer}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -264,6 +280,7 @@ function VisitanteModal({ editing, onClose, onSaved }) {
 export default function BienvenidaCasaPage() {
   const { role } = useAuth();
   const esPastor = role === ROLES.PASTOR;
+  const isMobile = useIsMobile();
 
   const [visitantes, setVisitantes] = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -418,7 +435,7 @@ export default function BienvenidaCasaPage() {
       </div>
 
       {/* ── KPIs ────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 14 }}>
         <KpiCard icon={I.users}    iconBg={NAVY_100}  iconColor={NAVY_700}   value={totalPersonas}         label="Total visitantes"  footer="Todos los registros" />
         <KpiCard icon={I.heart}    iconBg={ORANGE_50} iconColor={ORANGE_600} value={quierenSeguirPersonas} label="Quieren seguir"    footer={`Del total · ${quierenPct}%`} valueColor={ORANGE_600} />
         <KpiCard icon={I.plus}     iconBg={TEAL_50}   iconColor={TEAL}       value={nuevosFePersonas}      label="Nuevos en la fe"   footer="Soy nuevo" />

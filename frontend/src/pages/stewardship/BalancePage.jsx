@@ -129,6 +129,7 @@ function BalanceBarChart({ data }) {
 
 // ── Reusable KPI card ──────────────────────────────────────────────────────
 function KpiCard({ label, value, valueSuffix, foot, feature = false, valColor }) {
+  const isMobile = useIsMobile();
   return (
     <div style={{
       background: feature ? NAVY : 'var(--surface)',
@@ -136,37 +137,54 @@ function KpiCard({ label, value, valueSuffix, foot, feature = false, valColor })
       borderRadius: 'var(--r-lg)', padding: '18px 20px',
       boxShadow: 'var(--shadow-sm)', transition: '.15s',
     }}>
-      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: feature ? NAVY_300 : GRAY_500, marginBottom: 11 }}>
-        {label}
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+        <div>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: feature ? NAVY_300 : GRAY_500, marginBottom: isMobile ? 3 : 11 }}>
+            {label}
+          </div>
+          {isMobile && <div style={{ fontSize: 11.5, color: feature ? NAVY_300 : GRAY_500 }}>{foot}</div>}
+        </div>
+        <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: valColor, fontVariantNumeric: 'tabular-nums', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {value}
+        </div>
       </div>
-      <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: valColor, fontVariantNumeric: 'tabular-nums', display: 'flex', alignItems: 'center', gap: 8 }}>
-        {value}
-      </div>
-      <div style={{ marginTop: 11, paddingTop: 11, borderTop: `1px solid ${feature ? 'rgba(255,255,255,0.12)' : GRAY_100}`, fontSize: 11.5, color: feature ? NAVY_300 : GRAY_500 }}>
-        {foot}
-      </div>
+      {!isMobile && (
+        <div style={{ marginTop: 11, paddingTop: 11, borderTop: `1px solid ${feature ? 'rgba(255,255,255,0.12)' : GRAY_100}`, fontSize: 11.5, color: feature ? NAVY_300 : GRAY_500 }}>
+          {foot}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Method (payment method) card ───────────────────────────────────────────
 function MethodCard({ label, value, pct, barColor, valColor }) {
+  const isMobile = useIsMobile();
   const pctBadgeBg    = pct === 0 ? GRAY_100 : NAVY_100;
   const pctBadgeColor = pct === 0 ? GRAY_500  : NAVY_700;
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', boxShadow: 'var(--shadow-sm)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500 }}>{label}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: pctBadgeBg, color: pctBadgeColor }}>{pct}%</span>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: isMobile ? 3 : 8 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GRAY_500 }}>{label}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: pctBadgeBg, color: pctBadgeColor }}>{pct}%</span>
+          </div>
+          {isMobile && <div style={{ fontSize: 11, color: GRAY_500 }}>del total de ofrendas del año</div>}
+        </div>
+        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: valColor, flexShrink: 0 }}>
+          <span style={{ fontSize: 16, opacity: 0.6 }}>$</span>
+          {Math.round(value).toLocaleString('es-MX', { maximumFractionDigits: 0 })}
+        </div>
       </div>
-      <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, fontVariantNumeric: 'tabular-nums', marginBottom: 11, color: valColor }}>
-        <span style={{ fontSize: 16, opacity: 0.6 }}>$</span>
-        {Math.round(value).toLocaleString('es-MX', { maximumFractionDigits: 0 })}
-      </div>
-      <div style={{ height: 7, borderRadius: 999, background: GRAY_100, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: barColor }} />
-      </div>
-      <div style={{ fontSize: 11, color: GRAY_500, marginTop: 8 }}>del total de ofrendas del año</div>
+      {!isMobile && (
+        <>
+          <div style={{ height: 7, borderRadius: 999, background: GRAY_100, overflow: 'hidden', marginTop: 11 }}>
+            <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: barColor }} />
+          </div>
+          <div style={{ fontSize: 11, color: GRAY_500, marginTop: 8 }}>del total de ofrendas del año</div>
+        </>
+      )}
     </div>
   );
 }
@@ -263,7 +281,7 @@ export default function BalancePage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* ── KPIs (4 tarjetas) ─────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 14 }}>
 
         {/* Efectivo en caja */}
         <KpiCard
@@ -295,31 +313,38 @@ export default function BalancePage() {
           borderRadius: 'var(--r-lg)', padding: '18px 20px',
           boxShadow: 'var(--shadow-sm)',
         }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: NAVY_300, marginBottom: 11 }}>
-            Balance neto
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: NAVY_300, marginBottom: isMobile ? 3 : 11 }}>
+                Balance neto
+              </div>
+              {isMobile && <div style={{ fontSize: 11.5, color: NAVY_300 }}>Balance neto acumulado {year}</div>}
+            </div>
+            <div style={{
+              fontSize: 30, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
+              color: balanceNeto >= 0 ? GREEN_400 : RED,
+              fontVariantNumeric: 'tabular-nums',
+              display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
+            }}>
+              <span style={{ color: balanceNeto >= 0 ? GREEN_400 : RED }}>
+                {balanceNeto >= 0 ? <ArrowUp /> : <ArrowDown />}
+              </span>
+              <span>
+                <span style={{ fontSize: 18, fontWeight: 600, color: balanceNeto >= 0 ? 'rgba(61,214,140,0.7)' : 'rgba(242,99,94,0.7)' }}>$</span>
+                {Math.abs(Math.round(balanceNeto)).toLocaleString('es-MX')}
+              </span>
+            </div>
           </div>
-          <div style={{
-            fontSize: 30, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
-            color: balanceNeto >= 0 ? GREEN_400 : RED,
-            fontVariantNumeric: 'tabular-nums',
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
-            <span style={{ color: balanceNeto >= 0 ? GREEN_400 : RED }}>
-              {balanceNeto >= 0 ? <ArrowUp /> : <ArrowDown />}
-            </span>
-            <span>
-              <span style={{ fontSize: 18, fontWeight: 600, color: balanceNeto >= 0 ? 'rgba(61,214,140,0.7)' : 'rgba(242,99,94,0.7)' }}>$</span>
-              {Math.abs(Math.round(balanceNeto)).toLocaleString('es-MX')}
-            </span>
-          </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: 'rgba(255,255,255,0.12) 1px solid', fontSize: 11.5, color: NAVY_300 }}>
-            Balance neto acumulado {year}
-          </div>
+          {!isMobile && (
+            <div style={{ marginTop: 11, paddingTop: 11, borderTop: 'rgba(255,255,255,0.12) 1px solid', fontSize: 11.5, color: NAVY_300 }}>
+              Balance neto acumulado {year}
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── Métodos de pago + Gastos por categoría ────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 14 }}>
 
         <MethodCard label="Efectivo recibido"    value={totalEfectivo}      pct={pctEfectivo}      barColor={NAVY}     valColor={NAVY} />
         <MethodCard label="Terminal recibido"    value={totalTerminal}      pct={pctTerminal}      barColor={NAVY_600} valColor={NAVY_700} />

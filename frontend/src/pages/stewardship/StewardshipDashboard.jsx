@@ -263,6 +263,7 @@ function FmtMoney({ amount, signed = false }) {
 // ── StatCard ──────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon, valColor }) {
+  const isMobile = useIsMobile(640);
   return (
     <div style={{
       background: feature ? D_NAVY_900 : '#fff',
@@ -272,46 +273,78 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
       boxShadow: '0 1px 2px rgba(11,26,47,.06)',
       transition: '.15s',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: feature ? D_NAVY_300 : D_GRAY_500 }}>{label}</span>
-          {trend && (
-            <span style={{
-              fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', borderRadius: 20, padding: '2px 6px',
-              color:      trend.up ? D_GREEN_600 : D_RED_600,
-              background: trend.up ? '#E6F5EC'   : '#FBEAE9',
+      {isMobile ? (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: feature ? D_NAVY_300 : D_GRAY_500 }}>{label}</span>
+                {trend && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', borderRadius: 20, padding: '2px 6px',
+                    color:      trend.up ? D_GREEN_600 : D_RED_600,
+                    background: trend.up ? '#E6F5EC'   : '#FBEAE9',
+                  }}>
+                    {trend.up ? '▲' : '▼'} {trend.label}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: feature ? D_NAVY_300 : D_GRAY_500 }}>{sub}</div>
+              {extra && <div style={{ fontSize: 11, color: feature ? D_NAVY_300 : D_GRAY_500, marginTop: 2 }}>{extra}</div>}
+            </div>
+            <div style={{
+              fontSize: 34, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
+              color: valColor !== undefined ? valColor : (feature ? D_GREEN_400 : D_NAVY_900),
+              fontVariantNumeric: 'tabular-nums', flexShrink: 0,
             }}>
-              {trend.up ? '▲' : '▼'} {trend.label}
-            </span>
-          )}
-        </div>
-        <div style={{
-          width: 34, height: 34, borderRadius: 9,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: feature ? 'rgba(255,107,43,.16)' : D_ORANGE_50,
-          border: `1px solid ${feature ? 'rgba(255,107,43,.3)' : '#FFE5D6'}`,
-          color: feature ? '#FF8A52' : D_ORANGE,
-          flexShrink: 0,
-        }}>
-          <Icon size={17} />
-        </div>
-      </div>
-      <div style={{
-        fontSize: 34, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
-        color: valColor !== undefined ? valColor : (feature ? D_GREEN_400 : D_NAVY_900),
-        fontVariantNumeric: 'tabular-nums',
-      }}>
-        {value}
-      </div>
-      <div style={{
-        marginTop: 11, paddingTop: 10,
-        borderTop: `1px solid ${feature ? 'rgba(255,255,255,.10)' : D_GRAY_100}`,
-        fontSize: 11, color: feature ? D_NAVY_300 : D_GRAY_500,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6,
-      }}>
-        <span>{sub}</span>
-        {extra && <span>{extra}</span>}
-      </div>
+              {value}
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: feature ? D_NAVY_300 : D_GRAY_500 }}>{label}</span>
+              {trend && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', borderRadius: 20, padding: '2px 6px',
+                  color:      trend.up ? D_GREEN_600 : D_RED_600,
+                  background: trend.up ? '#E6F5EC'   : '#FBEAE9',
+                }}>
+                  {trend.up ? '▲' : '▼'} {trend.label}
+                </span>
+              )}
+            </div>
+            <div style={{
+              width: 34, height: 34, borderRadius: 9,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: feature ? 'rgba(255,107,43,.16)' : D_ORANGE_50,
+              border: `1px solid ${feature ? 'rgba(255,107,43,.3)' : '#FFE5D6'}`,
+              color: feature ? '#FF8A52' : D_ORANGE,
+              flexShrink: 0,
+            }}>
+              <Icon size={17} />
+            </div>
+          </div>
+          <div style={{
+            fontSize: 34, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
+            color: valColor !== undefined ? valColor : (feature ? D_GREEN_400 : D_NAVY_900),
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            {value}
+          </div>
+          <div style={{
+            marginTop: 11, paddingTop: 10,
+            borderTop: `1px solid ${feature ? 'rgba(255,255,255,.10)' : D_GRAY_100}`,
+            fontSize: 11, color: feature ? D_NAVY_300 : D_GRAY_500,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6,
+          }}>
+            <span>{sub}</span>
+            {extra && <span>{extra}</span>}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -355,7 +388,7 @@ export default function StewardshipDashboard() {
 
   const isMobile = useIsMobile(640);
   const isTablet = useIsMobile(1100);
-  const statCols = isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)';
+  const statCols = isMobile ? '1fr' : isTablet ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)';
 
   const year   = new Date().getFullYear();
   const hoy    = new Date();
