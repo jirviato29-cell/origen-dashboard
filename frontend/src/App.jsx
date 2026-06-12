@@ -76,7 +76,7 @@ function AppRoutes() {
         <Route path="historial"    element={<Navigate to="/anfitriones/asistencia" replace />} />
         <Route path="asistencia"        element={<AsistenciaViewPage />} />
         <Route path="calendario"        element={<CalendarioPage />} />
-        <Route path="bienvenida-a-casa" element={<BienvenidaCasaPage />} />
+        <Route path="bienvenida-a-casa" element={<Navigate to="/anfitriones/asistencia" replace />} />
       </Route>
 
       {/* ── Punto de Encuentro ─────────────────────────────────────────── */}

@@ -31,9 +31,8 @@ const navByRole = {
   ],
   [ROLES.ANFITRIONES]: [
     { group: 'Comunidad', items: [
-      { to: '/anfitriones/asistencia',        label: 'Asistencia',        icon: I.users },
-      { to: '/anfitriones/bienvenida-a-casa', label: 'Bienvenida a Casa', icon: I.home },
-      { to: '/anfitriones/calendario',        label: 'Calendario',        icon: I.calendar },
+      { to: '/anfitriones/asistencia', label: 'Asistencia', icon: I.users },
+      { to: '/anfitriones/calendario', label: 'Calendario', icon: I.calendar },
     ]},
   ],
   [ROLES.PUNTO_ENCUENTRO]: [
