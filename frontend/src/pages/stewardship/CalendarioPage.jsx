@@ -719,63 +719,82 @@ export default function CalendarioPage() {
 
           {loading ? (
             <p style={{ color: GRAY_500, fontSize: 13.5 }}>Cargando…</p>
-          ) : eventos.length === 0 ? (
-            <p style={{ color: GRAY_500, fontSize: 13.5 }}>Sin eventos registrados.</p>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 13, minWidth: 520 }}>
-                <thead>
-                  <tr>
-                    {['Fecha', 'Nombre', 'Tipo', 'Nota', ''].map((h, i) => (
-                      <th key={i} style={{
-                        textAlign: i === 4 ? 'right' : 'left',
-                        fontSize: 10.5, letterSpacing: '.07em', textTransform: 'uppercase',
-                        color: GRAY_500, fontWeight: 700, padding: '12px 16px',
-                        background: GRAY_50, borderBottom: `1px solid ${GRAY_200}`,
-                      }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...eventos]
-                    .filter(e => (toISODate(e.fecha) || '') >= todayISO)
-                    .sort((a, b) => toISODate(a.fecha).localeCompare(toISODate(b.fecha)))
-                    .map(ev => (
-                      <tr key={ev.id}>
-                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, color: GRAY_500, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                          {fmtFecha(ev.fecha)}
-                        </td>
-                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, fontWeight: 600, color: 'var(--ink)' }}>
-                          {ev.nombre}
-                        </td>
-                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}` }}>
-                          <TipoPill tipo={ev.tipo} />
-                        </td>
-                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, color: GRAY_500, fontSize: 12, maxWidth: 220 }}>
-                          {ev.nota || '—'}
-                        </td>
-                        <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          {canWrite && (
-                            <>
-                              <button onClick={() => openEditModal(ev)} style={miniBtn} title="Editar">
-                                <I.edit size={14} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(ev.id)}
-                                disabled={deleting === ev.id}
-                                style={{ ...miniBtn, color: 'var(--danger)' }}
-                                title="Eliminar"
-                              >
-                                <I.trash size={14} />
-                              </button>
-                            </>
-                          )}
-                        </td>
+            (() => {
+              const filas = [
+                ...eventos.map(e => ({ ...e, _key: String(e.id), _isServicio: false })),
+                ...servicios
+                  .filter(s => s.predica && s.predica.trim() !== '')
+                  .map(s => ({
+                    _key: `serv-${s.id}`,
+                    _isServicio: true,
+                    fecha: (s.fecha || '').slice(0, 10),
+                    nombre: `Servicio — ${s.predica}`,
+                    tipo: 'Servicio dominical',
+                    nota: s.nota || null,
+                  })),
+              ]
+                .filter(e => (toISODate(e.fecha) || e.fecha || '') >= todayISO)
+                .sort((a, b) => (toISODate(a.fecha) || a.fecha || '').localeCompare(toISODate(b.fecha) || b.fecha || ''));
+
+              if (filas.length === 0) return (
+                <p style={{ color: GRAY_500, fontSize: 13.5 }}>Sin eventos próximos registrados.</p>
+              );
+
+              return (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 13, minWidth: 520 }}>
+                    <thead>
+                      <tr>
+                        {['Fecha', 'Nombre', 'Tipo', 'Nota', ''].map((h, i) => (
+                          <th key={i} style={{
+                            textAlign: i === 4 ? 'right' : 'left',
+                            fontSize: 10.5, letterSpacing: '.07em', textTransform: 'uppercase',
+                            color: GRAY_500, fontWeight: 700, padding: '12px 16px',
+                            background: GRAY_50, borderBottom: `1px solid ${GRAY_200}`,
+                          }}>{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {filas.map(ev => (
+                        <tr key={ev._key}>
+                          <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, color: GRAY_500, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                            {fmtFecha(ev.fecha)}
+                          </td>
+                          <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, fontWeight: 600, color: 'var(--ink)' }}>
+                            {ev.nombre}
+                          </td>
+                          <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}` }}>
+                            <TipoPill tipo={ev.tipo} />
+                          </td>
+                          <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, color: GRAY_500, fontSize: 12, maxWidth: 220 }}>
+                            {ev.nota || '—'}
+                          </td>
+                          <td style={{ padding: '13px 16px', borderBottom: `1px solid ${GRAY_100}`, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            {canWrite && !ev._isServicio && (
+                              <>
+                                <button onClick={() => openEditModal(ev)} style={miniBtn} title="Editar">
+                                  <I.edit size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(ev.id)}
+                                  disabled={deleting === ev.id}
+                                  style={{ ...miniBtn, color: 'var(--danger)' }}
+                                  title="Eliminar"
+                                >
+                                  <I.trash size={14} />
+                                </button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()
           )}
         </div>
       )}
