@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { visitantesApi } from '../../services/api';
 import { fmtFechaShort } from '../../utils/fecha';
 import { I } from '../../components/Icons';
+import { useAuth, ROLES } from '../../context/AuthContext';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
 const NAVY_900 = '#112540';
@@ -261,6 +262,9 @@ function VisitanteModal({ editing, onClose, onSaved }) {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function BienvenidaCasaPage() {
+  const { role } = useAuth();
+  const esPastor = role === ROLES.PASTOR;
+
   const [visitantes, setVisitantes] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState('');
@@ -401,13 +405,15 @@ export default function BienvenidaCasaPage() {
               Lleva el registro de quienes visitan la iglesia por primera vez o de forma recurrente.
             </p>
           </div>
-          <button onClick={openNew} style={{
-            padding: '11px 20px', borderRadius: 11, border: 0,
-            background: ORANGE_500, color: '#fff', fontSize: 13.5, fontWeight: 700,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0, alignSelf: 'flex-end',
-          }}>
-            <I.plus size={15} /> Nuevo visitante
-          </button>
+          {!esPastor && (
+            <button onClick={openNew} style={{
+              padding: '11px 20px', borderRadius: 11, border: 0,
+              background: ORANGE_500, color: '#fff', fontSize: 13.5, fontWeight: 700,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0, alignSelf: 'flex-end',
+            }}>
+              <I.plus size={15} /> Nuevo visitante
+            </button>
+          )}
         </div>
       </div>
 
@@ -593,10 +599,11 @@ export default function BienvenidaCasaPage() {
                     {/* Contactado */}
                     <td style={{ ...tdSt, textAlign: 'center' }}>
                       <button
-                        onClick={() => toggleContactado(v)}
-                        title={v.contactado ? 'Desmarcar contactado' : 'Marcar como contactado'}
+                        onClick={esPastor ? undefined : () => toggleContactado(v)}
+                        title={v.contactado ? 'Contactado' : 'Sin contactar'}
                         style={{
-                          width: 28, height: 28, borderRadius: 7, cursor: 'pointer',
+                          width: 28, height: 28, borderRadius: 7,
+                          cursor: esPastor ? 'default' : 'pointer',
                           border: `2px solid ${v.contactado ? GREEN_600 : GRAY_200}`,
                           background: v.contactado ? GREEN_600 : '#fff',
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -623,18 +630,20 @@ export default function BienvenidaCasaPage() {
                             <WaIcon size={14} color={TEAL} />
                           </button>
                         )}
-                        <button
-                          onClick={() => openEdit(v)}
-                          title="Editar"
-                          style={{
-                            width: 30, height: 30, borderRadius: 8,
-                            border: `1px solid ${GRAY_200}`, background: '#fff',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer', color: GRAY_500,
-                          }}
-                        >
-                          <I.edit size={13} />
-                        </button>
+                        {!esPastor && (
+                          <button
+                            onClick={() => openEdit(v)}
+                            title="Editar"
+                            style={{
+                              width: 30, height: 30, borderRadius: 8,
+                              border: `1px solid ${GRAY_200}`, background: '#fff',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: 'pointer', color: GRAY_500,
+                            }}
+                          >
+                            <I.edit size={13} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
