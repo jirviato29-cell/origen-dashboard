@@ -139,7 +139,6 @@ export default function GastosPage() {
   const [loading, setLoading]          = useState(true);
   const [mesSeleccionado, setMesSelec] = useState(null);
   const [mesTabla, setMesTabla]        = useState('todos');
-  const [catTabla, setCatTabla]        = useState('todos');
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
@@ -208,7 +207,6 @@ export default function GastosPage() {
   const mesesDisponibles = [...new Set(gastos.map(g => g.fecha.slice(0, 7)))].sort();
   const tablaData = [...gastos]
     .filter(g => mesTabla === 'todos' || g.fecha.startsWith(mesTabla))
-    .filter(g => catTabla === 'todos' || catLabel(g) === catTabla)
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
   const tablaTotal = tablaData.reduce((s, g) => s + Number(g.monto), 0);
   const tablaCount = tablaData.length;
@@ -531,22 +529,6 @@ export default function GastosPage() {
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--muted)', width: 62, flexShrink: 0 }}>Categoría</span>
-            {['todos', ...CATEGORIAS].map(cat => (
-              <button key={cat}
-                onClick={() => setCatTabla(cat)}
-                style={{
-                  fontSize: 12.5, fontWeight: 600, padding: '6px 13px', borderRadius: 999, cursor: 'pointer',
-                  background: catTabla === cat ? 'var(--black)' : 'var(--white, #fff)',
-                  color:      catTabla === cat ? 'white' : 'var(--muted)',
-                  border:     `1px solid ${catTabla === cat ? 'var(--black)' : 'var(--border)'}`,
-                  transition: 'background 0.12s, color 0.12s',
-                }}>
-                {cat === 'todos' ? 'Todas' : cat}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Table */}
@@ -595,9 +577,7 @@ export default function GastosPage() {
               <tbody>
                 <tr className="anf-totals-row">
                   <td colSpan={2} style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '.08em' }}>
-                    {mesTabla === 'todos' && catTabla === 'todos'
-                      ? 'Totales'
-                      : `Totales${mesTabla !== 'todos' ? ` ${mesNombre(mesTabla)}` : ''}${catTabla !== 'todos' ? ` · ${catTabla}` : ''}`}
+                    {mesTabla === 'todos' ? 'Totales' : `Totales ${mesNombre(mesTabla)}`}
                   </td>
                   <td />
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--danger)', fontSize: 14 }}>
