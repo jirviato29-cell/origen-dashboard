@@ -75,6 +75,7 @@ function AppRoutes() {
         <Route path="estadisticas" element={<Navigate to="/anfitriones/asistencia" replace />} />
         <Route path="historial"    element={<Navigate to="/anfitriones/asistencia" replace />} />
         <Route path="asistencia"        element={<AsistenciaViewPage />} />
+        <Route path="voluntarios"       element={<VoluntariosPage />} />
         <Route path="calendario"        element={<CalendarioPage />} />
         <Route path="bienvenida-a-casa" element={<Navigate to="/anfitriones/asistencia" replace />} />
       </Route>
