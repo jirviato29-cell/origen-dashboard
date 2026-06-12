@@ -419,7 +419,7 @@ export default function CalendarioPage() {
                   const dayEvts         = iso ? (eventsByDate[iso] || []) : [];
                   const esDomingo       = iso ? isDomingo(iso) : false;
                   const isToday         = iso === todayISO;
-                  const isSelected      = iso === selectedDay;
+                  const isSelected      = iso !== null && iso === selectedDay;
                   const isPast          = iso !== null && iso <= todayISO;
                   const tiposEnCelda    = new Set(dayEvts.map(ev => ev.tipo));
                   if (esDomingo) tiposEnCelda.add('Servicio dominical');
