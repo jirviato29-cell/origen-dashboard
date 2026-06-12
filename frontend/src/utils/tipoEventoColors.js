@@ -7,6 +7,15 @@ export const TIPO_COLOR = {
   'Alpha':              '#DC2626',
 };
 
+// Tono más oscuro/saturado de la misma familia — para texto de pills en días futuros
+export const TIPO_COLOR_DARK = {
+  'Servicio dominical': '#7A5800',
+  'Especial':           '#92400E',
+  'Reunión de hombres': '#172D6B',
+  'Reunión de mujeres': '#4C1D95',
+  'Alpha':              '#991B1B',
+};
+
 // Fondo semitransparente — para chips/etiquetas
 export const TIPO_BG = {
   'Servicio dominical': 'rgba(181,134,13,0.18)',

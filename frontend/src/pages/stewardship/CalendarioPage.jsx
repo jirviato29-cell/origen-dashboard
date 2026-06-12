@@ -3,7 +3,7 @@ import { calendarioApi, serviciosDominicalesApi } from '../../services/api';
 import { useCalendarioModal } from '../../context/CalendarioModalContext';
 import { fmtFecha, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
-import { TIPO_COLOR, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
+import { TIPO_COLOR, TIPO_COLOR_DARK, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 import { useIsMobile } from '../../utils/useIsMobile';
@@ -61,7 +61,7 @@ function EvPill({ nombre, tipo, dimmed }) {
       display: 'flex', alignItems: 'center', gap: 4,
       overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
       background: dimmed ? GRAY_100 : (TIPO_BG[tipo] || GRAY_100),
-      color:      dimmed ? GRAY_500 : (TIPO_COLOR[tipo] || GRAY_700),
+      color:      dimmed ? GRAY_500 : (TIPO_COLOR_DARK[tipo] || GRAY_700),
     }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: dimmed ? GRAY_300 : (TIPO_COLOR[tipo] || GRAY_500) }} />
       {nombre}
@@ -444,8 +444,8 @@ export default function CalendarioPage() {
                       onClick={day ? () => setSelectedDay(isSelected ? null : iso) : undefined}
                       style={{
                         minHeight: 46,
-                        borderRight: (ci + 1) % 7 !== 0 ? `1px solid ${GRAY_100}` : 'none',
-                        borderBottom: `1px solid ${GRAY_100}`,
+                        borderRight: (ci + 1) % 7 !== 0 ? `1px solid ${GRAY_300}` : 'none',
+                        borderBottom: `1px solid ${GRAY_300}`,
                         padding: '5px 6px', display: 'flex', flexDirection: 'column', gap: 2,
                         cursor: day ? 'pointer' : 'default',
                         background: cellBg,
