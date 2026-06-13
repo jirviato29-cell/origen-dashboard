@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
+const jwt = require('jsonwebtoken');
 
 // GET /api/ofrendas?year=2026&month=5
 router.get('/', async (req, res) => {
@@ -87,6 +88,39 @@ router.post('/', async (req, res) => {
 // PUT /api/ofrendas/:id
 router.put('/:id', async (req, res) => {
   try {
+    // Leer campos_editables del usuario vía JWT para validación server-side
+    let camposEditables = null;
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (token) {
+      try {
+        const payload = jwt.verify(token, process.env.JWT_SECRET || 'fallback_dev_secret');
+        const { rows: userRows } = await pool.query(
+          'SELECT permisos_extra FROM usuarios WHERE id = $1',
+          [payload.id]
+        );
+        camposEditables = userRows[0]?.permisos_extra?.secciones?.ingresos?.campos_editables ?? null;
+      } catch {
+        camposEditables = null;
+      }
+    }
+
+    if (camposEditables !== null) {
+      // UPDATE parcial: solo los campos permitidos; recalcula total con valores existentes en BD
+      const newTransferencia = parseFloat(req.body.transferencia) || 0;
+      const { rows } = await pool.query(
+        `UPDATE ofrendas
+         SET transferencia = $1,
+             total_ofrenda = efectivo + terminal + $1
+         WHERE id = $2
+         RETURNING *`,
+        [newTransferencia, req.params.id]
+      );
+      if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+      return res.json(rows[0]);
+    }
+
+    // UPDATE completo — comportamiento existente sin cambios
     const { fecha, efectivo, terminal, transferencia, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial } = req.body;
     const ef       = efectivo      || 0;
     const term     = terminal      || 0;

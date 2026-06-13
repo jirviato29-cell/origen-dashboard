@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { asistenciaApi, ofrendasApi } from '../services/api';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
 import { I } from './Icons';
+import { useAuth } from '../context/AuthContext';
 
 function getLastSunday() {
   const today = new Date();
@@ -24,7 +25,11 @@ const EMPTY = { efectivo: '', tarjeta: '', transferencia: '', sobres: '', termin
 
 export default function GlobalOfrendasModal() {
   const { open, closeModal, record } = useOfrendasModal();
+  const { permisos } = useAuth();
   const isEdit = !!record?.id;
+
+  const camposEditables = isEdit ? (permisos?.secciones?.ingresos?.campos_editables ?? null) : null;
+  const puedeCampo = (campo) => camposEditables === null || camposEditables.includes(campo);
 
   const sunday     = isEdit ? null : getLastSunday();
   const fechaISO   = isEdit ? record.fecha.slice(0, 10) : toISODate(sunday);
@@ -177,10 +182,12 @@ export default function GlobalOfrendasModal() {
                     placeholder="0.00"
                     value={form.efectivo}
                     onChange={e => setForm(f => ({ ...f, efectivo: e.target.value }))}
+                    readOnly={!puedeCampo('efectivo')}
                     style={{
                       width: '100%', padding: '10px 12px 10px 26px', borderRadius: 10,
                       border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
                       outline: 'none', boxSizing: 'border-box',
+                      ...(!puedeCampo('efectivo') && { opacity: 0.45, background: 'var(--surface)', cursor: 'default' }),
                     }}
                   />
                 </div>
@@ -200,10 +207,12 @@ export default function GlobalOfrendasModal() {
                     placeholder="0.00"
                     value={form.tarjeta}
                     onChange={e => setForm(f => ({ ...f, tarjeta: e.target.value }))}
+                    readOnly={!puedeCampo('tarjeta')}
                     style={{
                       width: '100%', padding: '10px 12px 10px 26px', borderRadius: 10,
                       border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
                       outline: 'none', boxSizing: 'border-box',
+                      ...(!puedeCampo('tarjeta') && { opacity: 0.45, background: 'var(--surface)', cursor: 'default' }),
                     }}
                   />
                 </div>
@@ -223,10 +232,12 @@ export default function GlobalOfrendasModal() {
                     placeholder="0.00"
                     value={form.transferencia}
                     onChange={e => setForm(f => ({ ...f, transferencia: e.target.value }))}
+                    readOnly={!puedeCampo('transferencia')}
                     style={{
                       width: '100%', padding: '10px 12px 10px 26px', borderRadius: 10,
                       border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
                       outline: 'none', boxSizing: 'border-box',
+                      ...(!puedeCampo('transferencia') && { opacity: 0.45, background: 'var(--surface)', cursor: 'default' }),
                     }}
                   />
                 </div>
@@ -258,10 +269,12 @@ export default function GlobalOfrendasModal() {
                     placeholder="0"
                     value={form.sobres}
                     onChange={e => setForm(f => ({ ...f, sobres: e.target.value }))}
+                    readOnly={!puedeCampo('sobres')}
                     style={{
                       width: '100%', padding: '10px 12px', borderRadius: 10,
                       border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
                       outline: 'none', boxSizing: 'border-box',
+                      ...(!puedeCampo('sobres') && { opacity: 0.45, background: 'var(--surface)', cursor: 'default' }),
                     }}
                   />
                 </div>
@@ -277,10 +290,12 @@ export default function GlobalOfrendasModal() {
                     placeholder="0"
                     value={form.terminalCnt}
                     onChange={e => setForm(f => ({ ...f, terminalCnt: e.target.value }))}
+                    readOnly={!puedeCampo('terminalCnt')}
                     style={{
                       width: '100%', padding: '10px 12px', borderRadius: 10,
                       border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
                       outline: 'none', boxSizing: 'border-box',
+                      ...(!puedeCampo('terminalCnt') && { opacity: 0.45, background: 'var(--surface)', cursor: 'default' }),
                     }}
                   />
                 </div>
