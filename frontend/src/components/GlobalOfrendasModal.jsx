@@ -27,9 +27,9 @@ export default function GlobalOfrendasModal() {
   const isEdit = !!record?.id;
 
   const sunday     = isEdit ? null : getLastSunday();
-  const fechaISO   = isEdit ? record.fecha : toISODate(sunday);
+  const fechaISO   = isEdit ? record.fecha.slice(0, 10) : toISODate(sunday);
   const fechaLabel = isEdit
-    ? formatDateLong(new Date(record.fecha + 'T12:00:00'))
+    ? formatDateLong(new Date(record.fecha.slice(0, 10) + 'T12:00:00'))
     : formatDateLong(sunday);
 
   const [form, setForm]           = useState(EMPTY);
