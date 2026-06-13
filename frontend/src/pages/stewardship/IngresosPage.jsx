@@ -711,6 +711,46 @@ export default function IngresosPage() {
         </div>
 
         {/* Table */}
+        {isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {tablaRows.map(d => (
+              <div key={d.fecha} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>{fmtFecha(d.fecha)}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 4 }}>
+                  <span style={{ color: 'var(--ink)', fontWeight: 600 }}>Ef:</span> {fmt(Number(d.efectivo))}
+                  {' · '}
+                  <span style={{ color: NAVY_600, fontWeight: 600 }}>Term:</span> {fmt(Number(d.terminal))}
+                  {' · '}
+                  <span style={{ color: NAVY_300, fontWeight: 600 }}>Transf:</span> {fmt(Number(d.transferencia || 0))}
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 600 }}>Sobres:</span> {Number(d.ofrendas ?? 0) || '—'}
+                  {' · '}
+                  <span style={{ fontWeight: 600 }}>Part:</span> {d.participDom !== null ? `${d.participDom}%` : '—'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 16, color: GREEN_600 }}>
+                    {fmt(Number(d.efectivo) + Number(d.terminal) + Number(d.transferencia || 0))}
+                  </span>
+                  {canWrite && (
+                    <button onClick={() => openModal(d)} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      background: 'none', border: '1px solid var(--border)',
+                      borderRadius: 6, padding: '5px 10px',
+                      fontSize: 12, color: 'var(--muted)', cursor: 'pointer',
+                    }}>
+                      <I.edit size={12} /> Editar
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--surface-2, #f6f7f9)', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>Totales {tablaMesFiltro ? mesNombre(tablaMesFiltro) : year}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: GREEN_600 }}>{fmt(tablaEfectivo + tablaTerminal + tablaTransferencia)}</span>
+            </div>
+          </div>
+        ) : (
         <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
           <table className="table anf-table">
             <thead>
@@ -766,6 +806,7 @@ export default function IngresosPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
     </div>

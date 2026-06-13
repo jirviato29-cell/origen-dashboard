@@ -485,6 +485,37 @@ export default function BalancePage() {
               ))}
             </div>
 
+            {isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {cajaRows.map(row => (
+                  <div key={row.fecha} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>{fmtFecha(row.fecha)}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                      <div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 2 }}>Saldo inicial</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13, color: GRAY_500 }}>{fmt(row.saldoInicial)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 2 }}>Ingresos</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13, color: row.efectivo > 0 ? GREEN : GRAY_500 }}>{row.efectivo > 0 ? fmt(row.efectivo) : '—'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 2 }}>Gastos</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13, color: row.gastos > 0 ? RED : GRAY_500 }}>{row.gastos > 0 ? fmt(row.gastos) : '—'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 2 }}>Saldo final</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: row.saldoFinal < 0 ? RED : NAVY }}>{fmt(row.saldoFinal)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--surface-2, #f6f7f9)', border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>Saldo final {year}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: saldoEnCaja < 0 ? RED : NAVY }}>{fmt(saldoEnCaja)}</span>
+                </div>
+              </div>
+            ) : (
             <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
               <table className="table anf-table">
                 <thead>
@@ -540,6 +571,7 @@ export default function BalancePage() {
                 </tbody>
               </table>
             </div>
+            )}
           </>
         )}
       </div>

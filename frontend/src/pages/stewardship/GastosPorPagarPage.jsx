@@ -771,6 +771,31 @@ export default function GastosPorPagarPage() {
           <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted)', fontSize: 14 }}>
             Sin gastos pagados registrados.
           </div>
+        ) : isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+            {sortedPagados.map(g => {
+              const cat = g.categoria_nombre ?? g.categoria ?? '—';
+              return (
+                <div key={g.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>{g.concepto}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 99,
+                      background: CAT_BG[cat] || 'rgba(0,0,0,0.08)',
+                      color: CAT_COLORS[cat] || 'var(--muted)', whiteSpace: 'nowrap',
+                    }}>{cat}</span>
+                    <MetodoBadge metodo={g.metodo_pago} />
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 16, color: RED, marginLeft: 'auto', flexShrink: 0 }}>{fmt(Number(g.monto))}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{fmtFecha(g.fecha)}</div>
+                </div>
+              );
+            })}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--surface-2, #f6f7f9)', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>Total pagado</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: RED }}>{fmt(totalPagadosAll)}</span>
+            </div>
+          </div>
         ) : (
           <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)', marginTop: 16 }}>
             <table className="table anf-table">

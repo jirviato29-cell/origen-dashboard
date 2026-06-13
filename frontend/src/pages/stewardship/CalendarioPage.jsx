@@ -601,7 +601,39 @@ export default function CalendarioPage() {
             <p style={{ color: GRAY_500, fontSize: 13.5 }}>Cargando…</p>
           ) : mesEventos.length === 0 ? (
             <p style={{ color: GRAY_500, fontSize: 13.5 }}>Sin eventos registrados este mes.</p>
-          ) : (
+          ) : isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[...mesEventos]
+                  .sort((a, b) => toISODate(a.fecha).localeCompare(toISODate(b.fecha)))
+                  .map(ev => (
+                    <div key={ev.id} style={{ background: 'var(--surface)', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>{ev.nombre}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <TipoPill tipo={ev.tipo} />
+                        <span style={{ fontSize: 12, color: GRAY_500, fontVariantNumeric: 'tabular-nums' }}>{fmtFecha(ev.fecha)}</span>
+                      </div>
+                      {ev.nota && (
+                        <div style={{ fontSize: 12, color: GRAY_500, marginBottom: 8 }}>{ev.nota}</div>
+                      )}
+                      {canWrite && (
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                          <button onClick={() => openEditModal(ev)} style={{ ...miniBtn, flex: 1, justifyContent: 'center' }} title="Editar">
+                            <I.edit size={14} /> <span style={{ fontSize: 12, marginLeft: 4 }}>Editar</span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(ev.id)}
+                            disabled={deleting === ev.id}
+                            style={{ ...miniBtn, flex: 1, justifyContent: 'center', color: 'var(--danger)' }}
+                            title="Eliminar"
+                          >
+                            <I.trash size={14} /> <span style={{ fontSize: 12, marginLeft: 4 }}>Eliminar</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            ) : (
             <div style={{ border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-md)', overflow: 'hidden', overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 13, minWidth: 520 }}>
                 <thead>

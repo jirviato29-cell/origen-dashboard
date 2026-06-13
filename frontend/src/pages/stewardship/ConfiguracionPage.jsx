@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { I } from '../../components/Icons';
 import { usuariosApi } from '../../services/api';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const NAVY_900  = '#112540';
@@ -118,6 +119,7 @@ const labelStyle = {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function ConfiguracionPage() {
+  const isMobile = useIsMobile();
   const [usuarios, setUsuarios] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState('');
@@ -359,6 +361,46 @@ export default function ConfiguracionPage() {
 
           {error && <p style={{ fontSize: 13, color: RED_600, margin: '8px 0 0' }}>{error}</p>}
 
+          {loading ? (
+            <div style={{ padding: 40, textAlign: 'center', color: GRAY_300, marginTop: 18 }}>Cargando…</div>
+          ) : usuarios.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: GRAY_300, marginTop: 18 }}>Sin usuarios registrados</div>
+          ) : isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18 }}>
+              {usuarios.map(u => {
+                const r = ROLES_LISTA.find(x => x.id === u.rol);
+                return (
+                  <div key={u.id} style={{ background: 'var(--surface)', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, background: r?.avatarBg || NAVY_600, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>
+                        {initialsForRole(u.rol)}
+                      </div>
+                      <div style={{ fontWeight: 700, color: NAVY_900, fontSize: 14 }}>{displayNombre(u.nombre)}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: NAVY_700 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: r?.dotColor || NAVY_600, flexShrink: 0 }} />
+                        {r?.label || u.rol}
+                      </span>
+                      <button onClick={() => handleToggle(u.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, padding: '4px 11px', borderRadius: 999, cursor: 'pointer', border: 0, fontFamily: 'inherit', background: u.activo ? GREEN_50 : GRAY_100, color: u.activo ? GREEN_600 : GRAY_500 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                        {u.activo ? 'Activo' : 'Inactivo'}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 12, color: GRAY_700, marginBottom: 8 }}>Alta: {fmtDate(u.created_at)}</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => openEdit(u)} title="Cambiar clave" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 32, borderRadius: 8, border: `1px solid ${GRAY_200}`, background: '#fff', color: GRAY_500, cursor: 'pointer', fontSize: 12 }}>
+                        <I.edit size={13} /> Editar
+                      </button>
+                      <button onClick={() => handleDelete(u)} title="Eliminar" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 32, borderRadius: 8, border: `1px solid ${GRAY_200}`, background: '#fff', color: 'var(--danger)', cursor: 'pointer', fontSize: 12 }}>
+                        <I.trash size={13} /> Eliminar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
           <div style={{ border: `1px solid ${GRAY_200}`, borderRadius: 10, overflow: 'hidden', marginTop: 18 }}>
             <table className="cfg-tbl" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 13 }}>
               <thead>
@@ -371,11 +413,7 @@ export default function ConfiguracionPage() {
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
-                  <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: GRAY_300 }}>Cargando…</td></tr>
-                ) : usuarios.length === 0 ? (
-                  <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: GRAY_300 }}>Sin usuarios registrados</td></tr>
-                ) : usuarios.map((u, idx) => {
+                {usuarios.map((u, idx) => {
                   const r       = ROLES_LISTA.find(x => x.id === u.rol);
                   const isLast  = idx === usuarios.length - 1;
                   const rowBdr  = isLast ? 0 : `1px solid ${GRAY_100}`;
@@ -441,6 +479,7 @@ export default function ConfiguracionPage() {
               </tbody>
             </table>
           </div>
+          )}
         </div>
 
         {/* ── Modal Agregar ─────────────────────────────────────────────────── */}

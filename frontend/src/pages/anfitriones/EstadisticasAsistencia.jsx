@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { asistenciaApi } from '../../services/api';
 import { I } from '../../components/Icons';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -333,6 +334,40 @@ function GrowthLineChart({ growthData }) {
 // ─── Tabla de promedios mensuales ─────────────────────────────────────────────
 
 function PromedioMensualTable({ monthlyStats, overall }) {
+  const isMobile = useIsMobile();
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {monthlyStats.map(m => (
+          <div key={m.key} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
+              {m.nombre}
+              <span style={{ fontSize: 11.5, color: 'var(--muted)', marginLeft: 8, fontWeight: 400 }}>
+                {m.n} {m.n === 1 ? 'domingo' : 'domingos'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              {[
+                { label: 'Ad', val: m.avgAdultos },
+                { label: 'Vol', val: m.avgVoluntarios },
+                { label: 'Niños', val: m.avgNinos },
+                { label: 'Bebés', val: m.avgBebes },
+              ].map(({ label, val }) => (
+                <span key={label} style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                  <span style={{ fontWeight: 600 }}>{label}:</span> {val}
+                </span>
+              ))}
+              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, color: 'var(--ink)' }}>{m.avgTotal}</span>
+            </div>
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--surface-2, #f6f7f9)', border: '1px solid var(--border)' }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>Promedio general</span>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>{overall.total}</span>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
       <table className="table anf-table">

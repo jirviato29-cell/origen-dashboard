@@ -501,6 +501,89 @@ export default function BienvenidaCasaPage() {
         </div>
 
         {/* Table */}
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: GRAY_300 }}>Cargando...</div>
+        ) : paged.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: GRAY_300 }}>
+            {search || filtro !== 'todos' ? 'Sin resultados para este filtro.' : 'Aún no hay visitantes registrados.'}
+          </div>
+        ) : isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {paged.map((v, idx) => {
+              const rel = relChip(v.relacion_con_origen);
+              const fe  = feChip(v.estado_fe);
+              const av  = v.estado_fe === 'Soy nuevo' ? ORANGE_500 : NAVY_600;
+              const n   = (page - 1) * PAGE_SIZE + idx + 1;
+              return (
+                <div key={v.id} style={{ background: v.contactado ? GREEN_50 : 'var(--surface)', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 9, background: av, color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 11, fontWeight: 800, flexShrink: 0,
+                    }}>{initials(v.nombre)}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, color: NAVY_900, fontSize: 14 }}>{v.nombre}</div>
+                      {v.edad && <div style={{ fontSize: 11.5, color: GRAY_500 }}>{v.edad} años</div>}
+                    </div>
+                    <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: GRAY_300 }}>#{String(n).padStart(2, '0')}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, background: rel.bg, color: rel.color, fontSize: 11.5, fontWeight: 600, opacity: rel.opacity }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: rel.color, flexShrink: 0 }} />
+                      {rel.label}
+                    </span>
+                    <span style={{ fontSize: 12, color: GRAY_700 }}>{v.fecha ? fmtFechaShort(v.fecha) : '—'}</span>
+                  </div>
+                  {fe && (
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, background: fe.bg, color: fe.color, fontSize: 11.5, fontWeight: 600 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: fe.color, flexShrink: 0 }} />
+                        {fe.label}
+                      </span>
+                    </div>
+                  )}
+                  {(v.whatsapp || v.colonia) && (
+                    <div style={{ fontSize: 12, color: GRAY_700, marginBottom: 6 }}>
+                      {v.whatsapp && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <WaIcon size={12} color={TEAL} />
+                          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{v.whatsapp}</span>
+                        </div>
+                      )}
+                      {v.colonia && <div style={{ marginTop: 2 }}>{v.colonia}</div>}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                    <button
+                      onClick={esPastor ? undefined : () => toggleContactado(v)}
+                      title={v.contactado ? 'Contactado' : 'Sin contactar'}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '5px 10px', borderRadius: 7, border: `2px solid ${v.contactado ? GREEN_600 : GRAY_200}`,
+                        background: v.contactado ? GREEN_600 : '#fff',
+                        color: v.contactado ? '#fff' : GRAY_500,
+                        cursor: esPastor ? 'default' : 'pointer', fontSize: 12, fontWeight: 600,
+                      }}
+                    >
+                      {v.contactado ? <><I.check size={12} /> Contactado</> : 'Sin contactar'}
+                    </button>
+                    {v.whatsapp && (
+                      <button onClick={() => openWa(v.whatsapp)} title="Abrir WhatsApp" style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${GRAY_200}`, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: TEAL }}>
+                        <WaIcon size={14} color={TEAL} />
+                      </button>
+                    )}
+                    {!esPastor && (
+                      <button onClick={() => openEdit(v)} title="Editar" style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${GRAY_200}`, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: GRAY_500 }}>
+                        <I.edit size={13} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', minWidth: 1140, borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
@@ -519,13 +602,7 @@ export default function BienvenidaCasaPage() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
-                <tr><td colSpan={11} style={{ padding: 40, textAlign: 'center', color: GRAY_300 }}>Cargando...</td></tr>
-              ) : paged.length === 0 ? (
-                <tr><td colSpan={11} style={{ padding: 40, textAlign: 'center', color: GRAY_300 }}>
-                  {search || filtro !== 'todos' ? 'Sin resultados para este filtro.' : 'Aún no hay visitantes registrados.'}
-                </td></tr>
-              ) : paged.map((v, idx) => {
+              {paged.map((v, idx) => {
                 const rel = relChip(v.relacion_con_origen);
                 const fe  = feChip(v.estado_fe);
                 const av  = v.estado_fe === 'Soy nuevo' ? ORANGE_500 : NAVY_600;
@@ -669,6 +746,7 @@ export default function BienvenidaCasaPage() {
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Pagination */}
         <div style={{

@@ -3,6 +3,7 @@ import { ofrendasApi, gastosApi } from '../../services/api';
 import { I } from '../../components/Icons';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 const CATEGORIAS_GASTO = ['Operación', 'Alimentos', 'Materiales', 'Eventos', 'Decoración'];
 
@@ -35,6 +36,7 @@ const HOY_MES = (() => {
 })();
 
 export default function FinanzasPage() {
+  const isMobile = useIsMobile();
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'finanzas');
   const [ingresos,  setIngresos]  = useState([]);
@@ -246,6 +248,32 @@ export default function FinanzasPage() {
         ) : movimientos.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted)', fontSize: 14 }}>
             Sin movimientos en esta categoría.
+          </div>
+        ) : isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {movimientos.map((m, idx) => (
+              <div key={`${m.tipo}-${m.id ?? idx}`} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
+                  {m.concepto}
+                  {(m.categoria_nombre ?? m.categoria) && (
+                    <span className="cat-pill" style={{ marginLeft: 8 }}>{m.categoria_nombre ?? m.categoria}</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{
+                    fontSize: 11.5, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                    background: m.tipo === 'ingreso' ? 'rgba(79,138,91,0.15)' : 'rgba(180,74,58,0.12)',
+                    color: m.tipo === 'ingreso' ? 'var(--good)' : 'var(--danger)',
+                  }}>
+                    {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 16, color: m.tipo === 'ingreso' ? 'var(--good)' : 'var(--danger)', flexShrink: 0 }}>
+                    {m.tipo === 'ingreso' ? '+' : '-'}${fmt(m.monto)}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{fmtDate(m.fecha)}</div>
+              </div>
+            ))}
           </div>
         ) : (
           <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>

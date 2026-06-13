@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { asistenciaApi } from '../../services/api';
 import { I } from '../../components/Icons';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 const NAVY      = '#112540';
 const NAVY_300  = '#9CB0CC';
@@ -19,6 +20,7 @@ function rowTotal(r) {
 }
 
 export default function HistorialAsistencia() {
+  const isMobile = useIsMobile();
   const [records, setRecords]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
@@ -141,6 +143,43 @@ export default function HistorialAsistencia() {
       ) : records.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted)', fontSize: 14 }}>
           Aún no hay registros. ¡Sé el primero en registrar asistencia!
+        </div>
+      ) : isMobile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {filtered.map((r, i) => {
+            const total = rowTotal(r);
+            return (
+              <div key={r.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
+                  {fmtDate(r.fecha)}
+                  {i === 0 && !search && (
+                    <span className="cat-pill" style={{ marginLeft: 8 }}>Más reciente</span>
+                  )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px 8px' }}>
+                  {[
+                    { label: 'Adultos',    val: r.adultos ?? '—',    color: NAVY },
+                    { label: 'Voluntarios',val: r.voluntarios ?? '—',color: NAVY },
+                    { label: 'Niños',      val: r.ninos ?? '—',      color: NAVY },
+                    { label: 'Bebés',      val: r.bebes ?? '—',      color: NAVY },
+                    { label: 'Nuevos',     val: r.nuevos > 0 ? r.nuevos : '—', color: 'var(--warn)' },
+                    { label: 'Total',      val: total, color: NAVY, bold: true },
+                  ].map(({ label, val, color, bold }) => (
+                    <div key={label} style={{ background: label === 'Total' ? NAVY_100 : 'transparent', borderRadius: 8, padding: label === 'Total' ? '4px 8px' : 0 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)' }}>{label}</div>
+                      <div style={{ fontSize: 16, fontWeight: bold ? 800 : 600, color, fontVariantNumeric: 'tabular-nums' }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          {!search && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--surface-2, #f6f7f9)', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>Totales</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: NAVY }}>{totTotal}</span>
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>

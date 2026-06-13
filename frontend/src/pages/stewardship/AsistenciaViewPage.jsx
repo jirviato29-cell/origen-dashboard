@@ -649,6 +649,44 @@ export default function AsistenciaViewPage() {
               ))}
             </div>
 
+          {isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {records.map((r, i) => {
+                const total = rowTotal(r);
+                return (
+                  <div key={r.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
+                      {fmtFecha(r.fecha)}
+                      {i === 0 && (
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: NAVY_100, color: NAVY_700, marginLeft: 8 }}>
+                          Más reciente
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px 8px' }}>
+                      {[
+                        { label: 'Adultos',    val: r.adultos ?? '—',    color: NAVY_700 },
+                        { label: 'Voluntarios',val: r.voluntarios ?? '—',color: NAVY_700 },
+                        { label: 'Niños',      val: r.ninos ?? '—',      color: NAVY_700 },
+                        { label: 'Bebés',      val: r.bebes ?? '—',      color: NAVY_700 },
+                        { label: 'Nuevos',     val: r.nuevos > 0 ? r.nuevos : '—', color: ORANGE_600 },
+                        { label: 'Total',      val: total,                color: NAVY, bold: true },
+                      ].map(({ label, val, color, bold }) => (
+                        <div key={label} style={{ background: label === 'Total' ? NAVY_100 : 'transparent', borderRadius: 8, padding: label === 'Total' ? '4px 8px' : 0 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)' }}>{label}</div>
+                          <div style={{ fontSize: 16, fontWeight: bold ? 800 : 600, color, fontVariantNumeric: 'tabular-nums' }}>{val}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--surface-2, #f6f7f9)', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>Totales</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: NAVY }}>{totTotal.toLocaleString('es-MX')}</span>
+              </div>
+            </div>
+          ) : (
           <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
             <table className="table anf-table">
               <thead>
@@ -709,6 +747,7 @@ export default function AsistenciaViewPage() {
               </tbody>
             </table>
           </div>
+          )}
           </>
         )}
       </div>

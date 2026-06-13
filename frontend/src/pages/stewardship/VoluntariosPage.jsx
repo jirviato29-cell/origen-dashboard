@@ -764,6 +764,76 @@ export default function VoluntariosPage() {
           )}
 
           {/* Tabla */}
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: 32, color: GRAY_500 }}>Cargando…</div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 32, color: GRAY_500 }}>
+              {search.trim() ? 'Sin resultados para esta búsqueda' : 'Sin voluntarios registrados'}
+            </div>
+          ) : isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {filtered.map(v => {
+                const iso  = v.cumpleanos ? v.cumpleanos.slice(0, 10) : null;
+                const age  = iso ? calcAge(iso) : null;
+                const soon = iso ? isSoon(iso) : null;
+                const mins = [v.ministerio1, v.ministerio2, v.ministerio3].filter(Boolean);
+                return (
+                  <div key={v.id} style={{ background: 'var(--surface)', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                        background: guessGenero(v.nombre) === 'F' ? PURPLE : NAVY_600,
+                        color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 700, fontSize: 12,
+                      }}>{initials(v.nombre)}</div>
+                      <div>
+                        <div style={{ fontWeight: 700, color: NAVY, fontSize: 14 }}>{v.nombre}</div>
+                        {age !== null && <div style={{ fontSize: 11, color: GRAY_500 }}>{age} años</div>}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12.5, color: GRAY_700, marginBottom: 6 }}>
+                      {iso ? (
+                        <>
+                          <span style={{ fontWeight: 600, color: GRAY_500 }}>Cumple: </span>
+                          {fmtFecha(iso)}
+                          {soon && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: ORANGE_600, background: ORANGE_50, padding: '1px 7px', borderRadius: 5 }}>{soon}</span>}
+                        </>
+                      ) : null}
+                      {v.whatsapp && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
+                          <svg viewBox="0 0 24 24" fill="currentColor" width={12} height={12} style={{ color: '#25D366', flexShrink: 0 }}>
+                            <path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.8-1.4A10 10 0 1 0 12 2zm5.5 14.3c-.2.6-1.2 1.1-1.7 1.2-.4 0-.9.1-2.8-.6-2.3-.8-3.8-3.1-3.9-3.3-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 .9-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.7 1.7c.1.2.1.4 0 .6l-.5.7.5.8c.6.9 1.3 1.5 2.2 1.9.3.1.5.1.7-.1l.5-.7c.2-.2.4-.2.6-.1l1.8.8c.2.1.4.2.4.4-.1.8-.3 1.8-.6 2z"/>
+                          </svg>
+                          <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12, color: GRAY_700 }}>{v.whatsapp}</span>
+                        </div>
+                      )}
+                    </div>
+                    {mins.length > 0 && (
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                        {mins.map((m, i) => (
+                          <span key={i} style={{
+                            fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 6, whiteSpace: 'nowrap',
+                            background: i === 0 ? ORANGE_50 : NAVY_100, color: i === 0 ? ORANGE_600 : NAVY_700,
+                          }}>{m}</span>
+                        ))}
+                      </div>
+                    )}
+                    {v.otra_area && <div style={{ fontSize: 12, color: GRAY_700, marginBottom: 8 }}>{v.otra_area}</div>}
+                    {canWrite && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                        <button onClick={() => openEdit(v)} title="Editar" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 32, borderRadius: 7, border: `1px solid ${GRAY_200}`, background: 'white', color: GRAY_500, cursor: 'pointer', fontSize: 12 }}>
+                          <I.edit size={13} /> Editar
+                        </button>
+                        <button onClick={() => handleDelete(v)} title="Eliminar" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 32, borderRadius: 7, border: `1px solid ${GRAY_200}`, background: 'white', color: 'var(--danger)', cursor: 'pointer', fontSize: 12 }}>
+                          <I.trash size={13} /> Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
           <div className="tbl-wrap" style={{ borderRadius: 10, border: `1px solid ${GRAY_200}` }}>
             <table className="table anf-table">
               <thead>
@@ -777,20 +847,7 @@ export default function VoluntariosPage() {
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={canWrite ? 6 : 5} style={{ textAlign: 'center', padding: 32, color: GRAY_500 }}>
-                      Cargando…
-                    </td>
-                  </tr>
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={canWrite ? 6 : 5} style={{ textAlign: 'center', padding: 32, color: GRAY_500 }}>
-                      {search.trim() ? 'Sin resultados para esta búsqueda' : 'Sin voluntarios registrados'}
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map(v => {
+                {filtered.map(v => {
                     const iso     = v.cumpleanos ? v.cumpleanos.slice(0, 10) : null;
                     const age     = iso ? calcAge(iso) : null;
                     const soon    = iso ? isSoon(iso) : null;
@@ -917,11 +974,11 @@ export default function VoluntariosPage() {
                         )}
                       </tr>
                     );
-                  })
-                )}
+                  })}
               </tbody>
             </table>
           </div>
+          )}
         </div>
 
         {/* Modal editar */}

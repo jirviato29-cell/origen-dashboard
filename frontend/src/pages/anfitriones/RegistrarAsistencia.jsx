@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { asistenciaApi } from '../../services/api';
 import { useRegistrarModal } from '../../context/RegistrarModalContext';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 function fmtDate(d) {
   if (!d) return '—';
@@ -28,6 +29,7 @@ function formatDateLong(date) {
 }
 
 export default function RegistrarAsistencia() {
+  const isMobile   = useIsMobile();
   const sunday     = getTargetSunday();
   const fechaISO   = toISODate(sunday);
   const fechaLabel = formatDateLong(sunday);
@@ -97,6 +99,38 @@ export default function RegistrarAsistencia() {
         ) : historial.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 py-12 text-center text-gray-400 text-sm px-4">
             Aún no hay registros. ¡Sé el primero en registrar asistencia!
+          </div>
+        ) : isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {historial.map((r) => {
+              const rTotal = (r.adultos || 0) + (r.voluntarios || 0) + (r.ninos || 0) + (r.bebes || 0);
+              const esEste = r.fecha === fechaISO;
+              return (
+                <div key={r.id} style={{ background: esEste ? '#FFF4EE' : 'var(--surface)', border: `1px solid ${esEste ? '#E0561B40' : 'var(--border)'}`, borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
+                    {fmtDate(r.fecha)}
+                    {esEste && (
+                      <span style={{ marginLeft: 8, fontSize: 10.5, padding: '2px 8px', borderRadius: 99, background: '#C1644A', color: '#fff', fontWeight: 700 }}>hoy</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px 8px' }}>
+                    {[
+                      { label: 'Adultos',    val: r.adultos ?? '—',    color: '#374151' },
+                      { label: 'Volunt.',    val: r.voluntarios ?? '—',color: '#374151' },
+                      { label: 'Niños',      val: r.ninos ?? '—',      color: '#374151' },
+                      { label: 'Bebés',      val: r.bebes ?? '—',      color: '#374151' },
+                      { label: 'Nuevos',     val: r.nuevos > 0 ? r.nuevos : '—', color: '#CBD2DC' },
+                      { label: 'Total',      val: rTotal, color: '#C1644A', bold: true },
+                    ].map(({ label, val, color, bold }) => (
+                      <div key={label} style={{ background: label === 'Total' ? 'rgba(193,100,74,0.08)' : 'transparent', borderRadius: 8, padding: label === 'Total' ? '4px 8px' : 0 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: '#9CA3AF' }}>{label}</div>
+                        <div style={{ fontSize: 16, fontWeight: bold ? 800 : 600, color, fontVariantNumeric: 'tabular-nums' }}>{val}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
