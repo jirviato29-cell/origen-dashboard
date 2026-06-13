@@ -33,7 +33,13 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Clave incorrecta' });
     }
 
-    const permisos = PERMISOS[rol] || { total: false, secciones: {} };
+    const basePermisos = PERMISOS[rol] || { total: false, secciones: {} };
+    const permisos = { ...basePermisos, secciones: { ...basePermisos.secciones } };
+    if (usuario.permisos_extra?.secciones) {
+      for (const [sec, overrides] of Object.entries(usuario.permisos_extra.secciones)) {
+        permisos.secciones[sec] = { ...(permisos.secciones[sec] || {}), ...overrides };
+      }
+    }
 
     const token = jwt.sign(
       { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol },

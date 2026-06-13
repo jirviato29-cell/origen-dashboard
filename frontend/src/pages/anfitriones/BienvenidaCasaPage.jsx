@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { visitantesApi } from '../../services/api';
 import { fmtFechaShort } from '../../utils/fecha';
 import { I } from '../../components/Icons';
-import { useAuth, ROLES } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
+import { puedeRegistrar } from '../../permissions';
 import { useIsMobile } from '../../utils/useIsMobile';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
@@ -278,8 +279,8 @@ function VisitanteModal({ editing, onClose, onSaved }) {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function BienvenidaCasaPage() {
-  const { role } = useAuth();
-  const esPastor = role === ROLES.PASTOR;
+  const { permisos } = useAuth();
+  const canWrite = puedeRegistrar(permisos, 'visitantes');
   const isMobile = useIsMobile();
 
   const [visitantes, setVisitantes] = useState([]);
@@ -422,7 +423,7 @@ export default function BienvenidaCasaPage() {
               Lleva el registro de quienes visitan la iglesia por primera vez o de forma recurrente.
             </p>
           </div>
-          {!esPastor && (
+          {canWrite && (
             <button onClick={openNew} style={{
               padding: '11px 20px', borderRadius: 11, border: 0,
               background: ORANGE_500, color: '#fff', fontSize: 13.5, fontWeight: 700,
@@ -556,14 +557,14 @@ export default function BienvenidaCasaPage() {
                   )}
                   <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
                     <button
-                      onClick={esPastor ? undefined : () => toggleContactado(v)}
+                      onClick={canWrite ? () => toggleContactado(v) : undefined}
                       title={v.contactado ? 'Contactado' : 'Sin contactar'}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5,
                         padding: '5px 10px', borderRadius: 7, border: `2px solid ${v.contactado ? GREEN_600 : GRAY_200}`,
                         background: v.contactado ? GREEN_600 : '#fff',
                         color: v.contactado ? '#fff' : GRAY_500,
-                        cursor: esPastor ? 'default' : 'pointer', fontSize: 12, fontWeight: 600,
+                        cursor: canWrite ? 'pointer' : 'default', fontSize: 12, fontWeight: 600,
                       }}
                     >
                       {v.contactado ? <><I.check size={12} /> Contactado</> : 'Sin contactar'}
@@ -573,7 +574,7 @@ export default function BienvenidaCasaPage() {
                         <WaIcon size={14} color={TEAL} />
                       </button>
                     )}
-                    {!esPastor && (
+                    {canWrite && (
                       <button onClick={() => openEdit(v)} title="Editar" style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${GRAY_200}`, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: GRAY_500 }}>
                         <I.edit size={13} />
                       </button>
@@ -693,11 +694,11 @@ export default function BienvenidaCasaPage() {
                     {/* Contactado */}
                     <td style={{ ...tdSt, textAlign: 'center' }}>
                       <button
-                        onClick={esPastor ? undefined : () => toggleContactado(v)}
+                        onClick={canWrite ? () => toggleContactado(v) : undefined}
                         title={v.contactado ? 'Contactado' : 'Sin contactar'}
                         style={{
                           width: 28, height: 28, borderRadius: 7,
-                          cursor: esPastor ? 'default' : 'pointer',
+                          cursor: canWrite ? 'pointer' : 'default',
                           border: `2px solid ${v.contactado ? GREEN_600 : GRAY_200}`,
                           background: v.contactado ? GREEN_600 : '#fff',
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -724,7 +725,7 @@ export default function BienvenidaCasaPage() {
                             <WaIcon size={14} color={TEAL} />
                           </button>
                         )}
-                        {!esPastor && (
+                        {canWrite && (
                           <button
                             onClick={() => openEdit(v)}
                             title="Editar"

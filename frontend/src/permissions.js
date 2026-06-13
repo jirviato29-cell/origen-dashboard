@@ -7,6 +7,7 @@ export const PERMISOS = {
     secciones: {
       asistencia: { ver: true, registrar: true,  modificar: true  },
       calendario: { ver: true, registrar: false, modificar: false },
+      visitantes: { ver: true, registrar: true,  modificar: true  },
     },
   },
   punto_encuentro: {
@@ -28,6 +29,7 @@ export const PERMISOS = {
       asistencia:      { ver: true, registrar: false, modificar: false },
       punto_encuentro: { ver: true, registrar: false, modificar: false },
       calendario:      { ver: true, registrar: false, modificar: false },
+      visitantes:      { ver: true, registrar: false, modificar: false },
     },
   },
   administracion: { total: true, secciones: {} },
