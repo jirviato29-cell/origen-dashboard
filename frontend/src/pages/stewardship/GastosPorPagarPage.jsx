@@ -514,7 +514,8 @@ export default function GastosPorPagarPage() {
               const isPagando = pagando === g.id;
               return (
                 <div key={g.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
+                  display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+                  alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 0 : 14,
                   padding: '14px 16px 14px 18px',
                   border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
                   background: 'var(--surface)', position: 'relative',
@@ -524,109 +525,230 @@ export default function GastosPorPagarPage() {
                     width: 3, borderRadius: '0 3px 3px 0',
                     background: STATUS_BAR[g._status],
                   }} />
-                  <DateBlock fechaVenc={g.fecha_vencimiento} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 5 }}>{g.concepto}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 6,
-                        background: CAT_BG[cat] || 'rgba(0,0,0,0.06)',
-                        color: CAT_COLORS[cat] || 'var(--muted)',
-                      }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: CAT_COLORS[cat] || 'var(--muted)', flexShrink: 0 }} />
-                        {cat}
-                      </span>
-                    </div>
-                  </div>
-                  <StatusBadge status={g._status} diffD={g._diffD} />
-                  <span style={{
-                    fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em', color: RED,
-                    fontVariantNumeric: 'tabular-nums', flexShrink: 0, width: 96, textAlign: 'right',
-                  }}>
-                    −{fmt(Number(g.monto))}
-                  </span>
-                  {canWrite && (
+
+                  {isMobile ? (
                     <>
-                      <button
-                        title="Editar gasto"
-                        onClick={() => handleEditOpen(g)}
-                        onMouseEnter={() => setEditHoverId(g.id)}
-                        onMouseLeave={() => setEditHoverId(null)}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-                          border: `1px solid ${editHoverId === g.id ? '#FF6B2B' : 'var(--border-strong)'}`,
-                          background: 'var(--surface)',
-                          color: editHoverId === g.id ? '#FF6B2B' : NAVY,
-                          cursor: 'pointer',
-                          transition: 'border-color .12s, color .12s',
-                        }}
-                      >
-                        <I.edit size={16} />
-                      </button>
-                      <button
-                        title="Eliminar gasto"
-                        onClick={() => handleDeleteOpen(g)}
-                        onMouseEnter={() => setDeleteHoverId(g.id)}
-                        onMouseLeave={() => setDeleteHoverId(null)}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-                          border: `1px solid ${deleteHoverId === g.id ? RED : 'var(--border-strong)'}`,
-                          background: 'var(--surface)',
-                          color: deleteHoverId === g.id ? RED : NAVY,
-                          cursor: 'pointer',
-                          transition: 'border-color .12s, color .12s',
-                        }}
-                      >
-                        <I.trash size={16} />
-                      </button>
-                    </>
-                  )}
-                  {canWrite && (
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                      <button
-                        disabled={isPagando}
-                        onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === g.id ? null : g.id); }}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 6,
-                          fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 8,
-                          border: '1px solid var(--border-strong)', background: 'var(--surface)',
-                          color: NAVY_500, cursor: isPagando ? 'not-allowed' : 'pointer',
-                          flexShrink: 0, opacity: isPagando ? 0.5 : 1,
-                          transition: 'background .12s, color .12s', whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <I.check size={14} />
-                        {isPagando ? 'Guardando…' : 'Marcar pagado ▾'}
-                      </button>
-                      {openMenu === g.id && (
-                        <div style={{
-                          position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 100,
-                          background: 'var(--surface)', border: '1px solid var(--border-strong)',
-                          borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                          overflow: 'hidden', minWidth: 170,
-                        }}>
-                          {[
-                            { value: 'efectivo_ags', label: 'Efectivo Aguascalientes', color: NAVY_500, bg: NAVY_SOFT  },
-                            { value: 'gdl',          label: 'Transferencia Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
-                            { value: 'donacion',     label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
-                          ].map((m, mi, arr) => (
-                            <button key={m.value} onClick={() => handlePagar(g.id, m.value)} style={{
-                              display: 'flex', alignItems: 'center', gap: 9,
-                              width: '100%', padding: '10px 14px', border: 'none',
-                              borderBottom: mi < arr.length - 1 ? '1px solid var(--border)' : 'none',
-                              background: 'transparent', cursor: 'pointer', textAlign: 'left',
-                              fontSize: 13, fontWeight: 600, color: m.color,
-                            }}>
-                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
-                              {m.label}
+                      {/* Móvil fila 1: fecha + monto + editar */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <DateBlock fechaVenc={g.fecha_vencimiento} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{
+                            fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em', color: RED,
+                            fontVariantNumeric: 'tabular-nums',
+                          }}>
+                            −{fmt(Number(g.monto))}
+                          </span>
+                          {canWrite && (
+                            <button
+                              title="Editar gasto"
+                              onClick={() => handleEditOpen(g)}
+                              onMouseEnter={() => setEditHoverId(g.id)}
+                              onMouseLeave={() => setEditHoverId(null)}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                                border: `1px solid ${editHoverId === g.id ? '#FF6B2B' : 'var(--border-strong)'}`,
+                                background: 'var(--surface)',
+                                color: editHoverId === g.id ? '#FF6B2B' : NAVY,
+                                cursor: 'pointer', transition: 'border-color .12s, color .12s',
+                              }}
+                            >
+                              <I.edit size={16} />
                             </button>
-                          ))}
+                          )}
+                        </div>
+                      </div>
+                      {/* Móvil fila 2: concepto completo */}
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 7 }}>
+                        {g.concepto}
+                      </div>
+                      {/* Móvil fila 3: badge de status */}
+                      <div style={{ marginBottom: 7 }}>
+                        <StatusBadge status={g._status} diffD={g._diffD} />
+                      </div>
+                      {/* Móvil fila 4: categoría */}
+                      <div style={{ marginBottom: canWrite ? 10 : 0 }}>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 6,
+                          background: CAT_BG[cat] || 'rgba(0,0,0,0.06)',
+                          color: CAT_COLORS[cat] || 'var(--muted)',
+                        }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: CAT_COLORS[cat] || 'var(--muted)', flexShrink: 0 }} />
+                          {cat}
+                        </span>
+                      </div>
+                      {/* Móvil fila 5: eliminar + marcar pagado */}
+                      {canWrite && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <button
+                            title="Eliminar gasto"
+                            onClick={() => handleDeleteOpen(g)}
+                            onMouseEnter={() => setDeleteHoverId(g.id)}
+                            onMouseLeave={() => setDeleteHoverId(null)}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                              border: `1px solid ${deleteHoverId === g.id ? RED : 'var(--border-strong)'}`,
+                              background: 'var(--surface)',
+                              color: deleteHoverId === g.id ? RED : NAVY,
+                              cursor: 'pointer', transition: 'border-color .12s, color .12s',
+                            }}
+                          >
+                            <I.trash size={16} />
+                          </button>
+                          <div style={{ position: 'relative', flex: 1 }}>
+                            <button
+                              disabled={isPagando}
+                              onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === g.id ? null : g.id); }}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                width: '100%', fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 8,
+                                border: '1px solid var(--border-strong)', background: 'var(--surface)',
+                                color: NAVY_500, cursor: isPagando ? 'not-allowed' : 'pointer',
+                                opacity: isPagando ? 0.5 : 1, transition: 'background .12s, color .12s', whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <I.check size={14} />
+                              {isPagando ? 'Guardando…' : 'Marcar pagado ▾'}
+                            </button>
+                            {openMenu === g.id && (
+                              <div style={{
+                                position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 100,
+                                background: 'var(--surface)', border: '1px solid var(--border-strong)',
+                                borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                                overflow: 'hidden', minWidth: 170,
+                              }}>
+                                {[
+                                  { value: 'efectivo_ags', label: 'Efectivo Aguascalientes', color: NAVY_500, bg: NAVY_SOFT  },
+                                  { value: 'gdl',          label: 'Transferencia Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
+                                  { value: 'donacion',     label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
+                                ].map((m, mi, arr) => (
+                                  <button key={m.value} onClick={() => handlePagar(g.id, m.value)} style={{
+                                    display: 'flex', alignItems: 'center', gap: 9,
+                                    width: '100%', padding: '10px 14px', border: 'none',
+                                    borderBottom: mi < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                                    background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                                    fontSize: 13, fontWeight: 600, color: m.color,
+                                  }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
+                                    {m.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
-                    </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Escritorio: layout horizontal original */}
+                      <DateBlock fechaVenc={g.fecha_vencimiento} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 5 }}>{g.concepto}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 6,
+                            background: CAT_BG[cat] || 'rgba(0,0,0,0.06)',
+                            color: CAT_COLORS[cat] || 'var(--muted)',
+                          }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: CAT_COLORS[cat] || 'var(--muted)', flexShrink: 0 }} />
+                            {cat}
+                          </span>
+                        </div>
+                      </div>
+                      <StatusBadge status={g._status} diffD={g._diffD} />
+                      <span style={{
+                        fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em', color: RED,
+                        fontVariantNumeric: 'tabular-nums', flexShrink: 0, width: 96, textAlign: 'right',
+                      }}>
+                        −{fmt(Number(g.monto))}
+                      </span>
+                      {canWrite && (
+                        <>
+                          <button
+                            title="Editar gasto"
+                            onClick={() => handleEditOpen(g)}
+                            onMouseEnter={() => setEditHoverId(g.id)}
+                            onMouseLeave={() => setEditHoverId(null)}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                              border: `1px solid ${editHoverId === g.id ? '#FF6B2B' : 'var(--border-strong)'}`,
+                              background: 'var(--surface)',
+                              color: editHoverId === g.id ? '#FF6B2B' : NAVY,
+                              cursor: 'pointer',
+                              transition: 'border-color .12s, color .12s',
+                            }}
+                          >
+                            <I.edit size={16} />
+                          </button>
+                          <button
+                            title="Eliminar gasto"
+                            onClick={() => handleDeleteOpen(g)}
+                            onMouseEnter={() => setDeleteHoverId(g.id)}
+                            onMouseLeave={() => setDeleteHoverId(null)}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                              border: `1px solid ${deleteHoverId === g.id ? RED : 'var(--border-strong)'}`,
+                              background: 'var(--surface)',
+                              color: deleteHoverId === g.id ? RED : NAVY,
+                              cursor: 'pointer',
+                              transition: 'border-color .12s, color .12s',
+                            }}
+                          >
+                            <I.trash size={16} />
+                          </button>
+                        </>
+                      )}
+                      {canWrite && (
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <button
+                            disabled={isPagando}
+                            onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === g.id ? null : g.id); }}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 8,
+                              border: '1px solid var(--border-strong)', background: 'var(--surface)',
+                              color: NAVY_500, cursor: isPagando ? 'not-allowed' : 'pointer',
+                              flexShrink: 0, opacity: isPagando ? 0.5 : 1,
+                              transition: 'background .12s, color .12s', whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <I.check size={14} />
+                            {isPagando ? 'Guardando…' : 'Marcar pagado ▾'}
+                          </button>
+                          {openMenu === g.id && (
+                            <div style={{
+                              position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 100,
+                              background: 'var(--surface)', border: '1px solid var(--border-strong)',
+                              borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                              overflow: 'hidden', minWidth: 170,
+                            }}>
+                              {[
+                                { value: 'efectivo_ags', label: 'Efectivo Aguascalientes', color: NAVY_500, bg: NAVY_SOFT  },
+                                { value: 'gdl',          label: 'Transferencia Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
+                                { value: 'donacion',     label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
+                              ].map((m, mi, arr) => (
+                                <button key={m.value} onClick={() => handlePagar(g.id, m.value)} style={{
+                                  display: 'flex', alignItems: 'center', gap: 9,
+                                  width: '100%', padding: '10px 14px', border: 'none',
+                                  borderBottom: mi < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                                  background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                                  fontSize: 13, fontWeight: 600, color: m.color,
+                                }}>
+                                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
+                                  {m.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               );
