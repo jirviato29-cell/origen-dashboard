@@ -23,7 +23,7 @@ const GRAY_100 = '#EEF1F5';
 const GRAY_50  = '#F6F7F9';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-const TIPO_PRIORIDAD = ['Alpha', 'Reunión de mujeres', 'Reunión de hombres', 'Especial', 'Servicio dominical'];
+const TIPO_PRIORIDAD = ['Alpha', 'Alpha Youth', 'Reunión de mujeres', 'Reunión de hombres', 'Santuario', 'Especial', 'Kids', 'Servicio dominical'];
 const DIAS_HEADER    = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MESES_ES       = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
