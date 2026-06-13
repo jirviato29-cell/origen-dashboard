@@ -475,9 +475,7 @@ export default function CalendarioPage() {
                   const tipoPrioritario = TIPO_PRIORIDAD.find(t => tiposEnCelda.has(t));
 
                   let cellBg;
-                  if (isSelected) {
-                    cellBg = isPast ? `${GRAY_300}40` : `${ORANGE}10`;
-                  } else if (!day) {
+                  if (!day) {
                     cellBg = 'white';
                   } else if (isPast) {
                     cellBg = GRAY_100;
@@ -497,7 +495,7 @@ export default function CalendarioPage() {
                         padding: '5px 6px', display: 'flex', flexDirection: 'column', gap: 2,
                         cursor: day ? 'pointer' : 'default',
                         background: cellBg,
-                        boxShadow: isSelected ? `inset 0 0 0 2px ${isPast ? GRAY_300 : ORANGE}` : 'none',
+                        boxShadow: isSelected ? 'inset 0 0 0 2.5px #112540' : 'none',
                         position: 'relative',
                       }}
                     >
@@ -574,8 +572,8 @@ export default function CalendarioPage() {
                       minHeight: 130,
                       borderRight: i < 6 ? `1px solid ${GRAY_100}` : 'none',
                       padding: '6px 7px', display: 'flex', flexDirection: 'column', gap: 3,
-                      background: isSelected ? `${ORANGE}10` : isToday ? ORANGE_50 : 'white',
-                      boxShadow: isSelected ? `inset 0 0 0 2px ${ORANGE}` : 'none',
+                      background: isToday ? ORANGE_50 : 'white',
+                      boxShadow: isSelected ? 'inset 0 0 0 2.5px #112540' : 'none',
                       cursor: 'pointer',
                     }}
                   >
