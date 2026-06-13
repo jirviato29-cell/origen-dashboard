@@ -600,7 +600,7 @@ export default function PuntoEncuentroViewPage() {
       )}
 
       {/* ── Layout principal 2 columnas ──────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 14, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.55fr 1fr', gap: 14, alignItems: 'start' }}>
 
         {/* ── IZQUIERDA: Lista de eventos ────────────────────────────────── */}
         <div className="card">
@@ -970,7 +970,7 @@ export default function PuntoEncuentroViewPage() {
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: 22, marginBottom: 18 }}>
+              <div style={{ display: 'flex', gap: isMobile ? 14 : 22, flexWrap: 'wrap', marginBottom: 18 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
                     {diasFaltantes}
@@ -996,7 +996,7 @@ export default function PuntoEncuentroViewPage() {
                   <button
                     className="btn"
                     onClick={() => openModal(proximo)}
-                    style={{ background: '#FF6B2B', color: 'white', fontWeight: 700, border: 'none' }}
+                    style={{ background: '#FF6B2B', color: 'white', fontWeight: 700, border: 'none', width: isMobile ? '100%' : undefined }}
                     onMouseEnter={e => e.currentTarget.style.background = '#E0561B'}
                     onMouseLeave={e => e.currentTarget.style.background = '#FF6B2B'}
                   >
