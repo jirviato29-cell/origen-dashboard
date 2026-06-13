@@ -68,7 +68,7 @@ const ROLES_LISTA = [
   },
 ];
 
-const EMPTY_ADD  = { rol: 'anfitriones', clave: '' };
+const EMPTY_ADD  = { nombre: '', rol: 'anfitriones', clave: '' };
 const EMPTY_EDIT = { nombre: '', clave: '' };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -153,10 +153,11 @@ export default function ConfiguracionPage() {
   const openEdit = (u) => { setEditId(u.id); setEditForm({ nombre: u.nombre, clave: '' }); setFormErr(''); setModal('edit'); };
 
   const handleAdd = async () => {
-    if (!addForm.clave.trim()) { setFormErr('La clave no puede estar vacía'); return; }
+    if (!addForm.nombre.trim()) { setFormErr('El nombre no puede estar vacío'); return; }
+    if (!addForm.clave.trim())  { setFormErr('La clave no puede estar vacía');  return; }
     setSaving(true); setFormErr('');
     try {
-      const { data } = await usuariosApi.create({ rol: addForm.rol, clave: addForm.clave.trim() });
+      const { data } = await usuariosApi.create({ nombre: addForm.nombre.trim(), rol: addForm.rol, clave: addForm.clave.trim() });
       setUsuarios(prev => [...prev, data]);
       closeModal();
     } catch (e) {
@@ -499,6 +500,21 @@ export default function ConfiguracionPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <label style={labelStyle}>Nombre</label>
+                  <input
+                    type="text"
+                    placeholder="ej. Ana García"
+                    value={addForm.nombre}
+                    onChange={e => { setAddForm(p => ({ ...p, nombre: e.target.value })); setFormErr(''); }}
+                    onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                    style={inputStyle}
+                    autoFocus
+                  />
+                  <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: 0 }}>
+                    Aparece en el saludo "Buen día, {addForm.nombre || '…'}".
+                  </p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <label style={labelStyle}>Rol</label>
                   <select
                     value={addForm.rol}
@@ -519,7 +535,6 @@ export default function ConfiguracionPage() {
                     onChange={e => { setAddForm(p => ({ ...p, clave: e.target.value })); setFormErr(''); }}
                     onKeyDown={e => e.key === 'Enter' && handleAdd()}
                     style={inputStyle}
-                    autoFocus
                   />
                   <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: 0 }}>
                     Se guardará hasheada. No la escribas en ningún otro lado.
@@ -531,8 +546,8 @@ export default function ConfiguracionPage() {
               <button
                 className="btn btn-primary anf-save-btn"
                 onClick={handleAdd}
-                disabled={!addForm.clave.trim() || saving}
-                style={{ opacity: (!addForm.clave.trim() || saving) ? 0.45 : 1, marginTop: 8 }}
+                disabled={!addForm.nombre.trim() || !addForm.clave.trim() || saving}
+                style={{ opacity: (!addForm.nombre.trim() || !addForm.clave.trim() || saving) ? 0.45 : 1, marginTop: 8 }}
               >
                 <I.check size={16} />
                 {saving ? 'Guardando…' : 'Agregar usuario'}

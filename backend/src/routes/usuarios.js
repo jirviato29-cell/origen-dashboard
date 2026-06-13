@@ -36,7 +36,7 @@ router.get('/', requireAdmin, async (req, res) => {
 
 // POST /api/usuarios — crea usuario (hashea la clave)
 router.post('/', requireAdmin, async (req, res) => {
-  const { rol, clave } = req.body || {};
+  const { nombre: nombreBody, rol, clave } = req.body || {};
   if (!rol || !clave) {
     return res.status(400).json({ error: 'Faltan campos: rol y clave' });
   }
@@ -44,7 +44,7 @@ router.post('/', requireAdmin, async (req, res) => {
     const { rows: count } = await pool.query(
       'SELECT COUNT(*) FROM usuarios WHERE rol = $1', [rol]
     );
-    const nombre     = `${rol}_${parseInt(count[0].count, 10) + 1}`;
+    const nombre = nombreBody?.trim() || `${rol}_${parseInt(count[0].count, 10) + 1}`;
     const clave_hash = await bcrypt.hash(clave, 10);
     const { rows } = await pool.query(
       `INSERT INTO usuarios (nombre, rol, clave_hash, activo)
