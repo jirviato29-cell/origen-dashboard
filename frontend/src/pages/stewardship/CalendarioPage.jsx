@@ -820,7 +820,43 @@ export default function CalendarioPage() {
                 <p style={{ color: GRAY_500, fontSize: 13.5 }}>Sin eventos próximos registrados.</p>
               );
 
-              return (
+              return isMobile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {filas.map(ev => (
+                    <div key={ev._key} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>{ev.nombre}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: ev.nota ? 6 : 0 }}>
+                        <TipoPill tipo={ev.tipo} />
+                        <span style={{ fontSize: 12, color: GRAY_500, fontVariantNumeric: 'tabular-nums' }}>{fmtFecha(ev.fecha)}</span>
+                      </div>
+                      {ev.nota && (
+                        <div style={{ fontSize: 12, color: GRAY_500, marginTop: 6 }}>{ev.nota}</div>
+                      )}
+                      {canWrite && (
+                        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                          <button
+                            onClick={() => ev._isServicio ? setSelectedDay(ev.fecha) : openEditModal(ev)}
+                            style={{ ...miniBtn, flex: 1, justifyContent: 'center' }}
+                            title={ev._isServicio ? 'Editar prédica' : 'Editar'}
+                          >
+                            <I.edit size={14} />
+                            <span style={{ fontSize: 12, marginLeft: 4 }}>{ev._isServicio ? 'Editar prédica' : 'Editar'}</span>
+                          </button>
+                          <button
+                            onClick={() => ev._isServicio ? handleDeleteServicio(ev) : handleDelete(ev.id)}
+                            disabled={ev._isServicio ? deletingServicio === ev.id : deleting === ev.id}
+                            style={{ ...miniBtn, flex: 1, justifyContent: 'center', color: 'var(--danger)' }}
+                            title={ev._isServicio ? 'Eliminar prédica' : 'Eliminar'}
+                          >
+                            <I.trash size={14} />
+                            <span style={{ fontSize: 12, marginLeft: 4 }}>{ev._isServicio ? 'Eliminar prédica' : 'Eliminar'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 13, minWidth: 520 }}>
                     <thead>
