@@ -638,6 +638,21 @@ export default function StewardshipDashboard() {
             )}
           </div>
 
+          {/* Composición de asistencia — solo en móvil */}
+          {isMobile && (
+            <div style={cardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
+                <h3 style={cardTitleStyle}>Composición de asistencia</h3>
+              </div>
+              <DonutChart
+                adultos={asistencia.reduce((s, a) => s + (a.adultos     || 0), 0)}
+                voluntarios={asistencia.reduce((s, a) => s + (a.voluntarios || 0), 0)}
+                ninos={asistencia.reduce((s, a) => s + (a.ninos       || 0), 0)}
+                bebes={asistencia.reduce((s, a) => s + (a.bebes       || 0), 0)}
+              />
+            </div>
+          )}
+
           {/* Próximos eventos */}
           {proximosEventos.length > 0 && (
             <div style={cardStyle}>
@@ -707,18 +722,20 @@ export default function StewardshipDashboard() {
         {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-          {/* Donut */}
-          <div style={cardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
-              <h3 style={cardTitleStyle}>Composición de asistencia</h3>
+          {/* Donut — solo en escritorio */}
+          {!isMobile && (
+            <div style={cardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
+                <h3 style={cardTitleStyle}>Composición de asistencia</h3>
+              </div>
+              <DonutChart
+                adultos={asistencia.reduce((s, a) => s + (a.adultos     || 0), 0)}
+                voluntarios={asistencia.reduce((s, a) => s + (a.voluntarios || 0), 0)}
+                ninos={asistencia.reduce((s, a) => s + (a.ninos       || 0), 0)}
+                bebes={asistencia.reduce((s, a) => s + (a.bebes       || 0), 0)}
+              />
             </div>
-            <DonutChart
-              adultos={asistencia.reduce((s, a) => s + (a.adultos     || 0), 0)}
-              voluntarios={asistencia.reduce((s, a) => s + (a.voluntarios || 0), 0)}
-              ninos={asistencia.reduce((s, a) => s + (a.ninos       || 0), 0)}
-              bebes={asistencia.reduce((s, a) => s + (a.bebes       || 0), 0)}
-            />
-          </div>
+          )}
 
           {/* Cumpleaños de este mes */}
           <div style={cardStyle}>
