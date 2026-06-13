@@ -531,12 +531,63 @@ export default function GastosPage() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table / Cards */}
         {tablaData.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>
             Sin gastos en este filtro.
           </div>
+        ) : isMobile ? (
+          /* ── MÓVIL: tarjetas apiladas ── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {tablaData.map(g => {
+              const cat = catLabel(g);
+              return (
+                <div key={g.id} style={{
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  borderRadius: 'var(--r-lg)', padding: '12px 14px',
+                }}>
+                  {/* Concepto */}
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
+                    {g.concepto}
+                  </div>
+                  {/* Badge + monto */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      fontSize: 11.5, fontWeight: 600, padding: '3px 9px', borderRadius: 6,
+                      background: CAT_BG[cat] || 'rgba(0,0,0,0.08)',
+                      color: CAT_COLORS[cat] || 'var(--muted)',
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: CAT_COLORS[cat], flexShrink: 0 }} />
+                      {cat}
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 16, color: 'var(--danger)', flexShrink: 0 }}>
+                      {fmt(Number(g.monto))}
+                    </span>
+                  </div>
+                  {/* Fecha */}
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
+                    {fmtFechaShort(g.fecha)}
+                  </div>
+                </div>
+              );
+            })}
+            {/* Fila de totales */}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '10px 14px', borderRadius: 'var(--r-lg)',
+              background: 'var(--surface-2, #f6f7f9)', border: '1px solid var(--border)',
+            }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>
+                {mesTabla === 'todos' ? 'Totales' : `Totales ${mesNombre(mesTabla)}`}
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: 'var(--danger)' }}>
+                {fmt(tablaTotal)}
+              </span>
+            </div>
+          </div>
         ) : (
+          /* ── ESCRITORIO: tabla original ── */
           <div className="tbl-wrap" style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
             <table className="table anf-table">
               <thead>
