@@ -304,48 +304,66 @@ export default function CalendarioPage() {
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
       {!loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,1fr)', gap: 14 }}>
 
           <div style={{ background: 'white', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 7 }}>
-              Eventos este mes
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 7 }}>
+                  Eventos este mes
+                </div>
+                {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>{monthLabel}</div>}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {totalEventos}
+              </div>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-              {totalEventos}
-            </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>
-              {monthLabel}
-            </div>
+            {!isMobile && <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>{monthLabel}</div>}
           </div>
 
           <div style={{ background: 'white', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 7 }}>
-              Servicios dominicales
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 7 }}>
+                  Servicios dominicales
+                </div>
+                {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>cada domingo</div>}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {dominicalesCount}
+              </div>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-              {dominicalesCount}
-            </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>cada domingo</div>
+            {!isMobile && <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>cada domingo</div>}
           </div>
 
           <div style={{ background: 'white', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 7 }}>
-              Grupos en Casa · Alpha
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 7 }}>
+                  Grupos en Casa · Alpha
+                </div>
+                {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>eventos Alpha este mes</div>}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {alphaCount}
+              </div>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-              {alphaCount}
-            </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>eventos Alpha este mes</div>
+            {!isMobile && <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>eventos Alpha este mes</div>}
           </div>
 
           <div style={{ background: 'white', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 7 }}>
-              Eventos especiales
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: GRAY_500, marginBottom: isMobile ? 3 : 7 }}>
+                  Eventos especiales
+                </div>
+                {isMobile && <div style={{ fontSize: 11.5, color: GRAY_500 }}>tipo Especial este mes</div>}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {especialCount}
+              </div>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.03em', color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-              {especialCount}
-            </div>
-            <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>tipo Especial este mes</div>
+            {!isMobile && <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 4 }}>tipo Especial este mes</div>}
           </div>
 
         </div>
