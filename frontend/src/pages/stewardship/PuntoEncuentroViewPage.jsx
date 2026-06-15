@@ -559,6 +559,22 @@ export default function PuntoEncuentroViewPage() {
         font: { bold: true },
       });
 
+      // Desglose por método de pago de esta fecha (solo métodos con monto > 0)
+      const porMetodo = {};
+      byFecha[fecha].forEach(a => {
+        const m = (a.metodo || 'otro').toLowerCase();
+        porMetodo[m] = (porMetodo[m] || 0) + parseFloat(a.monto || 0);
+      });
+      const labelMetodo = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia' };
+      ['efectivo', 'tarjeta', 'transferencia'].forEach(m => {
+        if (porMetodo[m] > 0) {
+          detPush([`   ${labelMetodo[m]}`, '', '', '', '', porMetodo[m], '', '', '', ''], {
+            fill: { patternType: 'solid', fgColor: { rgb: 'F2F2F2' } },
+            font: { italic: true, color: { rgb: '888888' } },
+          });
+        }
+      });
+
       // Fila vacía de separación entre bloques (sin bordes ni color)
       if (bi < fechasOrder.length - 1) {
         detAoa.push(new Array(10).fill(''));
