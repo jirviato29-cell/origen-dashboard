@@ -63,10 +63,12 @@ function AppRoutes() {
         <Route path="ingresos"         element={<StewardshipIngresosPage />} />
         <Route path="gastos"           element={<StewardshipGastosPage />} />
         <Route path="balance"          element={<StewardshipBalancePage />} />
-        <Route path="asistencia"         element={<AsistenciaViewPage />} />
-        <Route path="punto-encuentro"    element={<PuntoEncuentroViewPage />} />
-        <Route path="bienvenida-a-casa"  element={<BienvenidaCasaPage />} />
-        <Route path="calendario"         element={<CalendarioPage />} />
+        <Route path="asistencia"              element={<AsistenciaViewPage />} />
+        <Route path="punto-encuentro"         element={<PuntoEncuentroViewPage />} />
+        <Route path="bienvenida-a-casa"       element={<BienvenidaCasaPage />} />
+        <Route path="calendario"              element={<CalendarioPage />} />
+        <Route path="ofrendas-especiales"     element={<OfrendasEspecialesPage />} />
+        <Route path="ofrendas-especiales/:id" element={<OfrendasEspecialesDetallePage />} />
       </Route>
 
       {/* ── Anfitriones ────────────────────────────────────────────────── */}
