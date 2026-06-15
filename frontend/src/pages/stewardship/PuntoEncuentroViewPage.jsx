@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { calendarioApi, participantesApi, abonosApi, comprobanteApi } from '../../services/api';
 import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { I } from '../../components/Icons';
 import { TIPO_COLOR, TIPO_BG } from '../../utils/tipoEventoColors';
 import { useAuth } from '../../context/AuthContext';
@@ -440,105 +440,146 @@ export default function PuntoEncuentroViewPage() {
     });
   };
 
-  // ── Exportar Excel — una fila por abono ───────────────────────────────
+  // ── Exportar Excel — una fila por abono, agrupado por fecha con colores ─
   const descargarExcel = (evento) => {
     const participantes = participantesMap[evento.id] || [];
     const costo = parseFloat(evento.costo) || 0;
 
     const headers = [
-      'Nombre',
-      'Tipo',
-      'WhatsApp',
-      'Edad',
-      'Fecha del abono',
-      'Monto del abono',
-      'Método de pago',
-      'Costo total evento',
-      'Total abonado',
-      'Estatus',
+      'Nombre', 'Tipo', 'WhatsApp', 'Edad',
+      'Fecha del abono', 'Monto del abono', 'Método de pago',
+      'Costo total evento', 'Total abonado', 'Estatus',
     ];
 
-    const rows = [];
+    // Pre-calcular totales y estatus por participante
+    const infoP = {};
+    participantes.forEach(p => {
+      const abs = abonosMap[p.id] || [];
+      const totalPagado = abs.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
+      const saldo = costo > 0 ? costo - totalPagado : 0;
+      infoP[p.id] = {
+        ...p,
+        tipo: p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen',
+        totalPagado,
+        estatus: costo > 0
+          ? (saldo <= 0 ? 'Liquidado' : totalPagado > 0 ? 'Parcial' : 'Pendiente')
+          : '',
+      };
+    });
+
+    // Recopilar TODOS los abonos con datos del participante y ordenar por fecha ASC
+    const allAbonos = [];
+    participantes.forEach(p => {
+      (abonosMap[p.id] || []).forEach(a => allAbonos.push({ ...a, _p: infoP[p.id] }));
+    });
+    allAbonos.sort((a, b) => {
+      const fa = toISODate(a.fecha) || String(a.fecha || '').slice(0, 10);
+      const fb = toISODate(b.fecha) || String(b.fecha || '').slice(0, 10);
+      return fa.localeCompare(fb);
+    });
+
+    // Agrupar por fecha conservando el orden
+    const fechasOrder = [];
+    const byFecha = {};
+    allAbonos.forEach(a => {
+      const f = toISODate(a.fecha) || String(a.fecha || '').slice(0, 10);
+      if (!byFecha[f]) { byFecha[f] = []; fechasOrder.push(f); }
+      byFecha[f].push(a);
+    });
+
+    // Paleta de bloques (colores claros, texto oscuro legible)
+    const blockBg  = ['DCE6F1', 'E2EFDA', 'FCE4D6', 'EBE2F4', 'FFF2CC', 'DAEEF3'];
+    const subBg    = 'D9D9D9'; // gris claro para subtotales
+    const totalBg  = 'BDD7EE'; // azul claro para total general
+    const hdrBg    = '112540'; // navy header
+    const hdrFg    = 'FFFFFF';
+
+    // Acumular filas y sus estilos en paralelo
+    const aoa    = [];
+    const styles = {}; // 'ri,ci' → style
+
+    const push = (values, style) => {
+      const ri = aoa.length;
+      aoa.push(values);
+      if (style) values.forEach((_, ci) => { styles[`${ri},${ci}`] = style; });
+    };
+
+    // Encabezados en negrita sobre fondo navy
+    push(headers, {
+      fill: { patternType: 'solid', fgColor: { rgb: hdrBg } },
+      font: { bold: true, color: { rgb: hdrFg } },
+    });
+
     let granTotal = 0;
 
-    // Ordenar participantes por nombre
-    const partsSorted = [...participantes].sort((a, b) =>
-      (a.nombre || '').localeCompare(b.nombre || '', 'es')
-    );
+    fechasOrder.forEach((fecha, bi) => {
+      const bg = blockBg[bi % blockBg.length];
+      let blockTotal = 0;
 
-    partsSorted.forEach(p => {
-      const abonos = (abonosMap[p.id] || [])
-        .slice()
-        .sort((a, b) => {
-          const fa = toISODate(a.fecha) || String(a.fecha || '').slice(0, 10);
-          const fb = toISODate(b.fecha) || String(b.fecha || '').slice(0, 10);
-          return fa.localeCompare(fb);
-        });
-
-      const totalPagado = abonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
-      const saldo  = costo > 0 ? costo - totalPagado : 0;
-      const estatus = costo > 0
-        ? (saldo <= 0 ? 'Liquidado' : totalPagado > 0 ? 'Parcial' : 'Pendiente')
-        : '';
-
-      const tipo = p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen';
-
-      if (abonos.length === 0) {
-        // Sin abonos: una fila vacía para no perder al participante
-        rows.push([
-          p.nombre   || '',
-          tipo,
+      byFecha[fecha].forEach(a => {
+        const monto = parseFloat(a.monto || 0);
+        blockTotal += monto;
+        granTotal  += monto;
+        const p = a._p;
+        const metodo = a.metodo
+          ? a.metodo.charAt(0).toUpperCase() + a.metodo.slice(1)
+          : '';
+        push([
+          p.nombre || '',
+          p.tipo,
           p.whatsapp || '',
           p.edad ? Number(p.edad) : '',
-          '',
-          '',
-          '',
+          fecha,
+          monto,
+          metodo,
+          costo > 0 ? costo : '',
+          p.totalPagado,
+          p.estatus,
+        ], { fill: { patternType: 'solid', fgColor: { rgb: bg } } });
+      });
+
+      // Fila de subtotal por fecha
+      push([`Total ${fecha}`, '', '', '', '', blockTotal, '', '', '', ''], {
+        fill: { patternType: 'solid', fgColor: { rgb: subBg } },
+        font: { bold: true },
+      });
+    });
+
+    // Participantes sin abonos (sin color de bloque)
+    participantes
+      .filter(p => !(abonosMap[p.id] || []).length)
+      .forEach(p => {
+        push([
+          p.nombre || '',
+          infoP[p.id].tipo,
+          p.whatsapp || '',
+          p.edad ? Number(p.edad) : '',
+          '', '', '',
           costo > 0 ? costo : '',
           0,
           costo > 0 ? 'Pendiente' : '',
         ]);
-      } else {
-        abonos.forEach(a => {
-          const monto = parseFloat(a.monto || 0);
-          granTotal += monto;
-          const metodo = a.metodo
-            ? a.metodo.charAt(0).toUpperCase() + a.metodo.slice(1)
-            : '';
-          const fechaAbono =
-            toISODate(a.fecha) || String(a.fecha || '').slice(0, 10);
-          rows.push([
-            p.nombre   || '',
-            tipo,
-            p.whatsapp || '',
-            p.edad ? Number(p.edad) : '',
-            fechaAbono,
-            monto,
-            metodo,
-            costo > 0 ? costo : '',
-            totalPagado,
-            estatus,
-          ]);
-        });
-      }
+      });
+
+    // Fila TOTAL general
+    push(['TOTAL', '', '', '', '', granTotal, '', '', '', ''], {
+      fill: { patternType: 'solid', fgColor: { rgb: totalBg } },
+      font: { bold: true },
     });
 
-    // Fila de totales
-    rows.push([
-      'TOTAL', '', '', '', '', granTotal, '', '', '', '',
-    ]);
+    // Construir worksheet y aplicar estilos celda a celda
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    Object.entries(styles).forEach(([key, s]) => {
+      const [r, c] = key.split(',').map(Number);
+      const addr = XLSX.utils.encode_cell({ r, c });
+      if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+      ws[addr].s = s;
+    });
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     ws['!cols'] = [
-      { wch: 28 }, // Nombre
-      { wch: 16 }, // Tipo
-      { wch: 14 }, // WhatsApp
-      { wch:  6 }, // Edad
-      { wch: 14 }, // Fecha del abono
-      { wch: 14 }, // Monto del abono
-      { wch: 14 }, // Método de pago
-      { wch: 18 }, // Costo total evento
-      { wch: 14 }, // Total abonado
-      { wch: 11 }, // Estatus
+      { wch: 28 }, { wch: 16 }, { wch: 14 }, { wch:  6 },
+      { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 },
+      { wch: 14 }, { wch: 11 },
     ];
 
     const wb = XLSX.utils.book_new();
