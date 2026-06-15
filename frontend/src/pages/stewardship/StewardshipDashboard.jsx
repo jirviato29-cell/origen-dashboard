@@ -556,7 +556,7 @@ export default function StewardshipDashboard() {
     ? { up: totalOfrenda >= totalOfrendaAnterior, label: `${Math.abs(Math.round((totalOfrenda - totalOfrendaAnterior) / totalOfrendaAnterior * 100))}%` }
     : null;
   const trendParticip = participacion !== null && participacionAnterior !== null
-    ? { up: participacion >= participacionAnterior, label: `${Math.abs(participacion - participacionAnterior)}%` }
+    ? { up: participacion >= participacionAnterior, label: `${Math.round(Math.abs(participacion - participacionAnterior) * 10) / 10}%` }
     : null;
 
   // ── Stat card values ───────────────────────────────────────────────────────
