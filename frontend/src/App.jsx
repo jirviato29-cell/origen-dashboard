@@ -15,6 +15,8 @@ import RegistrarAsistencia from './pages/anfitriones/RegistrarAsistencia';
 import EstadisticasAsistencia from './pages/anfitriones/EstadisticasAsistencia';
 import HistorialAsistencia from './pages/anfitriones/HistorialAsistencia';
 import StewardshipDashboard from './pages/stewardship/StewardshipDashboard';
+import OfrendasEspecialesPage from './pages/stewardship/OfrendasEspecialesPage';
+import OfrendasEspecialesDetallePage from './pages/stewardship/OfrendasEspecialesDetallePage';
 import AsistenciaViewPage from './pages/stewardship/AsistenciaViewPage';
 import PuntoEncuentroViewPage from './pages/stewardship/PuntoEncuentroViewPage';
 import ConfiguracionPage from './pages/stewardship/ConfiguracionPage';
@@ -105,6 +107,8 @@ function AppRoutes() {
         <Route path="voluntarios"        element={<VoluntariosPage />} />
         <Route path="calendario"         element={<CalendarioPage />} />
         <Route path="configuracion"      element={<ConfiguracionPage />} />
+        <Route path="ofrendas-especiales"          element={<OfrendasEspecialesPage />} />
+        <Route path="ofrendas-especiales/:id"      element={<OfrendasEspecialesDetallePage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

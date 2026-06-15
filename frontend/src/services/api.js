@@ -132,6 +132,16 @@ const realVisitantesApi = {
   patch:   (id, data) => http.patch(`/visitantes/${id}`, data),
 };
 
+// ─── Ofrendas Especiales ──────────────────────────────────────────────────────
+const realOfrendasEspecialesApi = {
+  getAll:         ()          => http.get('/ofrendas-especiales'),
+  create:         (data)      => http.post('/ofrendas-especiales', data),
+  getRegistros:   (id)        => http.get(`/ofrendas-especiales/${id}/registros`),
+  createRegistro: (id, data)  => http.post(`/ofrendas-especiales/${id}/registros`, data),
+  updateRegistro: (rid, data) => http.patch(`/ofrendas-especiales/registros/${rid}`, data),
+  deleteRegistro: (rid)       => http.delete(`/ofrendas-especiales/registros/${rid}`),
+};
+
 // ─── Voluntarios ──────────────────────────────────────────────────────────────
 const realVoluntariosApi = {
   getAll:  ()         => http.get('/voluntarios'),
@@ -151,6 +161,7 @@ const realUsuariosApi = {
 };
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
+export const ofrendasEspecialesApi = realOfrendasEspecialesApi;
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;
 export const ofrendasApi   = USE_MOCK ? mock.ingresosApi   : realOfrendasApi;
 export const gastosApi     = USE_MOCK ? mock.gastosApi     : realGastosApi;
