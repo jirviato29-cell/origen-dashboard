@@ -471,12 +471,14 @@ export default function PuntoEncuentroViewPage() {
       return ws;
     };
 
-    // Helper: acumula filas en AOA y añade bordes + estilo propio a cada celda
-    const makeAccumulator = (aoa, stylesMap) => (values, style) => {
+    // Helper: acumula filas en AOA y añade bordes + numFmt de moneda en las columnas indicadas
+    const makeAccumulator = (aoa, stylesMap, moneyCols = new Set()) => (values, style) => {
       const ri = aoa.length;
       aoa.push(values);
       values.forEach((_, ci) => {
-        stylesMap[`${ri},${ci}`] = { ...(style || {}), border };
+        const s = { ...(style || {}), border };
+        if (moneyCols.has(ci)) s.numFmt = '$#,##0';
+        stylesMap[`${ri},${ci}`] = s;
       });
     };
 
@@ -502,7 +504,8 @@ export default function PuntoEncuentroViewPage() {
     // ════════════════════════════════════════════════════════════════════════
     const detAoa    = [];
     const detStyles = {};
-    const detPush   = makeAccumulator(detAoa, detStyles);
+    // cols 5=Monto abono, 7=Costo total evento, 8=Total abonado
+    const detPush   = makeAccumulator(detAoa, detStyles, new Set([5, 7, 8]));
 
     detPush([
       'Nombre', 'Tipo', 'WhatsApp', 'Edad',
@@ -582,7 +585,8 @@ export default function PuntoEncuentroViewPage() {
     // ════════════════════════════════════════════════════════════════════════
     const resAoa    = [];
     const resStyles = {};
-    const resPush   = makeAccumulator(resAoa, resStyles);
+    // cols 1=Total abonado, 2=Saldo
+    const resPush   = makeAccumulator(resAoa, resStyles, new Set([1, 2]));
 
     resPush(['Nombre', 'Total abonado', 'Saldo', 'Estatus'], {
       fill: { patternType: 'solid', fgColor: { rgb: hdrBg } },
