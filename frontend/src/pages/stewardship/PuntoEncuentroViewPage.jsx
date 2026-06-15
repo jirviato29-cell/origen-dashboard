@@ -558,6 +558,11 @@ export default function PuntoEncuentroViewPage() {
         fill: { patternType: 'solid', fgColor: { rgb: subBg } },
         font: { bold: true },
       });
+
+      // Fila vacía de separación entre bloques (sin bordes ni color)
+      if (bi < fechasOrder.length - 1) {
+        detAoa.push(new Array(10).fill(''));
+      }
     });
 
     // Participantes sin abonos
