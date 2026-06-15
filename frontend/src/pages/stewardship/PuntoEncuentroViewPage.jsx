@@ -440,37 +440,113 @@ export default function PuntoEncuentroViewPage() {
     });
   };
 
-  // ── Exportar Excel — PRESERVED EXACTLY ────────────────────────────────
+  // ── Exportar Excel — una fila por abono ───────────────────────────────
   const descargarExcel = (evento) => {
     const participantes = participantesMap[evento.id] || [];
     const costo = parseFloat(evento.costo) || 0;
-    const headers = ['Nombre', 'WhatsApp', 'Edad', 'Relación', 'Costo', 'Pagado', 'Saldo', 'Estado'];
-    const rows = participantes.map(p => {
-      const abonos = abonosMap[p.id] || [];
-      const pagado = abonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
-      const saldo  = costo > 0 ? costo - pagado : 0;
-      return [
-        p.nombre    || '',
-        p.whatsapp  || '',
-        p.edad      ? Number(p.edad) : '',
-        p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen',
-        costo  > 0  ? costo  : '',
-        pagado > 0  ? pagado : 0,
-        costo  > 0  ? saldo  : '',
-        costo  > 0  ? (saldo <= 0 ? 'Liquidado' : 'Debe') : '',
-      ];
+
+    const headers = [
+      'Nombre',
+      'Tipo',
+      'WhatsApp',
+      'Edad',
+      'Fecha del abono',
+      'Monto del abono',
+      'Método de pago',
+      'Costo total evento',
+      'Total abonado',
+      'Estatus',
+    ];
+
+    const rows = [];
+    let granTotal = 0;
+
+    // Ordenar participantes por nombre
+    const partsSorted = [...participantes].sort((a, b) =>
+      (a.nombre || '').localeCompare(b.nombre || '', 'es')
+    );
+
+    partsSorted.forEach(p => {
+      const abonos = (abonosMap[p.id] || [])
+        .slice()
+        .sort((a, b) => {
+          const fa = toISODate(a.fecha) || String(a.fecha || '').slice(0, 10);
+          const fb = toISODate(b.fecha) || String(b.fecha || '').slice(0, 10);
+          return fa.localeCompare(fb);
+        });
+
+      const totalPagado = abonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
+      const saldo  = costo > 0 ? costo - totalPagado : 0;
+      const estatus = costo > 0
+        ? (saldo <= 0 ? 'Liquidado' : totalPagado > 0 ? 'Parcial' : 'Pendiente')
+        : '';
+
+      const tipo = p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen';
+
+      if (abonos.length === 0) {
+        // Sin abonos: una fila vacía para no perder al participante
+        rows.push([
+          p.nombre   || '',
+          tipo,
+          p.whatsapp || '',
+          p.edad ? Number(p.edad) : '',
+          '',
+          '',
+          '',
+          costo > 0 ? costo : '',
+          0,
+          costo > 0 ? 'Pendiente' : '',
+        ]);
+      } else {
+        abonos.forEach(a => {
+          const monto = parseFloat(a.monto || 0);
+          granTotal += monto;
+          const metodo = a.metodo
+            ? a.metodo.charAt(0).toUpperCase() + a.metodo.slice(1)
+            : '';
+          const fechaAbono =
+            toISODate(a.fecha) || String(a.fecha || '').slice(0, 10);
+          rows.push([
+            p.nombre   || '',
+            tipo,
+            p.whatsapp || '',
+            p.edad ? Number(p.edad) : '',
+            fechaAbono,
+            monto,
+            metodo,
+            costo > 0 ? costo : '',
+            totalPagado,
+            estatus,
+          ]);
+        });
+      }
     });
+
+    // Fila de totales
+    rows.push([
+      'TOTAL', '', '', '', '', granTotal, '', '', '', '',
+    ]);
+
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     ws['!cols'] = [
-      { wch: 30 }, { wch: 15 }, { wch: 6 }, { wch: 16 },
-      { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 },
+      { wch: 28 }, // Nombre
+      { wch: 16 }, // Tipo
+      { wch: 14 }, // WhatsApp
+      { wch:  6 }, // Edad
+      { wch: 14 }, // Fecha del abono
+      { wch: 14 }, // Monto del abono
+      { wch: 14 }, // Método de pago
+      { wch: 18 }, // Costo total evento
+      { wch: 14 }, // Total abonado
+      { wch: 11 }, // Estatus
     ];
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Participantes');
+    XLSX.utils.book_append_sheet(wb, ws, 'Abonos');
     const slug = evento.nombre
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/, '');
-    XLSX.writeFile(wb, `participantes_${slug}_${hoyStr}.xlsx`);
+      .replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    XLSX.writeFile(wb, `abonos_${slug}_${hoyStr}.xlsx`);
   };
 
   // ── Corte de caja — PRESERVED EXACTLY ─────────────────────────────────
