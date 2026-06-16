@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ofrendasApi, gastosApi } from '../../services/api';
+import { ofrendasApi, gastosApi, campusApi } from '../../services/api';
 import { fmtFecha } from '../../utils/fecha';
 import { CATEGORIAS, CAT_COLORS } from '../../utils/categorias';
-import { SALDO_INICIAL_CAJA } from '../../utils/config';
 import { useIsMobile } from '../../utils/useIsMobile';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Cell, ResponsiveContainer, LabelList } from 'recharts';
 
@@ -197,20 +196,25 @@ export default function BalancePage() {
   const [ofrendas,          setOfrendas]          = useState([]);
   const [gastos,            setGastos]            = useState([]);
   const [gastosEfectivoAgs, setGastosEfectivoAgs] = useState([]);
+  const [saldoInicial,      setSaldoInicial]      = useState(0);
   const [loading,           setLoading]           = useState(true);
   const [mesSeleccionado, setMesSelec] = useState(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const [ro, rg, rgEfectivo] = await Promise.all([
+        const [ro, rg, rgEfectivo, rcampus] = await Promise.all([
           ofrendasApi.getAll({ year }),
           gastosApi.getAll({ year, pagado: 'true' }),
           gastosApi.getAll({ year, pagado: 'true', metodo_pago: 'efectivo_ags' }),
+          campusApi.getAll(),
         ]);
         setOfrendas(ro.data || []);
         setGastos(rg.data || []);
         setGastosEfectivoAgs(rgEfectivo.data || []);
+        const activo = localStorage.getItem('campus_activo') || 'ags';
+        const cd     = (rcampus.data || []).find(c => c.id === activo);
+        setSaldoInicial(Number(cd?.saldo_inicial ?? 0));
       } catch (e) {
         console.error('BalancePage load error:', e);
       } finally {
@@ -236,7 +240,7 @@ export default function BalancePage() {
   const totalEfectivo        = ofrendas.reduce((s, d) => s + Number(d.efectivo),           0);
   const totalTerminal        = ofrendas.reduce((s, d) => s + Number(d.terminal),           0);
   const totalTransferencia   = ofrendas.reduce((s, d) => s + Number(d.transferencia || 0), 0);
-  const cajaChica            = SALDO_INICIAL_CAJA + totalEfectivo - totalGastosEfAgs;
+  const cajaChica            = saldoInicial + totalEfectivo - totalGastosEfAgs;
 
   const pctEfectivo      = totalIngresos > 0 ? Math.round(totalEfectivo      / totalIngresos * 100) : 0;
   const pctTerminal      = totalIngresos > 0 ? Math.round(totalTerminal      / totalIngresos * 100) : 0;
@@ -252,7 +256,7 @@ export default function BalancePage() {
 
   // Caja de efectivo
   const cajaData = [];
-  let saldo = SALDO_INICIAL_CAJA;
+  let saldo = saldoInicial;
   for (const row of weeklyData) {
     const saldoInicial = saldo;
     const saldoFinal   = saldo + row.efectivo - row.gastos;

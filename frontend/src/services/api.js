@@ -162,6 +162,11 @@ const realUsuariosApi = {
   remove:       (id)             => http.delete(`/usuarios/${id}`),
 };
 
+// ─── Campus ───────────────────────────────────────────────────────────────────
+export const campusApi = {
+  getAll: () => http.get('/campus'),
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 export const ofrendasEspecialesApi = realOfrendasEspecialesApi;
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;

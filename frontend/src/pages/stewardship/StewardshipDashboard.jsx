@@ -5,8 +5,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
-import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi, voluntariosApi, visitantesApi } from '../../services/api';
-import { SALDO_INICIAL_CAJA } from '../../utils/config';
+import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi, voluntariosApi, visitantesApi, campusApi } from '../../services/api';
 import { I } from '../../components/Icons';
 import { useIsMobile } from '../../utils/useIsMobile';
 import { TIPO_COLOR, TIPO_BG } from '../../utils/tipoEventoColors';
@@ -404,13 +403,14 @@ export default function StewardshipDashboard() {
   const [participantes,  setParticipantes]  = useState([]);
   const [voluntarios,    setVoluntarios]    = useState([]);
   const [visitantes,     setVisitantes]     = useState([]);
+  const [saldoInicial,   setSaldoInicial]   = useState(0);
   const [loading,        setLoading]        = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [ra, ro, rg, rgp, rc, rp, rv, rvt] = await Promise.all([
+        const [ra, ro, rg, rgp, rc, rp, rv, rvt, rcampus] = await Promise.all([
           asistenciaApi.getAll({ year, limit: 200 }),
           ofrendasApi.getAll({ year }),
           gastosApi.getAll({ year, pagado: 'true' }),
@@ -419,6 +419,7 @@ export default function StewardshipDashboard() {
           participantesApi.getAll(),
           voluntariosApi.getAll(),
           visitantesApi.getAll(),
+          campusApi.getAll(),
         ]);
         if (!cancelled) {
           setAsistencia(ra.data      || []);
@@ -429,6 +430,9 @@ export default function StewardshipDashboard() {
           setParticipantes(rp.data   || []);
           setVoluntarios(rv.data     || []);
           setVisitantes(rvt.data     || []);
+          const activo = localStorage.getItem('campus_activo') || 'ags';
+          const cd     = (rcampus.data || []).find(c => c.id === activo);
+          setSaldoInicial(Number(cd?.saldo_inicial ?? 0));
         }
       } catch { /* keeps empty arrays; cards show — */ }
       finally   { if (!cancelled) setLoading(false); }
@@ -475,7 +479,7 @@ export default function StewardshipDashboard() {
   const totalGastosCaja   = gastos
     .filter(g => g.metodo_pago === 'efectivo_ags')
     .reduce((s, g) => s + (Number(g.monto) || 0), 0);
-  const saldoCaja         = SALDO_INICIAL_CAJA + totalEfectivoCaja - totalGastosCaja;
+  const saldoCaja         = saldoInicial + totalEfectivoCaja - totalGastosCaja;
 
   // ── Resumen del mes ────────────────────────────────────────────────────────
   const ingresosMes   = ofrendas
