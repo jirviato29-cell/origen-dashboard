@@ -183,21 +183,45 @@
   }
 }
 
-/* ── CampusPage grid breakpoint ───────────────────────────── */
+/* ── CampusPage ──────────────────────────────────────────── */
 .campus-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 18px;
   justify-content: center;
 }
+
+.campus-tile {
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 8px 22px rgba(0,0,0,.35);
+}
+.campus-tile-ags {
+  background: #C1644A;
+}
+.campus-tile-gdl {
+  background: #111111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (max-width: 560px) {
   .campus-grid {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    gap: 10px;
   }
-  .campus-grid > * {
-    width: 100%;
-    max-width: 320px;
-    margin: 0 auto;
+  .campus-card {
+    padding: 20px 12px !important;
+  }
+  .campus-tile {
+    width: 64px !important;
+    height: 64px !important;
+    border-radius: 16px !important;
+  }
+  .campus-tile-gdl img {
+    width: 42px !important;
   }
 }

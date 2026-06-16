@@ -14,11 +14,7 @@ const CAMPUS_META = {
 function CampusTile({ campus }) {
   if (campus.id === 'ags') {
     return (
-      <div style={{
-        width: 96, height: 96, borderRadius: 22,
-        background: '#C1644A', overflow: 'hidden', flexShrink: 0,
-        boxShadow: '0 8px 22px rgba(0,0,0,.35)',
-      }}>
+      <div className="campus-tile campus-tile-ags">
         <img
           src="/assets/logo-origen-ags.jpeg"
           alt="Campus Aguascalientes"
@@ -30,14 +26,9 @@ function CampusTile({ campus }) {
 
   if (campus.id === 'gdl') {
     return (
-      <div style={{
-        width: 96, height: 96, borderRadius: 22,
-        background: '#111111', flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 8px 22px rgba(0,0,0,.35)',
-      }}>
+      <div className="campus-tile campus-tile-gdl">
         <img
-          src="/assets/logo-origen.jpeg"
+          src="/assets/origen-mark.png"
           alt="Campus Guadalajara"
           style={{ width: 60, height: 'auto', display: 'block' }}
         />
@@ -78,6 +69,7 @@ function CampusCard({ campus, onSelect }) {
 
   return (
     <button
+      className="campus-card"
       onClick={onSelect}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -195,9 +187,9 @@ export default function CampusPage() {
         textAlign: 'center', position: 'relative', zIndex: 1,
       }}>
 
-        {/* Logo — mismo que Sidebar */}
+        {/* Logo genérico blanco (sin "Aguascalientes") */}
         <img
-          src="/assets/origen-logo-white.png"
+          src="/assets/origen-mark.png"
           alt="Origen"
           style={{ width: 220, height: 'auto', marginBottom: 30, display: 'block', marginLeft: 'auto', marginRight: 'auto' }}
         />
