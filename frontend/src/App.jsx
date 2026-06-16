@@ -5,6 +5,7 @@ import { OfrendasModalProvider } from './context/OfrendasModalContext';
 import { GastosModalProvider } from './context/GastosModalContext';
 import { AsistenciaStewModalProvider } from './context/AsistenciaStewModalContext';
 import { CalendarioModalProvider } from './context/CalendarioModalContext';
+import CampusPage from './pages/CampusPage';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -43,7 +44,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={role ? <Navigate to={`/${role}`} replace /> : <LoginPage />} />
+      <Route path="/"      element={role ? <Navigate to={`/${role}`} replace /> : <CampusPage />} />
+      <Route path="/login" element={role ? <Navigate to={`/${role}`} replace /> : <LoginPage />} />
 
       {/* ── Administración ─────────────────────────────────────────────── */}
       <Route path="/administracion" element={

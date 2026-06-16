@@ -16,22 +16,24 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 function loadStorage() {
   try {
     return {
-      token:    localStorage.getItem('token')    || null,
-      role:     localStorage.getItem('role')     || null,
-      userName: localStorage.getItem('userName') || '',
-      permisos: JSON.parse(localStorage.getItem('permisos') || 'null'),
+      token:        localStorage.getItem('token')    || null,
+      role:         localStorage.getItem('role')     || null,
+      userName:     localStorage.getItem('userName') || '',
+      permisos:     JSON.parse(localStorage.getItem('permisos') || 'null'),
+      accesoGlobal: localStorage.getItem('acceso_global') === 'true',
     };
   } catch {
-    return { token: null, role: null, userName: '', permisos: null };
+    return { token: null, role: null, userName: '', permisos: null, accesoGlobal: false };
   }
 }
 
 export function AuthProvider({ children }) {
   const init = loadStorage();
-  const [token,    setToken]    = useState(init.token);
-  const [role,     setRole]     = useState(init.role);
-  const [userName, setUserName] = useState(init.userName);
-  const [permisos, setPermisos] = useState(init.permisos);
+  const [token,        setToken]        = useState(init.token);
+  const [role,         setRole]         = useState(init.role);
+  const [userName,     setUserName]     = useState(init.userName);
+  const [permisos,     setPermisos]     = useState(init.permisos);
+  const [accesoGlobal, setAccesoGlobal] = useState(init.accesoGlobal);
 
   // Retorna { ok: true } o { ok: false, error: string }
   const login = async (selectedRole, clave) => {
@@ -46,11 +48,18 @@ export function AuthProvider({ children }) {
       setRole(usuario.rol);
       setUserName(usuario.nombre);
       setPermisos(p);
+      setAccesoGlobal(usuario.acceso_global || false);
 
-      localStorage.setItem('token',    t);
-      localStorage.setItem('role',     usuario.rol);
-      localStorage.setItem('userName', usuario.nombre);
-      localStorage.setItem('permisos', JSON.stringify(p));
+      localStorage.setItem('token',         t);
+      localStorage.setItem('role',          usuario.rol);
+      localStorage.setItem('userName',      usuario.nombre);
+      localStorage.setItem('permisos',      JSON.stringify(p));
+      localStorage.setItem('acceso_global', String(usuario.acceso_global || false));
+
+      // Usuarios sin acceso global siempre operan en su propio campus
+      if (!usuario.acceso_global) {
+        localStorage.setItem('campus_activo', usuario.campus || 'ags');
+      }
 
       return { ok: true };
     } catch (err) {
@@ -64,14 +73,17 @@ export function AuthProvider({ children }) {
     setRole(null);
     setUserName('');
     setPermisos(null);
+    setAccesoGlobal(false);
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('userName');
     localStorage.removeItem('permisos');
+    localStorage.removeItem('acceso_global');
+    localStorage.removeItem('campus_activo');
   };
 
   return (
-    <AuthContext.Provider value={{ role, userName, token, permisos, login, logout }}>
+    <AuthContext.Provider value={{ role, userName, token, permisos, accesoGlobal, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

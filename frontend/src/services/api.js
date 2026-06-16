@@ -8,8 +8,10 @@ const http = axios.create({
 });
 
 http.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const token  = localStorage.getItem('token');
+  const campus = localStorage.getItem('campus_activo');
+  if (token)  config.headers.Authorization = `Bearer ${token}`;
+  if (campus) config.headers['X-Campus']   = campus;
   return config;
 });
 
