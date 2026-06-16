@@ -110,24 +110,38 @@ export default function CampusPage() {
                     e.currentTarget.style.background   = 'rgba(255,255,255,0.05)';
                   }}
                 >
-                  {/* Círculo con logo o inicial */}
-                  <div style={{
-                    width: 88, height: 88, borderRadius: '50%',
-                    background: color, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {campus.logo_url ? (
+                  {/* Círculo / logo */}
+                  {campus.id === 'gdl' ? (
+                    <div style={{
+                      width: 88, height: 88, borderRadius: 18,
+                      background: '#000', flexShrink: 0,
+                      overflow: 'hidden',
+                    }}>
                       <img
-                        src={campus.logo_url}
-                        alt={campus.nombre}
-                        style={{ width: 52, height: 52, objectFit: 'contain' }}
+                        src="/assets/logo-origen.jpeg"
+                        alt="Origen Guadalajara"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
-                    ) : (
-                      <span style={{ fontSize: 36, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
-                        {initial}
-                      </span>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div style={{
+                      width: 88, height: 88, borderRadius: '50%',
+                      background: color, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {campus.logo_url ? (
+                        <img
+                          src={campus.logo_url}
+                          alt={campus.nombre}
+                          style={{ width: 52, height: 52, objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: 36, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
+                          {initial}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Nombre */}
                   <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-.02em' }}>
