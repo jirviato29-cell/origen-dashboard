@@ -182,3 +182,13 @@
     border-right-color: var(--border);
   }
 }
+
+/* ── CampusPage grid breakpoint ───────────────────────────── */
+.campus-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+@media (max-width: 560px) {
+  .campus-grid { grid-template-columns: 1fr; }
+}
