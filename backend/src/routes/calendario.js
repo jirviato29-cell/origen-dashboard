@@ -6,8 +6,8 @@ const pool = require('../db/pool');
 router.get('/', async (req, res) => {
   try {
     const { year, en_punto_encuentro } = req.query;
-    const conditions = [];
-    const params = [];
+    const params = [req.campus];
+    const conditions = ['campus=$1'];
 
     if (year) {
       params.push(year);
@@ -17,10 +17,7 @@ router.get('/', async (req, res) => {
       conditions.push(`en_punto_encuentro = true`);
     }
 
-    let query = 'SELECT * FROM calendario_eventos';
-    if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
-    query += ' ORDER BY fecha ASC';
-
+    const query = `SELECT * FROM calendario_eventos WHERE ${conditions.join(' AND ')} ORDER BY fecha ASC`;
     const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
@@ -31,7 +28,10 @@ router.get('/', async (req, res) => {
 // GET /api/calendario/:id
 router.get('/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM calendario_eventos WHERE id=$1', [req.params.id]);
+    const { rows } = await pool.query(
+      'SELECT * FROM calendario_eventos WHERE id=$1 AND campus=$2',
+      [req.params.id, req.campus]
+    );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
   } catch (err) {
@@ -45,11 +45,12 @@ router.post('/', async (req, res) => {
     const { nombre, fecha, tipo, nota, en_punto_encuentro, costo } = req.body;
     if (!nombre || !fecha) return res.status(400).json({ error: 'nombre y fecha son requeridos' });
     const { rows } = await pool.query(
-      `INSERT INTO calendario_eventos (nombre, fecha, tipo, nota, en_punto_encuentro, costo)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      `INSERT INTO calendario_eventos (nombre, fecha, tipo, nota, en_punto_encuentro, costo, campus)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
       [nombre, fecha, tipo || 'General', nota || null,
        en_punto_encuentro === true || en_punto_encuentro === 'true',
-       costo ? parseFloat(costo) : 0]
+       costo ? parseFloat(costo) : 0,
+       req.campus]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -64,11 +65,11 @@ router.put('/:id', async (req, res) => {
     const { rows } = await pool.query(
       `UPDATE calendario_eventos
        SET nombre=$1, fecha=$2, tipo=$3, nota=$4, en_punto_encuentro=$5, costo=$6
-       WHERE id=$7 RETURNING *`,
+       WHERE id=$7 AND campus=$8 RETURNING *`,
       [nombre, fecha, tipo || 'General', nota || null,
        en_punto_encuentro === true || en_punto_encuentro === 'true',
        costo ? parseFloat(costo) : 0,
-       req.params.id]
+       req.params.id, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
@@ -81,8 +82,8 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'DELETE FROM calendario_eventos WHERE id=$1 RETURNING id',
-      [req.params.id]
+      'DELETE FROM calendario_eventos WHERE id=$1 AND campus=$2 RETURNING id',
+      [req.params.id, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json({ deleted: rows[0].id });

@@ -6,18 +6,18 @@ const pool = require('../db/pool');
 router.get('/', async (req, res) => {
   try {
     const { year, month, limit } = req.query;
-    let query = 'SELECT * FROM asistencia';
-    const params = [];
+    const params = [req.campus];
+    const conds  = ['campus=$1'];
 
     if (year && month) {
-      query += ' WHERE EXTRACT(YEAR FROM fecha)=$1 AND EXTRACT(MONTH FROM fecha)=$2';
+      conds.push(`EXTRACT(YEAR FROM fecha)=$${params.length+1} AND EXTRACT(MONTH FROM fecha)=$${params.length+2}`);
       params.push(year, month);
     } else if (year) {
-      query += ' WHERE EXTRACT(YEAR FROM fecha)=$1';
+      conds.push(`EXTRACT(YEAR FROM fecha)=$${params.length+1}`);
       params.push(year);
     }
 
-    query += ' ORDER BY fecha DESC';
+    let query = `SELECT * FROM asistencia WHERE ${conds.join(' AND ')} ORDER BY fecha DESC`;
 
     if (limit) {
       params.push(parseInt(limit, 10));
@@ -47,9 +47,9 @@ router.get('/resumen-anual', async (req, res) => {
         SUM(bebes)   AS bebes,
         SUM(nuevos)  AS nuevos
       FROM asistencia
-      WHERE EXTRACT(YEAR FROM fecha)=$1
+      WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2
       GROUP BY mes ORDER BY mes
-    `, [y]);
+    `, [req.campus, y]);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -59,7 +59,10 @@ router.get('/resumen-anual', async (req, res) => {
 // GET /api/asistencia/:id
 router.get('/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM asistencia WHERE id=$1', [req.params.id]);
+    const { rows } = await pool.query(
+      'SELECT * FROM asistencia WHERE id=$1 AND campus=$2',
+      [req.params.id, req.campus]
+    );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
   } catch (err) {
@@ -67,7 +70,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/asistencia/upsert — inserta o actualiza por fecha
+// POST /api/asistencia/upsert — inserta o actualiza por fecha+campus
 router.post('/upsert', async (req, res) => {
   try {
     const { fecha, adultos, voluntarios, ninos, bebes, nuevos, total } = req.body;
@@ -75,22 +78,23 @@ router.post('/upsert', async (req, res) => {
     const tot = total ?? (adultos||0) + (voluntarios||0) + (ninos||0) + (bebes||0);
 
     const { rows: existing } = await pool.query(
-      'SELECT id FROM asistencia WHERE fecha=$1', [fecha]
+      'SELECT id FROM asistencia WHERE fecha=$1 AND campus=$2',
+      [fecha, req.campus]
     );
 
     let result;
     if (existing.length > 0) {
       const { rows } = await pool.query(
         `UPDATE asistencia SET adultos=$1, voluntarios=$2, ninos=$3, bebes=$4, nuevos=$5, total=$6
-         WHERE fecha=$7 RETURNING *`,
-        [adultos||0, voluntarios||0, ninos||0, bebes||0, nuevos||0, tot, fecha]
+         WHERE fecha=$7 AND campus=$8 RETURNING *`,
+        [adultos||0, voluntarios||0, ninos||0, bebes||0, nuevos||0, tot, fecha, req.campus]
       );
       result = rows[0];
     } else {
       const { rows } = await pool.query(
-        `INSERT INTO asistencia (fecha, adultos, voluntarios, ninos, bebes, nuevos, total)
-         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-        [fecha, adultos||0, voluntarios||0, ninos||0, bebes||0, nuevos||0, tot]
+        `INSERT INTO asistencia (fecha, adultos, voluntarios, ninos, bebes, nuevos, total, campus)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+        [fecha, adultos||0, voluntarios||0, ninos||0, bebes||0, nuevos||0, tot, req.campus]
       );
       result = rows[0];
     }
@@ -108,9 +112,9 @@ router.post('/', async (req, res) => {
     if (!fecha) return res.status(400).json({ error: 'fecha es requerida' });
     const tot = total ?? (adultos||0) + (voluntarios||0) + (ninos||0) + (bebes||0);
     const { rows } = await pool.query(
-      `INSERT INTO asistencia (fecha, adultos, voluntarios, ninos, bebes, nuevos, total)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [fecha, adultos||0, voluntarios||0, ninos||0, bebes||0, nuevos||0, tot]
+      `INSERT INTO asistencia (fecha, adultos, voluntarios, ninos, bebes, nuevos, total, campus)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [fecha, adultos||0, voluntarios||0, ninos||0, bebes||0, nuevos||0, tot, req.campus]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -125,8 +129,8 @@ router.put('/:id', async (req, res) => {
     const tot = total ?? (adultos||0) + (voluntarios||0) + (ninos||0) + (bebes||0);
     const { rows } = await pool.query(
       `UPDATE asistencia SET fecha=$1, adultos=$2, voluntarios=$3, ninos=$4,
-       bebes=$5, nuevos=$6, total=$7 WHERE id=$8 RETURNING *`,
-      [fecha, adultos||0, voluntarios||0, ninos||0, bebes||0, nuevos||0, tot, req.params.id]
+       bebes=$5, nuevos=$6, total=$7 WHERE id=$8 AND campus=$9 RETURNING *`,
+      [fecha, adultos||0, voluntarios||0, ninos||0, bebes||0, nuevos||0, tot, req.params.id, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
@@ -138,7 +142,10 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/asistencia/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query('DELETE FROM asistencia WHERE id=$1 RETURNING id', [req.params.id]);
+    const { rows } = await pool.query(
+      'DELETE FROM asistencia WHERE id=$1 AND campus=$2 RETURNING id',
+      [req.params.id, req.campus]
+    );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json({ deleted: rows[0].id });
   } catch (err) {

@@ -6,8 +6,8 @@ const pool = require('../db/pool');
 router.get('/', async (req, res) => {
   try {
     const { year, month, pagado, metodo_pago } = req.query;
-    const params = [];
-    const conds  = [];
+    const params = [req.campus];
+    const conds  = ['campus=$1'];
 
     if (year && month) {
       conds.push(`EXTRACT(YEAR FROM fecha)=$${params.length+1} AND EXTRACT(MONTH FROM fecha)=$${params.length+2}`);
@@ -27,10 +27,7 @@ router.get('/', async (req, res) => {
       params.push(metodo_pago);
     }
 
-    let query = 'SELECT * FROM gastos';
-    if (conds.length) query += ' WHERE ' + conds.join(' AND ');
-    query += ' ORDER BY fecha DESC';
-
+    const query = `SELECT * FROM gastos WHERE ${conds.join(' AND ')} ORDER BY fecha DESC`;
     const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
@@ -38,33 +35,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/gastos/resumen-anual?year=2026  (siempre pagado=true)
+// GET /api/gastos/resumen-anual?year=2026
 router.get('/resumen-anual', async (req, res) => {
   try {
     const y = req.query.year || new Date().getFullYear();
     const { rows } = await pool.query(`
       SELECT EXTRACT(MONTH FROM fecha)::INT AS mes, SUM(monto) AS total
-      FROM gastos WHERE EXTRACT(YEAR FROM fecha)=$1 AND pagado=true
+      FROM gastos WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2 AND pagado=true
       GROUP BY mes ORDER BY mes
-    `, [y]);
+    `, [req.campus, y]);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/gastos/por-categoria?year=2026&month=5  (siempre pagado=true)
+// GET /api/gastos/por-categoria?year=2026&month=5
 router.get('/por-categoria', async (req, res) => {
   try {
     const { year, month } = req.query;
     const y = year || new Date().getFullYear();
+    const params = [req.campus, y];
     let query = `
       SELECT categoria, SUM(monto) AS total
-      FROM gastos WHERE EXTRACT(YEAR FROM fecha)=$1 AND pagado=true
+      FROM gastos WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2 AND pagado=true
     `;
-    const params = [y];
     if (month) {
-      query += ` AND EXTRACT(MONTH FROM fecha)=$2`;
+      query += ` AND EXTRACT(MONTH FROM fecha)=$3`;
       params.push(month);
     }
     query += ' GROUP BY categoria ORDER BY total DESC';
@@ -78,7 +75,10 @@ router.get('/por-categoria', async (req, res) => {
 // GET /api/gastos/:id
 router.get('/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM gastos WHERE id=$1', [req.params.id]);
+    const { rows } = await pool.query(
+      'SELECT * FROM gastos WHERE id=$1 AND campus=$2',
+      [req.params.id, req.campus]
+    );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
   } catch (err) {
@@ -94,8 +94,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'fecha, concepto, categoria y monto son requeridos' });
     }
     const { rows } = await pool.query(
-      'INSERT INTO gastos (fecha, concepto, categoria, monto, pagado, comprobante_url, fecha_vencimiento) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-      [fecha, concepto, categoria, monto, pagado, comprobante_url, fecha_vencimiento]
+      'INSERT INTO gastos (fecha, concepto, categoria, monto, pagado, comprobante_url, fecha_vencimiento, campus) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
+      [fecha, concepto, categoria, monto, pagado, comprobante_url, fecha_vencimiento, req.campus]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -112,8 +112,8 @@ router.put('/:id', async (req, res) => {
     if (pagado !== undefined)           { sets.push(`pagado=$${params.length+1}`);           params.push(pagado); }
     if (comprobante_url !== undefined)  { sets.push(`comprobante_url=$${params.length+1}`);  params.push(comprobante_url); }
     if (fecha_vencimiento !== undefined){ sets.push(`fecha_vencimiento=$${params.length+1}`); params.push(fecha_vencimiento); }
-    params.push(req.params.id);
-    const query = `UPDATE gastos SET ${sets.join(', ')} WHERE id=$${params.length} RETURNING *`;
+    params.push(req.params.id, req.campus);
+    const query = `UPDATE gastos SET ${sets.join(', ')} WHERE id=$${params.length-1} AND campus=$${params.length} RETURNING *`;
     const { rows } = await pool.query(query, params);
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
@@ -122,14 +122,14 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// PATCH /api/gastos/:id/pagar  — marca pagado=true con metodo_pago
+// PATCH /api/gastos/:id/pagar
 router.patch('/:id/pagar', async (req, res) => {
   try {
     const VALID = ['efectivo_ags', 'gdl', 'donacion'];
     const metodo = VALID.includes(req.body?.metodo_pago) ? req.body.metodo_pago : 'efectivo_ags';
     const { rows } = await pool.query(
-      'UPDATE gastos SET pagado=true, metodo_pago=$1 WHERE id=$2 RETURNING *',
-      [metodo, req.params.id]
+      'UPDATE gastos SET pagado=true, metodo_pago=$1 WHERE id=$2 AND campus=$3 RETURNING *',
+      [metodo, req.params.id, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
@@ -141,7 +141,10 @@ router.patch('/:id/pagar', async (req, res) => {
 // DELETE /api/gastos/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query('DELETE FROM gastos WHERE id=$1 RETURNING id', [req.params.id]);
+    const { rows } = await pool.query(
+      'DELETE FROM gastos WHERE id=$1 AND campus=$2 RETURNING id',
+      [req.params.id, req.campus]
+    );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json({ deleted: rows[0].id });
   } catch (err) {

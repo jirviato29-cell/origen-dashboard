@@ -28,7 +28,8 @@ pool.query(`ALTER TABLE visitantes ADD COLUMN IF NOT EXISTS contactado BOOLEAN D
 router.get('/', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT * FROM visitantes ORDER BY fecha DESC NULLS LAST, id DESC'
+      'SELECT * FROM visitantes WHERE campus=$1 ORDER BY fecha DESC NULLS LAST, id DESC',
+      [req.campus]
     );
     res.json(rows);
   } catch (err) {
@@ -41,8 +42,8 @@ router.post('/', async (req, res) => {
     const { fecha, relacion_con_origen, nombre, edad, estado_fe, whatsapp, como_se_entero, acompanantes, acompanantes_num, colonia } = req.body;
     if (!nombre?.trim()) return res.status(400).json({ error: 'nombre es requerido' });
     const { rows } = await pool.query(
-      `INSERT INTO visitantes (fecha, relacion_con_origen, nombre, edad, estado_fe, whatsapp, como_se_entero, acompanantes, acompanantes_num, colonia)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      `INSERT INTO visitantes (fecha, relacion_con_origen, nombre, edad, estado_fe, whatsapp, como_se_entero, acompanantes, acompanantes_num, colonia, campus)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
       [
         fecha || null,
         relacion_con_origen?.trim() || null,
@@ -54,6 +55,7 @@ router.post('/', async (req, res) => {
         acompanantes?.trim() || null,
         acompanantes_num != null && acompanantes_num !== '' ? parseInt(acompanantes_num, 10) : 0,
         colonia?.trim() || null,
+        req.campus,
       ]
     );
     res.status(201).json(rows[0]);
@@ -69,7 +71,7 @@ router.put('/:id', async (req, res) => {
       `UPDATE visitantes SET
         fecha=$1, relacion_con_origen=$2, nombre=$3, edad=$4,
         estado_fe=$5, whatsapp=$6, como_se_entero=$7, acompanantes=$8, acompanantes_num=$9, colonia=$10
-       WHERE id=$11 RETURNING *`,
+       WHERE id=$11 AND campus=$12 RETURNING *`,
       [
         fecha || null,
         relacion_con_origen?.trim() || null,
@@ -82,6 +84,7 @@ router.put('/:id', async (req, res) => {
         acompanantes_num != null && acompanantes_num !== '' ? parseInt(acompanantes_num, 10) : 0,
         colonia?.trim() || null,
         req.params.id,
+        req.campus,
       ]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
@@ -95,8 +98,8 @@ router.patch('/:id', async (req, res) => {
   try {
     const { contactado } = req.body;
     const { rows } = await pool.query(
-      'UPDATE visitantes SET contactado=$1 WHERE id=$2 RETURNING *',
-      [Boolean(contactado), req.params.id]
+      'UPDATE visitantes SET contactado=$1 WHERE id=$2 AND campus=$3 RETURNING *',
+      [Boolean(contactado), req.params.id, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);

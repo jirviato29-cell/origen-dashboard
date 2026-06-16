@@ -3,6 +3,8 @@ require('dns').setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
 
+const campusMiddleware           = require('./middleware/campus');
+const campusRouter               = require('./routes/campus');
 const authRouter          = require('./routes/auth');
 const usuariosRouter      = require('./routes/usuarios');
 const voluntariosRouter   = require('./routes/voluntarios');
@@ -30,7 +32,13 @@ app.use(express.json());
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'Origen Dashboard' }));
 
+// Rutas públicas (sin campus middleware)
 app.use('/api', authRouter);
+app.use('/api/campus', campusRouter);
+
+// A partir de aquí todas las peticiones resuelven req.campus
+app.use(campusMiddleware);
+
 app.use('/api/usuarios',    usuariosRouter);
 app.use('/api/voluntarios', voluntariosRouter);
 

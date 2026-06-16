@@ -13,9 +13,10 @@ router.get('/', async (req, res) => {
         COALESCE(SUM(oer.cantidad), 0)::numeric AS total
       FROM ofrendas_especiales oe
       LEFT JOIN ofrendas_especiales_registros oer ON oer.ofrenda_id = oe.id
+      WHERE oe.campus = $1
       GROUP BY oe.id, oe.nombre, oe.created_at
       ORDER BY oe.created_at DESC
-    `);
+    `, [req.campus]);
     res.json({ data: rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -28,8 +29,8 @@ router.post('/', async (req, res) => {
     const { nombre } = req.body;
     if (!nombre?.trim()) return res.status(400).json({ error: 'nombre es requerido' });
     const { rows } = await pool.query(
-      'INSERT INTO ofrendas_especiales (nombre) VALUES ($1) RETURNING *',
-      [nombre.trim()]
+      'INSERT INTO ofrendas_especiales (nombre, campus) VALUES ($1, $2) RETURNING *',
+      [nombre.trim(), req.campus]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -47,8 +48,8 @@ router.patch('/registros/:rid', async (req, res) => {
            cantidad       = COALESCE($2, cantidad),
            metodo         = COALESCE($3, metodo),
            fecha          = COALESCE($4, fecha)
-       WHERE id = $5 RETURNING *`,
-      [nombre_persona || null, cantidad != null ? cantidad : null, metodo || null, fecha || null, req.params.rid]
+       WHERE id = $5 AND campus = $6 RETURNING *`,
+      [nombre_persona || null, cantidad != null ? cantidad : null, metodo || null, fecha || null, req.params.rid, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'Registro no encontrado' });
     res.json(rows[0]);
@@ -61,8 +62,8 @@ router.patch('/registros/:rid', async (req, res) => {
 router.delete('/registros/:rid', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'DELETE FROM ofrendas_especiales_registros WHERE id=$1 RETURNING id',
-      [req.params.rid]
+      'DELETE FROM ofrendas_especiales_registros WHERE id=$1 AND campus=$2 RETURNING id',
+      [req.params.rid, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'Registro no encontrado' });
     res.json({ deleted: rows[0].id });
@@ -75,9 +76,11 @@ router.delete('/registros/:rid', async (req, res) => {
 router.get('/:id/registros', async (req, res) => {
   try {
     const { rows: registros } = await pool.query(
-      `SELECT * FROM ofrendas_especiales_registros
-       WHERE ofrenda_id = $1 ORDER BY fecha DESC, created_at DESC`,
-      [req.params.id]
+      `SELECT oer.* FROM ofrendas_especiales_registros oer
+       JOIN ofrendas_especiales oe ON oe.id = oer.ofrenda_id
+       WHERE oer.ofrenda_id = $1 AND oe.campus = $2
+       ORDER BY oer.fecha DESC, oer.created_at DESC`,
+      [req.params.id, req.campus]
     );
     const total = registros.reduce((s, r) => s + Number(r.cantidad), 0);
     res.json({ data: registros, total });
@@ -94,10 +97,18 @@ router.post('/:id/registros', async (req, res) => {
     if (cantidad == null)        return res.status(400).json({ error: 'cantidad es requerida' });
     if (!metodo)                 return res.status(400).json({ error: 'metodo es requerido' });
     if (!fecha)                  return res.status(400).json({ error: 'fecha es requerida' });
+
+    // Verificar que la ofrenda padre pertenece al campus activo
+    const { rows: oeRows } = await pool.query(
+      'SELECT id FROM ofrendas_especiales WHERE id=$1 AND campus=$2',
+      [req.params.id, req.campus]
+    );
+    if (!oeRows.length) return res.status(404).json({ error: 'Ofrenda especial no encontrada' });
+
     const { rows } = await pool.query(
-      `INSERT INTO ofrendas_especiales_registros (ofrenda_id, nombre_persona, cantidad, metodo, fecha)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [req.params.id, nombre_persona.trim(), cantidad, metodo, fecha]
+      `INSERT INTO ofrendas_especiales_registros (ofrenda_id, nombre_persona, cantidad, metodo, fecha, campus)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [req.params.id, nombre_persona.trim(), cantidad, metodo, fecha, req.campus]
     );
     res.status(201).json(rows[0]);
   } catch (err) {

@@ -8,8 +8,8 @@ router.get('/', async (req, res) => {
     const { evento_id } = req.query;
     if (!evento_id) return res.status(400).json({ error: 'evento_id requerido' });
     const { rows } = await pool.query(
-      'SELECT * FROM cortes WHERE evento_id=$1 ORDER BY fecha ASC',
-      [evento_id]
+      'SELECT * FROM cortes WHERE evento_id=$1 AND campus=$2 ORDER BY fecha ASC',
+      [evento_id, req.campus]
     );
     res.json(rows);
   } catch (err) {
@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/cortes/upsert  — body: [{ evento_id, fecha, total_efectivo, total_tarjeta, total_transferencia, total }]
+// POST /api/cortes/upsert — body: [{ evento_id, fecha, total_efectivo, total_tarjeta, total_transferencia, total }]
 router.post('/upsert', async (req, res) => {
   try {
     const records = req.body;
@@ -28,25 +28,42 @@ router.post('/upsert', async (req, res) => {
     for (const r of records) {
       const { evento_id, fecha, total_efectivo, total_tarjeta, total_transferencia, total } = r;
       if (!evento_id || !fecha) continue;
-      const { rows } = await pool.query(
-        `INSERT INTO cortes (evento_id, fecha, total_efectivo, total_tarjeta, total_transferencia, total)
-         VALUES ($1,$2,$3,$4,$5,$6)
-         ON CONFLICT (evento_id, fecha)
-         DO UPDATE SET
-           total_efectivo      = EXCLUDED.total_efectivo,
-           total_tarjeta       = EXCLUDED.total_tarjeta,
-           total_transferencia = EXCLUDED.total_transferencia,
-           total               = EXCLUDED.total
-         RETURNING *`,
-        [
-          evento_id,
-          fecha,
-          parseFloat(total_efectivo)      || 0,
-          parseFloat(total_tarjeta)       || 0,
-          parseFloat(total_transferencia) || 0,
-          parseFloat(total)               || 0,
-        ]
+
+      // Upsert explícito por (evento_id, fecha, campus) sin depender de ON CONFLICT
+      const { rows: existing } = await pool.query(
+        'SELECT id FROM cortes WHERE evento_id=$1 AND fecha=$2 AND campus=$3',
+        [evento_id, fecha, req.campus]
       );
+
+      let rows;
+      if (existing.length > 0) {
+        ({ rows } = await pool.query(
+          `UPDATE cortes SET
+             total_efectivo=$1, total_tarjeta=$2, total_transferencia=$3, total=$4
+           WHERE evento_id=$5 AND fecha=$6 AND campus=$7 RETURNING *`,
+          [
+            parseFloat(total_efectivo)      || 0,
+            parseFloat(total_tarjeta)       || 0,
+            parseFloat(total_transferencia) || 0,
+            parseFloat(total)               || 0,
+            evento_id, fecha, req.campus,
+          ]
+        ));
+      } else {
+        ({ rows } = await pool.query(
+          `INSERT INTO cortes (evento_id, fecha, total_efectivo, total_tarjeta, total_transferencia, total, campus)
+           VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+          [
+            evento_id,
+            fecha,
+            parseFloat(total_efectivo)      || 0,
+            parseFloat(total_tarjeta)       || 0,
+            parseFloat(total_transferencia) || 0,
+            parseFloat(total)               || 0,
+            req.campus,
+          ]
+        ));
+      }
       results.push(rows[0]);
     }
     res.status(201).json(results);

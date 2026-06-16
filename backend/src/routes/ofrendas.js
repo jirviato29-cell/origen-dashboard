@@ -7,18 +7,18 @@ const jwt = require('jsonwebtoken');
 router.get('/', async (req, res) => {
   try {
     const { year, month } = req.query;
-    let query = 'SELECT * FROM ofrendas';
-    const params = [];
+    const params = [req.campus];
+    const conds  = ['campus=$1'];
 
     if (year && month) {
-      query += ' WHERE EXTRACT(YEAR FROM fecha)=$1 AND EXTRACT(MONTH FROM fecha)=$2';
+      conds.push(`EXTRACT(YEAR FROM fecha)=$${params.length+1} AND EXTRACT(MONTH FROM fecha)=$${params.length+2}`);
       params.push(year, month);
     } else if (year) {
-      query += ' WHERE EXTRACT(YEAR FROM fecha)=$1';
+      conds.push(`EXTRACT(YEAR FROM fecha)=$${params.length+1}`);
       params.push(year);
     }
 
-    query += ' ORDER BY fecha DESC';
+    const query = `SELECT * FROM ofrendas WHERE ${conds.join(' AND ')} ORDER BY fecha DESC`;
     const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
@@ -40,9 +40,9 @@ router.get('/resumen-anual', async (req, res) => {
         ROUND(AVG(ofrendas),1)      AS promedio_ofrendantes,
         ROUND(AVG(participacion),1) AS promedio_participacion
       FROM ofrendas
-      WHERE EXTRACT(YEAR FROM fecha)=$1
+      WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2
       GROUP BY mes ORDER BY mes
-    `, [y]);
+    `, [req.campus, y]);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -52,7 +52,10 @@ router.get('/resumen-anual', async (req, res) => {
 // GET /api/ofrendas/:id
 router.get('/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM ofrendas WHERE id=$1', [req.params.id]);
+    const { rows } = await pool.query(
+      'SELECT * FROM ofrendas WHERE id=$1 AND campus=$2',
+      [req.params.id, req.campus]
+    );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
   } catch (err) {
@@ -74,9 +77,9 @@ router.post('/', async (req, res) => {
     const ofrendas = sobres + termCnt;
     console.log('[POST /api/ofrendas] body:', req.body);
     const { rows } = await pool.query(
-      `INSERT INTO ofrendas (fecha, efectivo, terminal, transferencia, total_ofrenda, ofrendas, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [fecha, ef, term, transf, total, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0]
+      `INSERT INTO ofrendas (fecha, efectivo, terminal, transferencia, total_ofrenda, ofrendas, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial, campus)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [fecha, ef, term, transf, total, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0, req.campus]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -106,21 +109,19 @@ router.put('/:id', async (req, res) => {
     }
 
     if (camposEditables !== null) {
-      // UPDATE parcial: solo los campos permitidos; recalcula total con valores existentes en BD
       const newTransferencia = parseFloat(req.body.transferencia) || 0;
       const { rows } = await pool.query(
         `UPDATE ofrendas
          SET transferencia = $1,
              total_ofrenda = efectivo + terminal + $1
-         WHERE id = $2
+         WHERE id = $2 AND campus = $3
          RETURNING *`,
-        [newTransferencia, req.params.id]
+        [newTransferencia, req.params.id, req.campus]
       );
       if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
       return res.json(rows[0]);
     }
 
-    // UPDATE completo — comportamiento existente sin cambios
     const { fecha, efectivo, terminal, transferencia, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial } = req.body;
     const ef       = efectivo      || 0;
     const term     = terminal      || 0;
@@ -132,8 +133,8 @@ router.put('/:id', async (req, res) => {
     const { rows } = await pool.query(
       `UPDATE ofrendas SET fecha=$1, efectivo=$2, terminal=$3, transferencia=$4, total_ofrenda=$5,
        ofrendas=$6, ofrendas_sobres=$7, ofrendas_terminal=$8, participacion=$9, ofrenda_especial=$10
-       WHERE id=$11 RETURNING *`,
-      [fecha, ef, term, transf, total, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0, req.params.id]
+       WHERE id=$11 AND campus=$12 RETURNING *`,
+      [fecha, ef, term, transf, total, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0, req.params.id, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
@@ -146,7 +147,10 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/ofrendas/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query('DELETE FROM ofrendas WHERE id=$1 RETURNING id', [req.params.id]);
+    const { rows } = await pool.query(
+      'DELETE FROM ofrendas WHERE id=$1 AND campus=$2 RETURNING id',
+      [req.params.id, req.campus]
+    );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json({ deleted: rows[0].id });
   } catch (err) {

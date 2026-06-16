@@ -7,38 +7,39 @@ router.get('/resumen', async (req, res) => {
   try {
     const y = req.query.year  || new Date().getFullYear();
     const m = req.query.month || new Date().getMonth() + 1;
+    const c = req.campus;
 
     const [ofMes, gasMes, ofAnio, gasAnio, asisMes, asisAnio] = await Promise.all([
       pool.query(
         `SELECT COALESCE(SUM(total_ofrenda),0) AS total FROM ofrendas
-         WHERE EXTRACT(YEAR FROM fecha)=$1 AND EXTRACT(MONTH FROM fecha)=$2`,
-        [y, m]
+         WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2 AND EXTRACT(MONTH FROM fecha)=$3`,
+        [c, y, m]
       ),
       pool.query(
         `SELECT COALESCE(SUM(monto),0) AS total FROM gastos
-         WHERE EXTRACT(YEAR FROM fecha)=$1 AND EXTRACT(MONTH FROM fecha)=$2`,
-        [y, m]
+         WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2 AND EXTRACT(MONTH FROM fecha)=$3`,
+        [c, y, m]
       ),
       pool.query(
         `SELECT COALESCE(SUM(total_ofrenda),0) AS total FROM ofrendas
-         WHERE EXTRACT(YEAR FROM fecha)=$1`,
-        [y]
+         WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2`,
+        [c, y]
       ),
       pool.query(
         `SELECT COALESCE(SUM(monto),0) AS total FROM gastos
-         WHERE EXTRACT(YEAR FROM fecha)=$1`,
-        [y]
+         WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2`,
+        [c, y]
       ),
       pool.query(
         `SELECT COALESCE(SUM(total),0) AS total, COALESCE(AVG(total),0) AS promedio
          FROM asistencia
-         WHERE EXTRACT(YEAR FROM fecha)=$1 AND EXTRACT(MONTH FROM fecha)=$2`,
-        [y, m]
+         WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2 AND EXTRACT(MONTH FROM fecha)=$3`,
+        [c, y, m]
       ),
       pool.query(
         `SELECT COALESCE(SUM(total),0) AS total, COALESCE(AVG(total),0) AS promedio
-         FROM asistencia WHERE EXTRACT(YEAR FROM fecha)=$1`,
-        [y]
+         FROM asistencia WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2`,
+        [c, y]
       ),
     ]);
 
@@ -70,24 +71,25 @@ router.get('/resumen', async (req, res) => {
 router.get('/mensual', async (req, res) => {
   try {
     const y = req.query.year || new Date().getFullYear();
+    const c = req.campus;
 
     const [ofRows, gasRows, asisRows] = await Promise.all([
       pool.query(
         `SELECT EXTRACT(MONTH FROM fecha)::INT AS mes, SUM(total_ofrenda) AS total
-         FROM ofrendas WHERE EXTRACT(YEAR FROM fecha)=$1 GROUP BY mes ORDER BY mes`,
-        [y]
+         FROM ofrendas WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2 GROUP BY mes ORDER BY mes`,
+        [c, y]
       ),
       pool.query(
         `SELECT EXTRACT(MONTH FROM fecha)::INT AS mes, SUM(monto) AS total
-         FROM gastos WHERE EXTRACT(YEAR FROM fecha)=$1 GROUP BY mes ORDER BY mes`,
-        [y]
+         FROM gastos WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2 GROUP BY mes ORDER BY mes`,
+        [c, y]
       ),
       pool.query(
         `SELECT EXTRACT(MONTH FROM fecha)::INT AS mes,
                 SUM(total) AS total_asistencia,
                 ROUND(AVG(total),1) AS promedio_asistencia
-         FROM asistencia WHERE EXTRACT(YEAR FROM fecha)=$1 GROUP BY mes ORDER BY mes`,
-        [y]
+         FROM asistencia WHERE campus=$1 AND EXTRACT(YEAR FROM fecha)=$2 GROUP BY mes ORDER BY mes`,
+        [c, y]
       ),
     ]);
 

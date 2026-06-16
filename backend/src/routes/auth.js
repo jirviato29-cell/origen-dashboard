@@ -42,7 +42,13 @@ router.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol },
+      {
+        id:            usuario.id,
+        nombre:        usuario.nombre,
+        rol:           usuario.rol,
+        campus:        usuario.campus        || 'ags',
+        acceso_global: usuario.acceso_global || false,
+      },
       process.env.JWT_SECRET || 'fallback_dev_secret',
       { expiresIn: '7d' }
     );
@@ -50,9 +56,11 @@ router.post('/login', async (req, res) => {
     return res.json({
       token,
       usuario: {
-        id:     usuario.id,
-        nombre: usuario.nombre,
-        rol:    usuario.rol,
+        id:            usuario.id,
+        nombre:        usuario.nombre,
+        rol:           usuario.rol,
+        campus:        usuario.campus        || 'ags',
+        acceso_global: usuario.acceso_global || false,
       },
       permisos,
     });
