@@ -110,7 +110,7 @@ export default function CampusPage() {
                     e.currentTarget.style.background   = 'rgba(255,255,255,0.05)';
                   }}
                 >
-                  {/* Círculo / logo */}
+                  {/* Logo de campus */}
                   {campus.id === 'gdl' ? (
                     <div style={{
                       width: 88, height: 88, borderRadius: 18,
@@ -120,6 +120,17 @@ export default function CampusPage() {
                       <img
                         src="/assets/logo-origen.jpeg"
                         alt="Origen Guadalajara"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+                  ) : campus.id === 'ags' ? (
+                    <div style={{
+                      width: 88, height: 88, borderRadius: 18,
+                      flexShrink: 0, overflow: 'hidden',
+                    }}>
+                      <img
+                        src="/assets/logo-origen-ags.jpeg"
+                        alt="Origen Aguascalientes"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     </div>
