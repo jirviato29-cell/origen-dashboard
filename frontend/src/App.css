@@ -188,7 +188,16 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 18px;
+  justify-content: center;
 }
 @media (max-width: 560px) {
-  .campus-grid { grid-template-columns: 1fr; }
+  .campus-grid {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .campus-grid > * {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+  }
 }
