@@ -4,6 +4,7 @@ import { useAuth, ROLES } from '../context/AuthContext';
 import { I } from '../components/Icons';
 import { useIsMobile } from '../utils/useIsMobile';
 import RolesGdlScreen from './RolesGdlScreen';
+import ClaveGdlScreen from './ClaveGdlScreen';
 
 // ── Design tokens (del CSS de la referencia) ───────────────────────────────
 const NAVY_950 = '#0B1A2F';
@@ -148,6 +149,20 @@ export default function LoginPage() {
 
   if (!selected && campusActivo === 'gdl') {
     return <RolesGdlScreen roles={ROLES_LIST} onSelect={setSelected} />;
+  }
+
+  if (selected && campusActivo === 'gdl') {
+    return (
+      <ClaveGdlScreen
+        roleId={selected.id}
+        clave={clave}
+        setClave={setClave}
+        onSubmit={handleEnter}
+        onBack={handleBack}
+        error={error}
+        loading={loading}
+      />
+    );
   }
 
   return (
