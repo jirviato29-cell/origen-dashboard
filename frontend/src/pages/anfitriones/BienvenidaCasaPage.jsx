@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { visitantesApi } from '../../services/api';
 import { fmtFechaShort } from '../../utils/fecha';
 import { I } from '../../components/Icons';
-import { useAuth } from '../../context/AuthContext';
-import { puedeRegistrar } from '../../permissions';
 import { useIsMobile } from '../../utils/useIsMobile';
 import BienvenidaGdlContent from './BienvenidaGdlContent';
+import VisitanteModal from './VisitanteModal';
+import useBienvenidaData, { EDICIONES } from './useBienvenidaData';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
 const NAVY_900 = '#112540';
@@ -37,20 +35,6 @@ const WaIcon = ({ size = 16, color = TEAL }) => (
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
-// ─── Ediciones (agrega aquí nuevas ediciones con su rango) ──────────────────
-const EDICIONES = [
-  { id: 'actual', label: 'Actual',                     from: '2026-03-23', to: null         },
-  { id: 'mar22',  label: 'Bienvenida del 22 de marzo', from: '2026-01-01', to: '2026-03-22' },
-];
-
-function inEdicion(v, ed) {
-  if (!v.fecha) return false;
-  const d = v.fecha.slice(0, 10);
-  if (ed.from && d < ed.from) return false;
-  if (ed.to   && d > ed.to)   return false;
-  return true;
-}
-
 function initials(nombre) {
   if (!nombre) return '?';
   return nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0].toUpperCase()).join('');
@@ -68,24 +52,7 @@ function feChip(fe) {
   return null;
 }
 
-const mkEmpty = () => ({
-  fecha: new Date().toISOString().split('T')[0],
-  relacion_con_origen: '',
-  nombre: '',
-  edad: '',
-  estado_fe: '',
-  whatsapp: '',
-  como_se_entero: '',
-  acompanantes: '',
-  acompanantes_num: 0,
-  colonia: '',
-});
-
 // ─── Shared styles ──────────────────────────────────────────────────────────
-const labelSt = {
-  fontSize: 11, fontWeight: 700, color: GRAY_500,
-  textTransform: 'uppercase', letterSpacing: '.07em', display: 'block', marginBottom: 4,
-};
 const inputSt = {
   width: '100%', boxSizing: 'border-box',
   padding: '8px 10px', borderRadius: 8, border: `1px solid ${GRAY_200}`,
@@ -133,248 +100,18 @@ function KpiCard({ icon, iconBg, iconColor, value, label, footer, valueColor = N
   );
 }
 
-// ─── Modal ───────────────────────────────────────────────────────────────────
-function VisitanteModal({ editing, onClose, onSaved }) {
-  const [form, setForm] = useState(editing ? { ...editing, edad: editing.edad ?? '', acompanantes_num: editing.acompanantes_num ?? 0 } : mkEmpty());
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState('');
-
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!form.nombre.trim()) { setErr('El nombre es requerido.'); return; }
-    setSaving(true);
-    setErr('');
-    try {
-      const payload = {
-        fecha:               form.fecha || null,
-        relacion_con_origen: form.relacion_con_origen || null,
-        nombre:              form.nombre.trim(),
-        edad:                form.edad !== '' ? parseInt(form.edad, 10) : null,
-        estado_fe:           form.estado_fe || null,
-        whatsapp:            form.whatsapp || null,
-        como_se_entero:      form.como_se_entero || null,
-        acompanantes:        form.acompanantes || null,
-        acompanantes_num:    form.acompanantes_num !== '' ? parseInt(form.acompanantes_num, 10) : 0,
-        colonia:             form.colonia || null,
-      };
-      if (editing) await visitantesApi.update(editing.id, payload);
-      else         await visitantesApi.create(payload);
-      onSaved();
-    } catch {
-      setErr('Error al guardar. Intenta de nuevo.');
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 100,
-      background: 'rgba(11,26,47,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 16,
-    }}>
-      <div style={{
-        background: '#fff', borderRadius: 18, padding: 28, maxWidth: 520, width: '100%',
-        boxShadow: '0 20px 60px rgba(0,0,0,.2)', maxHeight: '90vh', overflowY: 'auto',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: NAVY_900 }}>
-              {editing ? 'Editar visitante' : 'Nuevo visitante'}
-            </div>
-            <div style={{ fontSize: 12, color: GRAY_500, marginTop: 2 }}>
-              Completa los datos del visitante
-            </div>
-          </div>
-          <button onClick={onClose} style={{
-            background: GRAY_50, border: 0, borderRadius: 9, width: 32, height: 32,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: GRAY_500,
-          }}>
-            <I.x size={15} />
-          </button>
-        </div>
-
-        {err && (
-          <div style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 12.5, padding: '8px 12px', borderRadius: 8, marginBottom: 12 }}>
-            {err}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <label style={labelSt}>Nombre completo *</label>
-            <input style={inputSt} type="text" value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre completo" />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={labelSt}>Fecha de visita</label>
-              <input style={inputSt} type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
-            </div>
-            <div>
-              <label style={labelSt}>Edad</label>
-              <input style={inputSt} type="number" value={form.edad} onChange={e => set('edad', e.target.value)} min="0" max="120" placeholder="Opcional" />
-            </div>
-          </div>
-
-          <div>
-            <label style={labelSt}>Relación con Origen</label>
-            <select style={inputSt} value={form.relacion_con_origen} onChange={e => set('relacion_con_origen', e.target.value)}>
-              <option value="">— Sin especificar —</option>
-              <option value="Me interesa seguir">Me interesa seguir</option>
-              <option value="Solo vengo de visita">Solo vengo de visita</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={labelSt}>Estado de fe</label>
-            <select style={inputSt} value={form.estado_fe} onChange={e => set('estado_fe', e.target.value)}>
-              <option value="">— Sin especificar —</option>
-              <option value="Soy nuevo">Soy nuevo</option>
-              <option value="Soy cristiano">Soy cristiano</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={labelSt}>WhatsApp</label>
-            <input style={inputSt} type="text" value={form.whatsapp} onChange={e => set('whatsapp', e.target.value)} placeholder="+52 449 000 0000" />
-          </div>
-
-          <div>
-            <label style={labelSt}>¿Cómo se enteró?</label>
-            <input style={inputSt} type="text" value={form.como_se_entero} onChange={e => set('como_se_entero', e.target.value)} placeholder="Redes sociales, amigo, otro..." />
-          </div>
-
-          <div>
-            <label style={labelSt}>Acompañantes</label>
-            <input style={inputSt} type="text" value={form.acompanantes} onChange={e => set('acompanantes', e.target.value)} placeholder="Nombres de quienes lo acompañan" />
-          </div>
-
-          <div>
-            <label style={labelSt}>¿Cuántos acompañantes?</label>
-            <input style={inputSt} type="number" min="0" value={form.acompanantes_num} onChange={e => set('acompanantes_num', e.target.value)} placeholder="0" />
-          </div>
-
-          <div>
-            <label style={labelSt}>Colonia</label>
-            <input style={inputSt} type="text" value={form.colonia} onChange={e => set('colonia', e.target.value)} />
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-            <button type="button" onClick={onClose} style={{
-              flex: 1, padding: '10px 0', borderRadius: 10, border: `1px solid ${GRAY_200}`,
-              background: '#fff', fontSize: 13.5, fontWeight: 600, color: GRAY_700, cursor: 'pointer',
-            }}>Cancelar</button>
-            <button type="submit" disabled={saving} style={{
-              flex: 1, padding: '10px 0', borderRadius: 10, border: 0,
-              background: NAVY_900, color: '#fff', fontSize: 13.5, fontWeight: 700,
-              cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
-            }}>{saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Registrar visitante'}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function BienvenidaCasaPage() {
-  const { permisos } = useAuth();
-  const canWrite = puedeRegistrar(permisos, 'visitantes');
   const isMobile = useIsMobile();
-
-  const [visitantes, setVisitantes] = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState('');
-  const [filtro, setFiltro]         = useState('todos');
-  const [page, setPage]             = useState(1);
-  const [showModal, setShowModal]   = useState(false);
-  const [editing, setEditing]       = useState(null);
-  const [edicion, setEdicion]       = useState('actual');
-  const PAGE_SIZE = 15;
-
-  const load = useCallback(async () => {
-    try {
-      const { data } = await visitantesApi.getAll();
-      setVisitantes(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  // ── Edición activa ────────────────────────────────────────────────────────
-  const edDef    = EDICIONES.find(e => e.id === edicion) ?? EDICIONES[0];
-  const enEdicion = visitantes.filter(v => inEdicion(v, edDef));
-
-  // ── KPIs (siempre sobre TODOS los visitantes del año, independiente del selector de edición) ──
-  const now = new Date();
-  const thisMonth = now.getMonth();
-  const thisYear  = now.getFullYear();
-
-  const personas = v => 1 + (v.acompanantes_num || 0);
-
-  const totalPersonas         = visitantes.reduce((s, v) => s + personas(v), 0);
-  const quierenSeguirPersonas = visitantes
-    .filter(v => v.relacion_con_origen === 'Me interesa seguir')
-    .reduce((s, v) => s + personas(v), 0);
-  const nuevosFePersonas      = visitantes
-    .filter(v => v.estado_fe === 'Soy nuevo')
-    .reduce((s, v) => s + personas(v), 0);
-  const esteMesPersonas       = visitantes
-    .filter(v => {
-      if (!v.fecha) return false;
-      const d = new Date(v.fecha + 'T00:00:00');
-      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
-    })
-    .reduce((s, v) => s + personas(v), 0);
-  const quierenPct = totalPersonas > 0 ? Math.round((quierenSeguirPersonas / totalPersonas) * 100) : 0;
-
-  // ── Filter (dentro del período seleccionado) ─────────────────────────────
-  const filtered = enEdicion.filter(v => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || [v.nombre, v.colonia, v.como_se_entero, v.whatsapp]
-      .some(s => s?.toLowerCase().includes(q));
-    const matchFiltro =
-      filtro === 'todos'      ? true :
-      filtro === 'seguir'     ? v.relacion_con_origen === 'Me interesa seguir' :
-      filtro === 'visita'     ? v.relacion_con_origen === 'Solo vengo de visita' :
-      filtro === 'nuevo'      ? v.estado_fe === 'Soy nuevo' :
-      filtro === 'cristiano'  ? v.estado_fe === 'Soy cristiano' : true;
-    return matchSearch && matchFiltro;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-  function openNew()    { setEditing(null); setShowModal(true); }
-  function openEdit(v)  { setEditing(v);    setShowModal(true); }
-  function closeModal() { setShowModal(false); setEditing(null); }
-  async function onSaved() { closeModal(); await load(); }
-
-  function openWa(num) {
-    if (!num) return;
-    window.open(`https://wa.me/${num.replace(/\D/g, '')}`, '_blank');
-  }
-
-  function changeEdicion(id) { setEdicion(id); setFiltro('todos'); setSearch(''); setPage(1); }
-  function changeFiltro(f)  { setFiltro(f); setPage(1); }
-  function changeSearch(v)  { setSearch(v);  setPage(1); }
-
-  async function toggleContactado(v) {
-    const nuevo = !v.contactado;
-    setVisitantes(prev => prev.map(x => x.id === v.id ? { ...x, contactado: nuevo } : x));
-    try {
-      await visitantesApi.patch(v.id, { contactado: nuevo });
-    } catch {
-      setVisitantes(prev => prev.map(x => x.id === v.id ? { ...x, contactado: !nuevo } : x));
-    }
-  }
+  const {
+    loading, paged, filtered, totalPages, page, setPage,
+    search, filtro, edicion,
+    kpis: { totalPersonas, quierenSeguirPersonas, nuevosFePersonas, esteMesPersonas, quierenPct },
+    canWrite, showModal, editing,
+    openNew, openEdit, closeModal, onSaved,
+    openWa, changeEdicion, changeFiltro, changeSearch,
+    toggleContactado, PAGE_SIZE,
+  } = useBienvenidaData();
 
   const chipSt = (active) => ({
     padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 600,
