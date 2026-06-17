@@ -215,7 +215,7 @@ export default function GastosPorPagarPage() {
   const year  = now.getFullYear();
   const month = now.getMonth() + 1;
 
-  const { refreshKey, openModal } = useGastosModal();
+  const { refreshKey } = useGastosModal();
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'gastos');
   const isMobile = useIsMobile();
@@ -499,11 +499,6 @@ export default function GastosPorPagarPage() {
               {sorted.length} {sorted.length === 1 ? 'gasto' : 'gastos'} · {fmt(totalPendiente)} · ordenados por vencimiento
             </div>
           </div>
-          {canWrite && (
-            <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => openModal(false)}>
-              <I.plus size={14} /> Registrar por pagar
-            </button>
-          )}
         </div>
 
         {sorted.length === 0 ? (

@@ -134,7 +134,7 @@ export default function Layout() {
             {/* Stewardship — Registrar gasto por pagar */}
             {isStewardship && isGastosPorPagar && (
               <button className="btn btn-primary" onClick={() => openGastosModal(false)}>
-                <I.plus size={15} /><span className="topbar-btn-label"> Registrar gasto por pagar</span>
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar gasto</span>
               </button>
             )}
 
