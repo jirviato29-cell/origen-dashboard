@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { I } from '../components/Icons';
 import { useIsMobile } from '../utils/useIsMobile';
+import RolesGdlScreen from './RolesGdlScreen';
 
 // ── Design tokens (del CSS de la referencia) ───────────────────────────────
 const NAVY_950 = '#0B1A2F';
@@ -121,6 +122,8 @@ export default function LoginPage() {
   const navigate  = useNavigate();
   const isMobile  = useIsMobile();
 
+  const campusActivo = localStorage.getItem('campus_activo');
+
   const [selected, setSelected] = useState(null);
   const [clave,    setClave]    = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -182,7 +185,9 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {!selected ? (
+        {!selected && campusActivo === 'gdl' ? (
+          <RolesGdlScreen roles={ROLES_LIST} onSelect={setSelected} />
+        ) : !selected ? (
           <>
             {/* ── Panel principal ───────────────────────────────────── */}
             <div style={{
