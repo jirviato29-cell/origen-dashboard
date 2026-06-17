@@ -5,6 +5,7 @@ import { I } from '../../components/Icons';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 import { useIsMobile } from '../../utils/useIsMobile';
+import BienvenidaGdlContent from './BienvenidaGdlContent';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
 const NAVY_900 = '#112540';
@@ -392,6 +393,9 @@ export default function BienvenidaCasaPage() {
   const tdSt = { padding: '12px 14px', borderBottom: `1px solid ${GRAY_100}` };
 
   const emptyCell = <span style={{ color: GRAY_300, fontSize: 12 }}>—</span>;
+
+  const campusActivo = localStorage.getItem('campus_activo') || 'ags';
+  if (campusActivo === 'gdl') return <BienvenidaGdlContent />;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
