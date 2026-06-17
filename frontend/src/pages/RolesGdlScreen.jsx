@@ -37,7 +37,7 @@ const CSS = `
 .ogr-glow-bl{position:absolute;bottom:-220px;left:-160px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.05),transparent 70%);pointer-events:none;}
 .ogr-wrap{width:100%;max-width:680px;position:relative;z-index:1;}
 .ogr-brand{text-align:center;margin-bottom:34px;}
-.ogr-brand img{width:172px;height:auto;}
+.ogr-brand img{width:172px;height:auto;display:block;margin-left:auto;margin-right:auto;}
 .ogr-tag{margin-top:14px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:${INK_300};}
 .ogr-panel{background:#16161A;border:1px solid rgba(255,255,255,.07);border-radius:22px;padding:30px 30px 26px;box-shadow:0 30px 80px rgba(0,0,0,.6);}
 .ogr-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${MINT};margin-bottom:7px;}
