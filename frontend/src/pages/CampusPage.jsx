@@ -13,7 +13,7 @@ const CSS = `
 .ocp-root{background:#0B1A2F;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;overflow:hidden;position:relative;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;}
 .ocp-wrap{max-width:680px;width:100%;text-align:center;position:relative;z-index:1;}
 .ocp-brand{width:220px;height:auto;margin:0 auto 30px;display:block;}
-.ocp-eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#9CB0CC;margin:0 0 12px;}
+.ocp-eyebrow{font-size:16px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#9CB0CC;margin:0 0 12px;}
 .ocp-title{font-size:30px;font-weight:800;letter-spacing:-.03em;color:#fff;margin:0 0 32px;}
 .ocp-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
 .ocp-card{border:1px solid rgba(255,255,255,.10);border-radius:20px;padding:34px 26px 26px;background:rgba(255,255,255,.03);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:18px;position:relative;overflow:hidden;font-family:inherit;text-align:center;transition:border-color .18s,background .18s,transform .18s,box-shadow .18s;}
@@ -106,8 +106,7 @@ export default function CampusPage() {
             })}
           </div>
         )}
-        <p className="ocp-foot">Elige tu campus</p>
-        <p className="ocp-foot">Dashboard interno · Origen</p>
+        <p className="ocp-foot">Elige tu campus · Dashboard interno · Origen</p>
       </div>
     </div>
   );
