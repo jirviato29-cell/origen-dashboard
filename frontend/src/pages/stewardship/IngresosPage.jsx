@@ -356,12 +356,6 @@ export default function IngresosPage() {
       Cargando registros…
     </div>
   );
-  if (!ultimoDomingo) return (
-    <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
-      Sin registros de ofrendas para {year}.
-    </div>
-  );
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -375,7 +369,7 @@ export default function IngresosPage() {
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: isMobile ? 3 : 10 }}>
                 Último domingo
               </div>
-              {isMobile && (
+              {isMobile && ultimoDomingo && (
                 <div style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <span>Ef. <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.efectivo))}</b></span>
                   <span>Term. <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.terminal))}</b></span>
@@ -386,18 +380,23 @@ export default function IngresosPage() {
             <div style={{ display: 'flex', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
               <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums' }}>
                 <span style={{ fontSize: 18, color: 'var(--muted)', fontWeight: 600, marginRight: 1 }}>$</span>
-                {fmtNum(Number(ultimoDomingo.total_ofrenda))}
+                {ultimoDomingo ? fmtNum(Number(ultimoDomingo.total_ofrenda)) : '0'}
               </div>
               {!isMobile && <Sparkline values={spark1} color="var(--chart-secondary)" />}
             </div>
           </div>
-          {!isMobile && (
+          {!isMobile && ultimoDomingo && (
             <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <span>Efectivo <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.efectivo))}</b></span>
               <span style={{ color: 'var(--border)' }}>·</span>
               <span>Terminal <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.terminal))}</b></span>
               <span style={{ color: 'var(--border)' }}>·</span>
               <span>Sobres <b style={{ color: 'var(--black)' }}>{Number(ultimoDomingo.ofrendas ?? 0)}</b></span>
+            </div>
+          )}
+          {!isMobile && !ultimoDomingo && (
+            <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)' }}>
+              Sin registros para {year}
             </div>
           )}
         </div>
@@ -562,6 +561,11 @@ export default function IngresosPage() {
             <h3 className="card-title">Resumen por mes</h3>
             <div className="card-sub">{year} · haz clic en un mes para ver el detalle</div>
           </div>
+          {resumenMeses.length === 0 && (
+            <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+              Sin registros de ofrendas para {year}.
+            </div>
+          )}
           {resumenMeses.map((r, idx) => {
             const activo = mesSeleccionado === r.mes;
             const totM   = r.efectivo + r.terminal + r.transfer;
@@ -723,6 +727,11 @@ export default function IngresosPage() {
         {/* Table */}
         {isMobile ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {tablaRows.length === 0 && (
+              <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+                Sin registros para {tablaMesFiltro ? mesNombre(tablaMesFiltro) : year}.
+              </div>
+            )}
             {tablaRows.map(d => (
               <div key={d.fecha} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>{fmtFecha(d.fecha)}</div>
@@ -798,6 +807,13 @@ export default function IngresosPage() {
                   </td>
                 </tr>
               ))}
+              {tablaRows.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '28px 0', color: 'var(--muted)', fontSize: 13 }}>
+                    Sin registros para {tablaMesFiltro ? mesNombre(tablaMesFiltro) : year}.
+                  </td>
+                </tr>
+              )}
             </tbody>
             <tbody>
               <tr className="anf-totals-row">
