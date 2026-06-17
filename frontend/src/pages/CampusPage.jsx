@@ -5,128 +5,60 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const CAMPUS_META = {
-  ags: { dot: '#3E6499', label: 'Aguascalientes' },
+  ags: { dot: '#3E6399', label: 'Aguascalientes' },
   gdl: { dot: '#888',    label: 'Matriz · Guadalajara' },
 };
 
-// ─── Tile de campus ───────────────────────────────────────────────────────────
+const CSS = `
+.ocp-root{background:#0B1A2F;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;overflow:hidden;position:relative;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;}
+.ocp-wrap{max-width:680px;width:100%;text-align:center;position:relative;z-index:1;}
+.ocp-brand{width:220px;height:auto;margin:0 auto 30px;display:block;}
+.ocp-eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#9CB0CC;margin:0 0 12px;}
+.ocp-title{font-size:30px;font-weight:800;letter-spacing:-.03em;color:#fff;margin:0 0 32px;}
+.ocp-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.ocp-card{border:1px solid rgba(255,255,255,.10);border-radius:20px;padding:34px 26px 26px;background:rgba(255,255,255,.03);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:18px;position:relative;overflow:hidden;font-family:inherit;text-align:center;transition:border-color .18s,background .18s,transform .18s,box-shadow .18s;}
+.ocp-card:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.06);transform:translateY(-4px);box-shadow:0 18px 44px rgba(0,0,0,.4);}
+.ocp-accent{position:absolute;left:0;right:0;bottom:0;height:3px;background:#FF6B2B;transform:scaleX(0);transform-origin:left;transition:transform .2s;}
+.ocp-card:hover .ocp-accent{transform:scaleX(1);}
+.ocp-tile{width:96px;height:96px;min-width:96px;min-height:96px;max-width:96px;max-height:96px;border-radius:22px;flex-shrink:0;flex-grow:0;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.35);}
+.ocp-tile-ags{background:#C1644A;}
+.ocp-tile-ags img{width:100%;height:100%;object-fit:cover;border-radius:22px;display:block;}
+.ocp-tile-gdl{background:#111111;}
+.ocp-tile-gdl img{width:60px;height:auto;display:block;}
+.ocp-name{font-size:18px;font-weight:800;letter-spacing:-.02em;color:#fff;margin:0 0 6px;}
+.ocp-meta{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12.5px;color:#9CB0CC;margin:0;}
+.ocp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block;}
+.ocp-foot{margin:30px 0 0;font-size:11.5px;color:#9CB0CC;opacity:.7;}
+.ocp-glow-tr{position:absolute;top:-180px;right:-140px;width:540px;height:540px;border-radius:50%;background:radial-gradient(circle,rgba(255,107,43,.16),transparent 68%);pointer-events:none;}
+.ocp-glow-bl{position:absolute;bottom:-220px;left:-160px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(48,81,129,.4),transparent 70%);pointer-events:none;}
+.ocp-loading{color:#9CB0CC;font-size:14px;}
+@media(max-width:560px){
+  .ocp-grid{gap:10px;}
+  .ocp-card{padding:20px 12px;}
+  .ocp-tile{width:64px;height:64px;min-width:64px;min-height:64px;max-width:64px;max-height:64px;}
+  .ocp-tile-gdl img{width:40px;}
+}
+`;
 
 function CampusTile({ campus }) {
   if (campus.id === 'ags') {
-    return (
-      <div className="tile ags">
-        <img src="/assets/logo-origen-ags.jpeg" alt="Campus Aguascalientes" />
-      </div>
-    );
+    return <div className="ocp-tile ocp-tile-ags"><img src="/assets/logo-origen-ags.jpeg" alt="Campus Aguascalientes" /></div>;
   }
-
   if (campus.id === 'gdl') {
-    return (
-      <div className="tile gdl">
-        <img src="/assets/origen-mark.png" alt="Campus Guadalajara" />
-      </div>
-    );
+    return <div className="ocp-tile ocp-tile-gdl"><img src="/assets/origen-mark.png" alt="Campus Guadalajara" /></div>;
   }
-
-  // Campus dinámico desde API
   return (
-    <div style={{
-      width: 96, height: 96, borderRadius: 22,
-      background: '#244169', flexShrink: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      overflow: 'hidden', boxShadow: '0 8px 22px rgba(0,0,0,.35)',
-    }}>
-      {campus.logo_url ? (
-        <img
-          src={campus.logo_url}
-          alt={campus.nombre}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      ) : (
-        <span style={{ fontSize: 36, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
-          {campus.nombre?.charAt(0).toUpperCase() ?? '?'}
-        </span>
-      )}
+    <div className="ocp-tile" style={{ background: '#244169' }}>
+      {campus.logo_url
+        ? <img src={campus.logo_url} alt={campus.nombre} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+        : <span style={{ fontSize:36, fontWeight:800, color:'#fff', lineHeight:1 }}>{campus.nombre?.charAt(0).toUpperCase() ?? '?'}</span>}
     </div>
   );
 }
 
-// ─── Tarjeta de campus ────────────────────────────────────────────────────────
-
-function CampusCard({ campus, onSelect }) {
-  const [hovered, setHovered] = useState(false);
-  const meta      = CAMPUS_META[campus.id];
-  const dotColor  = meta?.dot   ?? '#888';
-  const metaLabel = meta?.label ?? campus.nombre;
-
-  return (
-    <button
-      className="campus-card"
-      onClick={onSelect}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        border:       `1px solid ${hovered ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.10)'}`,
-        borderRadius: 20,
-        padding:      '34px 26px 26px',
-        background:   hovered ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.03)',
-        cursor:       'pointer',
-        display:      'flex',
-        flexDirection:'column',
-        alignItems:   'center',
-        gap:          18,
-        position:     'relative',
-        overflow:     'hidden',
-        transform:    hovered ? 'translateY(-4px)' : 'translateY(0)',
-        boxShadow:    hovered ? '0 18px 44px rgba(0,0,0,.4)' : 'none',
-        transition:   'border-color .18s, background .18s, transform .18s, box-shadow .18s',
-        fontFamily:   'inherit',
-        textAlign:    'center',
-      }}
-    >
-      {/* Acento naranja inferior */}
-      <div style={{
-        position:        'absolute',
-        left: 0, right: 0, bottom: 0,
-        height:          3,
-        background:      '#FF6B2B',
-        transform:       hovered ? 'scaleX(1)' : 'scaleX(0)',
-        transformOrigin: 'left',
-        transition:      'transform .2s',
-      }} />
-
-      <CampusTile campus={campus} />
-
-      {/* Nombre */}
-      <div>
-        <p style={{
-          fontSize: 18, fontWeight: 800, letterSpacing: '-.02em',
-          color: '#fff', margin: '0 0 6px',
-        }}>
-          {campus.nombre}
-        </p>
-
-        {/* Meta-línea con dot */}
-        <p style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: 7, fontSize: 12.5, color: '#9CB0CC', margin: 0,
-        }}>
-          <span style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: dotColor, flexShrink: 0, display: 'inline-block',
-          }} />
-          {metaLabel}
-        </p>
-      </div>
-    </button>
-  );
-}
-
-// ─── Página principal ─────────────────────────────────────────────────────────
-
 export default function CampusPage() {
   const [campusList, setCampusList] = useState([]);
-  const [loading,    setLoading]    = useState(true);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -145,88 +77,37 @@ export default function CampusPage() {
   };
 
   return (
-    <div style={{
-      background:  '#0B1A2F',
-      minHeight:   '100vh',
-      display:     'flex',
-      alignItems:  'center',
-      justifyContent: 'center',
-      padding:     '40px 20px',
-      overflow:    'hidden',
-      position:    'relative',
-      fontFamily:  '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
-    }}>
-
-      {/* Glow naranja top-right */}
-      <div style={{
-        position: 'absolute', top: -180, right: -140,
-        width: 540, height: 540, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(255,107,43,.16), transparent 68%)',
-        pointerEvents: 'none',
-      }} />
-
-      {/* Glow azul bottom-left */}
-      <div style={{
-        position: 'absolute', bottom: -220, left: -160,
-        width: 600, height: 600, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(48,81,129,.4), transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-
-      {/* Contenedor central */}
-      <div style={{
-        maxWidth: 680, width: '100%',
-        textAlign: 'center', position: 'relative', zIndex: 1,
-      }}>
-
-        {/* Logo genérico blanco (sin "Aguascalientes") */}
-        <img
-          src="/assets/origen-mark.png"
-          alt="Origen"
-          style={{ width: 220, height: 'auto', marginBottom: 30, display: 'block', marginLeft: 'auto', marginRight: 'auto' }}
-        />
-
-        {/* Eyebrow */}
-        <p style={{
-          fontSize: 11, fontWeight: 700, letterSpacing: '.16em',
-          textTransform: 'uppercase', color: '#9CB0CC',
-          margin: '0 0 12px',
-        }}>
-          Origen Dashboard
-        </p>
-
-        {/* Título */}
-        <h1 style={{
-          fontSize: 30, fontWeight: 800, letterSpacing: '-.03em',
-          color: '#fff', margin: '0 0 32px',
-        }}>
-          Elige tu campus
-        </h1>
-
-        {/* Grid de campus */}
+    <div className="ocp-root">
+      <style>{CSS}</style>
+      <div className="ocp-glow-tr" />
+      <div className="ocp-glow-bl" />
+      <div className="ocp-wrap">
+        <img src="/assets/origen-mark.png" alt="Origen" className="ocp-brand" />
+        <p className="ocp-eyebrow">Origen Dashboard</p>
+        <h1 className="ocp-title">Elige tu campus</h1>
         {loading ? (
-          <p style={{ color: '#9CB0CC', fontSize: 14 }}>Cargando…</p>
+          <p className="ocp-loading">Cargando…</p>
         ) : (
-          <div className="campus-grid">
-            {campusList.map(campus => (
-              <CampusCard
-                key={campus.id}
-                campus={campus}
-                onSelect={() => handleSelect(campus.id)}
-              />
-            ))}
+          <div className="ocp-grid">
+            {campusList.map((campus) => {
+              const meta = CAMPUS_META[campus.id];
+              return (
+                <button key={campus.id} className="ocp-card" onClick={() => handleSelect(campus.id)}>
+                  <div className="ocp-accent" />
+                  <CampusTile campus={campus} />
+                  <div>
+                    <p className="ocp-name">{campus.nombre}</p>
+                    <p className="ocp-meta">
+                      <span className="ocp-dot" style={{ background: meta?.dot ?? '#888' }} />
+                      {meta?.label ?? campus.nombre}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
-
-        {/* Footer */}
-        <p style={{
-          marginTop: 30, fontSize: 11.5,
-          color: '#9CB0CC', opacity: 0.7,
-          margin: '30px 0 0',
-        }}>
-          Dashboard interno · Origen
-        </p>
-
+        <p className="ocp-foot">Dashboard interno · Origen</p>
       </div>
     </div>
   );
