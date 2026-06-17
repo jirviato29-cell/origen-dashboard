@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { gastosApi } from '../../services/api';
 import { useGastosModal } from '../../context/GastosModalContext';
-import { useAuth } from '../../context/AuthContext';
-import { puedeRegistrar } from '../../permissions';
 import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
 import { useIsMobile } from '../../utils/useIsMobile';
 import { CATEGORIAS, CAT_COLORS, CAT_BG } from '../../utils/categorias';
@@ -130,9 +128,7 @@ export default function GastosPage() {
   const mes  = `${year}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
   const mesLabelCap = hoy.toLocaleDateString('es-MX', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
 
-  const { openModal, refreshKey } = useGastosModal();
-  const { permisos } = useAuth();
-  const canWrite = puedeRegistrar(permisos, 'gastos');
+  const { refreshKey } = useGastosModal();
   const isMobile = useIsMobile();
 
   const [gastos, setGastos]            = useState([]);
@@ -486,11 +482,6 @@ export default function GastosPage() {
             <h3 className="card-title">Detalle de gastos</h3>
             <div className="card-sub">{tablaCount} gastos · total {fmt(tablaTotal)}</div>
           </div>
-          {canWrite && (
-            <button className="btn btn-primary" onClick={() => openModal(true)}>
-              <I.plus size={14} /><span className="topbar-btn-label"> Registrar Gasto</span>
-            </button>
-          )}
         </div>
 
         {/* Totals band (3 cols) */}
