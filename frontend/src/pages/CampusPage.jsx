@@ -84,7 +84,6 @@ export default function CampusPage() {
       <div className="ocp-wrap">
         <img src="/assets/origen-mark.png" alt="Origen" className="ocp-brand" />
         <p className="ocp-eyebrow">Origen Dashboard</p>
-        <h1 className="ocp-title">Elige tu campus</h1>
         {loading ? (
           <p className="ocp-loading">Cargando…</p>
         ) : (
@@ -107,6 +106,7 @@ export default function CampusPage() {
             })}
           </div>
         )}
+        <p className="ocp-foot">Elige tu campus</p>
         <p className="ocp-foot">Dashboard interno · Origen</p>
       </div>
     </div>
