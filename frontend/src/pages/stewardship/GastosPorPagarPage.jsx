@@ -208,6 +208,7 @@ function MetodoBadge({ metodo }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function GastosPorPagarPage() {
+  const isGdl = localStorage.getItem('campus_activo') === 'gdl';
   const now   = new Date();
   const year  = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -398,14 +399,14 @@ export default function GastosPorPagarPage() {
           alertBar={RED}
         />
         <KpiCard
-          label="Efectivo Aguascalientes"
+          label={isGdl ? 'Efectivo' : 'Efectivo Aguascalientes'}
           iconEl={<I.cash size={15} />}
           iconBg={NAVY_SOFT} iconColor={NAVY_500}
           value={fmt(totalEfectivoAgs)} valueColor={NAVY}
           foot={<><b style={{ color: NAVY }}>{pagadosEfectivoAgs.length}</b> {pagadosEfectivoAgs.length === 1 ? 'pago' : 'pagos'} · {year}</>}
         />
         <KpiCard
-          label="Transferencia GDL"
+          label={isGdl ? 'Transferencia' : 'Transferencia GDL'}
           iconEl={<I.coin size={15} />}
           iconBg={AMBER_SOFT} iconColor={AMBER}
           value={fmt(totalGdl)} valueColor={NAVY}
