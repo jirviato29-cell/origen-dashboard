@@ -7,12 +7,22 @@ import { I } from '../../components/Icons';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 
+// ── Campus theme ──────────────────────────────────────────────────────────────
+const isGdl = localStorage.getItem('campus_activo') === 'gdl';
+
 // Navy mid-tones not in global CSS vars
-const NAVY_600   = '#305181';
-const NAVY_300   = '#9CB0CC';
+const NAVY_600   = isGdl ? '#0E9E8C' : '#305181';
+const NAVY_300   = isGdl ? '#9A9A9A' : '#9CB0CC';
 const GREEN_600  = '#15915A';
 const GREEN_400  = '#3DD68C';
-const NAVY_500   = '#3E6499';
+const NAVY_500   = isGdl ? '#0E9E8C' : '#3E6399';
+
+// Hardcoded colors — campus-aware
+const TOOLTIP_TOT   = isGdl ? '#10C9A8'              : '#fdba74';
+const CHIP_NAVY_BG  = isGdl ? 'rgba(14,158,140,.10)' : 'rgba(17,37,64,0.08)';
+const CHIP_600_BG   = isGdl ? 'rgba(14,158,140,.10)' : 'rgba(48,81,129,0.10)';
+const BTN_INACT_BG  = isGdl ? '#E6F5F2'              : '#FFF4EE';
+const BTN_INACT_BOR = isGdl ? '#B2E4DC'              : '#FFE4D1';
 
 function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
@@ -174,7 +184,7 @@ function LineChart({ data, slim = false }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 4, paddingTop: 4 }}>
                 <span style={{ fontWeight: 700 }}>Total</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#fdba74' }}>{fmt(d.total)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TOOLTIP_TOT }}>{fmt(d.total)}</span>
               </div>
             </div>
           </div>
@@ -495,7 +505,7 @@ export default function IngresosPage() {
         <div className="card" style={{ padding: '16px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Total efectivo del año</div>
-            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: 'rgba(17,37,64,0.08)', color: 'var(--black)' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: CHIP_NAVY_BG, color: 'var(--black)' }}>
               {pctEfectivo}%
             </span>
           </div>
@@ -512,7 +522,7 @@ export default function IngresosPage() {
         <div className="card" style={{ padding: '16px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Total terminal del año</div>
-            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: 'rgba(48,81,129,0.10)', color: NAVY_600 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: CHIP_600_BG, color: NAVY_600 }}>
               {pctTerminal}%
             </span>
           </div>
@@ -588,8 +598,8 @@ export default function IngresosPage() {
                       style={{
                         fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6, cursor: 'pointer',
                         color:       activo ? 'white'                   : 'var(--chart-secondary)',
-                        background:  activo ? 'var(--chart-secondary)'  : '#FFF4EE',
-                        border:      activo ? '1px solid var(--chart-secondary)' : '1px solid #FFE4D1',
+                        background:  activo ? 'var(--chart-secondary)'  : BTN_INACT_BG,
+                        border:      activo ? '1px solid var(--chart-secondary)' : `1px solid ${BTN_INACT_BOR}`,
                         transition: 'background 0.15s, color 0.15s, border-color 0.15s',
                       }}
                     >
