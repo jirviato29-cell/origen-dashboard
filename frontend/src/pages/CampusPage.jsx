@@ -14,24 +14,16 @@ const CAMPUS_META = {
 function CampusTile({ campus }) {
   if (campus.id === 'ags') {
     return (
-      <div className="campus-tile campus-tile-ags">
-        <img
-          src="/assets/logo-origen-ags.jpeg"
-          alt="Campus Aguascalientes"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 22, display: 'block' }}
-        />
+      <div className="tile ags">
+        <img src="/assets/logo-origen-ags.jpeg" alt="Campus Aguascalientes" />
       </div>
     );
   }
 
   if (campus.id === 'gdl') {
     return (
-      <div className="campus-tile campus-tile-gdl">
-        <img
-          src="/assets/origen-mark.png"
-          alt="Campus Guadalajara"
-          style={{ width: 60, height: 'auto', display: 'block' }}
-        />
+      <div className="tile gdl">
+        <img src="/assets/origen-mark.png" alt="Campus Guadalajara" />
       </div>
     );
   }
