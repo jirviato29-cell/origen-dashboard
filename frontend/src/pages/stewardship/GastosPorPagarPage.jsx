@@ -187,10 +187,13 @@ function DonutSVG({ segments, total }) {
   );
 }
 
+// ── Campus theme ──────────────────────────────────────────────────────────────
+const isGdl = localStorage.getItem('campus_activo') === 'gdl';
+
 // ── Método de pago badge ───────────────────────────────────────────────────
 const METODO_CFG = {
-  efectivo_ags: { label: 'Efectivo Aguascalientes', color: NAVY_500, bg: NAVY_SOFT  },
-  gdl:          { label: 'Transferencia Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
+  efectivo_ags: { label: isGdl ? 'Efectivo'      : 'Efectivo Aguascalientes',   color: NAVY_500, bg: NAVY_SOFT  },
+  gdl:          { label: isGdl ? 'Transferencia' : 'Transferencia Guadalajara', color: AMBER,    bg: AMBER_SOFT },
   donacion:     { label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
   efectivo:     { label: 'Efectivo',     color: NAVY_300, bg: NAVY_SOFT  },
 };
@@ -208,7 +211,6 @@ function MetodoBadge({ metodo }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function GastosPorPagarPage() {
-  const isGdl = localStorage.getItem('campus_activo') === 'gdl';
   const now   = new Date();
   const year  = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -621,8 +623,8 @@ export default function GastosPorPagarPage() {
                                 overflow: 'hidden', minWidth: 170,
                               }}>
                                 {[
-                                  { value: 'efectivo_ags', label: 'Efectivo Aguascalientes', color: NAVY_500, bg: NAVY_SOFT  },
-                                  { value: 'gdl',          label: 'Transferencia Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
+                                  { value: 'efectivo_ags', label: isGdl ? 'Efectivo'      : 'Efectivo Aguascalientes',   color: NAVY_500, bg: NAVY_SOFT  },
+                                  { value: 'gdl',          label: isGdl ? 'Transferencia' : 'Transferencia Guadalajara', color: AMBER,    bg: AMBER_SOFT },
                                   { value: 'donacion',     label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
                                 ].map((m, mi, arr) => (
                                   <button key={m.value} onClick={() => handlePagar(g.id, m.value)} style={{
@@ -730,8 +732,8 @@ export default function GastosPorPagarPage() {
                               overflow: 'hidden', minWidth: 170,
                             }}>
                               {[
-                                { value: 'efectivo_ags', label: 'Efectivo Aguascalientes', color: NAVY_500, bg: NAVY_SOFT  },
-                                { value: 'gdl',          label: 'Transferencia Guadalajara',  color: AMBER,    bg: AMBER_SOFT },
+                                { value: 'efectivo_ags', label: isGdl ? 'Efectivo'      : 'Efectivo Aguascalientes',   color: NAVY_500, bg: NAVY_SOFT  },
+                                { value: 'gdl',          label: isGdl ? 'Transferencia' : 'Transferencia Guadalajara', color: AMBER,    bg: AMBER_SOFT },
                                 { value: 'donacion',     label: 'Donación',     color: GREEN,    bg: GREEN_SOFT },
                               ].map((m, mi, arr) => (
                                 <button key={m.value} onClick={() => handlePagar(g.id, m.value)} style={{
