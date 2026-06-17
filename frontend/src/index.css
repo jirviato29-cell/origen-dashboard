@@ -75,8 +75,10 @@
   --black:           #0E9E8C;
   --chart-secondary: #0E9E8C;
 }
-.app[data-campus="gdl"] .nav-item.active { background: rgba(14,158,140,.15); color: #fff; }
-.app[data-campus="gdl"] .nav-item.active::before { background: #0E9E8C !important; }
+.app[data-campus="gdl"] .nav-item.active { background: rgba(14,158,140,.22); color: #fff !important; }
+.app[data-campus="gdl"] .nav-item.active .nav-icon,
+.app[data-campus="gdl"] .nav-item.active svg { color: #2DD4BF !important; }
+.app[data-campus="gdl"] .nav-item.active::before { background: #2DD4BF !important; }
 .app[data-campus="gdl"] .avatar { background: #0E9E8C; }
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */
