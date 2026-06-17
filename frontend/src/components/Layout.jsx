@@ -76,9 +76,10 @@ export default function Layout() {
   const canRegCalendario  = puedeRegistrar(permisos, 'calendario');
   const canRegPE          = puedeRegistrar(permisos, 'punto_encuentro');
 
+  const campusActivo = localStorage.getItem('campus_activo') || 'ags';
 
   return (
-    <div className="app" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div className="app" data-campus={campusActivo} style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
       {/* ── Mobile backdrop ── */}
       {sidebarOpen && (

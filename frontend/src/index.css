@@ -69,6 +69,13 @@
   --chart-secondary-soft: rgba(255,107,43,0.12);
 }
 
+/* ─── Tema Campus Guadalajara ────────────────────────────────────────────── */
+.app[data-campus="gdl"] {
+  --sidebar-bg:      #0A0A0A;
+  --black:           #0E9E8C;
+  --chart-secondary: #0E9E8C;
+}
+
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 
 *, *::before, *::after { box-sizing: border-box; }

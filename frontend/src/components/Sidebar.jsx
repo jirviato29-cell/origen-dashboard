@@ -139,6 +139,8 @@ export default function Sidebar({ onClose }) {
   const { openModal } = useRegistrarModal();
   const { openModal: openOfrendasModal } = useOfrendasModal();
   const sections = navByRole[role] || [];
+  const campusActivo = localStorage.getItem('campus_activo') || 'ags';
+  const logoSrc = campusActivo === 'gdl' ? '/assets/origen-mark-blanco.png' : '/assets/origen-logo-white.png';
 
   const handleLogout = () => {
     logout();
@@ -151,8 +153,8 @@ export default function Sidebar({ onClose }) {
       {/* Logo */}
       <div className="sidebar-brand">
         <img
-          src="/assets/origen-logo-white.png"
-          alt="Origen Aguascalientes"
+          src={logoSrc}
+          alt="Origen"
           style={{ width: '140px', height: 'auto' }}
         />
 
