@@ -82,7 +82,7 @@ export default function RolesGdlScreen({ roles = [], onSelect }) {
       <div className="ogr-glow-bl" />
       <div className="ogr-wrap">
         <div className="ogr-brand">
-          <img src="/assets/origen-logo-white.png" alt="Origen" />
+          <img src="/assets/origen-mark-blanco.png" alt="Origen" />
           <div className="ogr-tag">Dashboard interno · Campus Guadalajara</div>
         </div>
         <div className="ogr-panel">

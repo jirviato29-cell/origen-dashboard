@@ -146,6 +146,10 @@ export default function LoginPage() {
     else { setError(result.error); inputRef.current?.focus(); }
   };
 
+  if (!selected && campusActivo === 'gdl') {
+    return <RolesGdlScreen roles={ROLES_LIST} onSelect={setSelected} />;
+  }
+
   return (
     <div style={{
       minHeight: '100vh', background: NAVY_950,
@@ -185,9 +189,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {!selected && campusActivo === 'gdl' ? (
-          <RolesGdlScreen roles={ROLES_LIST} onSelect={setSelected} />
-        ) : !selected ? (
+        {!selected ? (
           <>
             {/* ── Panel principal ───────────────────────────────────── */}
             <div style={{
