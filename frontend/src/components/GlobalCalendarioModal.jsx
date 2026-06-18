@@ -26,7 +26,7 @@ const inputStyle = {
 };
 
 export default function GlobalCalendarioModal() {
-  const { open, initialDate, editingEvent, closeModal, triggerRefresh } = useCalendarioModal();
+  const { open, initialDate, editingEvent, lockPuntoEncuentro, closeModal, triggerRefresh } = useCalendarioModal();
 
   const [form,      setForm]      = useState(() => makeEmpty(null));
   const [error,     setError]     = useState('');
@@ -51,10 +51,10 @@ export default function GlobalCalendarioModal() {
           enPuntoEncuentro:  Boolean(editingEvent.en_punto_encuentro),
         });
       } else {
-        setForm(makeEmpty(initialDate));
+        setForm({ ...makeEmpty(initialDate), enPuntoEncuentro: lockPuntoEncuentro });
       }
     }
-  }, [open, initialDate, editingEvent]);
+  }, [open, initialDate, editingEvent, lockPuntoEncuentro]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && !saved) closeModal(); };
@@ -186,17 +186,23 @@ export default function GlobalCalendarioModal() {
                 padding: '10px 14px', borderRadius: 10,
                 background: form.enPuntoEncuentro ? 'rgba(0,180,216,0.07)' : 'var(--surface)',
                 border: `1.5px solid ${form.enPuntoEncuentro ? 'var(--chart-primary)' : 'var(--border)'}`,
-                cursor: 'pointer', transition: 'all 0.15s',
+                cursor: lockPuntoEncuentro ? 'default' : 'pointer',
+                transition: 'all 0.15s',
+                opacity: lockPuntoEncuentro ? 0.75 : 1,
               }}>
                 <input
                   type="checkbox"
                   checked={form.enPuntoEncuentro}
-                  onChange={e => setForm(f => ({ ...f, enPuntoEncuentro: e.target.checked }))}
-                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
+                  disabled={lockPuntoEncuentro}
+                  onChange={lockPuntoEncuentro ? undefined : e => setForm(f => ({ ...f, enPuntoEncuentro: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: lockPuntoEncuentro ? 'default' : 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
                 />
                 <div>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
                     Mandar a Punto de Encuentro
+                    {lockPuntoEncuentro && (
+                      <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginLeft: 6 }}>(fijo)</span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
                     El evento aparecerá también en la vista de Punto de Encuentro

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { calendarioApi, participantesApi, abonosApi, comprobanteApi } from '../../services/api';
+import { useCalendarioModal } from '../../context/CalendarioModalContext';
 import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
 import * as XLSX from 'xlsx-js-style';
 import { I } from '../../components/Icons';
@@ -174,6 +175,7 @@ function AbonoFields({
 export default function PuntoEncuentroViewPage() {
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'punto_encuentro');
+  const { openModalPE, refreshKey: calRefreshKey } = useCalendarioModal();
   const isMobile = useIsMobile();
   const [filter,  setFilter]  = useState('todos');
   const [eventos, setEventos] = useState([]);
@@ -236,6 +238,14 @@ export default function PuntoEncuentroViewPage() {
       .catch(() => { setEventos([]); setParticipantesMap({}); setAbonosMap({}); })
       .finally(() => setLoading(false));
   }, []);
+
+  // Recarga eventos cuando GlobalCalendarioModal guarda un nuevo evento de PE
+  useEffect(() => {
+    if (calRefreshKey === 0) return;
+    calendarioApi.getAll({ en_punto_encuentro: true })
+      .then(res => setEventos(res.data))
+      .catch(() => {});
+  }, [calRefreshKey]);
 
   // Escape para cerrar modales
   useEffect(() => {
@@ -785,6 +795,11 @@ export default function PuntoEncuentroViewPage() {
               <h3 className="card-title">Eventos en Punto de Encuentro</h3>
               <div className="card-sub">{loading ? 'Cargando…' : `${filtered.length} evento${filtered.length !== 1 ? 's' : ''}`}</div>
             </div>
+            {canWrite && (
+              <button className="btn btn-primary" onClick={() => openModalPE()}>
+                <I.plus size={14} /> Registrar evento
+              </button>
+            )}
           </div>
 
           {/* Filter tabs */}
