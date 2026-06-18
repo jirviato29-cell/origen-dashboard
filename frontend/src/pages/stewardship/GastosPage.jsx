@@ -677,6 +677,7 @@ export default function GastosPage() {
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--danger)', fontSize: 14 }}>
                     {fmt(tablaTotal)}
                   </td>
+                  <td />
                 </tr>
               </tbody>
             </table>
