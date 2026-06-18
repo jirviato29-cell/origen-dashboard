@@ -179,6 +179,7 @@ export default function PuntoEncuentroViewPage() {
   const { tipoColor, tipoBg } = useTiposEvento();
   const isMobile = useIsMobile();
   const [filter,  setFilter]  = useState('todos');
+  const [search,  setSearch]  = useState('');
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -317,6 +318,18 @@ export default function PuntoEncuentroViewPage() {
     }
   });
   const tipoEntries = Object.entries(tiposCount).sort((a, b) => b[1] - a[1]);
+
+  // Buscador — recorre todos los participantes ya cargados en memoria
+  const searchTrimmed = search.trim().toLowerCase();
+  const searchResults = searchTrimmed
+    ? Object.entries(participantesMap).flatMap(([eventoId, parts]) => {
+        const evento = eventos.find(e => String(e.id) === eventoId);
+        if (!evento) return [];
+        return parts
+          .filter(p => (p.nombre || '').toLowerCase().includes(searchTrimmed))
+          .map(p => ({ p, evento }));
+      })
+    : [];
 
   // ── Handlers participantes — PRESERVED EXACTLY ─────────────────────────
   const openModal = (evento) => {
@@ -804,7 +817,7 @@ export default function PuntoEncuentroViewPage() {
           </div>
 
           {/* Filter tabs */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
             {[
               { key: 'todos',    label: 'Todos' },
               { key: 'proximos', label: 'Próximos' },
@@ -827,7 +840,118 @@ export default function PuntoEncuentroViewPage() {
             ))}
           </div>
 
-          {loading ? (
+          {/* Buscador de persona */}
+          <div style={{ position: 'relative', marginBottom: 16 }}>
+            <span style={{
+              position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
+              color: GRAY_300, pointerEvents: 'none', display: 'flex',
+            }}>
+              <I.search size={15} />
+            </span>
+            <input
+              type="text"
+              placeholder="Buscar persona por nombre…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ ...inputStyle, paddingLeft: 34, border: `1.5px solid ${search ? NAVY : 'var(--border)'}` }}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                style={{
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: GRAY_500, display: 'flex', alignItems: 'center', padding: 2,
+                }}
+              >
+                <I.x size={13} />
+              </button>
+            )}
+          </div>
+
+          {search.trim() ? (
+            searchResults.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>
+                Sin resultados para "{search}"
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {searchResults.map(({ p, evento }) => {
+                  const costo       = parseFloat(evento.costo) || 0;
+                  const pAbonos     = abonosMap[p.id] || [];
+                  const totalPagado = pAbonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
+                  const saldo       = costo > 0 ? costo - totalPagado : null;
+                  const status      = costo > 0
+                    ? (saldo <= 0 ? 'liquidado' : totalPagado > 0 ? 'parcial' : 'pendiente')
+                    : null;
+                  const sColors = {
+                    liquidado: { background: '#E6F5EC', color: GREEN },
+                    parcial:   { background: '#FBF2DC', color: AMBER },
+                    pendiente: { background: '#FBEAE9', color: RED   },
+                  };
+                  return (
+                    <div key={`${p.id}-${evento.id}`} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 16px', borderRadius: 'var(--r-lg)',
+                      border: `1px solid ${GRAY_200}`, background: 'white',
+                    }}>
+                      {/* Avatar */}
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%',
+                        background: NAVY_700, color: 'white',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 700, fontSize: 12.5, flexShrink: 0,
+                      }}>
+                        {initials(p.nombre)}
+                      </div>
+                      {/* Info persona + evento */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: NAVY }}>{p.nombre}</div>
+                        <div style={{ fontSize: 11.5, color: GRAY_500, marginTop: 1, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {p.whatsapp && <span>WA {p.whatsapp}</span>}
+                          {p.whatsapp && p.edad && <span>·</span>}
+                          {p.edad && <span>{p.edad} años</span>}
+                          {(p.whatsapp || p.edad) && <span style={{ color: GRAY_300 }}>·</span>}
+                          <span style={{ color: NAVY_700, fontWeight: 600 }}>{evento.nombre}</span>
+                          <span style={{ color: GRAY_300 }}>·</span>
+                          <span>{fmtFechaShort(evento.fecha)}</span>
+                        </div>
+                      </div>
+                      {/* Estado de pago */}
+                      {status && (
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          {costo > 0 && (
+                            <div style={{ fontSize: 12, fontWeight: 700, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+                              {fmtAmt(totalPagado)}<span style={{ color: GRAY_500, fontWeight: 500 }}> / {fmtAmt(costo)}</span>
+                            </div>
+                          )}
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 5,
+                            display: 'inline-block', ...sColors[status],
+                          }}>
+                            {status === 'liquidado' ? 'Liquidado' : status === 'parcial' ? 'Parcial' : 'Pendiente'}
+                          </span>
+                        </div>
+                      )}
+                      {/* Botón abono */}
+                      {canWrite && status !== 'liquidado' && (
+                        <button
+                          onClick={() => openAbonoModal(p, evento)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            fontSize: 11.5, fontWeight: 600, padding: '7px 11px', borderRadius: 7,
+                            background: NAVY, color: 'white', border: 0, cursor: 'pointer', flexShrink: 0,
+                          }}
+                        >
+                          <I.plus size={12} /> Abono
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : loading ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>
               Cargando eventos…
             </div>
