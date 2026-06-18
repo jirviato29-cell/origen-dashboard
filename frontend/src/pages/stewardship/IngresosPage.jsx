@@ -672,11 +672,6 @@ export default function IngresosPage() {
             <h3 className="card-title">Detalle de ingresos — {tablaMesFiltro ? mesNombre(tablaMesFiltro) : year}</h3>
             <div className="card-sub">{tablaData.length} {tablaData.length === 1 ? 'domingo' : 'domingos'}</div>
           </div>
-          {canWrite && (
-            <button className="btn btn-primary" onClick={() => openModal(null)}>
-              <I.plus size={14} /><span className="topbar-btn-label"> Registrar Ofrenda</span>
-            </button>
-          )}
         </div>
 
         {/* Month chips */}

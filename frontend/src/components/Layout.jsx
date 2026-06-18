@@ -4,6 +4,7 @@ import { useAuth, ROLES } from '../context/AuthContext';
 import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useGastosModal } from '../context/GastosModalContext';
+import { useOfrendasModal } from '../context/OfrendasModalContext';
 import { useAsistenciaStewModal } from '../context/AsistenciaStewModalContext';
 import { useCalendarioModal } from '../context/CalendarioModalContext';
 import Sidebar from './Sidebar';
@@ -51,8 +52,9 @@ const ROUTE_INFO = {
 
 export default function Layout() {
   const { role, userName, permisos } = useAuth();
-  const { openModal }                    = useRegistrarModal();
-  const { openModal: openGastosModal }   = useGastosModal();
+  const { openModal }                       = useRegistrarModal();
+  const { openModal: openGastosModal }      = useGastosModal();
+  const { openModal: openOfrendasModal }    = useOfrendasModal();
   const { openModal: openAsistenciaModal } = useAsistenciaStewModal();
   const { openModal: openCalendarioModal } = useCalendarioModal();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -66,12 +68,14 @@ export default function Layout() {
   const isStewardship    = role === ROLES.STEWARDSHIP;
   const isGastosPorPagar = path.endsWith('/gastos-por-pagar');
   const isGastos         = path.endsWith('/gastos');
+  const isIngresos       = path.endsWith('/ingresos');
   const isAsistencia     = path.endsWith('/asistencia');
   const isCalendario     = path.endsWith('/calendario');
 
   // Botones de topbar — cada uno requiere permiso de registrar en su sección
   // puedeRegistrar devuelve true si total:true (stewardship/admin/pastor)
   // o si la sección tiene registrar:true en el mapa de permisos del rol.
+  const canRegIngresos    = puedeRegistrar(permisos, 'ingresos');
   const canRegAsistencia  = puedeRegistrar(permisos, 'asistencia');
   const canRegCalendario  = puedeRegistrar(permisos, 'calendario');
   const canRegPE          = puedeRegistrar(permisos, 'punto_encuentro');
@@ -130,6 +134,13 @@ export default function Layout() {
 
           <div className="topbar-right">
 
+
+            {/* Stewardship — Registrar ofrenda */}
+            {isStewardship && isIngresos && canRegIngresos && (
+              <button className="btn btn-primary" onClick={() => openOfrendasModal(null)}>
+                <I.plus size={15} /><span className="topbar-btn-label"> Registrar Ofrenda</span>
+              </button>
+            )}
 
             {/* Stewardship — Registrar gasto por pagar */}
             {isStewardship && isGastosPorPagar && (
