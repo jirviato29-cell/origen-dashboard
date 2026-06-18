@@ -24,6 +24,19 @@ const CHIP_600_BG   = isGdl ? 'rgba(14,158,140,.10)' : 'rgba(48,81,129,0.10)';
 const BTN_INACT_BG  = isGdl ? '#E6F5F2'              : '#FFF4EE';
 const BTN_INACT_BOR = isGdl ? '#B2E4DC'              : '#FFE4D1';
 
+// Per-method colors — GDL: colores distintos por método; AGS: esquema navy/black actual
+const EF_CLR      = isGdl ? '#0E9E8C'              : 'var(--black)';
+const EF_PILL_BG  = isGdl ? '#E1F5EE'              : CHIP_NAVY_BG;
+const EF_PILL_TXT = isGdl ? '#0F6E56'              : 'var(--black)';
+const TE_CLR      = isGdl ? '#D2674A'              : NAVY_600;
+const TE_PILL_BG  = isGdl ? '#FAECE7'              : CHIP_600_BG;
+const TE_PILL_TXT = isGdl ? '#993C1D'              : NAVY_600;
+const TR_CLR      = isGdl ? '#2C7A9E'              : NAVY_300;
+const TR_PILL_BG  = isGdl ? '#E6F1FB'              : 'rgba(156,176,204,0.18)';
+const TR_PILL_TXT = isGdl ? '#185FA5'              : 'var(--muted)';
+const BAR_TRACK   = isGdl ? '#E9EAE9'              : '#E2E6EC';
+const TOT_BAND_CLR = isGdl ? '#0E9E8C'             : GREEN_600;
+
 function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
 }
@@ -525,15 +538,15 @@ export default function IngresosPage() {
         <div className="card" style={{ padding: '16px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Total efectivo del año</div>
-            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: CHIP_NAVY_BG, color: 'var(--black)' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: EF_PILL_BG, color: EF_PILL_TXT }}>
               {pctEfectivo}%
             </span>
           </div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: EF_CLR, fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
             <span style={{ fontSize: 18, opacity: 0.6 }}>$</span>{fmtNum(totalEfectivo)}
           </div>
-          <div style={{ position: 'relative', height: 8, borderRadius: 999, background: '#E2E6EC' }}>
-            <div style={{ position: 'absolute', inset: 0, width: `${pctEfectivo}%`, borderRadius: 999, background: 'var(--black)' }} />
+          <div style={{ position: 'relative', height: 8, borderRadius: 999, background: BAR_TRACK }}>
+            <div style={{ position: 'absolute', inset: 0, width: `${pctEfectivo}%`, borderRadius: 999, background: EF_CLR }} />
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 9 }}>{pctEfectivo}% del total recaudado en el año</div>
         </div>
@@ -542,15 +555,15 @@ export default function IngresosPage() {
         <div className="card" style={{ padding: '16px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Total terminal del año</div>
-            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: CHIP_600_BG, color: NAVY_600 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: TE_PILL_BG, color: TE_PILL_TXT }}>
               {pctTerminal}%
             </span>
           </div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: NAVY_600, fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: TE_CLR, fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
             <span style={{ fontSize: 18, opacity: 0.6 }}>$</span>{fmtNum(totalTerminal)}
           </div>
-          <div style={{ position: 'relative', height: 8, borderRadius: 999, background: '#E2E6EC' }}>
-            <div style={{ position: 'absolute', inset: 0, width: `${pctTerminal}%`, borderRadius: 999, background: NAVY_600 }} />
+          <div style={{ position: 'relative', height: 8, borderRadius: 999, background: BAR_TRACK }}>
+            <div style={{ position: 'absolute', inset: 0, width: `${pctTerminal}%`, borderRadius: 999, background: TE_CLR }} />
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 9 }}>{pctTerminal}% del total recaudado en el año</div>
         </div>
@@ -559,15 +572,15 @@ export default function IngresosPage() {
         <div className="card" style={{ padding: '16px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Total transferencias del año</div>
-            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: 'rgba(156,176,204,0.18)', color: 'var(--muted)' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: TR_PILL_BG, color: TR_PILL_TXT }}>
               {pctTransferencia}%
             </span>
           </div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: NAVY_300, fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: TR_CLR, fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
             <span style={{ fontSize: 18, opacity: 0.6 }}>$</span>{fmtNum(totalTransferencia)}
           </div>
-          <div style={{ position: 'relative', height: 8, borderRadius: 999, background: '#E2E6EC' }}>
-            <div style={{ position: 'absolute', inset: 0, width: `${pctTransferencia}%`, borderRadius: 999, background: NAVY_300 }} />
+          <div style={{ position: 'relative', height: 8, borderRadius: 999, background: BAR_TRACK }}>
+            <div style={{ position: 'absolute', inset: 0, width: `${pctTransferencia}%`, borderRadius: 999, background: TR_CLR }} />
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 9 }}>{pctTransferencia}% del total recaudado en el año</div>
         </div>
@@ -728,10 +741,10 @@ export default function IngresosPage() {
           borderRadius: 10, marginBottom: 12, overflow: 'hidden',
         }}>
           {[
-            { label: 'Efectivo',       value: tablaEfectivo,                                     color: 'var(--black)' },
-            { label: 'Terminal',       value: tablaTerminal,                                     color: NAVY_600 },
-            { label: 'Transferencias', value: tablaTransferencia,                                color: NAVY_300 },
-            { label: 'Total',          value: tablaEfectivo + tablaTerminal + tablaTransferencia, color: GREEN_600 },
+            { label: 'Efectivo',       value: tablaEfectivo,                                     color: EF_CLR },
+            { label: 'Terminal',       value: tablaTerminal,                                     color: TE_CLR },
+            { label: 'Transferencias', value: tablaTransferencia,                                color: TR_CLR },
+            { label: 'Total',          value: tablaEfectivo + tablaTerminal + tablaTransferencia, color: TOT_BAND_CLR },
           ].map(({ label, value, color }, i, arr) => (
             <div key={label} style={{ padding: '10px 16px', borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)', marginBottom: 3 }}>{label}</div>
@@ -754,9 +767,9 @@ export default function IngresosPage() {
                 <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 4 }}>
                   <span style={{ color: 'var(--ink)', fontWeight: 600 }}>Ef:</span> {fmt(Number(d.efectivo))}
                   {' · '}
-                  <span style={{ color: NAVY_600, fontWeight: 600 }}>Term:</span> {fmt(Number(d.terminal))}
+                  <span style={{ color: TE_CLR, fontWeight: 600 }}>Term:</span> {fmt(Number(d.terminal))}
                   {' · '}
-                  <span style={{ color: NAVY_300, fontWeight: 600 }}>Transf:</span> {fmt(Number(d.transferencia || 0))}
+                  <span style={{ color: TR_CLR, fontWeight: 600 }}>Transf:</span> {fmt(Number(d.transferencia || 0))}
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 8 }}>
                   <span style={{ fontWeight: 600 }}>Sobres:</span> {Number(d.ofrendas ?? 0) || '—'}
@@ -816,9 +829,9 @@ export default function IngresosPage() {
               {tablaRows.map(d => (
                 <tr key={d.fecha}>
                   <td style={{ fontWeight: 500 }}>{fmtFecha(d.fecha)}</td>
-                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--black)' }}>{fmt(Number(d.efectivo))}</td>
-                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: NAVY_600 }}>{fmt(Number(d.terminal))}</td>
-                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: NAVY_300 }}>{fmt(Number(d.transferencia || 0))}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: EF_CLR }}>{fmt(Number(d.efectivo))}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: TE_CLR }}>{fmt(Number(d.terminal))}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: TR_CLR }}>{fmt(Number(d.transferencia || 0))}</td>
                   <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Number(d.ofrendas ?? 0) || '—'}</td>
                   <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.participDom !== null ? `${d.participDom}%` : '—'}</td>
                   <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
