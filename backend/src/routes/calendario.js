@@ -78,6 +78,21 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// PATCH /api/calendario/:id/cerrar — cierre definitivo, no se reabre
+router.patch('/:id/cerrar', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `UPDATE calendario_eventos SET cerrado = true
+       WHERE id=$1 AND campus=$2 RETURNING *`,
+      [req.params.id, req.campus]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/calendario/:id
 router.delete('/:id', async (req, res) => {
   try {
