@@ -205,9 +205,29 @@ export default function IngresosPage() {
   const [tablaMesFiltro,  setTablaMesFiltro] = useState(null);
   const isMobile      = useIsMobile();
   const isTablet      = useIsMobile(1100);
-  const { openModal, refreshKey } = useOfrendasModal();
+  const { openModal, refreshKey, triggerRefresh } = useOfrendasModal();
   const { permisos }  = useAuth();
   const canWrite      = puedeRegistrar(permisos, 'ingresos');
+
+  const [deleteOfrenda, setDeleteOfrenda] = useState(null);
+  const [eliminandoOf,  setEliminandoOf]  = useState(false);
+
+  function handleDeleteOpen(d)  { setDeleteOfrenda(d); }
+  function handleDeleteClose()  { if (!eliminandoOf) setDeleteOfrenda(null); }
+  async function handleDeleteConfirm() {
+    if (!deleteOfrenda || eliminandoOf) return;
+    setEliminandoOf(true);
+    try {
+      await ofrendasApi.remove(deleteOfrenda.id);
+      setDeleteOfrenda(null);
+      triggerRefresh();
+    } catch (err) {
+      console.error('Error al eliminar ofrenda:', err);
+      alert('No se pudo eliminar. Intenta de nuevo.');
+    } finally {
+      setEliminandoOf(false);
+    }
+  }
 
   const year = new Date().getFullYear();
 
@@ -357,6 +377,7 @@ export default function IngresosPage() {
     </div>
   );
   return (
+    <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* ── KPI cards (4-col) ── */}
@@ -742,20 +763,33 @@ export default function IngresosPage() {
                   {' · '}
                   <span style={{ fontWeight: 600 }}>Part:</span> {d.participDom !== null ? `${d.participDom}%` : '—'}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 16, color: GREEN_600 }}>
                     {fmt(Number(d.efectivo) + Number(d.terminal) + Number(d.transferencia || 0))}
                   </span>
-                  {canWrite && (
-                    <button onClick={() => openModal(d)} style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      background: 'none', border: '1px solid var(--border)',
-                      borderRadius: 6, padding: '5px 10px',
-                      fontSize: 12, color: 'var(--muted)', cursor: 'pointer',
-                    }}>
-                      <I.edit size={12} /> Editar
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {canWrite && (
+                      <button onClick={() => openModal(d)} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        background: 'none', border: '1px solid var(--border)',
+                        borderRadius: 6, padding: '5px 10px',
+                        fontSize: 12, color: 'var(--muted)', cursor: 'pointer',
+                      }}>
+                        <I.edit size={12} /> Editar
+                      </button>
+                    )}
+                    {canWrite && d.id && (
+                      <button onClick={() => handleDeleteOpen(d)} title="Eliminar"
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          background: 'none', border: '1px solid var(--border)',
+                          borderRadius: 6, padding: '5px 10px',
+                          fontSize: 12, color: 'var(--danger, #dc2626)', cursor: 'pointer',
+                        }}>
+                        <I.trash size={12} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -787,7 +821,7 @@ export default function IngresosPage() {
                   <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: NAVY_300 }}>{fmt(Number(d.transferencia || 0))}</td>
                   <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Number(d.ofrendas ?? 0) || '—'}</td>
                   <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.participDom !== null ? `${d.participDom}%` : '—'}</td>
-                  <td style={{ textAlign: 'center' }}>
+                  <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                     {canWrite && (
                       <button onClick={() => openModal(d)} className="edit-btn-row"
                         style={{
@@ -797,6 +831,17 @@ export default function IngresosPage() {
                           fontSize: 11.5, color: 'var(--muted)', cursor: 'pointer', lineHeight: 1,
                         }}>
                         <I.edit size={11} /> Editar
+                      </button>
+                    )}
+                    {canWrite && d.id && (
+                      <button onClick={() => handleDeleteOpen(d)} title="Eliminar"
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          background: 'none', border: '1px solid var(--border)',
+                          borderRadius: 6, padding: '3px 8px',
+                          fontSize: 11.5, color: 'var(--danger, #dc2626)', cursor: 'pointer', lineHeight: 1, marginLeft: 6,
+                        }}>
+                        <I.trash size={11} />
                       </button>
                     )}
                   </td>
@@ -831,5 +876,25 @@ export default function IngresosPage() {
       </div>
 
     </div>
+
+      {/* ── Modal confirmación eliminar ofrenda ── */}
+      {deleteOfrenda && (
+        <div onClick={handleDeleteClose} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: 16, maxWidth: 400, width: '100%', padding: '22px 24px', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>¿Eliminar este registro?</div>
+            <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 6 }}>Ofrenda del {fmtFecha(deleteOfrenda.fecha)}</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 18 }}>Esta acción no se puede deshacer.</div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={handleDeleteClose} disabled={eliminandoOf} style={{ padding: '10px 16px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontWeight: 600, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={handleDeleteConfirm} disabled={eliminandoOf} style={{ padding: '10px 16px', borderRadius: 9, border: 0, background: 'var(--danger, #dc2626)', color: '#fff', fontWeight: 700, cursor: eliminandoOf ? 'default' : 'pointer', opacity: eliminandoOf ? 0.7 : 1 }}>
+                {eliminandoOf ? 'Eliminando…' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
