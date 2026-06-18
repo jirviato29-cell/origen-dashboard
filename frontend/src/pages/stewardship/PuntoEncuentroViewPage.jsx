@@ -291,15 +291,6 @@ export default function PuntoEncuentroViewPage() {
     ? Math.max(0, Math.round((new Date(toISODate(proximo.fecha) + 'T00:00:00') - new Date(hoyStr + 'T00:00:00')) / 86400000))
     : 0;
 
-  // ── Tipos de reunión count ─────────────────────────────────────────────
-  const tiposCount = {};
-  eventos.forEach(e => {
-    if (e.tipo) {
-      tiposCount[e.tipo] = (tiposCount[e.tipo] || 0) + 1;
-    }
-  });
-  const tipoEntries = Object.entries(tiposCount).sort((a, b) => b[1] - a[1]);
-
   // Buscador — recorre todos los participantes ya cargados en memoria
   const searchTrimmed = search.trim().toLowerCase();
   const searchResults = searchTrimmed
@@ -1211,90 +1202,6 @@ export default function PuntoEncuentroViewPage() {
             </div>
           )}
 
-          {/* Recaudación — para el próximo evento */}
-          {!loading && proximo && (() => {
-            const pList  = participantesMap[proximo.id] || [];
-            const costo  = parseFloat(proximo.costo) || 0;
-            const meta   = costo * pList.length;
-            const recaud = pList.reduce((s, p) =>
-              s + (abonosMap[p.id] || []).reduce((ss, a) => ss + parseFloat(a.monto || 0), 0), 0);
-            const pct = meta > 0 ? Math.min(100, Math.round(recaud / meta * 100)) : 0;
-
-            const breakdown = {
-              liquidado: { count: 0, total: 0 },
-              parcial:   { count: 0, total: 0 },
-              pendiente: { count: 0, total: 0 },
-            };
-            pList.forEach(p => {
-              const pagado = (abonosMap[p.id] || []).reduce((s, a) => s + parseFloat(a.monto || 0), 0);
-              const sal = costo > 0 ? costo - pagado : 0;
-              if (costo > 0) {
-                if (sal <= 0)      { breakdown.liquidado.count++; breakdown.liquidado.total += pagado; }
-                else if (pagado > 0) { breakdown.parcial.count++;   breakdown.parcial.total   += pagado; }
-                else               { breakdown.pendiente.count++;  breakdown.pendiente.total += pagado; }
-              }
-            });
-
-            return (
-              <div className="card">
-                <div className="card-head" style={{ marginBottom: 12 }}>
-                  <div>
-                    <h3 className="card-title">Recaudación</h3>
-                    <div className="card-sub">
-                      {proximo.nombre}{costo > 0 && meta > 0 ? ` · meta ${fmtAmt(meta)}` : ''}
-                    </div>
-                  </div>
-                </div>
-                {/* Barra */}
-                <div style={{ height: 10, borderRadius: 999, background: GRAY_100, overflow: 'hidden', marginBottom: 6 }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: GREEN, borderRadius: 999, transition: 'width .5s' }} />
-                </div>
-                <div style={{ fontSize: 11.5, color: GRAY_500, marginBottom: 14 }}>
-                  {pct}% cobrado · {fmtAmt(recaud)} de {fmtAmt(meta)}
-                </div>
-                {/* Desglose */}
-                <div style={{ borderTop: `1px solid ${GRAY_100}`, paddingTop: 6 }}>
-                  {[
-                    { key: 'liquidado', label: 'Liquidado', color: GREEN   },
-                    { key: 'parcial',   label: 'Parcial',   color: AMBER   },
-                    { key: 'pendiente', label: 'Pendiente', color: RED     },
-                  ].map(({ key, label, color }) => (
-                    <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: GRAY_700, fontWeight: 500 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
-                        {label}
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: breakdown[key].count > 0 ? color : GRAY_500 }}>
-                        {fmtAmt(breakdown[key].total)} · {breakdown[key].count}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Tipos de reunión */}
-          {!loading && tipoEntries.length > 0 && (
-            <div className="card">
-              <div className="card-head" style={{ marginBottom: 8 }}>
-                <div>
-                  <h3 className="card-title">Tipos de reunión</h3>
-                </div>
-              </div>
-              {tipoEntries.map(([tipo, count]) => (
-                <div key={tipo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid ${GRAY_100}` }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: GRAY_700, fontWeight: 500 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: tipoColor[tipo] || GRAY_500, display: 'inline-block' }} />
-                    {tipo}
-                  </span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
-                    {count} evento{count !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
