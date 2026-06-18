@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { asistenciaApi } from '../../services/api';
 import { useAsistenciaStewModal } from '../../context/AsistenciaStewModalContext';
+import { useAuth } from '../../context/AuthContext';
+import { puedeRegistrar } from '../../permissions';
 import { fmtFecha, mesNombre } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 import { useIsMobile } from '../../utils/useIsMobile';
@@ -17,6 +19,7 @@ const GRAY_500 = '#7A8699';
 const GRAY_200 = '#E2E6EC';
 const GRAY_100 = '#EEF1F5';
 const GRAY_50  = '#F6F7F9';
+const D_RED_600 = '#D23B36';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function rowTotal(r) {
@@ -188,7 +191,11 @@ function AttendanceChart({ resumenMeses, mesSeleccionado, records, onMonthSelect
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function AsistenciaViewPage() {
-  const { refreshKey } = useAsistenciaStewModal();
+  const { openModal, refreshKey, triggerRefresh } = useAsistenciaStewModal();
+  const { permisos } = useAuth();
+  const canWrite = puedeRegistrar(permisos, 'asistencia');
+  const [deleteRecord, setDeleteRecord] = useState(null);
+  const [eliminando,   setEliminando]   = useState(false);
   const [records,        setRecords] = useState([]);
   const [loading,        setLoading] = useState(true);
   const [mesSeleccionado, setMesSelec] = useState(null);
@@ -214,6 +221,22 @@ export default function AsistenciaViewPage() {
     window.addEventListener('asistencia-saved', h);
     return () => window.removeEventListener('asistencia-saved', h);
   }, [load]);
+
+  function handleDeleteOpen(r)  { setDeleteRecord(r); }
+  function handleDeleteClose()  { setDeleteRecord(null); }
+  async function handleDeleteConfirm() {
+    if (!deleteRecord || eliminando) return;
+    setEliminando(true);
+    try {
+      await asistenciaApi.remove(deleteRecord.id);
+      setDeleteRecord(null);
+      triggerRefresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setEliminando(false);
+    }
+  }
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
@@ -293,6 +316,7 @@ export default function AsistenciaViewPage() {
   }
 
   return (
+  <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* ── KPIs (5 tarjetas) ─────────────────────────────────────────────── */}
@@ -612,7 +636,7 @@ export default function AsistenciaViewPage() {
           <div>
             <h3 className="card-title">Historial de asistencia</h3>
             {!loading && (
-              <div className="card-sub">{records.length} domingos registrados · solo lectura</div>
+              <div className="card-sub">{records.length} domingos registrados</div>
             )}
           </div>
         </div>
@@ -678,6 +702,24 @@ export default function AsistenciaViewPage() {
                         </div>
                       ))}
                     </div>
+                    {canWrite && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${GRAY_100}` }}>
+                        <button
+                          onClick={() => openModal(r)}
+                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '6px 0', background: 'none', border: `1px solid ${GRAY_200}`, borderRadius: 7, fontSize: 12, fontWeight: 600, color: NAVY, cursor: 'pointer' }}
+                        >
+                          <I.edit size={12} /> Editar
+                        </button>
+                        {r.id && (
+                          <button
+                            onClick={() => handleDeleteOpen(r)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '6px 14px', background: 'none', border: `1px solid ${D_RED_600}`, borderRadius: 7, fontSize: 12, fontWeight: 600, color: D_RED_600, cursor: 'pointer' }}
+                          >
+                            <I.trash size={12} />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -698,6 +740,7 @@ export default function AsistenciaViewPage() {
                   <th style={{ textAlign: 'right' }}>Bebés</th>
                   <th style={{ textAlign: 'right', color: ORANGE_600 }}>Nuevos</th>
                   <th style={{ textAlign: 'right' }}>Total</th>
+                  {canWrite && <th />}
                 </tr>
               </thead>
               <tbody>
@@ -726,6 +769,26 @@ export default function AsistenciaViewPage() {
                       <td style={{ textAlign: 'right', fontWeight: 800, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
                         {total}
                       </td>
+                      {canWrite && (
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <button
+                            onClick={() => openModal(r)}
+                            title="Editar"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 5px', color: NAVY, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11.5, fontWeight: 600, borderRadius: 5 }}
+                          >
+                            <I.edit size={11} /> Editar
+                          </button>
+                          {r.id && (
+                            <button
+                              onClick={() => handleDeleteOpen(r)}
+                              title="Eliminar"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 5px', color: D_RED_600, display: 'inline-flex', alignItems: 'center', marginLeft: 4, fontSize: 11.5, borderRadius: 5 }}
+                            >
+                              <I.trash size={11} />
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -743,6 +806,7 @@ export default function AsistenciaViewPage() {
                   <td style={{ textAlign: 'right', fontWeight: 800, color: NAVY, fontSize: 14 }}>
                     {totTotal.toLocaleString('es-MX')}
                   </td>
+                  {canWrite && <td />}
                 </tr>
               </tbody>
             </table>
@@ -752,5 +816,42 @@ export default function AsistenciaViewPage() {
         )}
       </div>
     </div>
+
+    {/* ── Modal confirmación eliminar ───────────────────────────────────── */}
+    {deleteRecord && (
+      <div
+        onClick={handleDeleteClose}
+        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{ background: 'var(--surface)', borderRadius: 16, maxWidth: 400, width: '100%', padding: '28px 24px', boxShadow: '0 16px 48px rgba(0,0,0,.28)' }}
+        >
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>¿Eliminar este registro?</div>
+          <div style={{ fontSize: 13.5, color: 'var(--muted)', marginBottom: 4 }}>
+            Asistencia del {fmtFecha(deleteRecord.fecha)}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 22 }}>
+            Esta acción no se puede deshacer.
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              onClick={handleDeleteClose}
+              style={{ padding: '7px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', color: 'var(--ink)' }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleDeleteConfirm}
+              disabled={eliminando}
+              style={{ padding: '7px 18px', borderRadius: 8, border: 'none', background: D_RED_600, color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: eliminando ? 'not-allowed' : 'pointer', opacity: eliminando ? 0.6 : 1 }}
+            >
+              {eliminando ? 'Eliminando…' : 'Eliminar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   );
 }

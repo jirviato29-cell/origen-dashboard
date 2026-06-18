@@ -7,7 +7,7 @@ import { I } from './Icons';
 function getLastSunday() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const diff = today.getDay(); // 0=Dom, 1=Lun...
+  const diff = today.getDay();
   const d = new Date(today);
   d.setDate(today.getDate() - diff);
   return d.toISOString().slice(0, 10);
@@ -24,9 +24,10 @@ const CAMPOS = [
 ];
 
 export default function GlobalAsistenciaStewModal() {
-  const { open, closeModal, triggerRefresh } = useAsistenciaStewModal();
+  const { open, closeModal, record, triggerRefresh } = useAsistenciaStewModal();
+  const isEdit = !!record?.id;
 
-  const [form, setForm]   = useState(EMPTY);
+  const [form, setForm]     = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
 
@@ -39,9 +40,20 @@ export default function GlobalAsistenciaStewModal() {
   useEffect(() => {
     if (open) {
       setSaved(false);
-      setForm({ ...EMPTY, fecha: getLastSunday() });
+      if (record) {
+        setForm({
+          fecha:       record.fecha.slice(0, 10),
+          adultos:     String(record.adultos     ?? ''),
+          voluntarios: String(record.voluntarios ?? ''),
+          ninos:       String(record.ninos       ?? ''),
+          bebes:       String(record.bebes       ?? ''),
+          nuevos:      String(record.nuevos      ?? ''),
+        });
+      } else {
+        setForm({ ...EMPTY, fecha: getLastSunday() });
+      }
     }
-  }, [open]);
+  }, [open, record]);
 
   useEffect(() => {
     const h = e => { if (e.key === 'Escape' && !saved) closeModal(); };
@@ -55,15 +67,20 @@ export default function GlobalAsistenciaStewModal() {
     if (!form.fecha) return;
     setSaving(true);
     try {
-      await asistenciaApi.upsertByFecha({
+      const body = {
         fecha:       form.fecha,
         adultos:     Number(form.adultos)     || 0,
         voluntarios: Number(form.voluntarios) || 0,
         ninos:       Number(form.ninos)       || 0,
         bebes:       Number(form.bebes)       || 0,
         nuevos:      Number(form.nuevos)      || 0,
-      });
-      window.dispatchEvent(new CustomEvent('asistencia-saved'));
+      };
+      if (isEdit) {
+        await asistenciaApi.update(record.id, body);
+      } else {
+        await asistenciaApi.upsertByFecha(body);
+        window.dispatchEvent(new CustomEvent('asistencia-saved'));
+      }
       triggerRefresh();
       setSaved(true);
       setTimeout(() => { setSaved(false); closeModal(); }, 2000);
@@ -85,8 +102,8 @@ export default function GlobalAsistenciaStewModal() {
         {saved ? (
           <div className="anf-success">
             <div className="anf-success-icon"><I.check size={36} /></div>
-            <h3>¡Registro guardado!</h3>
-            <p>Asistencia del {fmtFecha(form.fecha)} registrada correctamente.</p>
+            <h3>{isEdit ? '¡Asistencia actualizada!' : '¡Registro guardado!'}</h3>
+            <p>Asistencia del {fmtFecha(form.fecha)} {isEdit ? 'actualizada' : 'registrada'} correctamente.</p>
             <div className="anf-success-total">
               <span>Total registrado</span>
               <strong>{total}</strong>
@@ -96,9 +113,9 @@ export default function GlobalAsistenciaStewModal() {
           <>
             <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div className="anf-modal-eyebrow">Stewardship</div>
-                <h3 className="anf-modal-date">Registrar Asistencia</h3>
-                <p>Origen Aguascalientes · el total se calcula automáticamente</p>
+                <div className="anf-modal-eyebrow">{isEdit ? 'Editando registro' : 'Stewardship'}</div>
+                <h3 className="anf-modal-date">{isEdit ? 'Editar asistencia' : 'Registrar Asistencia'}</h3>
+                <p>{isEdit ? `Registro del ${fmtFecha(record.fecha)}` : 'Origen · el total se calcula automáticamente'}</p>
               </div>
               <button className="icon-btn" onClick={closeModal} style={{ width: 34, height: 34, flexShrink: 0 }}>
                 <I.x size={16} />
@@ -156,7 +173,7 @@ export default function GlobalAsistenciaStewModal() {
               style={{ opacity: saving || !form.fecha || total === 0 ? 0.45 : 1 }}
             >
               <I.check size={16} />
-              {saving ? 'Guardando…' : 'Guardar registro'}
+              {saving ? 'Guardando…' : isEdit ? 'Actualizar registro' : 'Guardar registro'}
             </button>
 
             {total === 0 && (
