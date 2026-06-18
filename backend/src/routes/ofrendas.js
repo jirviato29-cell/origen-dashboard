@@ -66,20 +66,21 @@ router.get('/:id', async (req, res) => {
 // POST /api/ofrendas
 router.post('/', async (req, res) => {
   try {
-    const { fecha, efectivo, terminal, transferencia, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial } = req.body;
+    const { fecha, efectivo, terminal, transferencia, ofrendas_sobres, ofrendas_terminal, ofrendas_transferencia, participacion, ofrenda_especial } = req.body;
     if (!fecha) return res.status(400).json({ error: 'fecha es requerida' });
-    const ef       = efectivo      || 0;
-    const term     = terminal      || 0;
-    const transf   = transferencia || 0;
-    const total    = ef + term + transf;
-    const sobres   = ofrendas_sobres   || 0;
-    const termCnt  = ofrendas_terminal || 0;
-    const ofrendas = sobres + termCnt;
+    const ef        = efectivo               || 0;
+    const term      = terminal               || 0;
+    const transf    = transferencia          || 0;
+    const total     = ef + term + transf;
+    const sobres    = ofrendas_sobres        || 0;
+    const termCnt   = ofrendas_terminal      || 0;
+    const transfCnt = parseInt(ofrendas_transferencia, 10) || 0;
+    const ofrendas  = sobres + termCnt + transfCnt;
     console.log('[POST /api/ofrendas] body:', req.body);
     const { rows } = await pool.query(
-      `INSERT INTO ofrendas (fecha, efectivo, terminal, transferencia, total_ofrenda, ofrendas, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial, campus)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [fecha, ef, term, transf, total, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0, req.campus]
+      `INSERT INTO ofrendas (fecha, efectivo, terminal, transferencia, total_ofrenda, ofrendas, ofrendas_sobres, ofrendas_terminal, ofrendas_transferencia, participacion, ofrenda_especial, campus)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [fecha, ef, term, transf, total, ofrendas, sobres, termCnt, transfCnt, participacion||0, ofrenda_especial||0, req.campus]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -122,19 +123,21 @@ router.put('/:id', async (req, res) => {
       return res.json(rows[0]);
     }
 
-    const { fecha, efectivo, terminal, transferencia, ofrendas_sobres, ofrendas_terminal, participacion, ofrenda_especial } = req.body;
-    const ef       = efectivo      || 0;
-    const term     = terminal      || 0;
-    const transf   = transferencia || 0;
-    const total    = ef + term + transf;
-    const sobres   = ofrendas_sobres   || 0;
-    const termCnt  = ofrendas_terminal || 0;
-    const ofrendas = sobres + termCnt;
+    const { fecha, efectivo, terminal, transferencia, ofrendas_sobres, ofrendas_terminal, ofrendas_transferencia, participacion, ofrenda_especial } = req.body;
+    const ef        = efectivo               || 0;
+    const term      = terminal               || 0;
+    const transf    = transferencia          || 0;
+    const total     = ef + term + transf;
+    const sobres    = ofrendas_sobres        || 0;
+    const termCnt   = ofrendas_terminal      || 0;
+    const transfCnt = parseInt(ofrendas_transferencia, 10) || 0;
+    const ofrendas  = sobres + termCnt + transfCnt;
     const { rows } = await pool.query(
       `UPDATE ofrendas SET fecha=$1, efectivo=$2, terminal=$3, transferencia=$4, total_ofrenda=$5,
-       ofrendas=$6, ofrendas_sobres=$7, ofrendas_terminal=$8, participacion=$9, ofrenda_especial=$10
-       WHERE id=$11 AND campus=$12 RETURNING *`,
-      [fecha, ef, term, transf, total, ofrendas, sobres, termCnt, participacion||0, ofrenda_especial||0, req.params.id, req.campus]
+       ofrendas=$6, ofrendas_sobres=$7, ofrendas_terminal=$8, ofrendas_transferencia=$9,
+       participacion=$10, ofrenda_especial=$11
+       WHERE id=$12 AND campus=$13 RETURNING *`,
+      [fecha, ef, term, transf, total, ofrendas, sobres, termCnt, transfCnt, participacion||0, ofrenda_especial||0, req.params.id, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
