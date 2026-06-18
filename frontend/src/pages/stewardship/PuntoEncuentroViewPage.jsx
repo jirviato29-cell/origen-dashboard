@@ -4,7 +4,7 @@ import { useCalendarioModal } from '../../context/CalendarioModalContext';
 import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
 import * as XLSX from 'xlsx-js-style';
 import { I } from '../../components/Icons';
-import { TIPO_COLOR, TIPO_BG } from '../../utils/tipoEventoColors';
+import { useTiposEvento } from '../../context/TiposEventoContext';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 import { useIsMobile } from '../../utils/useIsMobile';
@@ -176,6 +176,7 @@ export default function PuntoEncuentroViewPage() {
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'punto_encuentro');
   const { openModalPE, refreshKey: calRefreshKey } = useCalendarioModal();
+  const { tipoColor, tipoBg } = useTiposEvento();
   const isMobile = useIsMobile();
   const [filter,  setFilter]  = useState('todos');
   const [eventos, setEventos] = useState([]);
@@ -883,8 +884,8 @@ export default function PuntoEncuentroViewPage() {
                       {e.tipo && (
                         <span style={{
                           fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 6, flexShrink: 0,
-                          background: TIPO_BG[e.tipo] || ORANGE_50,
-                          color: TIPO_COLOR[e.tipo] || ORANGE_600,
+                          background: tipoBg[e.tipo] || ORANGE_50,
+                          color: tipoColor[e.tipo] || ORANGE_600,
                         }}>
                           {e.tipo}
                         </span>
@@ -1272,7 +1273,7 @@ export default function PuntoEncuentroViewPage() {
               {tipoEntries.map(([tipo, count]) => (
                 <div key={tipo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid ${GRAY_100}` }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: GRAY_700, fontWeight: 500 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: TIPO_COLOR[tipo] || GRAY_500, display: 'inline-block' }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: tipoColor[tipo] || GRAY_500, display: 'inline-block' }} />
                     {tipo}
                   </span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>

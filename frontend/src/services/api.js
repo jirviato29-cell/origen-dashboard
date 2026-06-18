@@ -167,6 +167,13 @@ export const campusApi = {
   getAll: () => http.get('/campus'),
 };
 
+// ─── Tipos de Evento ──────────────────────────────────────────────────────────
+export const tiposEventoApi = {
+  getAll:  ()     => http.get('/tipos-evento'),
+  create:  (data) => http.post('/tipos-evento', data),
+  remove:  (id)   => http.delete(`/tipos-evento/${id}`),
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 export const ofrendasEspecialesApi = realOfrendasEspecialesApi;
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;

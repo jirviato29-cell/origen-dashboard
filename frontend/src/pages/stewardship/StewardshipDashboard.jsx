@@ -8,7 +8,7 @@ import {
 import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi, voluntariosApi, visitantesApi, campusApi } from '../../services/api';
 import { I } from '../../components/Icons';
 import { useIsMobile } from '../../utils/useIsMobile';
-import { TIPO_COLOR, TIPO_BG } from '../../utils/tipoEventoColors';
+
 
 // ── Design tokens — paleta AGS, ambos campus ──────────────────────────────────
 const D_NAVY_950  = '#0B1A2F';

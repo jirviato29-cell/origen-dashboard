@@ -3,7 +3,7 @@ import { calendarioApi, serviciosDominicalesApi } from '../../services/api';
 import { useCalendarioModal } from '../../context/CalendarioModalContext';
 import { fmtFecha, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
-import { TIPO_COLOR, TIPO_COLOR_DARK, TIPO_BG, TIPO_CELL_BG } from '../../utils/tipoEventoColors';
+import { useTiposEvento } from '../../context/TiposEventoContext';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 import { useIsMobile } from '../../utils/useIsMobile';
@@ -55,15 +55,19 @@ function getSundayOfWeek(date) {
 
 // Event pill (used in grid + week view)
 function EvPill({ nombre, tipo, dimmed }) {
+  const { tipoColor, tipoBg, tipoColorDark } = useTiposEvento() || {};
+  const tc  = tipoColor     || {};
+  const tcd = tipoColorDark || {};
+  const tb  = tipoBg        || {};
   return (
     <span style={{
       fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, lineHeight: 1.2,
       display: 'flex', alignItems: 'center', gap: 4,
       overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-      background: dimmed ? GRAY_100 : (TIPO_BG[tipo] || GRAY_100),
-      color:      dimmed ? GRAY_500 : (TIPO_COLOR_DARK[tipo] || GRAY_700),
+      background: dimmed ? GRAY_100 : (tb[tipo] || GRAY_100),
+      color:      dimmed ? GRAY_500 : (tcd[tipo] || GRAY_700),
     }}>
-      <span style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: dimmed ? GRAY_300 : (TIPO_COLOR[tipo] || GRAY_500) }} />
+      <span style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: dimmed ? GRAY_300 : (tc[tipo] || GRAY_500) }} />
       {nombre}
     </span>
   );
@@ -71,13 +75,16 @@ function EvPill({ nombre, tipo, dimmed }) {
 
 // Type pill for table
 function TipoPill({ tipo }) {
+  const { tipoColor, tipoBg } = useTiposEvento() || {};
+  const tc = tipoColor || {};
+  const tb = tipoBg    || {};
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
       fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 6,
-      background: TIPO_BG[tipo] || GRAY_100, color: TIPO_COLOR[tipo] || GRAY_700,
+      background: tb[tipo] || GRAY_100, color: tc[tipo] || GRAY_700,
     }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: TIPO_COLOR[tipo] || GRAY_500 }} />
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: tc[tipo] || GRAY_500 }} />
       {tipo}
     </span>
   );
@@ -89,6 +96,7 @@ export default function CalendarioPage() {
   const canWrite = puedeRegistrar(permisos, 'calendario');
   const isMobile = useIsMobile();
   const { refreshKey, openModal, openEditModal } = useCalendarioModal();
+  const { tipoColor, tipoColorDark, tipoBg, tipoCellBg, tipos, reload: reloadTipos } = useTiposEvento();
 
   const now      = new Date();
   const todayISO = isoFromParts(now.getFullYear(), now.getMonth(), now.getDate());
@@ -110,7 +118,9 @@ export default function CalendarioPage() {
   const [viewMode,   setViewMode]   = useState('mes');
   const [weekStart,  setWeekStart]  = useState(() => getSundayOfWeek(new Date()));
 
-  // ── Data loading — PRESERVED EXACTLY ─────────────────────────────────────
+  // ── Data loading ─────────────────────────────────────────────────────────
+  useEffect(() => { reloadTipos(); }, [reloadTipos]);
+
   useEffect(() => {
     setLoading(true);
     Promise.all([
@@ -427,7 +437,7 @@ export default function CalendarioPage() {
                     <button key={idx} onClick={() => setSelectedDay(isSel ? null : item.iso)} style={{
                       display: 'flex', alignItems: 'flex-start', gap: 12,
                       padding: '10px 12px', borderRadius: 10, width: '100%',
-                      background: isSel ? 'rgba(0,180,216,0.08)' : (TIPO_CELL_BG[item.tipo] || 'var(--surface)'),
+                      background: isSel ? 'rgba(0,180,216,0.08)' : (tipoCellBg[item.tipo] || 'var(--surface)'),
                       border: `1px solid ${isSel ? 'var(--chart-primary)' : 'var(--border)'}`,
                       cursor: 'pointer', fontFamily: 'var(--font-ui)', textAlign: 'left',
                     }}>
@@ -435,13 +445,13 @@ export default function CalendarioPage() {
                         <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, color: isSel ? 'var(--chart-primary)' : 'var(--ink)' }}>{item.day}</div>
                         <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{item.dayAbbr}</div>
                       </div>
-                      <div style={{ width: 3, alignSelf: 'stretch', minHeight: 34, borderRadius: 99, background: TIPO_COLOR[item.tipo] || '#888', flexShrink: 0 }} />
+                      <div style={{ width: 3, alignSelf: 'stretch', minHeight: 34, borderRadius: 99, background: tipoColor[item.tipo] || '#888', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35, whiteSpace: 'normal', wordWrap: 'break-word' }}>{item.name}</div>
                         {item.nota && <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, whiteSpace: 'normal', wordWrap: 'break-word' }}>{item.nota}</div>}
                         <span style={{
                           display: 'inline-block', marginTop: 6, fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
-                          background: TIPO_BG[item.tipo] || 'var(--surface-3)', color: TIPO_COLOR[item.tipo] || 'var(--ink-2)',
+                          background: tipoBg[item.tipo] || 'var(--surface-3)', color: tipoColor[item.tipo] || 'var(--ink-2)',
                         }}>{item.tipo}</span>
                       </div>
                     </button>
@@ -480,7 +490,7 @@ export default function CalendarioPage() {
                   } else if (isPast) {
                     cellBg = GRAY_100;
                   } else if (tipoPrioritario) {
-                    cellBg = TIPO_CELL_BG[tipoPrioritario];
+                    cellBg = tipoCellBg[tipoPrioritario];
                   } else {
                     cellBg = 'white';
                   }
@@ -690,10 +700,10 @@ export default function CalendarioPage() {
 
         {/* ── Leyenda de tipos ──────────────────────────────────────────── */}
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${GRAY_200}` }}>
-          {Object.entries(TIPO_COLOR).map(([tipo, color]) => (
-            <div key={tipo} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ width: 10, height: 10, borderRadius: 3, background: TIPO_BG[tipo] || color, border: `1px solid ${color}60`, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: GRAY_700, fontWeight: 500 }}>{tipo}</span>
+          {tipos.map(t => (
+            <div key={t.nombre} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: tipoBg[t.nombre] || t.color, border: `1px solid ${t.color}60`, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: GRAY_700, fontWeight: 500 }}>{t.nombre}</span>
             </div>
           ))}
         </div>
@@ -722,13 +732,13 @@ export default function CalendarioPage() {
             {isDomingo(selectedDay) && (
               <div style={{
                 padding: '12px 14px', borderRadius: 10,
-                background: TIPO_BG['Servicio dominical'],
-                border: `1px solid ${TIPO_COLOR['Servicio dominical']}40`,
+                background: tipoBg['Servicio dominical'],
+                border: `1px solid ${tipoColor['Servicio dominical']}40`,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: TIPO_COLOR['Servicio dominical'], flexShrink: 0 }} />
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: tipoColor['Servicio dominical'], flexShrink: 0 }} />
                   <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Servicio dominical</div>
-                  <span style={{ fontSize: 11.5, color: TIPO_COLOR['Servicio dominical'], fontWeight: 600, flexShrink: 0 }}>Servicio dominical</span>
+                  <span style={{ fontSize: 11.5, color: tipoColor['Servicio dominical'], fontWeight: 600, flexShrink: 0 }}>Servicio dominical</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, paddingLeft: 16 }}>
                   <input
@@ -759,15 +769,15 @@ export default function CalendarioPage() {
               <div key={ev.id} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 14px', borderRadius: 10,
-                background: TIPO_BG[ev.tipo] || 'var(--surface)',
-                border: `1px solid ${TIPO_COLOR[ev.tipo] || 'var(--border)'}30`,
+                background: tipoBg[ev.tipo] || 'var(--surface)',
+                border: `1px solid ${tipoColor[ev.tipo] || 'var(--border)'}30`,
               }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: TIPO_COLOR[ev.tipo] || '#888', flexShrink: 0 }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: tipoColor[ev.tipo] || '#888', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{ev.nombre}</div>
                   {ev.nota && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{ev.nota}</div>}
                 </div>
-                <span style={{ fontSize: 11.5, color: TIPO_COLOR[ev.tipo] || 'var(--muted)', fontWeight: 600, flexShrink: 0 }}>
+                <span style={{ fontSize: 11.5, color: tipoColor[ev.tipo] || 'var(--muted)', fontWeight: 600, flexShrink: 0 }}>
                   {ev.tipo}
                 </span>
                 {canWrite && (

@@ -5,6 +5,7 @@ import { OfrendasModalProvider } from './context/OfrendasModalContext';
 import { GastosModalProvider } from './context/GastosModalContext';
 import { AsistenciaStewModalProvider } from './context/AsistenciaStewModalContext';
 import { CalendarioModalProvider } from './context/CalendarioModalContext';
+import { TiposEventoProvider } from './context/TiposEventoContext';
 import CampusPage from './pages/CampusPage';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
@@ -127,11 +128,13 @@ export default function App() {
         <GastosModalProvider>
           <AsistenciaStewModalProvider>
             <CalendarioModalProvider>
+              <TiposEventoProvider>
               <AuthProvider>
                 <BrowserRouter>
                   <AppRoutes />
                 </BrowserRouter>
               </AuthProvider>
+              </TiposEventoProvider>
             </CalendarioModalProvider>
           </AsistenciaStewModalProvider>
         </GastosModalProvider>
