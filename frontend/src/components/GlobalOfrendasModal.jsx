@@ -21,7 +21,7 @@ function formatDateLong(date) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-const EMPTY = { efectivo: '', tarjeta: '', transferencia: '', sobres: '', terminalCnt: '', transferenciaCnt: '' };
+const EMPTY = { fecha: '', efectivo: '', tarjeta: '', transferencia: '', sobres: '', terminalCnt: '', transferenciaCnt: '' };
 
 export default function GlobalOfrendasModal() {
   const { open, closeModal, record, triggerRefresh } = useOfrendasModal();
@@ -31,17 +31,17 @@ export default function GlobalOfrendasModal() {
   const camposEditables = isEdit ? (permisos?.secciones?.ingresos?.campos_editables ?? null) : null;
   const puedeCampo = (campo) => camposEditables === null || camposEditables.includes(campo);
 
-  const sunday     = isEdit ? null : getLastSunday();
-  const fechaISO   = isEdit ? record.fecha.slice(0, 10) : toISODate(sunday);
-  const fechaLabel = isEdit
-    ? formatDateLong(new Date(record.fecha.slice(0, 10) + 'T12:00:00'))
-    : formatDateLong(sunday);
-
-  const [form, setForm]           = useState(EMPTY);
+  const [form, setForm]         = useState(EMPTY);
   const [asistentes, setAsistentes] = useState(null);
-  const [saving, setSaving]       = useState(false);
-  const [saved, setSaved]         = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
   const [savedData, setSavedData] = useState(null);
+
+  // Derivados de form
+  const fechaISO   = form.fecha;
+  const fechaLabel = form.fecha
+    ? formatDateLong(new Date(form.fecha + 'T12:00:00'))
+    : '';
 
   const efectivo      = parseFloat(form.efectivo)      || 0;
   const tarjeta       = parseFloat(form.tarjeta)       || 0;
@@ -55,21 +55,20 @@ export default function GlobalOfrendasModal() {
     ? ((cantidad / asistentes) * 100).toFixed(1)
     : null;
 
-  const loadAsistencia = useCallback(async () => {
+  // Referencia estable — recibe la fecha como parámetro para no depender de form.fecha
+  const loadAsistencia = useCallback(async (fecha) => {
+    if (!fecha) return;
     try {
       const { data } = await asistenciaApi.getAll({ limit: 200 });
-      const record = data.find(r => r.fecha === fechaISO);
-      if (record) {
-        const tot = (record.adultos || 0) + (record.voluntarios || 0) +
-                    (record.ninos || 0) + (record.bebes || 0);
-        setAsistentes(tot);
+      const found = data.find(r => r.fecha === fecha);
+      if (found) {
+        setAsistentes((found.adultos || 0) + (found.voluntarios || 0) +
+                      (found.ninos  || 0) + (found.bebes       || 0));
       } else {
-        // Use most recent record as fallback
         const sorted = [...data].sort((a, b) => b.fecha.localeCompare(a.fecha));
         if (sorted.length > 0) {
           const r = sorted[0];
-          const tot = (r.adultos || 0) + (r.voluntarios || 0) + (r.ninos || 0) + (r.bebes || 0);
-          setAsistentes(tot);
+          setAsistentes((r.adultos || 0) + (r.voluntarios || 0) + (r.ninos || 0) + (r.bebes || 0));
         } else {
           setAsistentes(null);
         }
@@ -77,26 +76,31 @@ export default function GlobalOfrendasModal() {
     } catch {
       setAsistentes(null);
     }
-  }, [fechaISO]);
+  }, []);
 
+  // Effect 1 — inicializa el form cuando el modal abre o cambia el registro
   useEffect(() => {
-    if (open) {
-      setSaved(false);
-      if (record) {
-        setForm({
-          efectivo:         String(record.efectivo                ?? ''),
-          tarjeta:          String(record.terminal                ?? ''),
-          transferencia:    String(record.transferencia           ?? ''),
-          sobres:           String(record.ofrendas_sobres         ?? ''),
-          terminalCnt:      String(record.ofrendas_terminal       ?? ''),
-          transferenciaCnt: String(record.ofrendas_transferencia  ?? ''),
-        });
-      } else {
-        setForm(EMPTY);
-      }
-      loadAsistencia();
+    if (!open) return;
+    setSaved(false);
+    if (record) {
+      setForm({
+        fecha:            record.fecha.slice(0, 10),
+        efectivo:         String(record.efectivo                ?? ''),
+        tarjeta:          String(record.terminal                ?? ''),
+        transferencia:    String(record.transferencia           ?? ''),
+        sobres:           String(record.ofrendas_sobres         ?? ''),
+        terminalCnt:      String(record.ofrendas_terminal       ?? ''),
+        transferenciaCnt: String(record.ofrendas_transferencia  ?? ''),
+      });
+    } else {
+      setForm({ ...EMPTY, fecha: toISODate(getLastSunday()) });
     }
-  }, [open, record, loadAsistencia]);
+  }, [open, record]);
+
+  // Effect 2 — recarga asistencia cuando cambia la fecha (y el modal está abierto)
+  useEffect(() => {
+    if (open && form.fecha) loadAsistencia(form.fecha);
+  }, [open, form.fecha, loadAsistencia]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && !saved) closeModal(); };
@@ -171,6 +175,23 @@ export default function GlobalOfrendasModal() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+              {/* Fecha del servicio */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Fecha del servicio
+                </label>
+                <input
+                  type="date"
+                  value={form.fecha}
+                  onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px', borderRadius: 10,
+                    border: '1.5px solid var(--border)', fontSize: 15,
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
 
               {/* Efectivo */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
