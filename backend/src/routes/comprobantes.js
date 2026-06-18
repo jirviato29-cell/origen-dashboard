@@ -29,8 +29,8 @@ router.post('/', (req, res, next) => {
     if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
 
     try {
-      const safe     = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const fileName = `${Date.now()}_${safe}`;
+      const ext      = (req.file.originalname.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
       const { error: uploadErr } = await supabase.storage
         .from('comprobantes')
