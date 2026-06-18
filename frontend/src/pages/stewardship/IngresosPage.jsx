@@ -7,35 +7,28 @@ import { I } from '../../components/Icons';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 
-// ── Campus theme ──────────────────────────────────────────────────────────────
-const isGdl = localStorage.getItem('campus_activo') === 'gdl';
-
-// Navy mid-tones not in global CSS vars
-const NAVY_600   = isGdl ? '#0E9E8C' : '#305181';
-const NAVY_300   = isGdl ? '#9A9A9A' : '#9CB0CC';
+// ── Color constants (paleta AGS — ambos campus) ───────────────────────────────
+const NAVY_600   = '#305181';
+const NAVY_300   = '#9CB0CC';
 const GREEN_600  = '#15915A';
 const GREEN_400  = '#3DD68C';
-const NAVY_500   = isGdl ? '#0E9E8C' : '#3E6399';
-
-// Hardcoded colors — campus-aware
-const TOOLTIP_TOT   = isGdl ? '#10C9A8'              : '#fdba74';
-const CHIP_NAVY_BG  = isGdl ? 'rgba(14,158,140,.10)' : 'rgba(17,37,64,0.08)';
-const CHIP_600_BG   = isGdl ? 'rgba(14,158,140,.10)' : 'rgba(48,81,129,0.10)';
-const BTN_INACT_BG  = isGdl ? '#E6F5F2'              : '#FFF4EE';
-const BTN_INACT_BOR = isGdl ? '#B2E4DC'              : '#FFE4D1';
-
-// Per-method colors — GDL: colores distintos por método; AGS: esquema navy/black actual
-const EF_CLR      = isGdl ? '#0E9E8C'              : 'var(--black)';
-const EF_PILL_BG  = isGdl ? '#E1F5EE'              : CHIP_NAVY_BG;
-const EF_PILL_TXT = isGdl ? '#0F6E56'              : 'var(--black)';
-const TE_CLR      = isGdl ? '#D2674A'              : NAVY_600;
-const TE_PILL_BG  = isGdl ? '#FAECE7'              : CHIP_600_BG;
-const TE_PILL_TXT = isGdl ? '#993C1D'              : NAVY_600;
-const TR_CLR      = isGdl ? '#2C7A9E'              : NAVY_300;
-const TR_PILL_BG  = isGdl ? '#E6F1FB'              : 'rgba(156,176,204,0.18)';
-const TR_PILL_TXT = isGdl ? '#185FA5'              : 'var(--muted)';
-const BAR_TRACK   = isGdl ? '#E9EAE9'              : '#E2E6EC';
-const TOT_BAND_CLR = isGdl ? '#0E9E8C'             : GREEN_600;
+const NAVY_500   = '#3E6399';
+const TOOLTIP_TOT  = '#fdba74';
+const CHIP_NAVY_BG = 'rgba(17,37,64,0.08)';
+const CHIP_600_BG  = 'rgba(48,81,129,0.10)';
+const BTN_INACT_BG  = '#FFF4EE';
+const BTN_INACT_BOR = '#FFE4D1';
+const EF_CLR      = 'var(--black)';
+const EF_PILL_BG  = CHIP_NAVY_BG;
+const EF_PILL_TXT = 'var(--black)';
+const TE_CLR      = NAVY_600;
+const TE_PILL_BG  = CHIP_600_BG;
+const TE_PILL_TXT = NAVY_600;
+const TR_CLR      = NAVY_300;
+const TR_PILL_BG  = 'rgba(156,176,204,0.18)';
+const TR_PILL_TXT = 'var(--muted)';
+const BAR_TRACK   = '#E2E6EC';
+const TOT_BAND_CLR = GREEN_600;
 
 function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });

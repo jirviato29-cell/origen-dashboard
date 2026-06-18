@@ -69,17 +69,16 @@
   --chart-secondary-soft: rgba(255,107,43,0.12);
 }
 
-/* ─── Tema Campus Guadalajara ────────────────────────────────────────────── */
+/* ─── Tema Campus Guadalajara — SOLO sidebar ──────────────────────────────── */
+/* Contenido: idéntico a Aguascalientes. Único cambio: sidebar negro + menta. */
 .app[data-campus="gdl"] {
-  --sidebar-bg:      #0A0A0A;
-  --black:           #0E9E8C;
-  --chart-secondary: #0E9E8C;
+  --sidebar-bg: #0A0A0A;   /* #0A0A0A de RolesGdlScreen / ClaveGdlScreen     */
 }
-.app[data-campus="gdl"] .nav-item.active { background: rgba(14,158,140,.22); color: #fff !important; }
+.app[data-campus="gdl"] .nav-item.active { background: rgba(45,212,191,.15); color: #fff !important; }
 .app[data-campus="gdl"] .nav-item.active .nav-icon,
 .app[data-campus="gdl"] .nav-item.active svg { color: #2DD4BF !important; }
 .app[data-campus="gdl"] .nav-item.active::before { background: #2DD4BF !important; }
-.app[data-campus="gdl"] .avatar { background: #0E9E8C; }
+.app[data-campus="gdl"] .avatar { background: #2DD4BF; }   /* MINT de GdlScreens */
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 
