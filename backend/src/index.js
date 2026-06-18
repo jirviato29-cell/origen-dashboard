@@ -23,6 +23,7 @@ const abonosRouter               = require('./routes/abonos');
 const cortesRouter               = require('./routes/cortes');
 const visitantesRouter           = require('./routes/visitantes');
 const ofrendasEspecialesRouter   = require('./routes/ofrendas_especiales');
+const tiposEventoRouter          = require('./routes/tiposEvento');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -58,6 +59,7 @@ app.use('/api/abonos',               abonosRouter);
 app.use('/api/cortes',               cortesRouter);
 app.use('/api/visitantes',              visitantesRouter);
 app.use('/api/ofrendas-especiales',    ofrendasEspecialesRouter);
+app.use('/api/tipos-evento',           tiposEventoRouter);
 
 app.use((err, req, res, _next) => {
   console.error(err.stack);
