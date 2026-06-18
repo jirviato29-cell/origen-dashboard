@@ -137,8 +137,28 @@ export default function GastosPage() {
   const [mesSeleccionado, setMesSelec] = useState(null);
   const [mesTabla, setMesTabla]        = useState('todos');
   const [detailGasto, setDetailGasto]  = useState(null);
+  const [deleteGasto,  setDeleteGasto] = useState(null);
+  const [eliminando,   setEliminando]  = useState(false);
+  const [localKey,     setLocalKey]    = useState(0);
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
+
+  function handleDeleteOpen(g)  { setDeleteGasto(g); }
+  function handleDeleteClose()  { if (!eliminando) setDeleteGasto(null); }
+  async function handleDeleteConfirm() {
+    if (!deleteGasto || eliminando) return;
+    setEliminando(true);
+    try {
+      await gastosApi.remove(deleteGasto.id);
+      setDeleteGasto(null);
+      setLocalKey(k => k + 1);
+    } catch (err) {
+      console.error('Error al eliminar gasto:', err);
+      alert('No se pudo eliminar el gasto. Intenta de nuevo.');
+    } finally {
+      setEliminando(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -148,7 +168,7 @@ export default function GastosPage() {
       .catch(() => { if (!cancelled) setGastos([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [year, refreshKey]);
+  }, [year, refreshKey, localKey]);
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const sorted      = [...gastos].sort((a, b) => b.fecha.localeCompare(a.fecha));
@@ -558,9 +578,24 @@ export default function GastosPage() {
                       {fmt(Number(g.monto))}
                     </span>
                   </div>
-                  {/* Fecha */}
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-                    {fmtFechaShort(g.fecha)}
+                  {/* Fecha + eliminar */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                      {fmtFechaShort(g.fecha)}
+                    </div>
+                    <button
+                      title="Eliminar gasto"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteOpen(g); }}
+                      style={{
+                        border: '1px solid var(--border)', background: 'var(--surface-2)',
+                        color: 'var(--danger)', borderRadius: 7,
+                        width: 28, height: 28, cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <I.trash size={13} />
+                    </button>
                   </div>
                 </div>
               );
@@ -589,6 +624,7 @@ export default function GastosPage() {
                   <th>Concepto</th>
                   <th>Categoría</th>
                   <th style={{ textAlign: 'right' }}>Monto</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -614,6 +650,20 @@ export default function GastosPage() {
                       <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--danger)' }}>
                         {fmt(Number(g.monto))}
                       </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          title="Eliminar gasto"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteOpen(g); }}
+                          style={{
+                            border: '1px solid var(--border)', background: 'var(--surface-2)',
+                            color: 'var(--danger)', borderRadius: 7,
+                            width: 30, height: 30, cursor: 'pointer',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                        >
+                          <I.trash size={14} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -635,6 +685,29 @@ export default function GastosPage() {
       </div>
 
       {detailGasto && <GastoDetalleModal gasto={detailGasto} onClose={() => setDetailGasto(null)} />}
+
+      {deleteGasto && (
+        <div onClick={handleDeleteClose} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: 16, maxWidth: 400, width: '100%', padding: '22px 24px', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>¿Eliminar este gasto?</div>
+            <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 6 }}>{deleteGasto.concepto}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--danger)', marginBottom: 18 }}>
+              −${Number(deleteGasto.monto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 18 }}>Esta acción no se puede deshacer.</div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={handleDeleteClose} disabled={eliminando}
+                style={{ padding: '10px 16px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontWeight: 600, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={handleDeleteConfirm} disabled={eliminando}
+                style={{ padding: '10px 16px', borderRadius: 9, border: 0, background: 'var(--danger)', color: '#fff', fontWeight: 700, cursor: eliminando ? 'not-allowed' : 'pointer', opacity: eliminando ? 0.6 : 1 }}>
+                {eliminando ? 'Eliminando…' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
