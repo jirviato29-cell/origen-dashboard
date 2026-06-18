@@ -40,6 +40,15 @@ export default function GlobalGastosModal() {
   const [archivoError, setArchivoError] = useState('');
   const [fileKey,      setFileKey]      = useState(0);
 
+  // Second file / foto de lo adquirido
+  const [archivo2,      setArchivo2]      = useState(null);
+  const [preview2,      setPreview2]      = useState(null);
+  const [archivo2Error, setArchivo2Error] = useState('');
+  const [fileKey2,      setFileKey2]      = useState(0);
+
+  // Comentarios
+  const [comentarios, setComentarios] = useState('');
+
   const monto   = parseFloat(form.monto) || 0;
   const canSave = form.fecha && form.concepto.trim() && form.categoria && monto > 0;
 
@@ -48,6 +57,9 @@ export default function GlobalGastosModal() {
       setSaved(false); setForm(makeEmpty()); setError('');
       setArchivo(null); setPreview(null); setArchivoError('');
       setFileKey(k => k + 1);
+      setArchivo2(null); setPreview2(null); setArchivo2Error('');
+      setFileKey2(k => k + 1);
+      setComentarios('');
     }
   }, [open]);
 
@@ -77,6 +89,24 @@ export default function GlobalGastosModal() {
     setFileKey(k => k + 1);
   };
 
+  const handleArchivo2Change = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > MAX_BYTES) {
+      setArchivo2Error('El archivo supera el límite de 10 MB.');
+      setArchivo2(null); setPreview2(null);
+      return;
+    }
+    setArchivo2Error('');
+    setArchivo2(f);
+    setPreview2(f.type.startsWith('image/') ? URL.createObjectURL(f) : null);
+  };
+
+  const handleRemoveArchivo2 = () => {
+    setArchivo2(null); setPreview2(null); setArchivo2Error('');
+    setFileKey2(k => k + 1);
+  };
+
   // ── Save ─────────────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
@@ -101,17 +131,34 @@ export default function GlobalGastosModal() {
       setUploading(false);
     }
 
+    // 1b) Upload second file if present
+    let comprobanteUrl2 = null;
+    if (archivo2) {
+      setUploading(true);
+      try {
+        const res2 = await comprobanteApi.upload(archivo2);
+        comprobanteUrl2 = res2.data.url;
+      } catch (err) {
+        setError('Error al subir la foto de lo adquirido. Los demás datos no se perdieron, inténtalo de nuevo.');
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+
     // 2) Create gasto
     setSaving(true);
     try {
       await gastosApi.create({
-        fecha:             form.fecha,
-        concepto:          form.concepto.trim(),
-        categoria:         form.categoria,
+        fecha:              form.fecha,
+        concepto:           form.concepto.trim(),
+        categoria:          form.categoria,
         monto,
         pagado,
-        comprobante_url:   comprobanteUrl,
-        fecha_vencimiento: form.fecha_vencimiento || null,
+        comprobante_url:    comprobanteUrl,
+        fecha_vencimiento:  form.fecha_vencimiento || null,
+        comprobante_url_2:  comprobanteUrl2,
+        comentarios:        comentarios.trim() || null,
       });
       setSavedData({ fecha: form.fecha, concepto: form.concepto.trim(), categoria: form.categoria, monto });
       setSaved(true);
@@ -280,6 +327,82 @@ export default function GlobalGastosModal() {
                 )}
               </div>
 
+              {/* Foto de lo adquirido */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Foto de lo adquirido
+                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
+                </label>
+
+                {!archivo2 ? (
+                  <label style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    padding: '10px 14px', borderRadius: 10, border: '1.5px dashed var(--border)',
+                    cursor: 'pointer', color: 'var(--muted)', fontSize: 13.5, fontWeight: 500,
+                    background: 'var(--surface)', transition: 'border-color 0.15s',
+                  }}>
+                    <I.download size={15} />
+                    Seleccionar imagen o PDF
+                    <input
+                      key={fileKey2}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleArchivo2Change}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                ) : (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', borderRadius: 10,
+                    border: '1.5px solid var(--border)', background: 'var(--surface)',
+                  }}>
+                    {preview2 ? (
+                      <img src={preview2} alt="preview2" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                    ) : (
+                      <div style={{
+                        width: 48, height: 48, borderRadius: 6, flexShrink: 0,
+                        background: 'rgba(180,74,58,0.10)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--danger)', letterSpacing: '0.04em' }}>PDF</span>
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {archivo2.name}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>
+                        {(archivo2.size / 1024).toFixed(0)} KB
+                      </div>
+                    </div>
+                    <button type="button" onClick={handleRemoveArchivo2}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 4, flexShrink: 0 }}>
+                      <I.x size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {archivo2Error && (
+                  <p style={{ fontSize: 12, color: 'var(--danger)', margin: 0 }}>{archivo2Error}</p>
+                )}
+              </div>
+
+              {/* Comentarios */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Comentarios
+                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Notas o detalles del gasto…"
+                  value={comentarios}
+                  onChange={e => setComentarios(e.target.value)}
+                  style={{ ...inputStyle, resize: 'vertical', minHeight: 72 }}
+                />
+              </div>
+
               {/* Total */}
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -308,7 +431,7 @@ export default function GlobalGastosModal() {
             >
               <I.check size={16} />
               {uploading
-                ? 'Subiendo comprobante…'
+                ? 'Subiendo archivo…'
                 : saving
                   ? 'Guardando…'
                   : pagado ? 'Guardar gasto' : 'Guardar gasto por pagar'}
