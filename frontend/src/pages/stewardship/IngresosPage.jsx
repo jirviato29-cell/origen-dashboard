@@ -205,7 +205,7 @@ export default function IngresosPage() {
   const [tablaMesFiltro,  setTablaMesFiltro] = useState(null);
   const isMobile      = useIsMobile();
   const isTablet      = useIsMobile(1100);
-  const { openModal } = useOfrendasModal();
+  const { openModal, refreshKey } = useOfrendasModal();
   const { permisos }  = useAuth();
   const canWrite      = puedeRegistrar(permisos, 'ingresos');
 
@@ -229,7 +229,7 @@ export default function IngresosPage() {
       }
     }
     load();
-  }, [year]);
+  }, [year, refreshKey]);
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const hoy         = new Date();

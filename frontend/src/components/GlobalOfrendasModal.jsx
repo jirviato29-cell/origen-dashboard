@@ -24,7 +24,7 @@ function formatDateLong(date) {
 const EMPTY = { efectivo: '', tarjeta: '', transferencia: '', sobres: '', terminalCnt: '', transferenciaCnt: '' };
 
 export default function GlobalOfrendasModal() {
-  const { open, closeModal, record } = useOfrendasModal();
+  const { open, closeModal, record, triggerRefresh } = useOfrendasModal();
   const { permisos } = useAuth();
   const isEdit = !!record?.id;
 
@@ -126,6 +126,7 @@ export default function GlobalOfrendasModal() {
       }
       setSavedData({ total, efectivo, tarjeta, sobres, terminalCnt, cantidad, participacion });
       setSaved(true);
+      triggerRefresh();
       setTimeout(() => { setSaved(false); closeModal(); }, 2500);
     } finally {
       setSaving(false);
