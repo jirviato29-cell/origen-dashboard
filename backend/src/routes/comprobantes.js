@@ -32,6 +32,8 @@ router.post('/', (req, res, next) => {
       const ext      = (req.file.originalname.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
       const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
+      console.log('SUBIENDO ->', JSON.stringify({ bucket: 'comprobantes', fileName, urlBase: process.env.SUPABASE_URL }));
+
       const { error: uploadErr } = await supabase.storage
         .from('comprobantes')
         .upload(fileName, req.file.buffer, {
@@ -40,7 +42,10 @@ router.post('/', (req, res, next) => {
           upsert:       false,
         });
 
-      if (uploadErr) throw uploadErr;
+      if (uploadErr) {
+        console.error('SUPABASE UPLOAD ERROR ->', JSON.stringify(uploadErr, Object.getOwnPropertyNames(uploadErr)));
+        throw uploadErr;
+      }
 
       const { data } = supabase.storage.from('comprobantes').getPublicUrl(fileName);
       res.json({ url: data.publicUrl });
