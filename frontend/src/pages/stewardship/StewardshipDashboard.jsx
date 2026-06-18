@@ -10,18 +10,15 @@ import { I } from '../../components/Icons';
 import { useIsMobile } from '../../utils/useIsMobile';
 import { TIPO_COLOR, TIPO_BG } from '../../utils/tipoEventoColors';
 
-// ── Campus theme ──────────────────────────────────────────────────────────────
-const isGdl = localStorage.getItem('campus_activo') === 'gdl';
-
-// ── Design tokens (exact values from Origen_Dashboard__offline_.html) ─────────
-const D_NAVY_950  = isGdl ? '#0A0A0A' : '#0B1A2F';
-const D_NAVY_900  = isGdl ? '#14141A' : '#112540';
-const D_NAVY_800  = isGdl ? '#1A1A1A' : '#1A3354';
-const D_NAVY_600  = isGdl ? '#0E9E8C' : '#305181';
-const D_NAVY_300  = isGdl ? '#9A9A9A' : '#9CB0CC';
-const D_NAVY_100  = isGdl ? '#D9EEEA' : '#DCE4EF';
-const D_ORANGE    = isGdl ? '#10C9A8' : '#FF6B2B';
-const D_ORANGE_50 = isGdl ? '#E6F5F2' : '#FFF4EE';
+// ── Design tokens — paleta AGS, ambos campus ──────────────────────────────────
+const D_NAVY_950  = '#0B1A2F';
+const D_NAVY_900  = '#112540';
+const D_NAVY_800  = '#1A3354';
+const D_NAVY_600  = '#305181';
+const D_NAVY_300  = '#9CB0CC';
+const D_NAVY_100  = '#DCE4EF';
+const D_ORANGE    = '#FF6B2B';
+const D_ORANGE_50 = '#FFF4EE';
 const D_GRAY_700  = '#3D4654';
 const D_GRAY_500  = '#7A8699';
 const D_GRAY_200  = '#E2E6EC';
@@ -31,19 +28,17 @@ const D_GREEN_600 = '#15915A';
 const D_GREEN_400 = '#3DD68C';
 const D_RED_600   = '#D23B36';
 const D_AMBER_600 = '#C98A14';
-const D_CYAN      = isGdl ? '#0E9E8C' : '#00B4D8'; // chart bars
-
-// ── Tokens extra por campus (chart line, donut, feature card) ─────────────────
-const D_LINE_ASIST      = isGdl ? '#D2674A' : D_ORANGE;
-const D_ORANGE_600      = isGdl ? '#0B7F71' : '#E0561B';
-const D_ORANGE_BORDER   = isGdl ? '#B2E4DC' : '#FFE5D6';
-const DONUT_ADULTOS     = isGdl ? '#10C9A8' : D_NAVY_900;
-const DONUT_VOLUNTARIOS = isGdl ? '#1D1D1F' : D_NAVY_600;
-const DONUT_NINOS       = isGdl ? '#5BE0CB' : D_CYAN;
-const DONUT_BEBES       = isGdl ? '#FF6F45' : D_ORANGE;
-const FEAT_IC_BG        = isGdl ? 'rgba(14,158,140,.16)' : 'rgba(255,107,43,.16)';
-const FEAT_IC_BORDER    = isGdl ? 'rgba(14,158,140,.3)'  : 'rgba(255,107,43,.3)';
-const FEAT_IC_COLOR     = isGdl ? '#10C9A8'              : '#FF8A52';
+const D_CYAN      = '#00B4D8';
+const D_LINE_ASIST      = D_ORANGE;
+const D_ORANGE_600      = '#E0561B';
+const D_ORANGE_BORDER   = '#FFE5D6';
+const DONUT_ADULTOS     = D_NAVY_900;
+const DONUT_VOLUNTARIOS = D_NAVY_600;
+const DONUT_NINOS       = D_CYAN;
+const DONUT_BEBES       = D_ORANGE;
+const FEAT_IC_BG        = 'rgba(255,107,43,.16)';
+const FEAT_IC_BORDER    = 'rgba(255,107,43,.3)';
+const FEAT_IC_COLOR     = '#FF8A52';
 
 const MESES_ES    = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const MESES_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
