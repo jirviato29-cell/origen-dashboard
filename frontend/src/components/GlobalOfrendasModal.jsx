@@ -21,7 +21,7 @@ function formatDateLong(date) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-const EMPTY = { efectivo: '', tarjeta: '', transferencia: '', sobres: '', terminalCnt: '' };
+const EMPTY = { efectivo: '', tarjeta: '', transferencia: '', sobres: '', terminalCnt: '', transferenciaCnt: '' };
 
 export default function GlobalOfrendasModal() {
   const { open, closeModal, record } = useOfrendasModal();
@@ -46,10 +46,11 @@ export default function GlobalOfrendasModal() {
   const efectivo      = parseFloat(form.efectivo)      || 0;
   const tarjeta       = parseFloat(form.tarjeta)       || 0;
   const transferencia = parseFloat(form.transferencia) || 0;
-  const sobres        = parseInt(form.sobres, 10)      || 0;
-  const terminalCnt   = parseInt(form.terminalCnt, 10) || 0;
-  const total         = efectivo + tarjeta + transferencia;
-  const cantidad    = sobres + terminalCnt;
+  const sobres           = parseInt(form.sobres, 10)           || 0;
+  const terminalCnt      = parseInt(form.terminalCnt, 10)      || 0;
+  const transferenciaCnt = parseInt(form.transferenciaCnt, 10) || 0;
+  const total            = efectivo + tarjeta + transferencia;
+  const cantidad         = sobres + terminalCnt + transferenciaCnt;
   const participacion = asistentes && asistentes > 0 && cantidad > 0
     ? ((cantidad / asistentes) * 100).toFixed(1)
     : null;
@@ -83,11 +84,12 @@ export default function GlobalOfrendasModal() {
       setSaved(false);
       if (record) {
         setForm({
-          efectivo:     String(record.efectivo          ?? ''),
-          tarjeta:      String(record.terminal          ?? ''),
-          transferencia: String(record.transferencia    ?? ''),
-          sobres:       String(record.ofrendas_sobres   ?? ''),
-          terminalCnt:  String(record.ofrendas_terminal ?? ''),
+          efectivo:         String(record.efectivo                ?? ''),
+          tarjeta:          String(record.terminal                ?? ''),
+          transferencia:    String(record.transferencia           ?? ''),
+          sobres:           String(record.ofrendas_sobres         ?? ''),
+          terminalCnt:      String(record.ofrendas_terminal       ?? ''),
+          transferenciaCnt: String(record.ofrendas_transferencia  ?? ''),
         });
       } else {
         setForm(EMPTY);
@@ -107,14 +109,15 @@ export default function GlobalOfrendasModal() {
     setSaving(true);
     try {
       const body = {
-        fecha:             fechaISO,
-        efectivo:          efectivo,
-        terminal:          tarjeta,
-        transferencia:     transferencia,
-        ofrendas_sobres:   sobres,
-        ofrendas_terminal: terminalCnt,
-        participacion:     participacion ? parseFloat(participacion) : 0,
-        ofrenda_especial:  0,
+        fecha:                  fechaISO,
+        efectivo:               efectivo,
+        terminal:               tarjeta,
+        transferencia:          transferencia,
+        ofrendas_sobres:        sobres,
+        ofrendas_terminal:      terminalCnt,
+        ofrendas_transferencia: transferenciaCnt,
+        participacion:          participacion ? parseFloat(participacion) : 0,
+        ofrenda_especial:       0,
       };
       if (isEdit) {
         await ofrendasApi.update(record.id, body);
@@ -255,7 +258,7 @@ export default function GlobalOfrendasModal() {
                 </span>
               </div>
 
-              {/* Sobres y Tarjeta/Terminal — conteos */}
+              {/* Sobres, Tarjeta/Terminal y Transferencias — conteos */}
               <div style={{ display: 'flex', gap: 10 }}>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -296,6 +299,27 @@ export default function GlobalOfrendasModal() {
                       border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
                       outline: 'none', boxSizing: 'border-box',
                       ...(!puedeCampo('terminalCnt') && { opacity: 0.45, background: 'var(--surface)', cursor: 'default' }),
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Transf.
+                    <span style={{ marginLeft: 5, fontSize: 11, fontWeight: 400, color: 'var(--muted)', textTransform: 'none', letterSpacing: 0 }}>operaciones</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={form.transferenciaCnt}
+                    onChange={e => setForm(f => ({ ...f, transferenciaCnt: e.target.value }))}
+                    readOnly={!puedeCampo('transferenciaCnt')}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: 10,
+                      border: '1.5px solid var(--border)', fontSize: 16, fontFamily: 'var(--font-mono)',
+                      outline: 'none', boxSizing: 'border-box',
+                      ...(!puedeCampo('transferenciaCnt') && { opacity: 0.45, background: 'var(--surface)', cursor: 'default' }),
                     }}
                   />
                 </div>
