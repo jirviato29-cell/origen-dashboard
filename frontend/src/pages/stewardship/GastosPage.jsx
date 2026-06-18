@@ -5,6 +5,7 @@ import { fmtFecha, fmtFechaShort, mesNombre } from '../../utils/fecha';
 import { useIsMobile } from '../../utils/useIsMobile';
 import { CATEGORIAS, CAT_COLORS, CAT_BG } from '../../utils/categorias';
 import { I } from '../../components/Icons';
+import GastoDetalleModal from '../../components/GastoDetalleModal';
 
 // ── Formatters ─────────────────────────────────────────────────────────────────
 function fmt(n) {
@@ -135,6 +136,7 @@ export default function GastosPage() {
   const [loading, setLoading]          = useState(true);
   const [mesSeleccionado, setMesSelec] = useState(null);
   const [mesTabla, setMesTabla]        = useState('todos');
+  const [detailGasto, setDetailGasto]  = useState(null);
 
   const toggleMes = m => setMesSelec(prev => prev === m ? null : m);
 
@@ -533,9 +535,9 @@ export default function GastosPage() {
             {tablaData.map(g => {
               const cat = catLabel(g);
               return (
-                <div key={g.id} style={{
+                <div key={g.id} onClick={() => setDetailGasto(g)} style={{
                   background: 'var(--surface)', border: '1px solid var(--border)',
-                  borderRadius: 'var(--r-lg)', padding: '12px 14px',
+                  borderRadius: 'var(--r-lg)', padding: '12px 14px', cursor: 'pointer',
                 }}>
                   {/* Concepto */}
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
@@ -593,7 +595,7 @@ export default function GastosPage() {
                 {tablaData.map(g => {
                   const cat = catLabel(g);
                   return (
-                    <tr key={g.id}>
+                    <tr key={g.id} onClick={() => setDetailGasto(g)} style={{ cursor: 'pointer' }}>
                       <td style={{ color: 'var(--muted)', fontSize: 13, whiteSpace: 'nowrap' }}>
                         {fmtFechaShort(g.fecha)}
                       </td>
@@ -632,6 +634,7 @@ export default function GastosPage() {
         )}
       </div>
 
+      {detailGasto && <GastoDetalleModal gasto={detailGasto} onClose={() => setDetailGasto(null)} />}
     </div>
   );
 }

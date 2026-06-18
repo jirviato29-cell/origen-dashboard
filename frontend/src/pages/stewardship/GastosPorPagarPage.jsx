@@ -7,6 +7,7 @@ import { fmtFecha, toISODate } from '../../utils/fecha';
 import { CAT_COLORS, CAT_BG, CATEGORIAS } from '../../utils/categorias';
 import { I } from '../../components/Icons';
 import { useIsMobile } from '../../utils/useIsMobile';
+import GastoDetalleModal from '../../components/GastoDetalleModal';
 
 // ── Design tokens (matching offline design) ────────────────────────────────
 const RED        = '#D23B36';
@@ -235,6 +236,7 @@ export default function GastosPorPagarPage() {
   const [deleteGasto,   setDeleteGasto]   = useState(null);
   const [eliminando,    setEliminando]    = useState(false);
   const [deleteHoverId, setDeleteHoverId] = useState(null);
+  const [detailGasto,   setDetailGasto]   = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -511,12 +513,13 @@ export default function GastosPorPagarPage() {
               const cat       = g.categoria_nombre ?? g.categoria ?? '—';
               const isPagando = pagando === g.id;
               return (
-                <div key={g.id} style={{
+                <div key={g.id} onClick={() => setDetailGasto(g)} style={{
                   display: 'flex', flexDirection: isMobile ? 'column' : 'row',
                   alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 0 : 14,
                   padding: '14px 16px 14px 18px',
                   border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
                   background: 'var(--surface)', position: 'relative',
+                  cursor: 'pointer',
                 }}>
                   <span style={{
                     position: 'absolute', left: 0, top: 12, bottom: 12,
@@ -539,7 +542,7 @@ export default function GastosPorPagarPage() {
                           {canWrite && (
                             <button
                               title="Editar gasto"
-                              onClick={() => handleEditOpen(g)}
+                              onClick={(e) => { e.stopPropagation(); handleEditOpen(g); }}
                               onMouseEnter={() => setEditHoverId(g.id)}
                               onMouseLeave={() => setEditHoverId(null)}
                               style={{
@@ -581,7 +584,7 @@ export default function GastosPorPagarPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <button
                             title="Eliminar gasto"
-                            onClick={() => handleDeleteOpen(g)}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteOpen(g); }}
                             onMouseEnter={() => setDeleteHoverId(g.id)}
                             onMouseLeave={() => setDeleteHoverId(null)}
                             style={{
@@ -668,7 +671,7 @@ export default function GastosPorPagarPage() {
                         <>
                           <button
                             title="Editar gasto"
-                            onClick={() => handleEditOpen(g)}
+                            onClick={(e) => { e.stopPropagation(); handleEditOpen(g); }}
                             onMouseEnter={() => setEditHoverId(g.id)}
                             onMouseLeave={() => setEditHoverId(null)}
                             style={{
@@ -685,7 +688,7 @@ export default function GastosPorPagarPage() {
                           </button>
                           <button
                             title="Eliminar gasto"
-                            onClick={() => handleDeleteOpen(g)}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteOpen(g); }}
                             onMouseEnter={() => setDeleteHoverId(g.id)}
                             onMouseLeave={() => setDeleteHoverId(null)}
                             style={{
@@ -774,7 +777,7 @@ export default function GastosPorPagarPage() {
             {sortedPagados.map(g => {
               const cat = g.categoria_nombre ?? g.categoria ?? '—';
               return (
-                <div key={g.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                <div key={g.id} onClick={() => setDetailGasto(g)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px', cursor: 'pointer' }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>{g.concepto}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{
@@ -810,7 +813,7 @@ export default function GastosPorPagarPage() {
                 {sortedPagados.map(g => {
                   const cat = g.categoria_nombre ?? g.categoria ?? '—';
                   return (
-                    <tr key={g.id}>
+                    <tr key={g.id} onClick={() => setDetailGasto(g)} style={{ cursor: 'pointer' }}>
                       <td style={{ color: 'var(--muted)', fontSize: 13, whiteSpace: 'nowrap' }}>{fmtFecha(g.fecha)}</td>
                       <td style={{ fontWeight: 500 }}>{g.concepto}</td>
                       <td>
@@ -918,6 +921,9 @@ export default function GastosPorPagarPage() {
           </div>
         </div>
       )}
+
+      {/* ── Modal detalle gasto ──────────────────────────────────────────── */}
+      {detailGasto && <GastoDetalleModal gasto={detailGasto} onClose={() => setDetailGasto(null)} />}
 
       {/* ── Modal editar gasto ────────────────────────────────────────────── */}
       {editGasto && (
