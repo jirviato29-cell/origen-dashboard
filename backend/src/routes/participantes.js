@@ -49,6 +49,37 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT /api/participantes/:id
+router.put('/:id', async (req, res) => {
+  try {
+    const { nombre, whatsapp, edad, tipo_persona, respuestas } = req.body;
+    if (!nombre?.trim()) {
+      return res.status(400).json({ error: 'nombre es requerido' });
+    }
+    const respuestasVal = (respuestas && typeof respuestas === 'object' && !Array.isArray(respuestas))
+      ? respuestas
+      : {};
+    const { rows } = await pool.query(
+      `UPDATE participantes
+       SET nombre=$1, whatsapp=$2, edad=$3, tipo_persona=$4, respuestas=$5
+       WHERE id=$6 AND campus=$7 RETURNING *`,
+      [
+        nombre.trim(),
+        whatsapp?.trim() || null,
+        edad ? parseInt(edad, 10) : null,
+        tipo_persona === 'invitado' ? 'invitado' : 'familia',
+        JSON.stringify(respuestasVal),
+        req.params.id,
+        req.campus,
+      ]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/participantes/:id
 router.delete('/:id', async (req, res) => {
   try {
