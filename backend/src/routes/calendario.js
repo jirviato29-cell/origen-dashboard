@@ -93,17 +93,51 @@ router.patch('/:id/cerrar', async (req, res) => {
   }
 });
 
-// DELETE /api/calendario/:id
+// DELETE /api/calendario/:id — borra en cascada: abonos → evento_campos → participantes → evento
 router.delete('/:id', async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { rows } = await pool.query(
+    await client.query('BEGIN');
+
+    // a) Abonos de los participantes de este evento
+    await client.query(
+      `DELETE FROM abonos
+       WHERE participante_id IN (
+         SELECT id FROM participantes WHERE evento_id=$1 AND campus=$2
+       )`,
+      [req.params.id, req.campus]
+    );
+
+    // b) Asignaciones de campos personalizados
+    await client.query(
+      'DELETE FROM evento_campos WHERE evento_id=$1 AND campus=$2',
+      [req.params.id, req.campus]
+    );
+
+    // c) Participantes del evento
+    await client.query(
+      'DELETE FROM participantes WHERE evento_id=$1 AND campus=$2',
+      [req.params.id, req.campus]
+    );
+
+    // d) El evento mismo
+    const { rows } = await client.query(
       'DELETE FROM calendario_eventos WHERE id=$1 AND campus=$2 RETURNING id',
       [req.params.id, req.campus]
     );
-    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
-    res.json({ deleted: rows[0].id });
+
+    if (!rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'No encontrado' });
+    }
+
+    await client.query('COMMIT');
+    res.json({ ok: true, deleted: rows[0].id });
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
