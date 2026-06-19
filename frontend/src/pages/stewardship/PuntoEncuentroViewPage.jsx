@@ -205,6 +205,11 @@ export default function PuntoEncuentroViewPage() {
   const [camposDelEvento,     setCamposDelEvento]     = useState([]);
   const [respuestas,          setRespuestas]          = useState({});
   const [camposDeEventosMapa, setCamposDeEventosMapa] = useState({});
+  // Modo editar participante
+  const [modalModo,             setModalModo]             = useState('crear');
+  const [editandoParticipante,  setEditandoParticipante]  = useState(null);
+  // Confirmación eliminar participante
+  const [confirmDeleteP, setConfirmDeleteP] = useState(null);
 
   // Modal agregar abono
   const [abonoModalOpen,    setAbonoModalOpen]    = useState(false);
@@ -325,6 +330,8 @@ export default function PuntoEncuentroViewPage() {
   // ── Handlers participantes — PRESERVED EXACTLY ─────────────────────────
   const openModal = async (evento) => {
     console.log('openModal evento id:', evento?.id);
+    setModalModo('crear');
+    setEditandoParticipante(null);
     setModalEvento(evento);
     setForm({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
     setPrimerAbono({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: hoyStr });
@@ -356,6 +363,24 @@ export default function PuntoEncuentroViewPage() {
       const respuestasLimpias = Object.fromEntries(
         Object.entries(respuestas).filter(([, v]) => v !== '' && v != null)
       );
+
+      if (modalModo === 'editar') {
+        const { data: pData } = await participantesApi.update(editandoParticipante.id, {
+          nombre:       form.nombre,
+          whatsapp:     form.whatsapp,
+          edad:         form.edad,
+          tipo_persona: form.tipo_persona,
+          respuestas:   respuestasLimpias,
+        });
+        setParticipantesMap(prev => ({
+          ...prev,
+          [modalEvento.id]: (prev[modalEvento.id] || []).map(x => x.id === pData.id ? pData : x),
+        }));
+        setModalOpen(false);
+        return;
+      }
+
+      // modo crear
       const { data: pData } = await participantesApi.create({
         evento_id:    modalEvento.id,
         nombre:       form.nombre,
@@ -397,7 +422,14 @@ export default function PuntoEncuentroViewPage() {
     }
   };
 
-  const handleDeleteParticipante = async (p) => {
+  const handleDeleteParticipante = (p) => {
+    setConfirmDeleteP(p);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!confirmDeleteP) return;
+    const p = confirmDeleteP;
+    setConfirmDeleteP(null);
     setDeletingId(p.id);
     try {
       await participantesApi.remove(p.id);
@@ -407,6 +439,35 @@ export default function PuntoEncuentroViewPage() {
       }));
     } catch { /* noop */ } finally {
       setDeletingId(null);
+    }
+  };
+
+  const openEditModal = async (p, evento) => {
+    setModalModo('editar');
+    setEditandoParticipante(p);
+    setModalEvento(evento);
+    setForm({
+      nombre:       p.nombre      || '',
+      whatsapp:     p.whatsapp    || '',
+      edad:         p.edad != null ? String(p.edad) : '',
+      tipo_persona: p.tipo_persona || 'familia',
+    });
+    setFormError('');
+    setRespuestas(p.respuestas && typeof p.respuestas === 'object' ? { ...p.respuestas } : {});
+    setCamposDelEvento([]);
+    setModalOpen(true);
+    try {
+      const { data: campos } = await camposPersonalizadosApi.getDeEvento(evento.id);
+      setCamposDelEvento(campos);
+      if (campos.length > 0) {
+        setCamposDeEventosMapa(prev => ({
+          ...prev,
+          [evento.id]: Object.fromEntries(campos.map(c => [c.id, c.nombre])),
+        }));
+      }
+    } catch (err) {
+      console.error('Error cargando campos del evento (edit):', err?.response?.status, err?.response?.data, err);
+      setCamposDelEvento([]);
     }
   };
 
@@ -1175,21 +1236,35 @@ export default function PuntoEncuentroViewPage() {
                                     )
                                   )}
 
-                                  {/* Delete */}
+                                  {/* Edit + Delete */}
                                   {canWrite && (
-                                    <button
-                                      onClick={() => handleDeleteParticipante(p)}
-                                      disabled={deletingId === p.id}
-                                      style={{
-                                        width: 30, height: 30, borderRadius: 7,
-                                        border: `1px solid ${GRAY_200}`, background: 'white',
-                                        color: GRAY_300, display: 'flex', alignItems: 'center',
-                                        justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
-                                      }}
-                                      title="Eliminar participante"
-                                    >
-                                      <I.trash size={14} />
-                                    </button>
+                                    <>
+                                      <button
+                                        onClick={() => openEditModal(p, e)}
+                                        style={{
+                                          width: 30, height: 30, borderRadius: 7,
+                                          border: `1px solid ${GRAY_200}`, background: 'white',
+                                          color: NAVY_700, display: 'flex', alignItems: 'center',
+                                          justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+                                        }}
+                                        title="Editar participante"
+                                      >
+                                        <I.edit size={13} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteParticipante(p)}
+                                        disabled={deletingId === p.id}
+                                        style={{
+                                          width: 30, height: 30, borderRadius: 7,
+                                          border: `1px solid ${GRAY_200}`, background: 'white',
+                                          color: GRAY_300, display: 'flex', alignItems: 'center',
+                                          justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+                                        }}
+                                        title="Eliminar participante"
+                                      >
+                                        <I.trash size={14} />
+                                      </button>
+                                    </>
                                   )}
                                 </div>
 
@@ -1483,7 +1558,7 @@ export default function PuntoEncuentroViewPage() {
             <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div className="anf-modal-eyebrow">Punto de Encuentro</div>
-                <h3 className="anf-modal-date">Registrar participante</h3>
+                <h3 className="anf-modal-date">{modalModo === 'editar' ? 'Editar participante' : 'Registrar participante'}</h3>
                 <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>{modalEvento?.nombre}</p>
               </div>
               <button className="icon-btn" onClick={() => setModalOpen(false)} style={{ width: 34, height: 34, flexShrink: 0 }}>
@@ -1596,26 +1671,28 @@ export default function PuntoEncuentroViewPage() {
                 </div>
               ))}
 
-              {/* Primer abono (opcional) */}
-              <div style={{ borderTop: '1px dashed var(--border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Primer abono <span style={{ fontWeight: 500, textTransform: 'none' }}>(opcional)</span>
+              {/* Primer abono (opcional) — solo en modo crear */}
+              {modalModo === 'crear' && (
+                <div style={{ borderTop: '1px dashed var(--border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Primer abono <span style={{ fontWeight: 500, textTransform: 'none' }}>(opcional)</span>
+                  </div>
+                  <AbonoFields
+                    monto={primerAbono.monto}
+                    onMonto={v => setPrimerAbono(f => ({ ...f, monto: v }))}
+                    metodo={primerAbono.metodo}
+                    onMetodo={m => setPrimerAbono(f => ({ ...f, metodo: m, num_transaccion: '' }))}
+                    numTransaccion={primerAbono.num_transaccion}
+                    onNumTransaccion={v => setPrimerAbono(f => ({ ...f, num_transaccion: v }))}
+                    file={primerAbonoFile}
+                    onFile={setPrimerAbonoFile}
+                    fileRef={primerAbonoFileRef}
+                    fecha={primerAbono.fecha}
+                    onFecha={v => setPrimerAbono(f => ({ ...f, fecha: v }))}
+                    cantidadRequerida={false}
+                  />
                 </div>
-                <AbonoFields
-                  monto={primerAbono.monto}
-                  onMonto={v => setPrimerAbono(f => ({ ...f, monto: v }))}
-                  metodo={primerAbono.metodo}
-                  onMetodo={m => setPrimerAbono(f => ({ ...f, metodo: m, num_transaccion: '' }))}
-                  numTransaccion={primerAbono.num_transaccion}
-                  onNumTransaccion={v => setPrimerAbono(f => ({ ...f, num_transaccion: v }))}
-                  file={primerAbonoFile}
-                  onFile={setPrimerAbonoFile}
-                  fileRef={primerAbonoFileRef}
-                  fecha={primerAbono.fecha}
-                  onFecha={v => setPrimerAbono(f => ({ ...f, fecha: v }))}
-                  cantidadRequerida={false}
-                />
-              </div>
+              )}
             </div>
 
             {formError && (
@@ -1629,7 +1706,7 @@ export default function PuntoEncuentroViewPage() {
               style={{ opacity: (saving || !form.nombre.trim()) ? 0.45 : 1, marginTop: 4 }}
             >
               <I.check size={16} />
-              {saving ? 'Guardando…' : 'Registrar participante'}
+              {saving ? 'Guardando…' : modalModo === 'editar' ? 'Guardar cambios' : 'Registrar participante'}
             </button>
 
             {!form.nombre.trim() && !formError && (
@@ -1794,6 +1871,47 @@ export default function PuntoEncuentroViewPage() {
           eventoNombre={camposModalEvento.nombre}
           onClose={() => setCamposModalEvento(null)}
         />
+      )}
+
+      {/* ── Modal confirmar eliminar participante ───────────────────────────── */}
+      {confirmDeleteP && (
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setConfirmDeleteP(null); }}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-grabber" />
+
+            <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div className="anf-modal-eyebrow">Punto de Encuentro</div>
+                <h3 className="anf-modal-date">Eliminar participante</h3>
+              </div>
+              <button className="icon-btn" onClick={() => setConfirmDeleteP(null)} style={{ width: 34, height: 34, flexShrink: 0 }}>
+                <I.x size={16} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: 14, color: GRAY_700, lineHeight: 1.65, margin: '0 0 8px' }}>
+              ¿Eliminar a <strong>"{confirmDeleteP.nombre}"</strong> de este evento?{' '}
+              Esta acción no se puede deshacer.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+              <button
+                className="btn"
+                style={{ flex: 1, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--ink-2)' }}
+                onClick={() => setConfirmDeleteP(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn"
+                style={{ flex: 1, background: RED, color: 'white', border: 'none', fontWeight: 700 }}
+                onClick={handleDeleteConfirm}
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Modal confirmar cierre de evento ────────────────────────────────── */}

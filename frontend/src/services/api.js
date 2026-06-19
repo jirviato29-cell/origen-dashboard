@@ -95,6 +95,7 @@ const realCalendarioApi = {
 const realParticipantesApi = {
   getAll:  (params) => http.get('/participantes', { params }),
   create:  (data)   => http.post('/participantes', data),
+  update:  (id, data) => http.put(`/participantes/${id}`, data),
   remove:  (id)     => http.delete(`/participantes/${id}`),
 };
 
