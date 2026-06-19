@@ -201,6 +201,10 @@ export default function PuntoEncuentroViewPage() {
   const [primerAbono,     setPrimerAbono]     = useState({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: '' });
   const [primerAbonoFile, setPrimerAbonoFile] = useState(null);
   const primerAbonoFileRef = useRef(null);
+  // Fase 3B — campos personalizados en el formulario
+  const [camposDelEvento,     setCamposDelEvento]     = useState([]);
+  const [respuestas,          setRespuestas]          = useState({});
+  const [camposDeEventosMapa, setCamposDeEventosMapa] = useState({});
 
   // Modal agregar abono
   const [abonoModalOpen,    setAbonoModalOpen]    = useState(false);
@@ -319,13 +323,27 @@ export default function PuntoEncuentroViewPage() {
     : [];
 
   // ── Handlers participantes — PRESERVED EXACTLY ─────────────────────────
-  const openModal = (evento) => {
+  const openModal = async (evento) => {
     setModalEvento(evento);
     setForm({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
     setPrimerAbono({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: hoyStr });
     setPrimerAbonoFile(null);
     setFormError('');
+    setRespuestas({});
+    setCamposDelEvento([]);
     setModalOpen(true);
+    try {
+      const { data: campos } = await camposPersonalizadosApi.getDeEvento(evento.id);
+      setCamposDelEvento(campos);
+      if (campos.length > 0) {
+        setCamposDeEventosMapa(prev => ({
+          ...prev,
+          [evento.id]: Object.fromEntries(campos.map(c => [c.id, c.nombre])),
+        }));
+      }
+    } catch {
+      setCamposDelEvento([]);
+    }
   };
 
   const handleSave = async () => {
@@ -333,12 +351,16 @@ export default function PuntoEncuentroViewPage() {
     setSaving(true);
     setFormError('');
     try {
+      const respuestasLimpias = Object.fromEntries(
+        Object.entries(respuestas).filter(([, v]) => v !== '' && v != null)
+      );
       const { data: pData } = await participantesApi.create({
         evento_id:    modalEvento.id,
         nombre:       form.nombre,
         whatsapp:     form.whatsapp,
         edad:         form.edad,
         tipo_persona: form.tipo_persona,
+        respuestas:   respuestasLimpias,
       });
       setParticipantesMap(prev => ({
         ...prev,
@@ -934,7 +956,20 @@ export default function PuntoEncuentroViewPage() {
                       flexWrap: 'wrap',
                     }}>
                       <button
-                        onClick={() => setExpandedId(isExpanded ? null : e.id)}
+                        onClick={() => {
+                          const next = isExpanded ? null : e.id;
+                          setExpandedId(next);
+                          if (next && !camposDeEventosMapa[e.id]) {
+                            camposPersonalizadosApi.getDeEvento(e.id).then(({ data }) => {
+                              if (data.length > 0) {
+                                setCamposDeEventosMapa(prev => ({
+                                  ...prev,
+                                  [e.id]: Object.fromEntries(data.map(c => [c.id, c.nombre])),
+                                }));
+                              }
+                            }).catch(() => {});
+                          }
+                        }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 7,
                           fontSize: 12.5, fontWeight: 600, color: NAVY_700,
@@ -1045,6 +1080,17 @@ export default function PuntoEncuentroViewPage() {
                                       {p.whatsapp && p.edad && <span>·</span>}
                                       {p.edad && <span>{p.edad} años</span>}
                                     </div>
+                                    {p.respuestas && Object.keys(p.respuestas).length > 0 && (() => {
+                                      const mapa = camposDeEventosMapa[e.id] || {};
+                                      const pares = Object.entries(p.respuestas)
+                                        .filter(([cid, v]) => mapa[cid] && v !== '' && v != null)
+                                        .map(([cid, v]) => `${mapa[cid]}: ${v}`);
+                                      return pares.length > 0 ? (
+                                        <div style={{ fontSize: 11, color: GRAY_500, marginTop: 1 }}>
+                                          {pares.join(' · ')}
+                                        </div>
+                                      ) : null;
+                                    })()}
                                   </div>
 
                                   {/* Payment info */}
@@ -1498,6 +1544,36 @@ export default function PuntoEncuentroViewPage() {
                   style={inputStyle}
                 />
               </div>
+
+              {/* Campos personalizados del evento */}
+              {camposDelEvento.map(c => (
+                <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={labelStyle}>
+                    {c.nombre}{' '}
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
+                  </label>
+                  {c.tipo === 'opciones' ? (
+                    <select
+                      value={respuestas[c.id] ?? ''}
+                      onChange={ev => setRespuestas(r => ({ ...r, [c.id]: ev.target.value }))}
+                      style={inputStyle}
+                    >
+                      <option value="">Seleccionar…</option>
+                      {(c.opciones || []).map(op => (
+                        <option key={op} value={op}>{op}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={c.tipo === 'numero' ? 'number' : 'text'}
+                      placeholder={c.tipo === 'numero' ? 'Ingresa un número' : 'Ingresa tu respuesta'}
+                      value={respuestas[c.id] ?? ''}
+                      onChange={ev => setRespuestas(r => ({ ...r, [c.id]: ev.target.value }))}
+                      style={inputStyle}
+                    />
+                  )}
+                </div>
+              ))}
 
               {/* Primer abono (opcional) */}
               <div style={{ borderTop: '1px dashed var(--border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
