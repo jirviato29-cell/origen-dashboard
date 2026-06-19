@@ -113,6 +113,8 @@ export default function BienvenidaCasaPage() {
     toggleContactado, PAGE_SIZE,
   } = useBienvenidaData();
 
+  const thisMonth = new Date().getMonth();
+
   const chipSt = (active) => ({
     padding: '5px 13px', borderRadius: 20, fontSize: 12, fontWeight: 600,
     border: `1px solid ${active ? ORANGE_500 : GRAY_200}`,
