@@ -177,7 +177,7 @@ function AbonoFields({
 export default function PuntoEncuentroViewPage() {
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'punto_encuentro');
-  const { openModalPE, openEditModal: openEditModalEvento, refreshKey: calRefreshKey } = useCalendarioModal();
+  const { openModalPE, openEditModal: openEditModalEvento, triggerRefresh, refreshKey: calRefreshKey } = useCalendarioModal();
   const { tipoColor, tipoBg } = useTiposEvento();
   const isMobile = useIsMobile();
   const [filter,  setFilter]  = useState('todos');
@@ -225,6 +225,11 @@ export default function PuntoEncuentroViewPage() {
   const [cerrarModalOpen, setCerrarModalOpen] = useState(false);
   const [cerrarEvento,    setCerrarEvento]    = useState(null);
   const [cerrandoId,      setCerrandoId]      = useState(null);
+
+  // Modal eliminar evento
+  const [eliminarEventoOpen, setEliminarEventoOpen] = useState(false);
+  const [eliminarEvento,     setEliminarEvento]     = useState(null);
+  const [eliminandoEvento,   setEliminandoEvento]   = useState(false);
 
   // Modal campos del registro
   const [camposModalEvento, setCamposModalEvento] = useState(null);
@@ -809,6 +814,21 @@ export default function PuntoEncuentroViewPage() {
     }
   };
 
+  const handleEliminarEventoConfirm = async () => {
+    if (!eliminarEvento) return;
+    setEliminandoEvento(true);
+    try {
+      await calendarioApi.remove(eliminarEvento.id);
+      setEliminarEventoOpen(false);
+      setEliminarEvento(null);
+      triggerRefresh();
+    } catch (err) {
+      alert(err?.response?.data?.error || 'No se pudo eliminar el evento. Intenta de nuevo.');
+    } finally {
+      setEliminandoEvento(false);
+    }
+  };
+
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1115,6 +1135,16 @@ export default function PuntoEncuentroViewPage() {
                           onClick={() => { setCerrarEvento(e); setCerrarModalOpen(true); }}
                         >
                           Cerrar evento
+                        </button>
+                      )}
+                      {canWrite && (
+                        <button
+                          className="btn btn-ghost"
+                          style={{ padding: '8px 13px', fontSize: 13, color: RED }}
+                          onClick={() => { setEliminarEvento(e); setEliminarEventoOpen(true); }}
+                          title="Eliminar evento y todos sus datos"
+                        >
+                          <I.trash size={14} />
                         </button>
                       )}
                     </div>
@@ -1918,6 +1948,61 @@ export default function PuntoEncuentroViewPage() {
                 onClick={handleDeleteConfirm}
               >
                 Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal confirmar eliminar evento ─────────────────────────────────── */}
+      {eliminarEventoOpen && eliminarEvento && (
+        <div className="modal-backdrop" onClick={(ev) => { if (ev.target === ev.currentTarget && !eliminandoEvento) { setEliminarEventoOpen(false); setEliminarEvento(null); } }}>
+          <div className="modal-sheet" onClick={ev => ev.stopPropagation()}>
+            <div className="modal-grabber" />
+
+            <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div className="anf-modal-eyebrow">Punto de Encuentro</div>
+                <h3 className="anf-modal-date">Eliminar evento</h3>
+              </div>
+              <button className="icon-btn" onClick={() => { setEliminarEventoOpen(false); setEliminarEvento(null); }} disabled={eliminandoEvento} style={{ width: 34, height: 34, flexShrink: 0 }}>
+                <I.x size={16} />
+              </button>
+            </div>
+
+            {(() => {
+              const numParticipantes = (participantesMap[eliminarEvento.id] || []).length;
+              return (
+                <p style={{ fontSize: 14, color: GRAY_700, lineHeight: 1.65, margin: '0 0 8px' }}>
+                  ¿Eliminar el evento <strong>"{eliminarEvento.nombre}"</strong>?{' '}
+                  {numParticipantes > 0 ? (
+                    <>Se borrarán también sus <strong>{numParticipantes} participante{numParticipantes !== 1 ? 's' : ''}</strong> y todos sus abonos registrados. Esta acción es <strong>DEFINITIVA</strong> y no se puede deshacer.</>
+                  ) : (
+                    <>Esta acción no se puede deshacer.</>
+                  )}
+                </p>
+              );
+            })()}
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+              <button
+                className="btn"
+                style={{ flex: 1, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--ink-2)', opacity: eliminandoEvento ? 0.5 : 1 }}
+                onClick={() => { setEliminarEventoOpen(false); setEliminarEvento(null); }}
+                disabled={eliminandoEvento}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn"
+                style={{
+                  flex: 1, background: RED, color: 'white', border: 'none', fontWeight: 700,
+                  opacity: eliminandoEvento ? 0.6 : 1,
+                }}
+                onClick={handleEliminarEventoConfirm}
+                disabled={eliminandoEvento}
+              >
+                {eliminandoEvento ? 'Eliminando…' : 'Sí, eliminar evento'}
               </button>
             </div>
           </div>
