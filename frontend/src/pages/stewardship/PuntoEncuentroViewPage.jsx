@@ -177,7 +177,7 @@ function AbonoFields({
 export default function PuntoEncuentroViewPage() {
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'punto_encuentro');
-  const { openModalPE, refreshKey: calRefreshKey } = useCalendarioModal();
+  const { openModalPE, openEditModal: openEditModalEvento, refreshKey: calRefreshKey } = useCalendarioModal();
   const { tipoColor, tipoBg } = useTiposEvento();
   const isMobile = useIsMobile();
   const [filter,  setFilter]  = useState('todos');
@@ -1073,6 +1073,16 @@ export default function PuntoEncuentroViewPage() {
                           onClick={() => openModal(e)}
                         >
                           <I.plus size={15} /> Registrar
+                        </button>
+                      )}
+                      {canWrite && (
+                        <button
+                          className="btn btn-ghost"
+                          style={{ padding: '8px 13px', fontSize: 13 }}
+                          onClick={() => openEditModalEvento(e)}
+                          title="Editar evento"
+                        >
+                          <I.edit size={14} /> Editar
                         </button>
                       )}
                       <button
