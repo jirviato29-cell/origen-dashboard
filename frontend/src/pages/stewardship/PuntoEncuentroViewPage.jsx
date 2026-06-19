@@ -211,6 +211,11 @@ export default function PuntoEncuentroViewPage() {
   const [abonoError,        setAbonoError]        = useState('');
   const abonoFileRef = useRef(null);
 
+  // Modal cerrar evento
+  const [cerrarModalOpen, setCerrarModalOpen] = useState(false);
+  const [cerrarEvento,    setCerrarEvento]    = useState(null);
+  const [cerrandoId,      setCerrandoId]      = useState(null);
+
   // Modal corte de caja
   const [corteModalOpen, setCorteModalOpen] = useState(false);
   const [corteEvento,    setCorteEvento]    = useState(null);
@@ -254,13 +259,14 @@ export default function PuntoEncuentroViewPage() {
   useEffect(() => {
     const handler = (e) => {
       if (e.key !== 'Escape') return;
-      if (corteModalOpen)      setCorteModalOpen(false);
+      if (cerrarModalOpen)     setCerrarModalOpen(false);
+      else if (corteModalOpen) setCorteModalOpen(false);
       else if (abonoModalOpen) setAbonoModalOpen(false);
       else if (modalOpen)      setModalOpen(false);
     };
-    if (modalOpen || abonoModalOpen || corteModalOpen) window.addEventListener('keydown', handler);
+    if (modalOpen || abonoModalOpen || corteModalOpen || cerrarModalOpen) window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [modalOpen, abonoModalOpen, corteModalOpen]);
+  }, [modalOpen, abonoModalOpen, corteModalOpen, cerrarModalOpen]);
 
   // ── Datos derivados ────────────────────────────────────────────────────
   const hoyStr = new Date().toISOString().slice(0, 10);
@@ -271,7 +277,10 @@ export default function PuntoEncuentroViewPage() {
     return ia.localeCompare(ib);
   });
 
-  const filtered = sorted.filter(e => {
+  const activos  = sorted.filter(e => e.cerrado !== true);
+  const cerrados = sorted.filter(e => e.cerrado === true).reverse();
+
+  const filtered = activos.filter(e => {
     const iso = toISODate(e.fecha) || '';
     if (filter === 'proximos') return iso >= hoyStr;
     if (filter === 'pasados')  return iso < hoyStr;
@@ -279,7 +288,7 @@ export default function PuntoEncuentroViewPage() {
     return true;
   });
 
-  const proximo = sorted
+  const proximo = activos
     .filter(e => (toISODate(e.fecha) || '') >= hoyStr)
     .sort((a, b) => (toISODate(a.fecha) || '').localeCompare(toISODate(b.fecha) || ''))[0];
 
@@ -675,6 +684,22 @@ export default function PuntoEncuentroViewPage() {
     setCorteModalOpen(true);
   };
 
+  // ── Cerrar evento ─────────────────────────────────────────────────────
+  const handleCerrarConfirm = async () => {
+    if (!cerrarEvento) return;
+    setCerrandoId(cerrarEvento.id);
+    try {
+      await calendarioApi.cerrar(cerrarEvento.id);
+      setEventos(prev => prev.map(e => e.id === cerrarEvento.id ? { ...e, cerrado: true } : e));
+      setCerrarModalOpen(false);
+      setCerrarEvento(null);
+    } catch {
+      alert('No se pudo cerrar el evento. Intenta de nuevo.');
+    } finally {
+      setCerrandoId(null);
+    }
+  };
+
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -764,6 +789,7 @@ export default function PuntoEncuentroViewPage() {
                   const status      = costo > 0
                     ? (saldo <= 0 ? 'liquidado' : totalPagado > 0 ? 'parcial' : 'pendiente')
                     : null;
+                  const esCerrado   = evento.cerrado === true;
                   const sColors = {
                     liquidado: { background: '#E6F5EC', color: GREEN },
                     parcial:   { background: '#FBF2DC', color: AMBER },
@@ -813,8 +839,8 @@ export default function PuntoEncuentroViewPage() {
                           </span>
                         </div>
                       )}
-                      {/* Botón abono */}
-                      {canWrite && status !== 'liquidado' && (
+                      {/* Botón abono — solo en eventos activos */}
+                      {canWrite && status !== 'liquidado' && !esCerrado && (
                         <button
                           onClick={() => openAbonoModal(p, evento)}
                           style={{
@@ -941,6 +967,15 @@ export default function PuntoEncuentroViewPage() {
                       >
                         <I.download size={15} /> Excel
                       </button>
+                      {canWrite && (
+                        <button
+                          className="btn btn-ghost"
+                          style={{ padding: '8px 13px', fontSize: 13, color: RED, borderColor: RED }}
+                          onClick={() => { setCerrarEvento(e); setCerrarModalOpen(true); }}
+                        >
+                          Cerrar evento
+                        </button>
+                      )}
                     </div>
 
                     {/* Participants list (expandible) */}
@@ -1128,6 +1163,151 @@ export default function PuntoEncuentroViewPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* ── Eventos concluidos ──────────────────────────────────────────── */}
+          {!search.trim() && cerrados.length > 0 && (
+            <div style={{ marginTop: 24, borderTop: `1px solid ${GRAY_200}`, paddingTop: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 12 }}>
+                Eventos concluidos · {cerrados.length}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {cerrados.map(e => {
+                  const pList      = participantesMap[e.id] || [];
+                  const costo      = parseFloat(e.costo) || 0;
+                  const recaudado  = pList.reduce((s, p) =>
+                    s + (abonosMap[p.id] || []).reduce((ss, a) => ss + parseFloat(a.monto || 0), 0), 0);
+                  const isExpCC    = expandedId === `cc-${e.id}`;
+
+                  return (
+                    <div key={e.id} style={{
+                      border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)',
+                      overflow: 'hidden', opacity: 0.82,
+                    }}>
+                      {/* Cabecera evento concluido */}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 14,
+                        padding: '14px 18px', background: GRAY_50,
+                        borderBottom: `1px solid ${GRAY_200}`, flexWrap: 'wrap',
+                      }}>
+                        <div style={{ flex: 1, minWidth: 120 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: NAVY }}>{e.nombre}</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: GRAY_200, color: GRAY_500 }}>Concluido</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: GRAY_500, flexWrap: 'wrap' }}>
+                            <span>{fmtFechaShort(e.fecha)}</span>
+                            {e.tipo && (
+                              <>
+                                <span style={{ width: 3, height: 3, borderRadius: '50%', background: GRAY_300, display: 'inline-block' }} />
+                                <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 5, background: tipoBg[e.tipo] || ORANGE_50, color: tipoColor[e.tipo] || ORANGE_600 }}>{e.tipo}</span>
+                              </>
+                            )}
+                            {recaudado > 0 && (
+                              <>
+                                <span style={{ width: 3, height: 3, borderRadius: '50%', background: GRAY_300, display: 'inline-block' }} />
+                                <span>Recaudado <b style={{ color: NAVY_700 }}>{fmtAmt(recaudado)}</b></span>
+                              </>
+                            )}
+                            <span style={{ width: 3, height: 3, borderRadius: '50%', background: GRAY_300, display: 'inline-block' }} />
+                            <span>{pList.length} participantes</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                          <button
+                            onClick={() => setExpandedId(isExpCC ? null : `cc-${e.id}`)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 6,
+                              fontSize: 12, fontWeight: 600, color: GRAY_500,
+                              background: 'white', border: `1px solid ${GRAY_200}`,
+                              padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
+                              fontFamily: 'var(--font-ui)',
+                            }}
+                          >
+                            <I.users size={14} />
+                            Ver participantes
+                            <span style={{ display: 'inline-flex', transform: isExpCC ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.18s' }}>
+                              <I.chevR size={10} />
+                            </span>
+                          </button>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ padding: '6px 12px', fontSize: 12 }}
+                            onClick={() => descargarExcel(e)}
+                          >
+                            <I.download size={14} /> Excel
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Lista de participantes (solo consulta) */}
+                      {isExpCC && (
+                        <div>
+                          {pList.length === 0 ? (
+                            <div style={{ padding: 18, textAlign: 'center', fontSize: 12.5, color: GRAY_500 }}>
+                              Sin participantes registrados.
+                            </div>
+                          ) : (
+                            pList.map(p => {
+                              const pAbonos     = abonosMap[p.id] || [];
+                              const totalPagado = pAbonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
+                              const saldo       = costo > 0 ? costo - totalPagado : null;
+                              const status      = costo > 0
+                                ? (saldo <= 0 ? 'liquidado' : totalPagado > 0 ? 'parcial' : 'pendiente')
+                                : null;
+                              const statusStyle = {
+                                liquidado: { background: '#E6F5EC', color: GREEN },
+                                parcial:   { background: '#FBF2DC', color: AMBER },
+                                pendiente: { background: '#FBEAE9', color: RED },
+                              };
+                              return (
+                                <div key={p.id} style={{
+                                  display: 'flex', alignItems: 'center', gap: 12,
+                                  padding: '11px 18px', borderTop: `1px solid ${GRAY_100}`,
+                                  background: 'white',
+                                }}>
+                                  <div style={{
+                                    width: 32, height: 32, borderRadius: '50%',
+                                    background: GRAY_300, color: 'white',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontWeight: 700, fontSize: 11.5, flexShrink: 0,
+                                  }}>
+                                    {initials(p.nombre)}
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{p.nombre}</div>
+                                    <div style={{ fontSize: 11, color: GRAY_500, marginTop: 1 }}>
+                                      {p.tipo_persona === 'invitado' ? 'Invitado' : 'Familia Origen'}
+                                      {p.whatsapp && ` · WA ${p.whatsapp}`}
+                                    </div>
+                                  </div>
+                                  {costo > 0 && (
+                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
+                                        {fmtAmt(totalPagado)} <span style={{ color: GRAY_500, fontWeight: 500 }}>/ {fmtAmt(costo)}</span>
+                                      </div>
+                                      {status && (
+                                        <span style={{
+                                          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 5,
+                                          marginTop: 2, display: 'inline-block',
+                                          ...statusStyle[status],
+                                        }}>
+                                          {status === 'liquidado' ? 'Liquidado' : status === 'parcial' ? 'Parcial' : 'Pendiente'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -1490,6 +1670,53 @@ export default function PuntoEncuentroViewPage() {
             >
               Cerrar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal confirmar cierre de evento ────────────────────────────────── */}
+      {cerrarModalOpen && (
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setCerrarModalOpen(false); }}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-grabber" />
+
+            <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div className="anf-modal-eyebrow">Punto de Encuentro</div>
+                <h3 className="anf-modal-date">Cerrar evento</h3>
+              </div>
+              <button className="icon-btn" onClick={() => setCerrarModalOpen(false)} style={{ width: 34, height: 34, flexShrink: 0 }}>
+                <I.x size={16} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: 14, color: GRAY_700, lineHeight: 1.65, margin: '0 0 8px' }}>
+              ¿Cerrar el evento <strong>"{cerrarEvento?.nombre}"</strong>?{' '}
+              Una vez cerrado pasa a <em>Eventos concluidos</em> y ya <strong>NO</strong> se podrá reabrir
+              ni registrar más participantes o abonos. Esta acción es definitiva.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+              <button
+                className="btn"
+                style={{ flex: 1, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--ink-2)' }}
+                onClick={() => setCerrarModalOpen(false)}
+                disabled={cerrandoId != null}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn"
+                style={{
+                  flex: 1, background: RED, color: 'white', border: 'none', fontWeight: 700,
+                  opacity: cerrandoId != null ? 0.6 : 1,
+                }}
+                onClick={handleCerrarConfirm}
+                disabled={cerrandoId != null}
+              >
+                {cerrandoId != null ? 'Cerrando…' : 'Sí, cerrar evento'}
+              </button>
+            </div>
           </div>
         </div>
       )}

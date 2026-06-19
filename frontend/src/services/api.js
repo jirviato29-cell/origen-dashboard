@@ -88,6 +88,7 @@ const realCalendarioApi = {
   create:  (data)   => http.post('/calendario', data),
   update:  (id, d)  => http.put(`/calendario/${id}`, d),
   remove:  (id)     => http.delete(`/calendario/${id}`),
+  cerrar:  (id)     => http.patch(`/calendario/${id}/cerrar`),
 };
 
 // ─── Participantes ───────────────────────────────────────────────────────────
