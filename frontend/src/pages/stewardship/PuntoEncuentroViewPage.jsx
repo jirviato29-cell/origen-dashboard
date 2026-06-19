@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { calendarioApi, participantesApi, abonosApi, comprobanteApi } from '../../services/api';
+import { calendarioApi, participantesApi, abonosApi, comprobanteApi, camposPersonalizadosApi } from '../../services/api';
 import { useCalendarioModal } from '../../context/CalendarioModalContext';
 import { fmtFecha, fmtFechaShort, toISODate } from '../../utils/fecha';
 import * as XLSX from 'xlsx-js-style';
@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 import { useIsMobile } from '../../utils/useIsMobile';
 import MiniCalendarioPE from '../../components/MiniCalendarioPE';
+import CamposRegistroModal from '../../components/CamposRegistroModal';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const NAVY     = '#112540';
@@ -216,6 +217,9 @@ export default function PuntoEncuentroViewPage() {
   const [cerrarEvento,    setCerrarEvento]    = useState(null);
   const [cerrandoId,      setCerrandoId]      = useState(null);
 
+  // Modal campos del registro
+  const [camposModalEvento, setCamposModalEvento] = useState(null);
+
   // Modal corte de caja
   const [corteModalOpen, setCorteModalOpen] = useState(false);
   const [corteEvento,    setCorteEvento]    = useState(null);
@@ -259,12 +263,13 @@ export default function PuntoEncuentroViewPage() {
   useEffect(() => {
     const handler = (e) => {
       if (e.key !== 'Escape') return;
-      if (cerrarModalOpen)     setCerrarModalOpen(false);
+      if (camposModalEvento)   setCamposModalEvento(null);
+      else if (cerrarModalOpen)     setCerrarModalOpen(false);
       else if (corteModalOpen) setCorteModalOpen(false);
       else if (abonoModalOpen) setAbonoModalOpen(false);
       else if (modalOpen)      setModalOpen(false);
     };
-    if (modalOpen || abonoModalOpen || corteModalOpen || cerrarModalOpen) window.addEventListener('keydown', handler);
+    if (modalOpen || abonoModalOpen || corteModalOpen || cerrarModalOpen || camposModalEvento) window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [modalOpen, abonoModalOpen, corteModalOpen, cerrarModalOpen]);
 
@@ -967,6 +972,15 @@ export default function PuntoEncuentroViewPage() {
                       >
                         <I.download size={15} /> Excel
                       </button>
+                      {canWrite && (
+                        <button
+                          className="btn btn-ghost"
+                          style={{ padding: '8px 13px', fontSize: 13 }}
+                          onClick={() => setCamposModalEvento(e)}
+                        >
+                          <I.edit size={14} /> Campos
+                        </button>
+                      )}
                       {canWrite && (
                         <button
                           className="btn btn-ghost"
@@ -1674,6 +1688,15 @@ export default function PuntoEncuentroViewPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── Modal campos del registro ───────────────────────────────────────── */}
+      {camposModalEvento && (
+        <CamposRegistroModal
+          eventoId={camposModalEvento.id}
+          eventoNombre={camposModalEvento.nombre}
+          onClose={() => setCamposModalEvento(null)}
+        />
       )}
 
       {/* ── Modal confirmar cierre de evento ────────────────────────────────── */}

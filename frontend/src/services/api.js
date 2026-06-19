@@ -127,6 +127,15 @@ const realCortesApi = {
   upsert:      (records)   => http.post('/cortes/upsert', records),
 };
 
+// ─── Campos personalizados ────────────────────────────────────────────────────
+const realCamposPersonalizadosApi = {
+  getCatalogo:  ()                      => http.get('/campos-personalizados'),
+  crear:        (body)                  => http.post('/campos-personalizados', body),
+  borrar:       (id)                    => http.delete(`/campos-personalizados/${id}`),
+  getDeEvento:  (eventoId)              => http.get(`/campos-personalizados/evento/${eventoId}`),
+  setDeEvento:  (eventoId, campo_ids)   => http.put(`/campos-personalizados/evento/${eventoId}`, { campo_ids }),
+};
+
 // ─── Visitantes ───────────────────────────────────────────────────────────────
 const realVisitantesApi = {
   getAll:  ()         => http.get('/visitantes'),
@@ -193,3 +202,4 @@ export const cortesApi                = realCortesApi;
 export const usuariosApi              = realUsuariosApi;
 export const voluntariosApi           = realVoluntariosApi;
 export const visitantesApi            = realVisitantesApi;
+export const camposPersonalizadosApi  = realCamposPersonalizadosApi;
