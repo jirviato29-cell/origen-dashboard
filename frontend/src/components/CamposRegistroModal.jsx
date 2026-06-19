@@ -6,6 +6,7 @@ const NAVY     = '#112540';
 const NAVY_700 = '#244169';
 const NAVY_100 = '#DCE4EF';
 const RED      = '#D23B36';
+const GREEN    = '#15915A';
 const GRAY_50  = '#F6F7F9';
 const GRAY_100 = '#EEF1F5';
 const GRAY_200 = '#E2E6EC';
@@ -22,6 +23,7 @@ const labelStyle = {
   textTransform: 'uppercase', letterSpacing: '0.06em',
 };
 
+// ── Módulo-level: referencia estable entre renders del padre ─────────────────
 function TipoBadge({ tipo }) {
   const map = {
     texto:    { label: 'Texto',    color: NAVY_700,  bg: NAVY_100 },
@@ -39,12 +41,60 @@ function TipoBadge({ tipo }) {
   );
 }
 
+// ── Módulo-level: evita que React cree un tipo nuevo en cada render ──────────
+function TrashConfirm({ id, confirmBorrarId, borrando, onSetConfirm, onConfirm }) {
+  if (confirmBorrarId === id) {
+    return (
+      <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+        <button
+          type="button"
+          onClick={() => onConfirm(id)}
+          disabled={borrando}
+          style={{
+            background: RED, border: 'none', borderRadius: 7, color: 'white',
+            cursor: 'pointer', padding: '4px 10px', fontSize: 12, fontWeight: 700,
+            fontFamily: 'var(--font-ui)', flexShrink: 0,
+          }}
+        >
+          {borrando ? '…' : 'Sí, eliminar'}
+        </button>
+        <button
+          type="button"
+          onClick={() => onSetConfirm(null)}
+          style={{
+            background: 'none', border: `1px solid ${GRAY_200}`, borderRadius: 7,
+            color: GRAY_500, cursor: 'pointer', padding: '4px 8px', fontSize: 12,
+            fontFamily: 'var(--font-ui)', flexShrink: 0,
+          }}
+        >
+          No
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      title="Eliminar campo del catálogo"
+      onClick={() => onSetConfirm(id)}
+      style={{
+        background: 'none', border: 'none', cursor: 'pointer',
+        color: RED, display: 'flex', padding: 4, borderRadius: 6, flexShrink: 0, opacity: 0.7,
+      }}
+    >
+      <I.trash size={14} />
+    </button>
+  );
+}
+
+// ── Componente principal ─────────────────────────────────────────────────────
 export default function CamposRegistroModal({ eventoId, eventoNombre, onClose }) {
   const [camposEvento, setCamposEvento] = useState([]);
   const [catalogo,     setCatalogo]     = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
   const [saveError,    setSaveError]    = useState('');
+  const [savedOk,      setSavedOk]      = useState(false);
   const [dirty,        setDirty]        = useState(false);
 
   // Crear campo
@@ -67,27 +117,33 @@ export default function CamposRegistroModal({ eventoId, eventoNombre, onClose })
     }).finally(() => setLoading(false));
   }, [eventoId]);
 
-  const assignedIds  = new Set(camposEvento.map(c => c.id));
-  const disponibles  = catalogo.filter(c => !assignedIds.has(c.id));
+  const assignedIds = new Set(camposEvento.map(c => c.id));
+  const disponibles = catalogo.filter(c => !assignedIds.has(c.id));
 
   const handleQuitar = (id) => {
     setCamposEvento(prev => prev.filter(c => c.id !== id));
+    setSavedOk(false);
     setDirty(true);
   };
 
   const handleAgregar = (campo) => {
     setCamposEvento(prev => [...prev, campo]);
+    setSavedOk(false);
     setDirty(true);
   };
 
   const handleGuardar = async () => {
     setSaving(true);
     setSaveError('');
+    setSavedOk(false);
     try {
       await camposPersonalizadosApi.setDeEvento(eventoId, camposEvento.map(c => c.id));
       setDirty(false);
+      setSavedOk(true);
+      setTimeout(() => setSavedOk(false), 2500);
     } catch (err) {
-      setSaveError(err?.response?.data?.error || 'Error al guardar.');
+      // dirty permanece true intencionalmente — el usuario puede reintentar
+      setSaveError(err?.response?.data?.error || 'Error al guardar. Intenta de nuevo.');
     } finally {
       setSaving(false);
     }
@@ -110,6 +166,7 @@ export default function CamposRegistroModal({ eventoId, eventoNombre, onClose })
       });
       setCatalogo(prev => [...prev, nuevo]);
       setCamposEvento(prev => [...prev, nuevo]);
+      setSavedOk(false);
       setDirty(true);
       setCrearForm({ nombre: '', tipo: 'texto', opciones: '' });
       setShowCrear(false);
@@ -131,7 +188,7 @@ export default function CamposRegistroModal({ eventoId, eventoNombre, onClose })
       await camposPersonalizadosApi.borrar(id);
       setCatalogo(prev => prev.filter(c => c.id !== id));
       setCamposEvento(prev => prev.filter(c => c.id !== id));
-      if (wasAssigned) setDirty(true);
+      if (wasAssigned) { setSavedOk(false); setDirty(true); }
       setConfirmBorrarId(null);
     } catch (err) {
       alert(err?.response?.data?.error || 'Error al eliminar.');
@@ -139,47 +196,6 @@ export default function CamposRegistroModal({ eventoId, eventoNombre, onClose })
       setBorrando(false);
     }
   };
-
-  // Botón trash + confirm reutilizable
-  const TrashConfirm = ({ id }) => confirmBorrarId === id ? (
-    <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-      <button
-        type="button"
-        onClick={() => handleBorrarCatalogo(id)}
-        disabled={borrando}
-        style={{
-          background: RED, border: 'none', borderRadius: 7, color: 'white',
-          cursor: 'pointer', padding: '4px 10px', fontSize: 12, fontWeight: 700,
-          fontFamily: 'var(--font-ui)', flexShrink: 0,
-        }}
-      >
-        {borrando ? '…' : 'Sí, eliminar'}
-      </button>
-      <button
-        type="button"
-        onClick={() => setConfirmBorrarId(null)}
-        style={{
-          background: 'none', border: `1px solid ${GRAY_200}`, borderRadius: 7,
-          color: GRAY_500, cursor: 'pointer', padding: '4px 8px', fontSize: 12,
-          fontFamily: 'var(--font-ui)', flexShrink: 0,
-        }}
-      >
-        No
-      </button>
-    </div>
-  ) : (
-    <button
-      type="button"
-      title="Eliminar campo del catálogo"
-      onClick={() => setConfirmBorrarId(id)}
-      style={{
-        background: 'none', border: 'none', cursor: 'pointer',
-        color: RED, display: 'flex', padding: 4, borderRadius: 6, flexShrink: 0, opacity: 0.7,
-      }}
-    >
-      <I.trash size={14} />
-    </button>
-  );
 
   return (
     <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -198,6 +214,7 @@ export default function CamposRegistroModal({ eventoId, eventoNombre, onClose })
           </button>
         </div>
 
+        {/* Contenido scrollable */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)', fontSize: 14 }}>
             Cargando…
@@ -251,7 +268,13 @@ export default function CamposRegistroModal({ eventoId, eventoNombre, onClose })
                       >
                         <I.x size={14} />
                       </button>
-                      <TrashConfirm id={c.id} />
+                      <TrashConfirm
+                        id={c.id}
+                        confirmBorrarId={confirmBorrarId}
+                        borrando={borrando}
+                        onSetConfirm={setConfirmBorrarId}
+                        onConfirm={handleBorrarCatalogo}
+                      />
                     </div>
                   ))}
                 </div>
@@ -282,7 +305,13 @@ export default function CamposRegistroModal({ eventoId, eventoNombre, onClose })
                       >
                         + Agregar
                       </button>
-                      <TrashConfirm id={c.id} />
+                      <TrashConfirm
+                        id={c.id}
+                        confirmBorrarId={confirmBorrarId}
+                        borrando={borrando}
+                        onSetConfirm={setConfirmBorrarId}
+                        onConfirm={handleBorrarCatalogo}
+                      />
                     </div>
                   ))}
                 </div>
@@ -378,7 +407,7 @@ export default function CamposRegistroModal({ eventoId, eventoNombre, onClose })
                   )}
 
                   {crearError && (
-                    <p style={{ margin: 0, fontSize: 12.5, color: 'var(--danger)', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: 12.5, color: RED, textAlign: 'center' }}>
                       {crearError}
                     </p>
                   )}
@@ -400,11 +429,34 @@ export default function CamposRegistroModal({ eventoId, eventoNombre, onClose })
               )}
             </div>
 
-            {saveError && (
-              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--danger)', textAlign: 'center' }}>
-                {saveError}
-              </p>
-            )}
+          </div>
+        )}
+
+        {/* ── Footer fijo — siempre visible, no scrolleable ─────────────────── */}
+
+        {/* Error de guardado: visible siempre, justo antes del botón */}
+        {saveError && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 14px', borderRadius: 10, marginTop: 8,
+            background: '#FEF2F2', border: `1.5px solid ${RED}`,
+            fontSize: 13, color: RED, fontWeight: 600,
+          }}>
+            <I.x size={14} style={{ flexShrink: 0 }} />
+            {saveError}
+          </div>
+        )}
+
+        {/* Confirmación de éxito */}
+        {savedOk && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 14px', borderRadius: 10, marginTop: 8,
+            background: '#E6F5EC', border: `1.5px solid ${GREEN}`,
+            fontSize: 13, color: GREEN, fontWeight: 600,
+          }}>
+            <I.check size={14} style={{ flexShrink: 0 }} />
+            Campos guardados correctamente
           </div>
         )}
 
@@ -412,13 +464,13 @@ export default function CamposRegistroModal({ eventoId, eventoNombre, onClose })
           className="btn btn-primary anf-save-btn"
           onClick={handleGuardar}
           disabled={saving || !dirty || loading}
-          style={{ opacity: (saving || !dirty || loading) ? 0.45 : 1, marginTop: 4 }}
+          style={{ opacity: (saving || !dirty || loading) ? 0.45 : 1, marginTop: 8 }}
         >
           <I.check size={16} />
-          {saving ? 'Guardando…' : dirty ? 'Guardar cambios' : 'Sin cambios'}
+          {saving ? 'Guardando…' : dirty ? 'Guardar cambios' : 'Sin cambios pendientes'}
         </button>
 
-        {!dirty && !loading && (
+        {!dirty && !loading && !savedOk && (
           <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--muted)', marginTop: -8 }}>
             Agrega o quita campos extra para activar el guardado
           </p>
