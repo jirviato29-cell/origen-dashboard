@@ -114,6 +114,7 @@ export default function MiniCalendarioPE({ eventos = [], onSelectDia }) {
                   height: 32, cursor: canClick ? 'pointer' : 'default',
                   borderRight: !isLastCol ? `1px solid ${GRAY_200}` : 'none',
                   borderBottom: `1px solid ${GRAY_200}`,
+                  background: hasEvt ? 'rgba(255,107,43,0.09)' : 'transparent',
                 }}
               >
                 {day && (
@@ -122,15 +123,15 @@ export default function MiniCalendarioPE({ eventos = [], onSelectDia }) {
                       width: 22, height: 22, borderRadius: 6,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11, lineHeight: 1,
-                      fontWeight: isToday || hasEvt ? 700 : 400,
+                      fontWeight: isToday || hasEvt ? 600 : 400,
                       background: isToday ? ORANGE : 'transparent',
-                      color: isToday ? 'white' : hasEvt ? NAVY : GRAY_300,
+                      color: isToday ? 'white' : hasEvt ? ORANGE : GRAY_300,
                     }}>
                       {day}
                     </span>
-                    {/* Punto naranja debajo del número si tiene evento (y no es hoy) */}
+                    {/* Punto naranja: solo cuando tiene evento y no es hoy (el fondo ya lo señala) */}
                     <span style={{
-                      width: 4, height: 4, borderRadius: '50%',
+                      width: 3, height: 3, borderRadius: '50%',
                       background: hasEvt && !isToday ? ORANGE : 'transparent',
                       marginTop: 1, display: 'block', flexShrink: 0,
                     }} />
