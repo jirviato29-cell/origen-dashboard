@@ -476,9 +476,24 @@ export default function PuntoEncuentroViewPage() {
   };
 
   // ── Exportar Excel — 2 hojas: Detalle (por fecha) + Resumen (por persona) ─
-  const descargarExcel = (evento) => {
+  const descargarExcel = async (evento) => {
     const participantes = participantesMap[evento.id] || [];
     const costo = parseFloat(evento.costo) || 0;
+
+    // Campos personalizados del evento (columnas extra al final del Detalle)
+    let camposExtra = [];
+    try {
+      const mapaCache = camposDeEventosMapa[evento.id];
+      if (mapaCache && Object.keys(mapaCache).length > 0) {
+        camposExtra = Object.entries(mapaCache).map(([id, nombre]) => ({ id: Number(id), nombre }));
+      } else {
+        const { data } = await camposPersonalizadosApi.getDeEvento(evento.id);
+        camposExtra = data || [];
+      }
+    } catch (err) {
+      console.error('Error obteniendo campos para Excel:', err?.response?.status, err?.response?.data, err);
+      camposExtra = [];
+    }
 
     // ── Tokens de estilo ────────────────────────────────────────────────────
     const blockBg = ['DCE6F1', 'E2EFDA', 'FCE4D6', 'EBE2F4', 'FFF2CC', 'DAEEF3'];
@@ -546,6 +561,7 @@ export default function PuntoEncuentroViewPage() {
       'Nombre', 'Tipo', 'WhatsApp', 'Edad',
       'Fecha del abono', 'Monto del abono', 'Método de pago',
       'Costo total evento', 'Total abonado', 'Estatus',
+      ...camposExtra.map(c => c.nombre),
     ], { fill: { patternType: 'solid', fgColor: { rgb: hdrBg } },
          font: { bold: true, color: { rgb: hdrFg } } });
 
@@ -586,6 +602,7 @@ export default function PuntoEncuentroViewPage() {
           p.nombre || '', p.tipo, p.whatsapp || '',
           p.edad ? Number(p.edad) : '', fecha, monto, metodo,
           costo > 0 ? costo : '', p.totalPagado, p.estatus,
+          ...camposExtra.map(c => (p.respuestas || {})[String(c.id)] ?? ''),
         ], { fill: { patternType: 'solid', fgColor: { rgb: bg } } });
       });
 
@@ -623,6 +640,7 @@ export default function PuntoEncuentroViewPage() {
         p.nombre || '', infoP[p.id].tipo, p.whatsapp || '',
         p.edad ? Number(p.edad) : '', '', '', '',
         costo > 0 ? costo : '', 0, costo > 0 ? 'Pendiente' : '',
+        ...camposExtra.map(c => (p.respuestas || {})[String(c.id)] ?? ''),
       ]));
 
     detPush(['TOTAL', '', '', '', '', granTotal, '', '', '', ''], {
@@ -634,6 +652,7 @@ export default function PuntoEncuentroViewPage() {
       { wch: 28 }, { wch: 16 }, { wch: 14 }, { wch:  6 },
       { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 },
       { wch: 14 }, { wch: 11 },
+      ...camposExtra.map(() => ({ wch: 16 })),
     ]);
 
     // ════════════════════════════════════════════════════════════════════════
