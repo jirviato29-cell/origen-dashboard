@@ -8,6 +8,7 @@ import { useTiposEvento } from '../../context/TiposEventoContext';
 import { useAuth } from '../../context/AuthContext';
 import { puedeRegistrar } from '../../permissions';
 import { useIsMobile } from '../../utils/useIsMobile';
+import MiniCalendarioPE from '../../components/MiniCalendarioPE';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const NAVY     = '#112540';
@@ -1200,6 +1201,11 @@ export default function PuntoEncuentroViewPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Mini calendario PE */}
+          {!loading && (
+            <MiniCalendarioPE eventos={eventos} />
           )}
 
         </div>
