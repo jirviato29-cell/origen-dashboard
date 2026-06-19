@@ -839,8 +839,8 @@ export default function PuntoEncuentroViewPage() {
                           </span>
                         </div>
                       )}
-                      {/* Botón abono — solo en eventos activos */}
-                      {canWrite && status !== 'liquidado' && !esCerrado && (
+                      {/* Botón abono — solo en eventos activos con costo */}
+                      {canWrite && status !== 'liquidado' && !esCerrado && costo > 0 && (
                         <button
                           onClick={() => openAbonoModal(p, evento)}
                           style={{
@@ -1072,8 +1072,8 @@ export default function PuntoEncuentroViewPage() {
                                     </button>
                                   )}
 
-                                  {/* Abono button */}
-                                  {canWrite && (
+                                  {/* Abono button — solo si el evento tiene costo */}
+                                  {canWrite && costo > 0 && (
                                     status === 'liquidado' ? (
                                       <button style={{
                                         display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -1359,12 +1359,14 @@ export default function PuntoEncuentroViewPage() {
                   </span>
                   <span style={{ fontSize: 11, color: NAVY_300, fontWeight: 600 }}>inscritos</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', color: '#3DD68C' }}>
-                    {fmtAmt(proximoRecaudado)}
-                  </span>
-                  <span style={{ fontSize: 11, color: NAVY_300, fontWeight: 600 }}>recaudado</span>
-                </div>
+                {parseFloat(proximo.costo || 0) > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', color: '#3DD68C' }}>
+                      {fmtAmt(proximoRecaudado)}
+                    </span>
+                    <span style={{ fontSize: 11, color: NAVY_300, fontWeight: 600 }}>recaudado</span>
+                  </div>
+                )}
               </div>
 
               {canWrite && (

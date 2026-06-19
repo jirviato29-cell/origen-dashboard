@@ -45,6 +45,7 @@ export default function GlobalCalendarioModal() {
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
   const [savedData, setSavedData] = useState(null);
+  const [tieneCosto, setTieneCosto] = useState(false);
 
   // Gestionar tipos state
   const [showGestionar,  setShowGestionar]  = useState(false);
@@ -72,15 +73,18 @@ export default function GlobalCalendarioModal() {
       setConfirmDelTipo(null);
       reloadTipos();
       if (editingEvent) {
+        const costoNum = parseFloat(editingEvent.costo) || 0;
+        setTieneCosto(costoNum > 0);
         setForm({
           fecha:            (editingEvent.fecha || '').slice(0, 10),
           nombre:           editingEvent.nombre || '',
           tipo:             editingEvent.tipo   || '',
           nota:             editingEvent.nota   || '',
-          costo:            editingEvent.costo != null ? String(editingEvent.costo) : '',
+          costo:            costoNum > 0 ? String(editingEvent.costo) : '',
           enPuntoEncuentro: Boolean(editingEvent.en_punto_encuentro),
         });
       } else {
+        setTieneCosto(false);
         setForm({ ...makeEmpty(initialDate), enPuntoEncuentro: lockPuntoEncuentro });
       }
     }
@@ -331,21 +335,45 @@ export default function GlobalCalendarioModal() {
                   style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
               </div>
 
-              {/* Costo */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={labelStyle}>
-                  Costo del evento
-                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', textTransform: 'none', marginLeft: 6 }}>(opcional)</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={form.costo}
-                  onChange={e => setForm(f => ({ ...f, costo: e.target.value }))}
-                  style={{ ...inputStyle, width: '50%' }}
-                />
+              {/* ¿Tiene costo? */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label style={labelStyle}>¿Tiene costo?</label>
+                <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border)' }}>
+                  {[
+                    { val: false, label: 'No tiene costo' },
+                    { val: true,  label: 'Sí tiene costo' },
+                  ].map(opt => (
+                    <button
+                      key={String(opt.val)}
+                      type="button"
+                      onClick={() => {
+                        setTieneCosto(opt.val);
+                        if (!opt.val) setForm(f => ({ ...f, costo: '' }));
+                      }}
+                      style={{
+                        flex: 1, padding: '9px 0', border: 'none', cursor: 'pointer',
+                        fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
+                        background: tieneCosto === opt.val ? '#112540' : 'var(--surface)',
+                        color: tieneCosto === opt.val ? 'white' : 'var(--ink-2)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {tieneCosto && (
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.costo}
+                    onChange={e => setForm(f => ({ ...f, costo: e.target.value }))}
+                    style={{ ...inputStyle, width: '50%' }}
+                    autoFocus
+                  />
+                )}
               </div>
 
               {/* Checkbox Punto de Encuentro */}
