@@ -324,6 +324,7 @@ export default function PuntoEncuentroViewPage() {
 
   // ── Handlers participantes — PRESERVED EXACTLY ─────────────────────────
   const openModal = async (evento) => {
+    console.log('openModal evento id:', evento?.id);
     setModalEvento(evento);
     setForm({ nombre: '', whatsapp: '', edad: '', tipo_persona: 'familia' });
     setPrimerAbono({ monto: '', metodo: 'efectivo', num_transaccion: '', fecha: hoyStr });
@@ -341,7 +342,8 @@ export default function PuntoEncuentroViewPage() {
           [evento.id]: Object.fromEntries(campos.map(c => [c.id, c.nombre])),
         }));
       }
-    } catch {
+    } catch (err) {
+      console.error('Error cargando campos del evento:', err?.response?.status, err?.response?.data, err);
       setCamposDelEvento([]);
     }
   };
