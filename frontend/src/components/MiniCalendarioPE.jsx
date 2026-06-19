@@ -77,60 +77,70 @@ export default function MiniCalendarioPE({ eventos = [], onSelectDia }) {
         <button style={arrowBtn} onClick={nextMonth} aria-label="Mes siguiente">›</button>
       </div>
 
-      {/* Cabecera días (solo primera letra) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 2 }}>
-        {DIAS_HEADER.map(d => (
-          <div key={d} style={{
-            textAlign: 'center', fontSize: 9, fontWeight: 700,
-            color: GRAY_500, textTransform: 'uppercase',
-            letterSpacing: '.05em', paddingBottom: 4,
-          }}>
-            {d[0]}
-          </div>
-        ))}
-      </div>
+      {/* Cuadrícula: encabezado + días en un solo contenedor con borde exterior */}
+      <div style={{ border: `1px solid ${GRAY_200}`, borderRadius: 8, overflow: 'hidden' }}>
 
-      {/* Grid de días */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
-        {grid.map((day, ci) => {
-          const iso      = day ? isoFromParts(year, month, day) : null;
-          const hasEvt   = iso ? !!eventosByDate[iso] : false;
-          const isToday  = iso === todayISO;
-          const canClick = hasEvt && !!onSelectDia;
-
-          return (
-            <div
-              key={ci}
-              onClick={canClick ? () => onSelectDia(iso) : undefined}
-              style={{
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                height: 30, cursor: canClick ? 'pointer' : 'default',
-              }}
-            >
-              {day && (
-                <>
-                  <span style={{
-                    width: 22, height: 22, borderRadius: 6,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, lineHeight: 1,
-                    fontWeight: isToday || hasEvt ? 700 : 400,
-                    background: isToday ? ORANGE : 'transparent',
-                    color: isToday ? 'white' : hasEvt ? NAVY : GRAY_300,
-                  }}>
-                    {day}
-                  </span>
-                  {/* Punto naranja debajo del número si tiene evento (y no es hoy) */}
-                  <span style={{
-                    width: 4, height: 4, borderRadius: '50%',
-                    background: hasEvt && !isToday ? ORANGE : 'transparent',
-                    marginTop: 1, display: 'block', flexShrink: 0,
-                  }} />
-                </>
-              )}
+        {/* Fila de encabezado de días */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', background: '#F6F7F9' }}>
+          {DIAS_HEADER.map((d, i) => (
+            <div key={d} style={{
+              textAlign: 'center', fontSize: 9, fontWeight: 700,
+              color: GRAY_500, textTransform: 'uppercase', letterSpacing: '.05em',
+              padding: '5px 0',
+              borderRight: i < 6 ? `1px solid ${GRAY_200}` : 'none',
+              borderBottom: `1px solid ${GRAY_200}`,
+            }}>
+              {d[0]}
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Celdas de días */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
+          {grid.map((day, ci) => {
+            const iso       = day ? isoFromParts(year, month, day) : null;
+            const hasEvt    = iso ? !!eventosByDate[iso] : false;
+            const isToday   = iso === todayISO;
+            const canClick  = hasEvt && !!onSelectDia;
+            const isLastCol = (ci + 1) % 7 === 0;
+
+            return (
+              <div
+                key={ci}
+                onClick={canClick ? () => onSelectDia(iso) : undefined}
+                style={{
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  height: 32, cursor: canClick ? 'pointer' : 'default',
+                  borderRight: !isLastCol ? `1px solid ${GRAY_200}` : 'none',
+                  borderBottom: `1px solid ${GRAY_200}`,
+                }}
+              >
+                {day && (
+                  <>
+                    <span style={{
+                      width: 22, height: 22, borderRadius: 6,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 11, lineHeight: 1,
+                      fontWeight: isToday || hasEvt ? 700 : 400,
+                      background: isToday ? ORANGE : 'transparent',
+                      color: isToday ? 'white' : hasEvt ? NAVY : GRAY_300,
+                    }}>
+                      {day}
+                    </span>
+                    {/* Punto naranja debajo del número si tiene evento (y no es hoy) */}
+                    <span style={{
+                      width: 4, height: 4, borderRadius: '50%',
+                      background: hasEvt && !isToday ? ORANGE : 'transparent',
+                      marginTop: 1, display: 'block', flexShrink: 0,
+                    }} />
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
       </div>
     </div>
   );
