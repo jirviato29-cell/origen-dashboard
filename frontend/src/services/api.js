@@ -185,6 +185,14 @@ export const tiposEventoApi = {
   remove:  (id)   => http.delete(`/tipos-evento/${id}`),
 };
 
+// ─── Ministerios ──────────────────────────────────────────────────────────────
+export const ministeriosApi = {
+  getAll:     ()         => http.get('/ministerios'),
+  crear:      (body)     => http.post('/ministerios', body),
+  actualizar: (id, body) => http.put(`/ministerios/${id}`, body),
+  borrar:     (id)       => http.delete(`/ministerios/${id}`),
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 export const ofrendasEspecialesApi = realOfrendasEspecialesApi;
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;

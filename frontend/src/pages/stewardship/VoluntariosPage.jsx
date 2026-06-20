@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { voluntariosApi } from '../../services/api';
+import { voluntariosApi, ministeriosApi } from '../../services/api';
+import { useMinisterios } from '../../context/MinisteriosContext';
 import { fmtFecha } from '../../utils/fecha';
 import { I } from '../../components/Icons';
 import { useAuth } from '../../context/AuthContext';
@@ -156,10 +157,14 @@ function AreaSelect({ label, value, onChange, available, required }) {
 
 // ── Bloque de ministerios ─────────────────────────────────────────────────
 function AreasBlock({ form, setForm, showHeader }) {
+  const ctx = useMinisterios();
+  const lista = (ctx?.ministerios?.length > 0)
+    ? ctx.ministerios.map(m => m.nombre)
+    : MINISTERIOS;
   const { ministerio1, ministerio2, ministerio3 } = form;
-  const opts1 = optsFor(MINISTERIOS, ministerio2, ministerio3);
-  const opts2 = optsFor(MINISTERIOS, ministerio1, ministerio3);
-  const opts3 = optsFor(MINISTERIOS, ministerio1, ministerio2);
+  const opts1 = optsFor(lista, ministerio2, ministerio3);
+  const opts2 = optsFor(lista, ministerio1, ministerio3);
+  const opts3 = optsFor(lista, ministerio1, ministerio2);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -451,6 +456,8 @@ export default function VoluntariosPage() {
   const canWrite = puedeRegistrar(permisos, 'voluntarios');
   const isMobile = useIsMobile();
 
+  const { ministerios, reload: reloadMinisterios } = useMinisterios() || {};
+
   const [voluntarios, setVoluntarios] = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
@@ -467,6 +474,17 @@ export default function VoluntariosPage() {
   const [kioskError,  setKioskError]  = useState('');
 
   const [search, setSearch] = useState('');
+
+  // ── Estado panel gestión ministerios ───────────────────────────────────
+  const [showGestionar,  setShowGestionar]  = useState(false);
+  const [nuevoMinNombre, setNuevoMinNombre] = useState('');
+  const [creandoMin,     setCreandoMin]     = useState(false);
+  const [minMsgErr,      setMinMsgErr]      = useState('');
+  const [confirmDelMin,  setConfirmDelMin]  = useState(null);
+  const [deletingMin,    setDeletingMin]    = useState(false);
+  const [editingMin,     setEditingMin]     = useState(null);
+  const [editMinNombre,  setEditMinNombre]  = useState('');
+  const [savingMinEdit,  setSavingMinEdit]  = useState(false);
 
   const fetchVoluntarios = useCallback(async () => {
     setLoading(true);
@@ -545,6 +563,48 @@ export default function VoluntariosPage() {
 
   const openKiosk = () => { setKioskForm(EMPTY_FORM); setKioskError(''); setKiosk('form'); };
   const kioskNext = () => { setKioskForm(EMPTY_FORM); setKioskError(''); setKiosk('form'); };
+
+  // ── Handlers gestión ministerios ─────────────────────────────────────────
+  const handleCrearMin = async () => {
+    if (!nuevoMinNombre.trim()) { setMinMsgErr('El nombre es requerido.'); return; }
+    setCreandoMin(true); setMinMsgErr('');
+    try {
+      await ministeriosApi.crear({ nombre: nuevoMinNombre.trim() });
+      await reloadMinisterios();
+      setNuevoMinNombre('');
+    } catch (err) {
+      setMinMsgErr(err?.response?.data?.error || 'Error al crear.');
+    } finally {
+      setCreandoMin(false);
+    }
+  };
+
+  const handleActualizarMin = async (id) => {
+    if (!editMinNombre.trim()) return;
+    setSavingMinEdit(true); setMinMsgErr('');
+    try {
+      await ministeriosApi.actualizar(id, { nombre: editMinNombre.trim() });
+      await reloadMinisterios();
+      setEditingMin(null); setEditMinNombre('');
+    } catch (err) {
+      setMinMsgErr(err?.response?.data?.error || 'Error al renombrar.');
+    } finally {
+      setSavingMinEdit(false);
+    }
+  };
+
+  const handleBorrarMin = async (id) => {
+    setDeletingMin(true);
+    try {
+      await ministeriosApi.borrar(id);
+      await reloadMinisterios();
+      setConfirmDelMin(null);
+    } catch {
+      // noop
+    } finally {
+      setDeletingMin(false);
+    }
+  };
 
   // ── KPI calculations ─────────────────────────────────────────────────────
   const today = new Date();
@@ -735,12 +795,136 @@ export default function VoluntariosPage() {
             </div>
             <div className="card-actions">
               {canWrite && (
+                <button
+                  className="btn"
+                  style={{ border: `1px solid ${GRAY_200}`, background: 'white', color: GRAY_700, fontSize: 13 }}
+                  onClick={() => { setShowGestionar(v => !v); setMinMsgErr(''); setConfirmDelMin(null); setEditingMin(null); setNuevoMinNombre(''); }}
+                >
+                  <I.pin size={13} /> {showGestionar ? 'Cerrar gestión' : 'Gestionar ministerios'}
+                </button>
+              )}
+              {canWrite && (
                 <button className="btn btn-primary" onClick={openKiosk}>
                   <I.plus size={14} /> Registrar voluntario
                 </button>
               )}
             </div>
           </div>
+
+          {/* ── Panel gestión ministerios ─────────────────────────────────── */}
+          {showGestionar && canWrite && (
+            <div style={{
+              marginBottom: 14, border: `1px solid ${GRAY_200}`,
+              borderRadius: 10, padding: '14px 16px',
+              background: 'var(--surface)',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: GRAY_500, marginBottom: 10 }}>
+                Ministerios del campus
+              </div>
+
+              {/* Lista existente */}
+              {(ministerios?.length > 0) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 12 }}>
+                  {ministerios.map(m => (
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {editingMin === m.id ? (
+                        <>
+                          <input
+                            value={editMinNombre}
+                            onChange={e => setEditMinNombre(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') handleActualizarMin(m.id); if (e.key === 'Escape') { setEditingMin(null); setMinMsgErr(''); } }}
+                            autoFocus
+                            style={{ flex: 1, padding: '5px 9px', borderRadius: 7, border: `1.5px solid ${NAVY_300}`, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+                          />
+                          <button
+                            onClick={() => handleActualizarMin(m.id)}
+                            disabled={savingMinEdit}
+                            style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: NAVY, color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: savingMinEdit ? 0.6 : 1 }}
+                          >
+                            {savingMinEdit ? '…' : 'Guardar'}
+                          </button>
+                          <button
+                            onClick={() => { setEditingMin(null); setMinMsgErr(''); }}
+                            style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid ${GRAY_200}`, background: 'none', fontSize: 12, cursor: 'pointer', color: GRAY_500 }}
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{m.nombre}</span>
+                          {confirmDelMin === m.id ? (
+                            <div style={{ display: 'flex', gap: 5 }}>
+                              <button
+                                onClick={() => handleBorrarMin(m.id)}
+                                disabled={deletingMin}
+                                style={{ padding: '3px 10px', borderRadius: 6, border: 'none', background: '#D23B36', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: deletingMin ? 0.6 : 1 }}
+                              >
+                                {deletingMin ? '…' : 'Eliminar'}
+                              </button>
+                              <button
+                                onClick={() => setConfirmDelMin(null)}
+                                style={{ padding: '3px 10px', borderRadius: 6, border: `1px solid ${GRAY_200}`, background: 'none', fontSize: 12, cursor: 'pointer', color: GRAY_500 }}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button
+                                onClick={() => { setEditingMin(m.id); setEditMinNombre(m.nombre); setMinMsgErr(''); setConfirmDelMin(null); }}
+                                title="Renombrar"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', color: GRAY_500, display: 'flex', alignItems: 'center' }}
+                              >
+                                <I.edit size={13} />
+                              </button>
+                              <button
+                                onClick={() => { setConfirmDelMin(m.id); setEditingMin(null); }}
+                                title="Eliminar (los voluntarios conservan su dato)"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', color: GRAY_500, display: 'flex', alignItems: 'center' }}
+                              >
+                                <I.trash size={13} />
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Nuevo ministerio */}
+              <div style={{ borderTop: (ministerios?.length > 0) ? `1px solid ${GRAY_200}` : 'none', paddingTop: (ministerios?.length > 0) ? 10 : 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: GRAY_500, marginBottom: 7 }}>
+                  Nuevo ministerio
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="Nombre del ministerio"
+                    value={nuevoMinNombre}
+                    onChange={e => setNuevoMinNombre(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleCrearMin(); }}
+                    style={{ flex: 1, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${GRAY_200}`, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+                  />
+                  <button
+                    onClick={handleCrearMin}
+                    disabled={creandoMin}
+                    className="btn btn-primary"
+                    style={{ padding: '7px 14px', fontSize: 13, flexShrink: 0, opacity: creandoMin ? 0.6 : 1 }}
+                  >
+                    {creandoMin ? '…' : 'Crear'}
+                  </button>
+                </div>
+                {minMsgErr && (
+                  <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 5, marginBottom: 0 }}>
+                    {minMsgErr}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Toolbar: buscador + chips */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
