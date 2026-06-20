@@ -24,6 +24,7 @@ const cortesRouter               = require('./routes/cortes');
 const visitantesRouter           = require('./routes/visitantes');
 const ofrendasEspecialesRouter   = require('./routes/ofrendas_especiales');
 const tiposEventoRouter          = require('./routes/tiposEvento');
+const ministeriosRouter          = require('./routes/ministerios');
 const camposPersonalizadosRouter = require('./routes/camposPersonalizados');
 
 const app = express();
@@ -61,6 +62,7 @@ app.use('/api/cortes',               cortesRouter);
 app.use('/api/visitantes',              visitantesRouter);
 app.use('/api/ofrendas-especiales',    ofrendasEspecialesRouter);
 app.use('/api/tipos-evento',           tiposEventoRouter);
+app.use('/api/ministerios',            ministeriosRouter);
 app.use('/api/campos-personalizados',  camposPersonalizadosRouter);
 
 app.use((err, req, res, _next) => {
