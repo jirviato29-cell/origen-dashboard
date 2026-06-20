@@ -1157,7 +1157,7 @@ export default function PuntoEncuentroViewPage() {
                             Aún sin participantes registrados · sé el primero en inscribir
                           </div>
                         ) : (
-                          pList.map(p => {
+                          pList.map((p, idx) => {
                             const pAbonos     = abonosMap[p.id] || [];
                             const totalPagado = pAbonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
                             const saldo       = costo > 0 ? costo - totalPagado : null;
@@ -1182,7 +1182,7 @@ export default function PuntoEncuentroViewPage() {
                                   {/* Avatar */}
                                   <div style={{
                                     width: 34, height: 34, borderRadius: '50%',
-                                    background: NAVY_700, color: 'white',
+                                    background: idx % 2 === 0 ? NAVY_700 : ORANGE, color: 'white',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontWeight: 700, fontSize: 12, flexShrink: 0,
                                   }}>
@@ -1445,7 +1445,7 @@ export default function PuntoEncuentroViewPage() {
                               Sin participantes registrados.
                             </div>
                           ) : (
-                            pList.map(p => {
+                            pList.map((p, idx) => {
                               const pAbonos     = abonosMap[p.id] || [];
                               const totalPagado = pAbonos.reduce((s, a) => s + parseFloat(a.monto || 0), 0);
                               const saldo       = costo > 0 ? costo - totalPagado : null;
@@ -1465,7 +1465,7 @@ export default function PuntoEncuentroViewPage() {
                                 }}>
                                   <div style={{
                                     width: 32, height: 32, borderRadius: '50%',
-                                    background: GRAY_300, color: 'white',
+                                    background: idx % 2 === 0 ? NAVY_700 : ORANGE, color: 'white',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontWeight: 700, fontSize: 11.5, flexShrink: 0,
                                   }}>
