@@ -32,18 +32,18 @@ router.get('/', requireAuth, async (req, res) => {
 
 // POST /api/voluntarios
 router.post('/', requireAuth, async (req, res) => {
-  const { nombre, cumpleanos, whatsapp, ministerio1, ministerio2, ministerio3, otra_area } = req.body || {};
+  const { nombre, cumpleanos, whatsapp, ministerio1, ministerio2, ministerio3, otra_area, correo } = req.body || {};
   if (!nombre || !ministerio1) {
     return res.status(400).json({ error: 'Nombre y Ministerio 1 son obligatorios' });
   }
   try {
     const { rows } = await pool.query(
-      `INSERT INTO voluntarios (nombre, cumpleanos, whatsapp, ministerio1, ministerio2, ministerio3, otra_area, campus)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO voluntarios (nombre, cumpleanos, whatsapp, ministerio1, ministerio2, ministerio3, otra_area, correo, campus)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [nombre.trim(), cumpleanos || null, whatsapp?.trim() || null,
        ministerio1, ministerio2 || null, ministerio3 || null, otra_area?.trim() || null,
-       req.campus]
+       correo?.trim() || null, req.campus]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -54,19 +54,19 @@ router.post('/', requireAuth, async (req, res) => {
 
 // PUT /api/voluntarios/:id
 router.put('/:id', requireAuth, async (req, res) => {
-  const { nombre, cumpleanos, whatsapp, ministerio1, ministerio2, ministerio3, otra_area } = req.body || {};
+  const { nombre, cumpleanos, whatsapp, ministerio1, ministerio2, ministerio3, otra_area, correo } = req.body || {};
   if (!nombre || !ministerio1) {
     return res.status(400).json({ error: 'Nombre y Ministerio 1 son obligatorios' });
   }
   try {
     const { rows } = await pool.query(
       `UPDATE voluntarios
-       SET nombre=$1, cumpleanos=$2, whatsapp=$3, ministerio1=$4, ministerio2=$5, ministerio3=$6, otra_area=$7
-       WHERE id=$8 AND campus=$9
+       SET nombre=$1, cumpleanos=$2, whatsapp=$3, ministerio1=$4, ministerio2=$5, ministerio3=$6, otra_area=$7, correo=$8
+       WHERE id=$9 AND campus=$10
        RETURNING *`,
       [nombre.trim(), cumpleanos || null, whatsapp?.trim() || null,
        ministerio1, ministerio2 || null, ministerio3 || null,
-       otra_area?.trim() || null, req.params.id, req.campus]
+       otra_area?.trim() || null, correo?.trim() || null, req.params.id, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'Voluntario no encontrado' });
     res.json(rows[0]);
