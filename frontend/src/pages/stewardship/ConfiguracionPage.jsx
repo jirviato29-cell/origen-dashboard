@@ -68,6 +68,8 @@ const ROLES_LISTA = [
   },
 ];
 
+const ROLES_VISIBLES = ROLES_LISTA.filter(r => r.id !== 'administracion');
+
 const EMPTY_ADD  = { nombre: '', rol: 'anfitriones', clave: '' };
 const EMPTY_EDIT = { nombre: '', clave: '' };
 
@@ -281,7 +283,7 @@ export default function ConfiguracionPage() {
               </span>
               Roles configurados
             </div>
-            <div style={kpiVal}>{ROLES_LISTA.length}</div>
+            <div style={kpiVal}>{ROLES_VISIBLES.length}</div>
             <div style={kpiFoot}><b>{rolesConUsers}</b> con usuarios asignados</div>
           </div>
         </div>
@@ -291,16 +293,16 @@ export default function ConfiguracionPage() {
           <div className="card-head" style={{ marginBottom: 18 }}>
             <div>
               <h3 className="card-title">Roles del sistema</h3>
-              <div className="card-sub">{ROLES_LISTA.length} roles · define qué puede ver y hacer cada usuario</div>
+              <div className="card-sub">{ROLES_VISIBLES.length} roles · define qué puede ver y hacer cada usuario</div>
             </div>
             <button className="btn btn-ghost" style={{ padding: '8px 14px', fontSize: 12.5 }}>
               <I.plus size={14} /> Nuevo rol
             </button>
           </div>
 
-          {ROLES_LISTA.map((r, i) => {
+          {ROLES_VISIBLES.map((r, i) => {
             const count  = usuarios.filter(u => u.rol === r.id && u.activo).length;
-            const isLast = i === ROLES_LISTA.length - 1;
+            const isLast = i === ROLES_VISIBLES.length - 1;
             return (
               <div key={r.id} className="cfg-role-row" style={{
                 display: 'flex', alignItems: 'center', gap: 14,
