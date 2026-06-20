@@ -18,13 +18,13 @@ router.get('/', async (req, res) => {
 // POST /api/ministerios
 router.post('/', async (req, res) => {
   try {
-    const { nombre } = req.body;
+    const { nombre, color } = req.body;
     if (!nombre || !nombre.trim()) {
       return res.status(400).json({ error: 'nombre es requerido' });
     }
     const { rows } = await pool.query(
-      'INSERT INTO ministerios (nombre, campus) VALUES ($1,$2) RETURNING *',
-      [nombre.trim(), req.campus]
+      'INSERT INTO ministerios (nombre, color, campus) VALUES ($1,$2,$3) RETURNING *',
+      [nombre.trim(), color || '#64748B', req.campus]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -35,13 +35,14 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/ministerios/:id — renombra en cascada (transacción)
+// PUT /api/ministerios/:id — actualiza nombre+color; cascada en voluntarios solo si cambió el nombre
 router.put('/:id', async (req, res) => {
-  const { nombre } = req.body;
+  const { nombre, color } = req.body;
   if (!nombre || !nombre.trim()) {
     return res.status(400).json({ error: 'nombre es requerido' });
   }
   const nombreNuevo = nombre.trim();
+  const colorNuevo  = color || '#64748B';
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -55,37 +56,34 @@ router.put('/:id', async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'No encontrado' });
     }
-    const nombreViejo = found[0].nombre;
+    const nombreViejo  = found[0].nombre;
+    const nombreCambio = nombreViejo !== nombreNuevo;
 
-    // b) Sin cambio real, devuelve sin tocar nada
-    if (nombreViejo === nombreNuevo) {
-      await client.query('COMMIT');
-      return res.json(found[0]);
-    }
-
-    // c) Actualiza el catálogo
+    // b) Siempre actualiza nombre + color en el catálogo
     const { rows: updated } = await client.query(
-      'UPDATE ministerios SET nombre=$1 WHERE id=$2 AND campus=$3 RETURNING *',
-      [nombreNuevo, req.params.id, req.campus]
+      'UPDATE ministerios SET nombre=$1, color=$2 WHERE id=$3 AND campus=$4 RETURNING *',
+      [nombreNuevo, colorNuevo, req.params.id, req.campus]
     );
 
-    // d) Cascada en voluntarios
-    await client.query(
-      'UPDATE voluntarios SET ministerio1=$1 WHERE ministerio1=$2 AND campus=$3',
-      [nombreNuevo, nombreViejo, req.campus]
-    );
-    await client.query(
-      'UPDATE voluntarios SET ministerio2=$1 WHERE ministerio2=$2 AND campus=$3',
-      [nombreNuevo, nombreViejo, req.campus]
-    );
-    await client.query(
-      'UPDATE voluntarios SET ministerio3=$1 WHERE ministerio3=$2 AND campus=$3',
-      [nombreNuevo, nombreViejo, req.campus]
-    );
-    await client.query(
-      'UPDATE voluntarios SET otra_area=$1 WHERE otra_area=$2 AND campus=$3',
-      [nombreNuevo, nombreViejo, req.campus]
-    );
+    // c) Cascada en voluntarios SOLO si el nombre cambió
+    if (nombreCambio) {
+      await client.query(
+        'UPDATE voluntarios SET ministerio1=$1 WHERE ministerio1=$2 AND campus=$3',
+        [nombreNuevo, nombreViejo, req.campus]
+      );
+      await client.query(
+        'UPDATE voluntarios SET ministerio2=$1 WHERE ministerio2=$2 AND campus=$3',
+        [nombreNuevo, nombreViejo, req.campus]
+      );
+      await client.query(
+        'UPDATE voluntarios SET ministerio3=$1 WHERE ministerio3=$2 AND campus=$3',
+        [nombreNuevo, nombreViejo, req.campus]
+      );
+      await client.query(
+        'UPDATE voluntarios SET otra_area=$1 WHERE otra_area=$2 AND campus=$3',
+        [nombreNuevo, nombreViejo, req.campus]
+      );
+    }
 
     await client.query('COMMIT');
     res.json(updated[0]);
