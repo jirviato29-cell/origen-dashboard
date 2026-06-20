@@ -484,7 +484,9 @@ export default function VoluntariosPage() {
   const [deletingMin,    setDeletingMin]    = useState(false);
   const [editingMin,     setEditingMin]     = useState(null);
   const [editMinNombre,  setEditMinNombre]  = useState('');
+  const [editMinColor,   setEditMinColor]   = useState('#64748B');
   const [savingMinEdit,  setSavingMinEdit]  = useState(false);
+  const [nuevoMinColor,  setNuevoMinColor]  = useState('#64748B');
 
   const fetchVoluntarios = useCallback(async () => {
     setLoading(true);
@@ -569,9 +571,9 @@ export default function VoluntariosPage() {
     if (!nuevoMinNombre.trim()) { setMinMsgErr('El nombre es requerido.'); return; }
     setCreandoMin(true); setMinMsgErr('');
     try {
-      await ministeriosApi.crear({ nombre: nuevoMinNombre.trim() });
+      await ministeriosApi.crear({ nombre: nuevoMinNombre.trim(), color: nuevoMinColor });
       await reloadMinisterios();
-      setNuevoMinNombre('');
+      setNuevoMinNombre(''); setNuevoMinColor('#64748B');
     } catch (err) {
       setMinMsgErr(err?.response?.data?.error || 'Error al crear.');
     } finally {
@@ -583,9 +585,9 @@ export default function VoluntariosPage() {
     if (!editMinNombre.trim()) return;
     setSavingMinEdit(true); setMinMsgErr('');
     try {
-      await ministeriosApi.actualizar(id, { nombre: editMinNombre.trim() });
+      await ministeriosApi.actualizar(id, { nombre: editMinNombre.trim(), color: editMinColor });
       await reloadMinisterios();
-      setEditingMin(null); setEditMinNombre('');
+      setEditingMin(null); setEditMinNombre(''); setEditMinColor('#64748B');
     } catch (err) {
       setMinMsgErr(err?.response?.data?.error || 'Error al renombrar.');
     } finally {
@@ -674,6 +676,9 @@ export default function VoluntariosPage() {
       if (mb === null) return -1;
       return ma - mb;
     });
+
+  // Mapa nombre→color para los badges de la tabla
+  const colorMap = Object.fromEntries((ministerios || []).map(m => [m.nombre, m.color || '#64748B']));
 
   // ── KPI card style helpers ───────────────────────────────────────────────
   const kpiCard = {
@@ -798,7 +803,7 @@ export default function VoluntariosPage() {
                 <button
                   className="btn"
                   style={{ border: `1px solid ${GRAY_200}`, background: 'white', color: GRAY_700, fontSize: 13 }}
-                  onClick={() => { setShowGestionar(v => !v); setMinMsgErr(''); setConfirmDelMin(null); setEditingMin(null); setNuevoMinNombre(''); }}
+                  onClick={() => { setShowGestionar(v => !v); setMinMsgErr(''); setConfirmDelMin(null); setEditingMin(null); setNuevoMinNombre(''); setNuevoMinColor('#64748B'); }}
                 >
                   <I.pin size={13} /> {showGestionar ? 'Cerrar gestión' : 'Gestionar ministerios'}
                 </button>
@@ -816,64 +821,105 @@ export default function VoluntariosPage() {
             <div style={{
               marginBottom: 14, border: `1px solid ${GRAY_200}`,
               borderRadius: 10, padding: '14px 16px',
-              background: 'var(--surface)',
+              background: 'var(--surface)', maxWidth: 540,
             }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: GRAY_500, marginBottom: 10 }}>
                 Ministerios del campus
               </div>
 
+              {/* Nuevo ministerio — ARRIBA */}
+              <div style={{ marginBottom: (ministerios?.length > 0) ? 12 : 0, paddingBottom: (ministerios?.length > 0) ? 12 : 0, borderBottom: (ministerios?.length > 0) ? `1px solid ${GRAY_200}` : 'none' }}>
+                <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+                  <input
+                    type="color"
+                    value={nuevoMinColor}
+                    onChange={e => setNuevoMinColor(e.target.value)}
+                    title="Color del ministerio"
+                    style={{ width: 32, height: 32, padding: 2, border: `1.5px solid ${GRAY_200}`, borderRadius: 7, cursor: 'pointer', flexShrink: 0 }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Nuevo ministerio…"
+                    value={nuevoMinNombre}
+                    onChange={e => setNuevoMinNombre(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleCrearMin(); }}
+                    style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: `1.5px solid ${GRAY_200}`, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+                  />
+                  <button
+                    onClick={handleCrearMin}
+                    disabled={creandoMin}
+                    className="btn btn-primary"
+                    style={{ padding: '6px 14px', fontSize: 13, flexShrink: 0, opacity: creandoMin ? 0.6 : 1 }}
+                  >
+                    {creandoMin ? '…' : 'Crear'}
+                  </button>
+                </div>
+                {minMsgErr && (
+                  <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 5, marginBottom: 0 }}>
+                    {minMsgErr}
+                  </p>
+                )}
+              </div>
+
               {/* Lista existente */}
               {(ministerios?.length > 0) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {ministerios.map(m => (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       {editingMin === m.id ? (
                         <>
+                          <input
+                            type="color"
+                            value={editMinColor}
+                            onChange={e => setEditMinColor(e.target.value)}
+                            style={{ width: 28, height: 28, padding: 2, border: `1.5px solid ${GRAY_200}`, borderRadius: 6, cursor: 'pointer', flexShrink: 0 }}
+                          />
                           <input
                             value={editMinNombre}
                             onChange={e => setEditMinNombre(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') handleActualizarMin(m.id); if (e.key === 'Escape') { setEditingMin(null); setMinMsgErr(''); } }}
                             autoFocus
-                            style={{ flex: 1, padding: '5px 9px', borderRadius: 7, border: `1.5px solid ${NAVY_300}`, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+                            style={{ flex: 1, padding: '4px 8px', borderRadius: 7, border: `1.5px solid ${NAVY_300}`, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
                           />
                           <button
                             onClick={() => handleActualizarMin(m.id)}
                             disabled={savingMinEdit}
-                            style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: NAVY, color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: savingMinEdit ? 0.6 : 1 }}
+                            style={{ padding: '3px 10px', borderRadius: 6, border: 'none', background: NAVY, color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: savingMinEdit ? 0.6 : 1, flexShrink: 0 }}
                           >
                             {savingMinEdit ? '…' : 'Guardar'}
                           </button>
                           <button
                             onClick={() => { setEditingMin(null); setMinMsgErr(''); }}
-                            style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid ${GRAY_200}`, background: 'none', fontSize: 12, cursor: 'pointer', color: GRAY_500 }}
+                            style={{ padding: '3px 8px', borderRadius: 6, border: `1px solid ${GRAY_200}`, background: 'none', fontSize: 13, cursor: 'pointer', color: GRAY_500, flexShrink: 0 }}
                           >
-                            Cancelar
+                            ×
                           </button>
                         </>
                       ) : (
                         <>
+                          <span style={{ width: 12, height: 12, borderRadius: '50%', background: m.color || '#64748B', flexShrink: 0, border: '1px solid rgba(0,0,0,.1)' }} />
                           <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{m.nombre}</span>
                           {confirmDelMin === m.id ? (
-                            <div style={{ display: 'flex', gap: 5 }}>
+                            <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
                               <button
                                 onClick={() => handleBorrarMin(m.id)}
                                 disabled={deletingMin}
-                                style={{ padding: '3px 10px', borderRadius: 6, border: 'none', background: '#D23B36', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: deletingMin ? 0.6 : 1 }}
+                                style={{ padding: '2px 9px', borderRadius: 6, border: 'none', background: '#D23B36', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: deletingMin ? 0.6 : 1 }}
                               >
                                 {deletingMin ? '…' : 'Eliminar'}
                               </button>
                               <button
                                 onClick={() => setConfirmDelMin(null)}
-                                style={{ padding: '3px 10px', borderRadius: 6, border: `1px solid ${GRAY_200}`, background: 'none', fontSize: 12, cursor: 'pointer', color: GRAY_500 }}
+                                style={{ padding: '2px 8px', borderRadius: 6, border: `1px solid ${GRAY_200}`, background: 'none', fontSize: 12, cursor: 'pointer', color: GRAY_500 }}
                               >
                                 Cancelar
                               </button>
                             </div>
                           ) : (
-                            <div style={{ display: 'flex', gap: 4 }}>
+                            <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                               <button
-                                onClick={() => { setEditingMin(m.id); setEditMinNombre(m.nombre); setMinMsgErr(''); setConfirmDelMin(null); }}
-                                title="Renombrar"
+                                onClick={() => { setEditingMin(m.id); setEditMinNombre(m.nombre); setEditMinColor(m.color || '#64748B'); setMinMsgErr(''); setConfirmDelMin(null); }}
+                                title="Editar nombre y color"
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', color: GRAY_500, display: 'flex', alignItems: 'center' }}
                               >
                                 <I.edit size={13} />
@@ -893,36 +939,6 @@ export default function VoluntariosPage() {
                   ))}
                 </div>
               )}
-
-              {/* Nuevo ministerio */}
-              <div style={{ borderTop: (ministerios?.length > 0) ? `1px solid ${GRAY_200}` : 'none', paddingTop: (ministerios?.length > 0) ? 10 : 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: GRAY_500, marginBottom: 7 }}>
-                  Nuevo ministerio
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    placeholder="Nombre del ministerio"
-                    value={nuevoMinNombre}
-                    onChange={e => setNuevoMinNombre(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleCrearMin(); }}
-                    style={{ flex: 1, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${GRAY_200}`, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
-                  />
-                  <button
-                    onClick={handleCrearMin}
-                    disabled={creandoMin}
-                    className="btn btn-primary"
-                    style={{ padding: '7px 14px', fontSize: 13, flexShrink: 0, opacity: creandoMin ? 0.6 : 1 }}
-                  >
-                    {creandoMin ? '…' : 'Crear'}
-                  </button>
-                </div>
-                {minMsgErr && (
-                  <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 5, marginBottom: 0 }}>
-                    {minMsgErr}
-                  </p>
-                )}
-              </div>
             </div>
           )}
 
@@ -1005,8 +1021,12 @@ export default function VoluntariosPage() {
                         {mins.map((m, i) => (
                           <span key={i} style={{
                             fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 6, whiteSpace: 'nowrap',
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
                             background: i === 0 ? ORANGE_50 : NAVY_100, color: i === 0 ? ORANGE_600 : NAVY_700,
-                          }}>{m}</span>
+                          }}>
+                            {colorMap[m] && <span style={{ width: 6, height: 6, borderRadius: '50%', background: colorMap[m], flexShrink: 0 }} />}
+                            {m}
+                          </span>
                         ))}
                       </div>
                     )}
@@ -1125,10 +1145,11 @@ export default function VoluntariosPage() {
                             {mins.map((m, i) => (
                               <span key={i} style={{
                                 fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 6,
-                                whiteSpace: 'nowrap',
+                                whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4,
                                 background: i === 0 ? ORANGE_50  : NAVY_100,
                                 color:      i === 0 ? ORANGE_600 : NAVY_700,
                               }}>
+                                {colorMap[m] && <span style={{ width: 6, height: 6, borderRadius: '50%', background: colorMap[m], flexShrink: 0 }} />}
                                 {m}
                               </span>
                             ))}
