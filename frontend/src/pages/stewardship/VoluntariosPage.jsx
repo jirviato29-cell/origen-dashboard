@@ -108,7 +108,7 @@ export const MINISTERIOS = [
 ];
 
 const EMPTY_FORM = {
-  nombre: '', cumpleanos: '', whatsapp: '',
+  nombre: '', cumpleanos: '', whatsapp: '', correo: '',
   ministerio1: '', ministerio2: '', ministerio3: '',
 };
 
@@ -229,6 +229,19 @@ function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
             </div>
           </div>
 
+          <div>
+            <label style={labelStyle}>
+              Correo <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--muted)', fontSize: 11.5 }}>(opcional)</span>
+            </label>
+            <input
+              type="email"
+              placeholder="ejemplo@correo.com"
+              value={form.correo}
+              onChange={e => setForm(p => ({ ...p, correo: e.target.value }))}
+              style={inputStyle}
+            />
+          </div>
+
           <AreasBlock form={form} setForm={setForm} showHeader />
         </div>
 
@@ -319,6 +332,19 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
                 style={inputStyle}
               />
             </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>
+              Correo <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--muted)', fontSize: 11.5 }}>(opcional)</span>
+            </label>
+            <input
+              type="email"
+              placeholder="ejemplo@correo.com"
+              value={form.correo}
+              onChange={e => setForm(p => ({ ...p, correo: e.target.value }))}
+              style={inputStyle}
+            />
           </div>
 
           <AreasBlock form={form} setForm={setForm} showHeader />
@@ -463,6 +489,7 @@ export default function VoluntariosPage() {
       nombre:      v.nombre      || '',
       cumpleanos:  v.cumpleanos  ? v.cumpleanos.slice(0, 10) : '',
       whatsapp:    v.whatsapp    || '',
+      correo:      v.correo      || '',
       ministerio1: v.ministerio1 || '',
       ministerio2: v.ministerio2 || '',
       ministerio3: v.ministerio3 || '',
