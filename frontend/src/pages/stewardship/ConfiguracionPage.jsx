@@ -29,7 +29,7 @@ const ROLES_LISTA = [
   {
     id: 'anfitriones',
     label: 'Anfitriones',
-    desc: 'Gestión de asistencia y bienvenida',
+    desc: 'Registra y edita la asistencia de los servicios y da la bienvenida a los visitantes. Puede consultar el calendario y el directorio de voluntarios, pero no modificarlos.',
     perms: ['Asistencia', 'Bienvenida'],
     tileBg: ORANGE_50, tileColor: ORANGE_600,
     dotColor: ORANGE_500, avatarBg: ORANGE_500,
@@ -37,7 +37,7 @@ const ROLES_LISTA = [
   {
     id: 'punto_encuentro',
     label: 'Punto de Encuentro',
-    desc: 'Registro y seguimiento de eventos',
+    desc: 'Administra los eventos de Punto de Encuentro: crea eventos, registra participantes y gestiona sus cobros. Puede ver la asistencia y el calendario, sin editarlos.',
     perms: ['Eventos', 'Participantes', 'Cobros'],
     tileBg: TEAL_50, tileColor: TEAL,
     dotColor: TEAL, avatarBg: TEAL,
@@ -45,7 +45,7 @@ const ROLES_LISTA = [
   {
     id: 'stewardship',
     label: 'Stewardship',
-    desc: 'Ofrendas, finanzas y administración',
+    desc: 'Acceso completo al sistema: finanzas (ingresos, gastos, balance), asistencia, voluntarios y calendario. Es el único rol que puede entrar a Configuración y administrar usuarios.',
     perms: ['Ingresos', 'Gastos', 'Balance', 'Reportes'],
     tileBg: NAVY_100, tileColor: NAVY_600,
     dotColor: NAVY_600, avatarBg: NAVY_600,
@@ -53,7 +53,7 @@ const ROLES_LISTA = [
   {
     id: 'pastor',
     label: 'Pastor',
-    desc: 'Vista completa del dashboard',
+    desc: 'Vista de solo lectura: puede consultar finanzas, asistencia, Punto de Encuentro y el calendario, pero no crear ni editar nada. No tiene acceso a Configuración ni a Voluntarios.',
     perms: ['Todo · solo lectura', 'Dashboard'],
     tileBg: NAVY_900, tileColor: '#fff',
     dotColor: NAVY_900, avatarBg: NAVY_900,
@@ -305,12 +305,12 @@ export default function ConfiguracionPage() {
             const isLast = i === ROLES_VISIBLES.length - 1;
             return (
               <div key={r.id} className="cfg-role-row" style={{
-                display: 'flex', alignItems: 'center', gap: 14,
+                display: 'flex', alignItems: 'flex-start', gap: 14,
                 padding: '14px 16px', border: `1px solid ${GRAY_200}`,
                 borderRadius: 14, marginBottom: isLast ? 0 : 10, cursor: 'default',
               }}>
                 <div style={{
-                  width: 40, height: 40, borderRadius: 11, flexShrink: 0,
+                  width: 40, height: 40, borderRadius: 11, flexShrink: 0, marginTop: 1,
                   background: r.tileBg, color: r.tileColor,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
@@ -329,7 +329,7 @@ export default function ConfiguracionPage() {
                 </div>
                 <span style={{
                   display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0,
-                  fontSize: 12.5, fontWeight: 600,
+                  fontSize: 12.5, fontWeight: 600, marginTop: 1,
                   color: count > 0 ? NAVY_700 : GRAY_500,
                   background: GRAY_50, border: `1px solid ${GRAY_200}`,
                   padding: '6px 12px', borderRadius: 999,
