@@ -596,7 +596,7 @@ export default function VoluntariosPage() {
     .filter(v => {
       if (!search.trim()) return true;
       const q = search.trim().toLowerCase();
-      const texto = [v.nombre, v.whatsapp, v.ministerio1, v.ministerio2, v.ministerio3, v.otra_area]
+      const texto = [v.nombre, v.whatsapp, v.ministerio1, v.ministerio2, v.ministerio3, v.correo]
         .filter(Boolean).join(' ').toLowerCase();
       return texto.includes(q);
     })
@@ -826,7 +826,7 @@ export default function VoluntariosPage() {
                         ))}
                       </div>
                     )}
-                    {v.otra_area && <div style={{ fontSize: 12, color: GRAY_700, marginBottom: 8 }}>{v.otra_area}</div>}
+                    {v.correo && <div style={{ fontSize: 12, color: GRAY_700, marginBottom: 8 }}>{v.correo}</div>}
                     {canWrite && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                         <button onClick={() => openEdit(v)} title="Editar" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 32, borderRadius: 7, border: `1px solid ${GRAY_200}`, background: 'white', color: GRAY_500, cursor: 'pointer', fontSize: 12 }}>
@@ -850,7 +850,7 @@ export default function VoluntariosPage() {
                   <th>Cumpleaños</th>
                   <th>WhatsApp</th>
                   <th>Ministerios</th>
-                  <th>Otra área</th>
+                  <th>Correo</th>
                   {canWrite && <th style={{ textAlign: 'right' }}>Acciones</th>}
                 </tr>
               </thead>
@@ -943,10 +943,10 @@ export default function VoluntariosPage() {
                           </div>
                         </td>
 
-                        {/* Otra área */}
+                        {/* Correo */}
                         <td>
-                          {v.otra_area
-                            ? <span style={{ fontSize: 12, color: GRAY_700, fontWeight: 500 }}>{v.otra_area}</span>
+                          {v.correo
+                            ? <span style={{ fontSize: 12, color: GRAY_700, fontWeight: 500 }}>{v.correo}</span>
                             : <span style={{ color: GRAY_300 }}>—</span>
                           }
                         </td>
