@@ -39,7 +39,7 @@ function fmtAmt(n) {
 }
 
 function initials(nombre) {
-  return (nombre || '').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
+  return String(nombre || '').split(' ').filter(w => w.length > 0).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 }
 
 const inputStyle = {
