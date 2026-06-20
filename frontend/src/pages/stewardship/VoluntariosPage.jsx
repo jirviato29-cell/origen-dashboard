@@ -849,8 +849,8 @@ export default function VoluntariosPage() {
                   <th>Nombre</th>
                   <th>Cumpleaños</th>
                   <th>WhatsApp</th>
-                  <th>Ministerios</th>
                   <th>Correo</th>
+                  <th>Ministerios</th>
                   {canWrite && <th style={{ textAlign: 'right' }}>Acciones</th>}
                 </tr>
               </thead>
@@ -927,6 +927,14 @@ export default function VoluntariosPage() {
                           )}
                         </td>
 
+                        {/* Correo */}
+                        <td>
+                          {v.correo
+                            ? <span style={{ fontSize: 12, color: GRAY_700, fontWeight: 500 }}>{v.correo}</span>
+                            : <span style={{ color: GRAY_300 }}>—</span>
+                          }
+                        </td>
+
                         {/* Ministerios */}
                         <td>
                           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
@@ -941,14 +949,6 @@ export default function VoluntariosPage() {
                               </span>
                             ))}
                           </div>
-                        </td>
-
-                        {/* Correo */}
-                        <td>
-                          {v.correo
-                            ? <span style={{ fontSize: 12, color: GRAY_700, fontWeight: 500 }}>{v.correo}</span>
-                            : <span style={{ color: GRAY_300 }}>—</span>
-                          }
                         </td>
 
                         {/* Acciones */}
