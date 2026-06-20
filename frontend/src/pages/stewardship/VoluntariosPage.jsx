@@ -110,7 +110,6 @@ export const MINISTERIOS = [
 const EMPTY_FORM = {
   nombre: '', cumpleanos: '', whatsapp: '',
   ministerio1: '', ministerio2: '', ministerio3: '',
-  otra_area: '',
 };
 
 const inputStyle = {
@@ -158,10 +157,9 @@ function AreaSelect({ label, value, onChange, available, required }) {
 // ── Bloque de ministerios ─────────────────────────────────────────────────
 function AreasBlock({ form, setForm, showHeader }) {
   const { ministerio1, ministerio2, ministerio3 } = form;
-  const opts1    = optsFor(MINISTERIOS, ministerio2, ministerio3);
-  const opts2    = optsFor(MINISTERIOS, ministerio1, ministerio3);
-  const opts3    = optsFor(MINISTERIOS, ministerio1, ministerio2);
-  const optsOtra = optsFor(MINISTERIOS, ministerio1, ministerio2).filter(m => m !== ministerio3);
+  const opts1 = optsFor(MINISTERIOS, ministerio2, ministerio3);
+  const opts2 = optsFor(MINISTERIOS, ministerio1, ministerio3);
+  const opts3 = optsFor(MINISTERIOS, ministerio1, ministerio2);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -174,22 +172,6 @@ function AreasBlock({ form, setForm, showHeader }) {
       <AreaSelect label="Ministerio 1" value={ministerio1} onChange={v => setForm(p => ({ ...p, ministerio1: v }))} available={opts1} required />
       <AreaSelect label="Ministerio 2" value={ministerio2} onChange={v => setForm(p => ({ ...p, ministerio2: v }))} available={opts2} />
       <AreaSelect label="Ministerio 3" value={ministerio3} onChange={v => setForm(p => ({ ...p, ministerio3: v }))} available={opts3} />
-      <div>
-        <label style={labelStyle}>¿En qué otro ministerio te gustaría apoyar? (opcional)</label>
-        <select
-          value={form.otra_area}
-          onChange={e => setForm(p => ({ ...p, otra_area: e.target.value }))}
-          style={{ ...inputStyle, background: 'white', cursor: 'pointer' }}
-        >
-          <option value="">— elegir —</option>
-          {optsOtra.map(m => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-          {form.otra_area && !optsOtra.includes(form.otra_area) && (
-            <option value={form.otra_area}>{form.otra_area}</option>
-          )}
-        </select>
-      </div>
     </div>
   );
 }
@@ -484,7 +466,6 @@ export default function VoluntariosPage() {
       ministerio1: v.ministerio1 || '',
       ministerio2: v.ministerio2 || '',
       ministerio3: v.ministerio3 || '',
-      otra_area:   v.otra_area   || '',
     });
     setFormErr('');
     setModal(true);
