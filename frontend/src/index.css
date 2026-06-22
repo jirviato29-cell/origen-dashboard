@@ -84,9 +84,14 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Fondo de arranque navy: evita el flash gris→navy mientras carga el bundle.
+   Los dashboards internos lo cubren con .app (background: var(--bg)),
+   así que el navy solo se ve en el arranque y en las pantallas navy (Campus/Login). */
+html { background: #0B1A2F; }
+
 body {
   font-family: var(--font-ui);
-  background: var(--bg);
+  background: #0B1A2F;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -94,7 +99,7 @@ body {
   margin: 0;
 }
 
-#root { width: 100%; min-height: 100vh; }
+#root { width: 100%; min-height: 100vh; background: #0B1A2F; }
 
 .app { font-family: var(--font-ui); color: var(--ink); background: var(--bg); }
 .app * { box-sizing: border-box; }
