@@ -15,6 +15,32 @@ http.interceptors.request.use(config => {
   return config;
 });
 
+// ─── Manejo de 401 (token expirado/inválido) ──────────────────────────────────
+// Si una petición autenticada devuelve 401, limpiamos la sesión y mandamos al
+// inicio de forma limpia (sin romper el árbol React). El login y /campus usan
+// `axios` directo (no esta instancia `http`), así que NO se interceptan y no
+// hay riesgo de loop de redirección.
+http.interceptors.response.use(
+  res => res,
+  err => {
+    if (err.response?.status === 401) {
+      try {
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('permisos');
+        localStorage.removeItem('acceso_global');
+      } catch { /* ignore */ }
+      // Evita recargas en bucle si ya estamos en la pantalla de inicio/login.
+      const path = window.location.pathname;
+      if (path !== '/' && path !== '/login') {
+        window.location.replace('/');
+      }
+    }
+    return Promise.reject(err);
+  }
+);
+
 // ─── Ingresos (→ tabla ofrendas, con alias monto/concepto para compat) ────────
 const realIngresosApi = {
   getAll:       (params) => http.get('/ingresos', { params }),

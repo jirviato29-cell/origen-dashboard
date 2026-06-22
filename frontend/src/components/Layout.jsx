@@ -151,14 +151,14 @@ export default function Layout() {
 
             {/* Asistencia — solo si tiene permiso de registrar en asistencia (stewardship: true) */}
             {isAsistencia && canRegAsistencia && (
-              <button className="btn btn-primary" onClick={openAsistenciaModal}>
+              <button className="btn btn-primary" onClick={() => openAsistenciaModal()}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Asistencia</span>
               </button>
             )}
 
             {/* Calendario — solo si tiene permiso de registrar en calendario */}
             {isCalendario && canRegCalendario && (
-              <button className="btn btn-primary" onClick={openCalendarioModal}>
+              <button className="btn btn-primary" onClick={() => openCalendarioModal()}>
                 <I.plus size={15} /><span className="topbar-btn-label"> Registrar Evento</span>
               </button>
             )}

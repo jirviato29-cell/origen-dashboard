@@ -40,9 +40,12 @@ export default function GlobalAsistenciaStewModal() {
   useEffect(() => {
     if (open) {
       setSaved(false);
-      if (record) {
+      // Solo poblamos el form cuando es un registro real (tiene id). Así, si por
+      // error llega algo que no es un registro (p. ej. un evento de click), no
+      // intentamos hacer .slice sobre una fecha undefined y NO truena.
+      if (record?.id) {
         setForm({
-          fecha:       record.fecha.slice(0, 10),
+          fecha:       (record.fecha || '').slice(0, 10),
           adultos:     String(record.adultos     ?? ''),
           voluntarios: String(record.voluntarios ?? ''),
           ninos:       String(record.ninos       ?? ''),
