@@ -47,31 +47,6 @@ function buildMonthlyData(ofrendas, gastos) {
   });
 }
 
-function buildWeeklyData(ofrendas, gastos) {
-  if (ofrendas.length === 0) return [];
-  const sorted = [...ofrendas].sort((a, b) => a.fecha.localeCompare(b.fecha));
-  let cumIngresos = 0, cumGastos = 0;
-  return sorted.map((d, idx) => {
-    const isLast    = idx === sorted.length - 1;
-    const prevFecha = idx === 0 ? '' : sorted[idx - 1].fecha;
-    const gastosDelPeriodo = gastos
-      .filter(g => {
-        if (idx === 0) return g.fecha <= d.fecha;
-        if (isLast)   return g.fecha > prevFecha;   // absorbe gastos sin domingo futuro
-        return g.fecha > prevFecha && g.fecha <= d.fecha;
-      })
-      .reduce((s, g) => s + Number(g.monto), 0);
-    cumIngresos += Number(d.total_ofrenda);
-    cumGastos   += gastosDelPeriodo;
-    return {
-      fecha: d.fecha, efectivo: Number(d.efectivo),
-      ingresos: Number(d.total_ofrenda), gastos: gastosDelPeriodo,
-      balanceSemana: Number(d.total_ofrenda) - gastosDelPeriodo,
-      cumIngresos, cumGastos, balance: cumIngresos - cumGastos,
-    };
-  });
-}
-
 // ── Bar chart ──────────────────────────────────────────────────────────────
 function fmtK(v) {
   const absK = Math.abs(v) / 1000;
@@ -230,8 +205,6 @@ export default function BalancePage() {
     </div>
   );
 
-  const weeklyData = buildWeeklyData(ofrendas, gastosEfectivoAgs);
-
   // ── Aggregates ──
   const totalIngresos        = ofrendas.reduce((s, d) => s + Number(d.total_ofrenda), 0);
   const totalGastos          = gastos.reduce((s, g) => s + Number(g.monto), 0);
@@ -254,18 +227,52 @@ export default function BalancePage() {
   const monthlyData = buildMonthlyData(ofrendas, gastos);
   const toggleMes   = m => setMesSelec(prev => prev === m ? null : m);
 
-  // Caja de efectivo
-  const cajaData = [];
-  let saldo = saldoInicial;
-  for (const row of weeklyData) {
-    const saldoInicial = saldo;
-    const saldoFinal   = saldo + row.efectivo - row.gastos;
-    cajaData.push({ ...row, saldoInicial, saldoFinal });
-    saldo = saldoFinal;
-  }
-  const cajaRows         = [...cajaData].reverse();
-  const saldoEnCaja      = cajaData.length > 0 ? cajaData[cajaData.length - 1].saldoFinal : 0;
-  const totalGastosWeekly= weeklyData.reduce((s, r) => s + r.gastos, 0);
+  // ── Caja de Efectivo · Estado de cuenta (movimiento por movimiento) ──────────
+  // Fuente EXCLUSIVA: ofrendas (campo efectivo) + gastosEfectivoAgs (gastos con
+  // metodo_pago='efectivo_ags' y pagado=true). NO se mezclan gastos generales ni
+  // ofrendas especiales (descuadraría). La suma es conmutativa: el último
+  // acumulado da el mismo saldo en caja sin importar el orden de despliegue.
+  const TIPO_ORDEN = { ingreso: 0, gasto: 1 };
+  const movimientos = [
+    ...ofrendas
+      .filter(o => Number(o.efectivo) > 0)
+      .map(o => ({
+        id: o.id, fecha: o.fecha, tipo: 'ingreso',
+        concepto: 'Ofrenda en efectivo', monto: Number(o.efectivo),
+      })),
+    ...gastosEfectivoAgs.map(g => ({
+      id: g.id, fecha: g.fecha, tipo: 'gasto',
+      concepto: g.concepto || g.categoria_nombre || g.categoria || 'Gasto',
+      monto: -Number(g.monto),
+    })),
+  ].sort((a, b) => {
+    const fa = (a.fecha || '').slice(0, 10);
+    const fb = (b.fecha || '').slice(0, 10);
+    if (fa !== fb) return fa.localeCompare(fb);                            // cronológico ascendente
+    if (a.tipo !== b.tipo) return TIPO_ORDEN[a.tipo] - TIPO_ORDEN[b.tipo]; // ingresos antes que gastos
+    return String(a.id ?? '').localeCompare(String(b.id ?? ''));          // desempate estable por id
+  });
+
+  // Acumulado en orden ASCENDENTE arrancando en la apertura (saldoInicial).
+  let acumulado = saldoInicial;
+  const movimientosConSaldo = movimientos.map(m => {
+    acumulado += m.monto;
+    return { ...m, saldo: acumulado };
+  });
+  const saldoEnCaja = movimientosConSaldo.length > 0
+    ? movimientosConSaldo[movimientosConSaldo.length - 1].saldo
+    : saldoInicial;
+
+  // Para mostrar: más reciente ARRIBA. Solo se invierte la vista; el acumulado
+  // ya quedó calculado en orden ascendente (no se recalcula al revés).
+  const movimientosRows = [...movimientosConSaldo].reverse();
+
+  // ── Validación temporal: el acumulado final debe igualar el KPI cajaChica ──
+  console.log(
+    '[Caja de Efectivo] acumulado final:', Math.round(saldoEnCaja),
+    '· cajaChica (KPI):', Math.round(cajaChica),
+    '· coincide:', Math.round(saldoEnCaja) === Math.round(cajaChica),
+  );
 
   // Arrow icon for Balance neto card
   const ArrowUp = () => (
@@ -455,14 +462,14 @@ export default function BalancePage() {
           <div>
             <h3 className="card-title">Caja de Efectivo</h3>
             <div className="card-sub">
-              {weeklyData.length} domingos · saldo en caja {fmt(saldoEnCaja)}
+              {movimientosConSaldo.length} movimientos · saldo en caja {fmt(saldoEnCaja)}
             </div>
           </div>
         </div>
 
-        {weeklyData.length === 0 ? (
+        {movimientosConSaldo.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 13 }}>
-            Sin registros de ofrendas para {year}.
+            Sin movimientos de efectivo para {year}.
           </div>
         ) : (
           <>
@@ -474,9 +481,9 @@ export default function BalancePage() {
               overflow: 'hidden', marginBottom: 16,
             }}>
               {[
-                { label: 'Total ingresos efectivo', value: totalEfectivo,     valColor: GREEN },
-                { label: 'Total gastos',            value: totalGastosWeekly, valColor: RED   },
-                { label: 'Saldo en caja',           value: saldoEnCaja,       valColor: saldoEnCaja < 0 ? RED : NAVY },
+                { label: 'Total ingresos efectivo', value: totalEfectivo,      valColor: GREEN },
+                { label: 'Total gastos',            value: totalGastosEfAgs,   valColor: RED   },
+                { label: 'Saldo en caja',           value: saldoEnCaja,        valColor: saldoEnCaja < 0 ? RED : NAVY },
               ].map(({ label, value, valColor }) => (
                 <div key={label} style={{ background: 'var(--surface)', padding: '14px 18px' }}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: GRAY_500, marginBottom: 5 }}>
@@ -491,31 +498,27 @@ export default function BalancePage() {
 
             {isMobile ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {cajaRows.map(row => (
-                  <div key={row.fecha} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>{fmtFecha(row.fecha)}</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
-                      <div>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 2 }}>Saldo inicial</div>
-                        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13, color: GRAY_500 }}>{fmt(row.saldoInicial)}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 2 }}>Ingresos</div>
-                        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13, color: row.efectivo > 0 ? GREEN : GRAY_500 }}>{row.efectivo > 0 ? fmt(row.efectivo) : '—'}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 2 }}>Gastos</div>
-                        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13, color: row.gastos > 0 ? RED : GRAY_500 }}>{row.gastos > 0 ? fmt(row.gastos) : '—'}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 2 }}>Saldo final</div>
-                        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: row.saldoFinal < 0 ? RED : NAVY }}>{fmt(row.saldoFinal)}</div>
-                      </div>
+                {movimientosRows.map(m => (
+                  <div key={`${m.tipo}-${m.id}`} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{fmtFecha(m.fecha)}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: m.saldo < 0 ? RED : NAVY }}>{fmt(m.saldo)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 12.5, color: GRAY_500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.concepto}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13, flexShrink: 0, color: m.tipo === 'ingreso' ? GREEN : RED }}>
+                        {m.tipo === 'ingreso' ? '+' : '−'}{fmt(Math.abs(m.monto))}
+                      </span>
                     </div>
                   </div>
                 ))}
+                {/* Apertura — punto de partida cronológico */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--surface-2, #f6f7f9)', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>Saldo final {year}</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>Saldo inicial · apertura</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: NAVY }}>{fmt(saldoInicial)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--surface-2, #f6f7f9)', border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>Saldo en caja {year}</span>
                   <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 15, color: saldoEnCaja < 0 ? RED : NAVY }}>{fmt(saldoEnCaja)}</span>
                 </div>
               </div>
@@ -524,46 +527,56 @@ export default function BalancePage() {
               <table className="table anf-table">
                 <thead>
                   <tr>
-                    <th>Domingo</th>
-                    <th style={{ textAlign: 'right' }}>Saldo inicial</th>
-                    <th style={{ textAlign: 'right' }}>Ingresos</th>
-                    <th style={{ textAlign: 'right' }}>Gastos</th>
-                    <th style={{ textAlign: 'right' }}>Saldo final</th>
+                    <th>Fecha</th>
+                    <th>Concepto</th>
+                    <th style={{ textAlign: 'right' }}>Entrada</th>
+                    <th style={{ textAlign: 'right' }}>Salida</th>
+                    <th style={{ textAlign: 'right' }}>Saldo</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {cajaRows.map(row => (
-                    <tr key={row.fecha}>
-                      <td style={{ fontWeight: 600 }}>{fmtFecha(row.fecha)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: GRAY_500 }}>
-                        {fmt(row.saldoInicial)}
+                  {movimientosRows.map(m => (
+                    <tr key={`${m.tipo}-${m.id}`}>
+                      <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{fmtFecha(m.fecha)}</td>
+                      <td style={{ color: '#3D4654' }}>{m.concepto}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: GREEN, fontWeight: 600 }}>
+                        {m.tipo === 'ingreso' ? fmt(m.monto) : '—'}
                       </td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.efectivo > 0 ? GREEN : GRAY_500, fontWeight: row.efectivo > 0 ? 600 : 400 }}>
-                        {row.efectivo > 0 ? fmt(row.efectivo) : '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.gastos > 0 ? RED : GRAY_500, fontWeight: row.gastos > 0 ? 600 : 400 }}>
-                        {row.gastos > 0 ? fmt(row.gastos) : '—'}
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: RED, fontWeight: 600 }}>
+                        {m.tipo === 'gasto' ? fmt(Math.abs(m.monto)) : '—'}
                       </td>
                       <td style={{
                         textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800,
-                        color: row.saldoFinal < 0 ? RED : NAVY,
+                        color: m.saldo < 0 ? RED : NAVY,
                       }}>
-                        {fmt(row.saldoFinal)}
+                        {fmt(m.saldo)}
                       </td>
                     </tr>
                   ))}
+                  {/* Fila de apertura (saldo inicial) — punto de partida cronológico */}
+                  <tr style={{ background: GRAY_50 }}>
+                    <td style={{ fontWeight: 700 }}>—</td>
+                    <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.06em', color: GRAY_500 }}>
+                      Saldo inicial · apertura
+                    </td>
+                    <td style={{ textAlign: 'right', color: GRAY_500 }}>—</td>
+                    <td style={{ textAlign: 'right', color: GRAY_500 }}>—</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: NAVY }}>
+                      {fmt(saldoInicial)}
+                    </td>
+                  </tr>
                 </tbody>
                 <tbody>
                   <tr className="anf-totals-row">
                     <td style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 11.5, letterSpacing: '0.08em' }}>
-                      Saldo final {year}
+                      Saldo en caja {year}
                     </td>
                     <td />
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: GREEN }}>
                       {fmt(totalEfectivo)}
                     </td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: RED }}>
-                      {fmt(totalGastosWeekly)}
+                      {fmt(totalGastosEfAgs)}
                     </td>
                     <td style={{
                       textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 14,
