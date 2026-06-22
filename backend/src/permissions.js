@@ -16,6 +16,7 @@ const PERMISOS = {
       punto_encuentro: { ver: true,  registrar: true,  modificar: true  },
       calendario:      { ver: true,  registrar: false, modificar: false },
       asistencia:      { ver: true,  registrar: false, modificar: false },
+      visitantes:      { ver: true,  registrar: true,  modificar: true  },
     },
   },
   stewardship:    { total: true, secciones: {} },
