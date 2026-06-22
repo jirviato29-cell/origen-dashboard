@@ -458,6 +458,10 @@ export default function VoluntariosPage() {
 
   const { ministerios, reload: reloadMinisterios } = useMinisterios() || {};
 
+  // Doble seguro: al montar la página, refresca los ministerios del campus actual
+  // para nunca operar (mostrar/editar/borrar) con datos de otro campus.
+  useEffect(() => { reloadMinisterios?.(); }, [reloadMinisterios]);
+
   const [voluntarios, setVoluntarios] = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');

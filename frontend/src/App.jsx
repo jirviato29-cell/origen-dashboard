@@ -131,15 +131,15 @@ export default function App() {
           <AsistenciaStewModalProvider>
             <CalendarioModalProvider>
               <TiposEventoProvider>
-              <MinisteriosProvider>
               <AuthProvider>
+              <MinisteriosProvider>
                 <BrowserRouter>
                   <ErrorBoundary>
                     <AppRoutes />
                   </ErrorBoundary>
                 </BrowserRouter>
-              </AuthProvider>
               </MinisteriosProvider>
+              </AuthProvider>
               </TiposEventoProvider>
             </CalendarioModalProvider>
           </AsistenciaStewModalProvider>
