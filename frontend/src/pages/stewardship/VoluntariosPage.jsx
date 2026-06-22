@@ -269,50 +269,32 @@ function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
 }
 
 // ── Kiosco: formulario — PRESERVED EXACTLY ────────────────────────────────
-function KioskForm({ form, setForm, onSave, saving, error }) {
+function KioskForm({ form, setForm, onSave, onClose, saving, error }) {
   const canSave = form.nombre.trim() && form.ministerio1;
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 9999,
-      background: 'var(--surface, #faf9f7)',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'flex-start',
-      padding: '32px 16px 40px', overflowY: 'auto',
-    }}>
-      <div style={{ width: '100%', maxWidth: 480 }}>
-
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{
-            fontSize: 11.5, fontWeight: 700, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: 'var(--accent, #7c5c3a)',
-            marginBottom: 10,
-          }}>
-            Origen Aguascalientes
+    <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+        <div className="modal-grabber" />
+        <div className="modal-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div className="anf-modal-eyebrow">Nuevo voluntario</div>
+            <h3 className="anf-modal-date">Registrar voluntario</h3>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px', lineHeight: 1.3 }}>
-            Directorio de voluntarios,<br />ministerios y cumpleaños
-          </h1>
-          <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>
-            Llena tus datos y te contactamos pronto.
-          </p>
+          <button className="icon-btn" onClick={onClose} style={{ width: 34, height: 34 }}>
+            <I.x size={16} />
+          </button>
         </div>
 
-        <div style={{
-          background: 'white', borderRadius: 16,
-          border: '1px solid var(--border)',
-          padding: '28px 24px',
-          boxShadow: '0 4px 32px rgba(0,0,0,0.07)',
-          display: 'flex', flexDirection: 'column', gap: 16,
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={labelStyle}>Nombre completo *</label>
             <input
               type="text"
-              placeholder="Tu nombre completo"
+              placeholder="Nombre Apellido"
               value={form.nombre}
               onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))}
-              style={{ ...inputStyle, fontSize: 15 }}
+              style={inputStyle}
               autoFocus
             />
           </div>
@@ -356,95 +338,27 @@ function KioskForm({ form, setForm, onSave, saving, error }) {
         </div>
 
         {error && (
-          <p style={{ fontSize: 13, color: 'var(--danger)', margin: '10px 0 0', textAlign: 'center' }}>{error}</p>
+          <p style={{ fontSize: 13, color: 'var(--danger)', margin: '8px 0 0' }}>{error}</p>
         )}
 
-        <button
-          onClick={onSave}
-          disabled={!canSave || saving}
-          style={{
-            width: '100%', marginTop: 16, padding: '14px 0', borderRadius: 12,
-            background: canSave && !saving ? 'var(--accent, #7c5c3a)' : 'var(--border)',
-            color: canSave && !saving ? 'white' : 'var(--muted)',
-            border: 'none', fontSize: 16, fontWeight: 600,
-            cursor: canSave && !saving ? 'pointer' : 'not-allowed',
-            fontFamily: 'inherit', transition: 'opacity 0.15s',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          }}
-        >
-          {saving ? 'Guardando…' : <><I.check size={18} /> Guardar</>}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Kiosco: agradecimiento — PRESERVED EXACTLY ────────────────────────────
-function KioskThanks({ onNext, onExit }) {
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 9999,
-      background: 'var(--surface, #faf9f7)',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '32px 24px', textAlign: 'center',
-    }}>
-      <div style={{ maxWidth: 460 }}>
-        <div style={{
-          width: 72, height: 72, borderRadius: '50%',
-          background: 'var(--accent, #7c5c3a)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 28px',
-        }}>
-          <I.check size={34} color="white" />
+        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+          <button
+            className="btn btn-ghost"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Cancelar
+          </button>
+          <button
+            className="btn btn-primary anf-save-btn"
+            onClick={onSave}
+            disabled={!canSave || saving}
+            style={{ opacity: (!canSave || saving) ? 0.45 : 1, flex: 1, marginTop: 0 }}
+          >
+            <I.check size={16} />
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
         </div>
-
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--ink)', margin: '0 0 12px', lineHeight: 1.25 }}>
-          Mil gracias por ser parte<br />de esta familia.
-        </h1>
-
-        <p style={{ fontSize: 15, color: 'var(--ink-2)', margin: '0 0 28px', fontWeight: 500 }}>
-          Origen — tu iglesia, tu casa, tu familia.
-        </p>
-
-        <p style={{
-          fontSize: 13.5, color: 'var(--muted)', fontStyle: 'italic',
-          lineHeight: 1.8, margin: '0 0 36px',
-          padding: '16px 20px',
-          background: 'white',
-          border: '1px solid var(--border)',
-          borderRadius: 12,
-        }}>
-          "Cada uno de ustedes ha recibido un don para servir a los demás. Úsenlo bien,
-          como buenos administradores de la gracia de Dios en sus diferentes formas."
-          <br />
-          <span style={{ fontStyle: 'normal', fontWeight: 600, color: 'var(--ink-2)' }}>
-            — 1 Pedro 4:10 (TPT)
-          </span>
-        </p>
-
-        <button
-          onClick={onNext}
-          style={{
-            width: '100%', padding: '14px 0', borderRadius: 12,
-            background: 'var(--accent, #7c5c3a)', color: 'white',
-            border: 'none', fontSize: 16, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit', marginBottom: 14,
-          }}
-        >
-          Registrar otro voluntario
-        </button>
-
-        <button
-          onClick={onExit}
-          style={{
-            background: 'none', border: 'none', color: 'var(--muted)',
-            fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-            textDecoration: 'underline', textUnderlineOffset: 3,
-          }}
-        >
-          Salir
-        </button>
       </div>
     </div>
   );
@@ -476,6 +390,7 @@ export default function VoluntariosPage() {
   const [kioskForm,   setKioskForm]   = useState(EMPTY_FORM);
   const [kioskSaving, setKioskSaving] = useState(false);
   const [kioskError,  setKioskError]  = useState('');
+  const [toast,       setToast]       = useState('');
 
   const [search, setSearch] = useState('');
 
@@ -559,7 +474,9 @@ export default function VoluntariosPage() {
     try {
       const { data } = await voluntariosApi.create(kioskForm);
       setVoluntarios(prev => [...prev, data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-      setKiosk('thanks');
+      setKiosk(null);
+      setToast('Voluntario registrado');
+      setTimeout(() => setToast(''), 2500);
     } catch (e) {
       setKioskError(e.response?.data?.error || 'Error al guardar');
     } finally {
@@ -568,7 +485,6 @@ export default function VoluntariosPage() {
   };
 
   const openKiosk = () => { setKioskForm(EMPTY_FORM); setKioskError(''); setKiosk('form'); };
-  const kioskNext = () => { setKioskForm(EMPTY_FORM); setKioskError(''); setKiosk('form'); };
 
   // ── Handlers gestión ministerios ─────────────────────────────────────────
   const handleCrearMin = async () => {
@@ -708,10 +624,18 @@ export default function VoluntariosPage() {
   return (
     <>
       {kiosk === 'form' && (
-        <KioskForm form={kioskForm} setForm={setKioskForm} onSave={handleKioskSave} saving={kioskSaving} error={kioskError} />
+        <KioskForm form={kioskForm} setForm={setKioskForm} onSave={handleKioskSave} onClose={() => setKiosk(null)} saving={kioskSaving} error={kioskError} />
       )}
-      {kiosk === 'thanks' && (
-        <KioskThanks onNext={kioskNext} onExit={() => setKiosk(null)} />
+
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 10000, background: NAVY, color: '#fff',
+          padding: '12px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600,
+          boxShadow: '0 8px 30px rgba(0,0,0,0.28)', display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <I.check size={16} color="#3DD68C" /> {toast}
+        </div>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
