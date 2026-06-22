@@ -185,6 +185,25 @@ export default function OfrendasEspecialesDetallePage() {
     return <div style={{ padding: '40px 0', textAlign: 'center', color: MUTED }}>Cargando…</div>;
   }
 
+  // ── Desglose por método (debe sumar exactamente el total) ────────────────────
+  // efectivo/terminal/transferencia salen del campo `metodo` de cada registro.
+  // `otros` absorbe cualquier registro con método fuera de los 3 (null/raro) para
+  // que el desglose SIEMPRE sume el total y no se "pierda" dinero.
+  const sumaPorMetodo = (metodo) => registros
+    .filter(r => r.metodo === metodo)
+    .reduce((s, r) => s + Number(r.cantidad), 0);
+  const desgEfectivo      = sumaPorMetodo('efectivo');
+  const desgTerminal      = sumaPorMetodo('terminal');
+  const desgTransferencia = sumaPorMetodo('transferencia');
+  const desgOtros         = total - desgEfectivo - desgTerminal - desgTransferencia;
+
+  const desglose = [
+    { label: 'Efectivo',      value: desgEfectivo,      show: true },
+    { label: 'Terminal',      value: desgTerminal,      show: true },
+    { label: 'Transferencia', value: desgTransferencia, show: desgTransferencia > 0.005 },
+    { label: 'Otros',         value: desgOtros,         show: desgOtros > 0.005 },
+  ].filter(c => c.show);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -224,6 +243,25 @@ export default function OfrendasEspecialesDetallePage() {
           </div>
           <div style={{ fontSize: 13, color: '#9CB0CC', marginTop: 8 }}>
             {registros.length} {registros.length === 1 ? 'registro' : 'registros'}
+          </div>
+
+          {/* Desglose por método — suma exactamente el total */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+            {desglose.map(c => (
+              <div key={c.label} style={{
+                display: 'inline-flex', alignItems: 'baseline', gap: 6,
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 8, padding: '6px 12px',
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#9CB0CC' }}>
+                  {c.label}
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
+                  {fmt(c.value)}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
         <button
