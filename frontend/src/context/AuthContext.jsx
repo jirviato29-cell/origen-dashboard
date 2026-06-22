@@ -36,34 +36,52 @@ export function AuthProvider({ children }) {
   const [accesoGlobal, setAccesoGlobal] = useState(init.accesoGlobal);
 
   // Retorna { ok: true } o { ok: false, error: string }
+  // NUNCA debe lanzar: un login fallido o una respuesta inesperada del
+  // backend siempre regresa { ok: false } para que la app no truene.
   const login = async (selectedRole, clave) => {
     try {
       const { data } = await axios.post(`${API_URL}/login`, {
         rol: selectedRole,
         clave,
       });
-      const { token: t, usuario, permisos: p } = data;
+
+      const t       = data?.token;
+      const usuario = data?.usuario;
+      const p       = data?.permisos ?? null;
+
+      // Si el backend respondió 200 pero sin token/usuario válidos,
+      // tratamos como credenciales incorrectas en vez de procesar undefined.
+      if (!t || !usuario) {
+        return { ok: false, error: data?.error || 'Usuario o clave incorrectos' };
+      }
+
+      const nombre       = usuario.nombre ?? '';
+      const rol          = usuario.rol ?? selectedRole;
+      const accesoGlob   = usuario.acceso_global || false;
 
       setToken(t);
-      setRole(usuario.rol);
-      setUserName(usuario.nombre);
+      setRole(rol);
+      setUserName(nombre);
       setPermisos(p);
-      setAccesoGlobal(usuario.acceso_global || false);
+      setAccesoGlobal(accesoGlob);
 
       localStorage.setItem('token',         t);
-      localStorage.setItem('role',          usuario.rol);
-      localStorage.setItem('userName',      usuario.nombre);
+      localStorage.setItem('role',          rol);
+      localStorage.setItem('userName',      nombre);
       localStorage.setItem('permisos',      JSON.stringify(p));
-      localStorage.setItem('acceso_global', String(usuario.acceso_global || false));
+      localStorage.setItem('acceso_global', String(accesoGlob));
 
       // Usuarios sin acceso global siempre operan en su propio campus
-      if (!usuario.acceso_global) {
+      if (!accesoGlob) {
         localStorage.setItem('campus_activo', usuario.campus || 'ags');
       }
 
       return { ok: true };
     } catch (err) {
-      const msg = err.response?.data?.error || 'Error al iniciar sesión';
+      // 401 → credenciales incorrectas; cualquier otro error → mensaje del backend o genérico
+      const status = err.response?.status;
+      const msg = err.response?.data?.error
+        || (status === 401 ? 'Usuario o clave incorrectos' : 'Error al iniciar sesión');
       return { ok: false, error: msg };
     }
   };

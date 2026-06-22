@@ -466,7 +466,7 @@ export default function StewardshipDashboard() {
   }, [voluntarios, hoy]);
 
   // ── Último servicio ────────────────────────────────────────────────────────
-  const ultimoServicio = [...asistencia].sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? null;
+  const ultimoServicio = [...asistencia].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))[0] ?? null;
   const ultimaFecha    = ultimoServicio?.fecha ?? null;
   const totalAsist     = ultimoServicio
     ? (ultimoServicio.adultos || 0) + (ultimoServicio.voluntarios || 0)

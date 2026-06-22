@@ -206,7 +206,11 @@ export default function AsistenciaViewPage() {
   const load = useCallback(async () => {
     try {
       const { data } = await asistenciaApi.getAll({ year, limit: 200 });
-      setRecords([...data].sort((a, b) => b.fecha.localeCompare(a.fecha)));
+      // Normaliza fecha a string para que ningún .slice/.startsWith/.localeCompare truene
+      const rows = (Array.isArray(data) ? data : [])
+        .map(r => ({ ...r, fecha: r?.fecha || '' }))
+        .sort((a, b) => b.fecha.localeCompare(a.fecha));
+      setRecords(rows);
     } catch {
       setRecords([]);
     } finally {
