@@ -10,6 +10,7 @@ import { MinisteriosProvider } from './context/MinisteriosContext';
 import CampusPage from './pages/CampusPage';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import IngresosPage from './pages/admin/IngresosPage';
 import GastosPage from './pages/admin/GastosPage';
@@ -133,7 +134,9 @@ export default function App() {
               <MinisteriosProvider>
               <AuthProvider>
                 <BrowserRouter>
-                  <AppRoutes />
+                  <ErrorBoundary>
+                    <AppRoutes />
+                  </ErrorBoundary>
                 </BrowserRouter>
               </AuthProvider>
               </MinisteriosProvider>
