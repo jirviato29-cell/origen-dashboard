@@ -807,6 +807,7 @@ export default function GastosPorPagarPage() {
                   <th>Categoría</th>
                   <th>Método</th>
                   <th style={{ textAlign: 'right' }}>Monto</th>
+                  {canWrite && <th style={{ textAlign: 'center', width: 96 }}>Acciones</th>}
                 </tr>
               </thead>
               <tbody>
@@ -829,6 +830,44 @@ export default function GastosPorPagarPage() {
                       <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: RED }}>
                         {fmt(Number(g.monto))}
                       </td>
+                      {canWrite && (
+                        <td onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
+                          <div style={{ display: 'inline-flex', gap: 6 }}>
+                            <button
+                              title="Editar gasto"
+                              onClick={(e) => { e.stopPropagation(); handleEditOpen(g); }}
+                              onMouseEnter={() => setEditHoverId(g.id)}
+                              onMouseLeave={() => setEditHoverId(null)}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                width: 30, height: 30, borderRadius: 7, flexShrink: 0,
+                                border: `1px solid ${editHoverId === g.id ? '#FF6B2B' : 'var(--border-strong)'}`,
+                                background: 'var(--surface)',
+                                color: editHoverId === g.id ? '#FF6B2B' : GRAY,
+                                cursor: 'pointer', transition: 'border-color .12s, color .12s',
+                              }}
+                            >
+                              <I.edit size={15} />
+                            </button>
+                            <button
+                              title="Eliminar gasto"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteOpen(g); }}
+                              onMouseEnter={() => setDeleteHoverId(g.id)}
+                              onMouseLeave={() => setDeleteHoverId(null)}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                width: 30, height: 30, borderRadius: 7, flexShrink: 0,
+                                border: `1px solid ${deleteHoverId === g.id ? RED : 'var(--border-strong)'}`,
+                                background: 'var(--surface)',
+                                color: deleteHoverId === g.id ? RED : GRAY,
+                                cursor: 'pointer', transition: 'border-color .12s, color .12s',
+                              }}
+                            >
+                              <I.trash size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -841,6 +880,7 @@ export default function GastosPorPagarPage() {
                   <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 800, color: RED, fontSize: 14 }}>
                     {fmt(totalPagadosAll)}
                   </td>
+                  {canWrite && <td />}
                 </tr>
               </tbody>
             </table>
