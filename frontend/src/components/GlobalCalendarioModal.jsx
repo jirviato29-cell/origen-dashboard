@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { calendarioApi, tiposEventoApi } from '../services/api';
 import { useCalendarioModal } from '../context/CalendarioModalContext';
 import { useTiposEvento } from '../context/TiposEventoContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, ROLES } from '../context/AuthContext';
 import { puedeRegistrar } from '../permissions';
 import { I } from './Icons';
 
@@ -37,8 +37,11 @@ const labelStyle = {
 export default function GlobalCalendarioModal() {
   const { open, initialDate, editingEvent, lockPuntoEncuentro, closeModal, triggerRefresh } = useCalendarioModal();
   const { tipos, reload: reloadTipos } = useTiposEvento();
-  const { permisos } = useAuth();
+  const { permisos, role } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'calendario');
+  // El rol Punto de Encuentro también puede gestionar los tipos de evento,
+  // aunque no tenga permiso de registrar en calendario.
+  const canManageTipos = canWrite || role === ROLES.PUNTO_ENCUENTRO;
 
   const [form,      setForm]      = useState(() => makeEmpty(null));
   const [error,     setError]     = useState('');
@@ -222,8 +225,8 @@ export default function GlobalCalendarioModal() {
                   {tiposDisp.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
 
-                {/* Gestionar tipos — solo canWrite */}
-                {canWrite && (
+                {/* Gestionar tipos — canWrite o rol Punto de Encuentro */}
+                {canManageTipos && (
                   <div>
                     <button
                       type="button"
