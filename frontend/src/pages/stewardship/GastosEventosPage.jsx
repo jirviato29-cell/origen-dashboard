@@ -7,6 +7,12 @@ import { I } from '../../components/Icons';
 const isGdl  = localStorage.getItem('campus_activo') === 'gdl';
 const ACCENT = isGdl ? '#2DD4BF' : '#112540';   // MINT gdl / NAVY ags
 
+// Botón "Ver gastos" — sólido con buen contraste en ambos campus
+const VER_BG     = isGdl ? '#2DD4BF' : '#112540';   // mint gdl / navy ags
+const VER_FG     = isGdl ? '#0F172A' : '#FFFFFF';   // texto navy oscuro sobre mint / blanco sobre navy
+const VER_BORDER = isGdl ? '#22B8A6' : '#24406B';   // borde sutil un tono más oscuro que el fondo
+const VER_HOVER  = isGdl ? '#26BFAE' : '#1B3358';   // hover: mint más apagado / navy más claro
+
 const NAVY_700 = '#244169';
 const GRAY_700 = '#3D4654';
 const GRAY_500 = '#7A8699';
@@ -357,9 +363,11 @@ export default function GastosEventosPage() {
         .ge-btn-ver {
           display: inline-flex; align-items: center; gap: 6px;
           font-size: 12.5px; font-weight: 600; padding: 7px 12px; border-radius: 8px;
-          background: ${ACCENT}; color: #fff; border: 0; cursor: pointer; white-space: nowrap;
+          background: ${VER_BG}; color: ${VER_FG}; border: 1px solid ${VER_BORDER};
+          cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s;
         }
-        .ge-btn-ver:hover { opacity: .9; }
+        .ge-btn-ver svg { color: ${VER_FG}; }
+        .ge-btn-ver:hover { background: ${VER_HOVER}; border-color: ${VER_HOVER}; }
 
         /* ── Modal ──────────────────────────────────────────────────────────── */
         .ge-overlay {
