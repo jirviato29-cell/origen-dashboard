@@ -191,14 +191,6 @@ export default function GastosEventosPage() {
       return { e, inscritos, recaudado, gastos, neto, concluido };
     });
 
-  // ── Totales generales ────────────────────────────────────────────────────────
-  const tot = filas.reduce((acc, f) => {
-    acc.recaudado += f.recaudado;
-    acc.gastos    += f.gastos;
-    acc.neto      += f.neto;
-    return acc;
-  }, { recaudado: 0, gastos: 0, neto: 0 });
-
   // ── Modal: abrir / cargar / cerrar ────────────────────────────────────────────
   const cargarGastosEvento = async (eventoId) => {
     setLoadingGastos(true);
@@ -346,37 +338,33 @@ export default function GastosEventosPage() {
         .ge-title { font-size: 18px; font-weight: 700; color: var(--ink); }
         .ge-sub   { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
 
-        .ge-table-wrap { overflow-x: auto; }
-        .ge-table {
-          width: 100%; border-collapse: collapse; font-size: 13.5px;
-          min-width: 720px;
+        /* ── Una tarjeta independiente por evento ─────────────────────────────── */
+        .ge-eventos { display: flex; flex-direction: column; gap: 14px; }
+        .ge-evento-card { padding: 0; overflow: hidden; }
+        .ge-evento-head {
+          display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+          padding: 15px 18px; border-bottom: 1px solid ${GRAY_200}; background: ${GRAY_50};
         }
-        .ge-table thead th {
-          text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 700;
-          text-transform: uppercase; letter-spacing: 0.05em; color: ${GRAY_500};
-          background: ${GRAY_50}; border-bottom: 1px solid ${GRAY_200}; white-space: nowrap;
-        }
-        .ge-table tbody td {
-          padding: 12px 14px; border-bottom: 1px solid ${GRAY_100};
-          color: ${GRAY_700}; vertical-align: middle;
-        }
-        .ge-table tbody tr:hover td { background: ${GRAY_50}; }
-        .ge-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-        .ge-th-num { text-align: right; }
-        .ge-evento { font-weight: 700; color: var(--ink); }
+        .ge-evento-nombre { font-size: 15.5px; font-weight: 800; color: var(--ink); }
+        .ge-evento-fecha  { font-size: 12px; color: ${GRAY_500}; margin-top: 2px; }
         .ge-badge {
           display: inline-block; font-size: 10.5px; font-weight: 700;
-          padding: 2px 9px; border-radius: 6px;
+          padding: 2px 9px; border-radius: 6px; white-space: nowrap; flex-shrink: 0;
         }
         .ge-badge.activo    { background: rgba(45,212,191,.14); color: ${GREEN}; }
         .ge-badge.concluido { background: ${GRAY_100}; color: ${GRAY_500}; }
-        .ge-neto-pos { color: ${GREEN}; font-weight: 700; }
-        .ge-neto-neg { color: ${RED};   font-weight: 700; }
-        .ge-tfoot td {
-          padding: 12px 14px; border-top: 2px solid ${GRAY_200};
-          font-weight: 700; color: var(--ink); background: ${GRAY_50};
+
+        .ge-metrics {
+          display: grid; grid-template-columns: repeat(4, 1fr);
+          gap: 1px; background: ${GRAY_200};
         }
+        .ge-metric { background: var(--surface); padding: 14px 16px; }
+        .ge-metric-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${GRAY_500}; }
+        .ge-metric-val { font-size: 17px; font-weight: 800; margin-top: 4px; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+        .ge-evento-foot { padding: 14px 18px; display: flex; justify-content: flex-end; }
         .ge-empty { text-align: center; padding: 44px 0; color: var(--muted); font-size: 14px; }
+        @media (max-width: 600px) { .ge-metrics { grid-template-columns: repeat(2, 1fr); } }
 
         .ge-btn-ver {
           display: inline-flex; align-items: center; gap: 6px;
@@ -491,66 +479,62 @@ export default function GastosEventosPage() {
         </div>
       </div>
 
-      {/* Tabla */}
-      <div className="card">
-        {loading ? (
-          <div className="ge-empty">Cargando eventos…</div>
-        ) : filas.length === 0 ? (
-          <div className="ge-empty">No hay eventos con costo.</div>
-        ) : (
-          <div className="ge-table-wrap">
-            <table className="ge-table">
-              <thead>
-                <tr>
-                  <th>Evento</th>
-                  <th>Fecha</th>
-                  <th>Estado</th>
-                  <th className="ge-th-num">Inscritos</th>
-                  <th className="ge-th-num">Recaudado</th>
-                  <th className="ge-th-num">Gastos</th>
-                  <th className="ge-th-num">Neto</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map(({ e, inscritos, recaudado, gastos, neto, concluido }) => (
-                  <tr key={e.id}>
-                    <td className="ge-evento">{e.nombre}</td>
-                    <td style={{ color: GRAY_500, whiteSpace: 'nowrap' }}>{fmtFechaShort(e.fecha)}</td>
-                    <td>
-                      <span className={`ge-badge ${concluido ? 'concluido' : 'activo'}`}>
-                        {concluido ? 'Concluido' : 'Activo'}
-                      </span>
-                    </td>
-                    <td className="ge-num">{inscritos}</td>
-                    <td className="ge-num">{fmtMoney(recaudado)}</td>
-                    <td className="ge-num">{fmtMoney(gastos)}</td>
-                    <td className={`ge-num ${neto >= 0 ? 'ge-neto-pos' : 'ge-neto-neg'}`}>{fmtMoney(neto)}</td>
-                    <td className="ge-num">
-                      <button
-                        className="ge-btn-ver"
-                        onClick={() => abrirModal(e)}
-                        style={{ background: VER_BG, color: VER_FG, borderColor: VER_BORDER, opacity: 1 }}
-                      >
-                        <I.receipt size={14} /> Registrar gasto
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="ge-tfoot">
-                  <td colSpan={4}>Total</td>
-                  <td className="ge-num">{fmtMoney(tot.recaudado)}</td>
-                  <td className="ge-num">{fmtMoney(tot.gastos)}</td>
-                  <td className={`ge-num ${tot.neto >= 0 ? 'ge-neto-pos' : 'ge-neto-neg'}`}>{fmtMoney(tot.neto)}</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Una tabla/tarjeta independiente por evento — sin total combinado */}
+      {loading ? (
+        <div className="card"><div className="ge-empty">Cargando eventos…</div></div>
+      ) : filas.length === 0 ? (
+        <div className="card"><div className="ge-empty">No hay eventos con costo.</div></div>
+      ) : (
+        <div className="ge-eventos">
+          {filas.map(({ e, inscritos, recaudado, gastos, neto, concluido }) => (
+            <div key={e.id} className="card ge-evento-card">
+
+              {/* Encabezado del evento */}
+              <div className="ge-evento-head">
+                <div>
+                  <div className="ge-evento-nombre">{e.nombre}</div>
+                  <div className="ge-evento-fecha">{fmtFechaShort(e.fecha)}</div>
+                </div>
+                <span className={`ge-badge ${concluido ? 'concluido' : 'activo'}`}>
+                  {concluido ? 'Concluido' : 'Activo'}
+                </span>
+              </div>
+
+              {/* Datos de ESE evento */}
+              <div className="ge-metrics">
+                <div className="ge-metric">
+                  <div className="ge-metric-lbl">Inscritos</div>
+                  <div className="ge-metric-val">{inscritos}</div>
+                </div>
+                <div className="ge-metric">
+                  <div className="ge-metric-lbl">Recaudado</div>
+                  <div className="ge-metric-val">{fmtMoney(recaudado)}</div>
+                </div>
+                <div className="ge-metric">
+                  <div className="ge-metric-lbl">Gastos</div>
+                  <div className="ge-metric-val" style={{ color: RED }}>{fmtMoney(gastos)}</div>
+                </div>
+                <div className="ge-metric">
+                  <div className="ge-metric-lbl">Neto</div>
+                  <div className="ge-metric-val" style={{ color: neto >= 0 ? GREEN : RED }}>{fmtMoney(neto)}</div>
+                </div>
+              </div>
+
+              {/* Acción de ESE evento */}
+              <div className="ge-evento-foot">
+                <button
+                  className="ge-btn-ver"
+                  onClick={() => abrirModal(e)}
+                  style={{ background: VER_BG, color: VER_FG, borderColor: VER_BORDER, opacity: 1 }}
+                >
+                  <I.receipt size={14} /> Registrar gasto
+                </button>
+              </div>
+
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Modal Gastos de [evento] ─────────────────────────────────────────── */}
       {modalAbierto && eventoActivo && (
