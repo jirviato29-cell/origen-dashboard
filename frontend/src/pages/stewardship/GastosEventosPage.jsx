@@ -406,18 +406,18 @@ export default function GastosEventosPage() {
         .ge-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${GRAY_500}; }
 
         .ge-gasto-item {
-          display: flex; align-items: flex-start; gap: 10px;
+          display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
           padding: 11px 12px; border: 1px solid ${GRAY_200}; border-radius: 10px; background: var(--surface);
         }
         .ge-gasto-item + .ge-gasto-item { margin-top: 8px; }
-        .ge-gasto-main { flex: 1; min-width: 0; }
+        .ge-gasto-main { flex: 1; min-width: 160px; }
         .ge-gasto-concepto { font-size: 13.5px; font-weight: 700; color: var(--ink); }
         .ge-gasto-meta { font-size: 11.5px; color: ${GRAY_500}; margin-top: 2px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
         .ge-gasto-nota { font-size: 12px; color: ${GRAY_700}; margin-top: 4px; }
-        .ge-gasto-thumbs { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+        .ge-gasto-thumbs { display: flex; gap: 8px; flex-shrink: 0; align-items: flex-start; }
         .ge-thumb { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; }
         .ge-thumb-box {
-          width: 48px; height: 48px; border-radius: 8px; border: 1px solid ${GRAY_200};
+          width: 40px; height: 40px; border-radius: 8px; border: 1px solid ${GRAY_200};
           object-fit: cover; display: flex; align-items: center; justify-content: center;
           background: ${GRAY_50}; overflow: hidden;
         }
@@ -534,13 +534,13 @@ export default function GastosEventosPage() {
                             )}
                           </div>
                           {g.nota && <div className="ge-gasto-nota">{g.nota}</div>}
-                          {(g.comprobante_url || g.foto_url) && (
-                            <div className="ge-gasto-thumbs">
-                              <Miniatura url={g.foto_url}        label="Foto" />
-                              <Miniatura url={g.comprobante_url} label="Comprobante" />
-                            </div>
-                          )}
                         </div>
+                        {(g.comprobante_url || g.foto_url) && (
+                          <div className="ge-gasto-thumbs">
+                            <Miniatura url={g.foto_url}        label="Foto" />
+                            <Miniatura url={g.comprobante_url} label="Comprobante" />
+                          </div>
+                        )}
                         <div className="ge-gasto-monto">{fmtMoney(g.monto)}</div>
                         <button
                           className="ge-del"
