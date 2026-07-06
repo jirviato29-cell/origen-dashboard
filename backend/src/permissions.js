@@ -14,6 +14,7 @@ const PERMISOS = {
     total: false,
     secciones: {
       punto_encuentro: { ver: true,  registrar: true,  modificar: true  },
+      gastos_eventos:  { ver: true,  registrar: true,  modificar: true  },
       calendario:      { ver: true,  registrar: false, modificar: false },
       asistencia:      { ver: true,  registrar: false, modificar: false },
       visitantes:      { ver: true,  registrar: true,  modificar: true  },
@@ -29,6 +30,7 @@ const PERMISOS = {
       finanzas:        { ver: true, registrar: false, modificar: false },
       asistencia:      { ver: true, registrar: false, modificar: false },
       punto_encuentro: { ver: true, registrar: false, modificar: false },
+      gastos_eventos:  { ver: true, registrar: false, modificar: false },
       calendario:      { ver: true, registrar: false, modificar: false },
       visitantes:      { ver: true, registrar: false, modificar: false },
     },

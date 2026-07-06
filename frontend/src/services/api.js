@@ -73,6 +73,13 @@ const realGastosApi = {
   porCategoria: (params) => http.get('/gastos/por-categoria', { params }),
 };
 
+// ─── Gastos de eventos ────────────────────────────────────────────────────────
+const realGastosEventosApi = {
+  getAll:  (params) => http.get('/gastos-eventos', { params }),
+  create:  (data)   => http.post('/gastos-eventos', data),
+  remove:  (id)     => http.delete(`/gastos-eventos/${id}`),
+};
+
 // ─── Categorías ───────────────────────────────────────────────────────────────
 const realCategoriasApi = {
   getAll: (params) => http.get('/categorias', { params }),
@@ -224,6 +231,7 @@ export const ofrendasEspecialesApi = realOfrendasEspecialesApi;
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;
 export const ofrendasApi   = USE_MOCK ? mock.ingresosApi   : realOfrendasApi;
 export const gastosApi     = USE_MOCK ? mock.gastosApi     : realGastosApi;
+export const gastosEventosApi = realGastosEventosApi;
 export const categoriasApi = USE_MOCK ? mock.categoriasApi : realCategoriasApi;
 export const dashboardApi  = USE_MOCK ? mock.dashboardApi  : realDashboardApi;
 export const asistenciaApi = USE_MOCK ? mock.asistenciaApi : realAsistenciaApi;

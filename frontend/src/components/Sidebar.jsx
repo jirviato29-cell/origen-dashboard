@@ -40,6 +40,7 @@ const navByRole = {
   [ROLES.PUNTO_ENCUENTRO]: [
     { group: 'Punto de Encuentro', items: [
       { to: '/punto_encuentro',                    label: 'Punto de Encuentro', icon: I.pin,      end: true },
+      { to: '/punto_encuentro/gastos-eventos',     label: 'Gastos de eventos',  icon: I.receipt,  end: false },
       { to: '/punto_encuentro/bienvenida-a-casa',  label: 'Bienvenida a Casa',  icon: I.home },
       { to: '/punto_encuentro/calendario',         label: 'Calendario',         icon: I.calendar },
       { to: '/punto_encuentro/asistencia',         label: 'Asistencia',         icon: I.users },
@@ -63,6 +64,7 @@ const navByRole = {
       },
       { to: '/stewardship/asistencia',        label: 'Asistencia',              icon: I.users },
       { to: '/stewardship/punto-encuentro',   label: 'Punto de Encuentro',     icon: I.pin },
+      { to: '/stewardship/gastos-eventos',    label: 'Gastos de eventos',      icon: I.receipt },
       { to: '/stewardship/bienvenida-a-casa', label: 'Bienvenida a Casa',      icon: I.home },
       { to: '/stewardship/voluntarios',       label: 'Directorio voluntarios',  icon: I.users },
       { to: '/stewardship/calendario',        label: 'Calendario',              icon: I.calendar },
