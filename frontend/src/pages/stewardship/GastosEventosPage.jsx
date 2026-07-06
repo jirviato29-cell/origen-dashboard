@@ -72,14 +72,12 @@ export default function GastosEventosPage() {
   const [eventos,          setEventos]          = useState([]);
   const [participantesMap, setParticipantesMap] = useState({});
   const [abonosMap,        setAbonosMap]        = useState({});
-  const [gastosMap,        setGastosMap]        = useState({});
+  const [gastosPorEvento,  setGastosPorEvento]  = useState({});   // { evento_id: [gastos...] }
   const [loading,          setLoading]          = useState(true);
 
-  // ── Estado del modal ─────────────────────────────────────────────────────────
+  // ── Estado del modal (solo registrar) ────────────────────────────────────────
   const [modalAbierto,  setModalAbierto]  = useState(false);
   const [eventoActivo,  setEventoActivo]  = useState(null);
-  const [gastosEvento,  setGastosEvento]  = useState([]);
-  const [loadingGastos, setLoadingGastos] = useState(false);
   const [deletingId,    setDeletingId]    = useState(null);
 
   // Formulario del modal
@@ -105,15 +103,19 @@ export default function GastosEventosPage() {
       0
     );
 
-  // ── Reconstruye gastosMap desde el backend (para la tabla principal) ──────────
-  const rebuildGastosMap = async () => {
+  // ── Suma de una lista de gastos ───────────────────────────────────────────────
+  const sumaGastos = (lista) => (lista || []).reduce((s, g) => s + parseFloat(g.monto || 0), 0);
+
+  // ── Reconstruye gastosPorEvento desde el backend ─────────────────────────────
+  const rebuildGastos = async () => {
     try {
       const { data: gastos } = await gastosEventosApi.getAll();
       const gMap = {};
       gastos.forEach(g => {
-        gMap[g.evento_id] = (gMap[g.evento_id] || 0) + parseFloat(g.monto || 0);
+        if (!gMap[g.evento_id]) gMap[g.evento_id] = [];
+        gMap[g.evento_id].push(g);
       });
-      setGastosMap(gMap);
+      setGastosPorEvento(gMap);
     } catch { /* si el endpoint falla, se conserva lo previo */ }
   };
 
@@ -156,11 +158,12 @@ export default function GastosEventosPage() {
         if (cancelado) return;
         const gMap = {};
         gastos.forEach(g => {
-          gMap[g.evento_id] = (gMap[g.evento_id] || 0) + parseFloat(g.monto || 0);
+          if (!gMap[g.evento_id]) gMap[g.evento_id] = [];
+          gMap[g.evento_id].push(g);
         });
-        setGastosMap(gMap);
+        setGastosPorEvento(gMap);
       } catch {
-        if (!cancelado) setGastosMap({});
+        if (!cancelado) setGastosPorEvento({});
       }
 
       if (!cancelado) setLoading(false);
@@ -185,42 +188,29 @@ export default function GastosEventosPage() {
     .map(e => {
       const inscritos = (participantesMap[e.id] || []).length;
       const recaudado = recaudadoDe(e);
-      const gastos    = gastosMap[e.id] || 0;
+      const listaGastos = gastosPorEvento[e.id] || [];
+      const gastos    = sumaGastos(listaGastos);
       const neto      = recaudado - gastos;
       const concluido = e.cerrado === true;
-      return { e, inscritos, recaudado, gastos, neto, concluido };
+      return { e, inscritos, recaudado, gastos, neto, concluido, listaGastos };
     });
 
-  // ── Modal: abrir / cargar / cerrar ────────────────────────────────────────────
-  const cargarGastosEvento = async (eventoId) => {
-    setLoadingGastos(true);
-    try {
-      const { data } = await gastosEventosApi.getAll({ evento_id: eventoId });
-      setGastosEvento(data);
-    } catch {
-      setGastosEvento([]);
-    } finally {
-      setLoadingGastos(false);
-    }
-  };
-
+  // ── Modal: abrir / cerrar (solo registrar) ────────────────────────────────────
   const abrirModal = (evento) => {
     setEventoActivo(evento);
-    setGastosEvento([]);
     setForm(emptyForm());
     setFormError(''); setErrConcepto(false); setErrMonto(false);
     setComprobanteFile(null); setFotoFile(null);
     setFileError(''); setFileError2('');
     setFileKey(k => k + 1); setFileKey2(k => k + 1);
     setModalAbierto(true);
-    cargarGastosEvento(evento.id);
   };
 
   const cerrarModal = () => {
     setModalAbierto(false);
     setEventoActivo(null);
-    // Recargar la tabla principal para reflejar Gastos/Neto actualizados
-    rebuildGastosMap();
+    // Recargar para reflejar Gastos/Neto y el desglose en las tarjetas
+    rebuildGastos();
   };
 
   // ── Archivos ───────────────────────────────────────────────────────────────
@@ -290,8 +280,8 @@ export default function GastosEventosPage() {
         comprobante_url,
         foto_url,
       });
-      // Recargar gastos del evento + limpiar form (NO cerramos el modal)
-      await cargarGastosEvento(eventoActivo.id);
+      // Refrescar desglose + métricas de las tarjetas y limpiar form (NO cerramos el modal)
+      await rebuildGastos();
       setForm(emptyForm());
       setComprobanteFile(null); setFotoFile(null);
       setFileError(''); setFileError2('');
@@ -309,7 +299,7 @@ export default function GastosEventosPage() {
     setDeletingId(g.id);
     try {
       await gastosEventosApi.remove(g.id);
-      await cargarGastosEvento(eventoActivo.id);
+      await rebuildGastos();
     } catch {
       alert('No se pudo eliminar el gasto. Intenta de nuevo.');
     } finally {
@@ -319,7 +309,7 @@ export default function GastosEventosPage() {
 
   // ── Resumen del evento activo (recalculado al vuelo) ──────────────────────────
   const modalRecaudado = eventoActivo ? recaudadoDe(eventoActivo) : 0;
-  const modalGastos    = gastosEvento.reduce((s, g) => s + parseFloat(g.monto || 0), 0);
+  const modalGastos    = eventoActivo ? sumaGastos(gastosPorEvento[eventoActivo.id]) : 0;
   const modalNeto      = modalRecaudado - modalGastos;
 
   const isBusy    = saving || uploading;
@@ -362,7 +352,8 @@ export default function GastosEventosPage() {
         .ge-metric-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${GRAY_500}; }
         .ge-metric-val { font-size: 17px; font-weight: 800; margin-top: 4px; color: var(--ink); font-variant-numeric: tabular-nums; }
 
-        .ge-evento-foot { padding: 14px 18px; display: flex; justify-content: flex-end; }
+        .ge-desglose { padding: 14px 18px; border-top: 1px solid ${GRAY_100}; }
+        .ge-evento-foot { padding: 14px 18px; border-top: 1px solid ${GRAY_100}; display: flex; justify-content: flex-end; }
         .ge-empty { text-align: center; padding: 44px 0; color: var(--muted); font-size: 14px; }
         @media (max-width: 600px) { .ge-metrics { grid-template-columns: repeat(2, 1fr); } }
 
@@ -486,7 +477,7 @@ export default function GastosEventosPage() {
         <div className="card"><div className="ge-empty">No hay eventos con costo.</div></div>
       ) : (
         <div className="ge-eventos">
-          {filas.map(({ e, inscritos, recaudado, gastos, neto, concluido }) => (
+          {filas.map(({ e, inscritos, recaudado, gastos, neto, concluido, listaGastos }) => (
             <div key={e.id} className="card ge-evento-card">
 
               {/* Encabezado del evento */}
@@ -518,6 +509,51 @@ export default function GastosEventosPage() {
                   <div className="ge-metric-lbl">Neto</div>
                   <div className="ge-metric-val" style={{ color: neto >= 0 ? GREEN : RED }}>{fmtMoney(neto)}</div>
                 </div>
+              </div>
+
+              {/* Desglose de gastos de ESE evento */}
+              <div className="ge-desglose">
+                <div className="ge-section-title" style={{ marginBottom: 10 }}>
+                  Gastos declarados{listaGastos.length ? ` (${listaGastos.length})` : ''}
+                </div>
+                {listaGastos.length === 0 ? (
+                  <div className="ge-empty-gastos">Sin gastos declarados.</div>
+                ) : (
+                  <div>
+                    {listaGastos.map(g => (
+                      <div key={g.id} className="ge-gasto-item">
+                        <div className="ge-gasto-main">
+                          <div className="ge-gasto-concepto">{g.concepto}</div>
+                          <div className="ge-gasto-meta">
+                            <span>{fmtFechaShort(g.fecha)}</span>
+                            {g.tipo_comprobante && (
+                              <>
+                                <span style={{ color: GRAY_300 }}>·</span>
+                                <span>{g.tipo_comprobante}</span>
+                              </>
+                            )}
+                          </div>
+                          {g.nota && <div className="ge-gasto-nota">{g.nota}</div>}
+                          {(g.comprobante_url || g.foto_url) && (
+                            <div className="ge-gasto-thumbs">
+                              <Miniatura url={g.foto_url}        label="Foto" />
+                              <Miniatura url={g.comprobante_url} label="Comprobante" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="ge-gasto-monto">{fmtMoney(g.monto)}</div>
+                        <button
+                          className="ge-del"
+                          onClick={() => handleEliminar(g)}
+                          disabled={deletingId === g.id}
+                          title="Eliminar gasto"
+                        >
+                          <I.trash size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Acción de ESE evento */}
@@ -575,55 +611,8 @@ export default function GastosEventosPage() {
 
             <div className="ge-modal-body">
 
-              {/* (a) Lista de gastos declarados */}
-              <div>
-                <div className="ge-section-title" style={{ marginBottom: 10 }}>
-                  Gastos declarados{gastosEvento.length ? ` (${gastosEvento.length})` : ''}
-                </div>
-                {loadingGastos ? (
-                  <div className="ge-empty-gastos">Cargando gastos…</div>
-                ) : gastosEvento.length === 0 ? (
-                  <div className="ge-empty-gastos">Aún no hay gastos declarados para este evento.</div>
-                ) : (
-                  <div>
-                    {gastosEvento.map(g => (
-                      <div key={g.id} className="ge-gasto-item">
-                        <div className="ge-gasto-main">
-                          <div className="ge-gasto-concepto">{g.concepto}</div>
-                          <div className="ge-gasto-meta">
-                            <span>{fmtFechaShort(g.fecha)}</span>
-                            {g.tipo_comprobante && (
-                              <>
-                                <span style={{ color: GRAY_300 }}>·</span>
-                                <span>{g.tipo_comprobante}</span>
-                              </>
-                            )}
-                          </div>
-                          {g.nota && <div className="ge-gasto-nota">{g.nota}</div>}
-                          {(g.comprobante_url || g.foto_url) && (
-                            <div className="ge-gasto-thumbs">
-                              <Miniatura url={g.foto_url}        label="Foto" />
-                              <Miniatura url={g.comprobante_url} label="Comprobante" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="ge-gasto-monto">{fmtMoney(g.monto)}</div>
-                        <button
-                          className="ge-del"
-                          onClick={() => handleEliminar(g)}
-                          disabled={deletingId === g.id}
-                          title="Eliminar gasto"
-                        >
-                          <I.trash size={15} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* (b) Formulario para declarar gasto nuevo */}
-              <div style={{ borderTop: `1px solid ${GRAY_100}`, paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Formulario para declarar gasto nuevo */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="ge-section-title">Declarar gasto nuevo</div>
 
                 {/* Fecha */}
