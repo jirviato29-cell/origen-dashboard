@@ -10,6 +10,7 @@ const usuariosRouter      = require('./routes/usuarios');
 const voluntariosRouter   = require('./routes/voluntarios');
 const ingresosRouter      = require('./routes/ingresos');
 const gastosRouter        = require('./routes/gastos');
+const gastosEventosRouter = require('./routes/gastosEventos');
 const categoriasRouter    = require('./routes/categorias');
 const dashboardRouter     = require('./routes/dashboard');
 const asistenciaRouter    = require('./routes/asistencia');
@@ -48,6 +49,7 @@ app.use('/api/voluntarios', voluntariosRouter);
 
 app.use('/api/ingresos',   ingresosRouter);
 app.use('/api/gastos',     gastosRouter);
+app.use('/api/gastos-eventos', gastosEventosRouter);
 app.use('/api/categorias', categoriasRouter);
 app.use('/api/dashboard',  dashboardRouter);
 app.use('/api/asistencia', asistenciaRouter);
