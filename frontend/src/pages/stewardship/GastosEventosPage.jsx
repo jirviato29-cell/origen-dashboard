@@ -35,6 +35,23 @@ function todayISO() {
   return d.toISOString().slice(0, 10);
 }
 
+function esPdf(url) {
+  return /\.pdf(\?|#|$)/i.test(String(url || ''));
+}
+
+// Miniatura clickeable de un archivo (foto o comprobante). Omite si no hay url.
+function Miniatura({ url, label }) {
+  if (!url) return null;
+  return (
+    <a className="ge-thumb" href={url} target="_blank" rel="noreferrer" title={`${label} — abrir`}>
+      {esPdf(url)
+        ? <span className="ge-thumb-box ge-thumb-pdf">PDF</span>
+        : <img className="ge-thumb-box" src={url} alt={label} />}
+      <span className="ge-thumb-cap">{label}</span>
+    </a>
+  );
+}
+
 const emptyForm = () => ({
   fecha: todayISO(), concepto: '', monto: '', nota: '', tipo_comprobante: 'Ticket',
 });
@@ -417,8 +434,19 @@ export default function GastosEventosPage() {
         .ge-gasto-concepto { font-size: 13.5px; font-weight: 700; color: var(--ink); }
         .ge-gasto-meta { font-size: 11.5px; color: ${GRAY_500}; margin-top: 2px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
         .ge-gasto-nota { font-size: 12px; color: ${GRAY_700}; margin-top: 4px; }
-        .ge-gasto-links { display: flex; gap: 10px; margin-top: 5px; }
-        .ge-gasto-link { font-size: 11.5px; font-weight: 600; color: ${ACCENT}; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+        .ge-gasto-thumbs { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+        .ge-thumb { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; }
+        .ge-thumb-box {
+          width: 48px; height: 48px; border-radius: 8px; border: 1px solid ${GRAY_200};
+          object-fit: cover; display: flex; align-items: center; justify-content: center;
+          background: ${GRAY_50}; overflow: hidden;
+        }
+        .ge-thumb-pdf {
+          font-size: 11px; font-weight: 800; letter-spacing: 0.04em; color: ${RED};
+          background: rgba(210,59,54,0.10); border-color: rgba(210,59,54,0.30);
+        }
+        .ge-thumb:hover .ge-thumb-box { border-color: ${ACCENT}; }
+        .ge-thumb-cap { font-size: 10.5px; font-weight: 600; color: ${GRAY_500}; }
         .ge-gasto-monto { font-size: 14px; font-weight: 800; color: ${RED}; font-variant-numeric: tabular-nums; white-space: nowrap; }
         .ge-del {
           background: none; border: 0; cursor: pointer; color: ${GRAY_300}; padding: 4px; flex-shrink: 0;
@@ -504,7 +532,7 @@ export default function GastosEventosPage() {
                         onClick={() => abrirModal(e)}
                         style={{ background: VER_BG, color: VER_FG, borderColor: VER_BORDER, opacity: 1 }}
                       >
-                        <I.receipt size={14} /> Ver gastos
+                        <I.receipt size={14} /> Registrar gasto
                       </button>
                     </td>
                   </tr>
@@ -550,11 +578,11 @@ export default function GastosEventosPage() {
                 <div className="val" style={{ color: NAVY_700 }}>{fmtMoney(modalRecaudado)}</div>
               </div>
               <div>
-                <div className="lbl">Gastos</div>
+                <div className="lbl">Gastos declarados</div>
                 <div className="val" style={{ color: RED }}>{fmtMoney(modalGastos)}</div>
               </div>
               <div>
-                <div className="lbl">Neto</div>
+                <div className="lbl">Restante de lo recaudado</div>
                 <div className="val" style={{ color: modalNeto >= 0 ? GREEN : RED }}>{fmtMoney(modalNeto)}</div>
               </div>
             </div>
@@ -587,17 +615,9 @@ export default function GastosEventosPage() {
                           </div>
                           {g.nota && <div className="ge-gasto-nota">{g.nota}</div>}
                           {(g.comprobante_url || g.foto_url) && (
-                            <div className="ge-gasto-links">
-                              {g.comprobante_url && (
-                                <a className="ge-gasto-link" href={g.comprobante_url} target="_blank" rel="noreferrer">
-                                  <I.download size={12} /> Comprobante
-                                </a>
-                              )}
-                              {g.foto_url && (
-                                <a className="ge-gasto-link" href={g.foto_url} target="_blank" rel="noreferrer">
-                                  <I.download size={12} /> Foto
-                                </a>
-                              )}
+                            <div className="ge-gasto-thumbs">
+                              <Miniatura url={g.foto_url}        label="Foto" />
+                              <Miniatura url={g.comprobante_url} label="Comprobante" />
                             </div>
                           )}
                         </div>
