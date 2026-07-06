@@ -403,12 +403,13 @@ export default function GastosEventosPage() {
           display: flex; align-items: center; justify-content: center; color: ${GRAY_500};
         }
         .ge-resumen {
-          display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
-          background: ${GRAY_200}; border-bottom: 1px solid ${GRAY_200};
+          display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+          padding: 8px 16px; background: ${GRAY_50}; border-bottom: 1px solid ${GRAY_200};
         }
-        .ge-resumen div { background: var(--surface); padding: 12px 14px; text-align: center; }
-        .ge-resumen .lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${GRAY_500}; }
-        .ge-resumen .val { font-size: 15px; font-weight: 800; margin-top: 3px; font-variant-numeric: tabular-nums; }
+        .ge-res-item { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+        .ge-res-item .lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: ${GRAY_500}; }
+        .ge-res-item .val { font-size: 14px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+        .ge-res-sep { color: ${GRAY_300}; font-weight: 700; }
 
         .ge-modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 18px; }
         .ge-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${GRAY_500}; }
@@ -441,7 +442,7 @@ export default function GastosEventosPage() {
           display: flex; align-items: center;
         }
         .ge-del:hover { color: ${RED}; }
-        .ge-empty-gastos { text-align: center; padding: 18px 0; color: var(--muted); font-size: 13px; border: 1px dashed ${GRAY_200}; border-radius: 10px; }
+        .ge-empty-gastos { text-align: center; padding: 9px 10px; color: var(--muted); font-size: 12px; border: 1px dashed ${GRAY_200}; border-radius: 8px; }
 
         .ge-field { display: flex; flex-direction: column; gap: 6px; }
         .ge-file-drop {
@@ -465,7 +466,6 @@ export default function GastosEventosPage() {
         .ge-btn-ghost { background: var(--surface); color: ${GRAY_700}; }
         .ge-btn-save { background: ${ACCENT}; color: #fff; border-color: ${ACCENT}; }
         .ge-btn:disabled { opacity: .5; cursor: not-allowed; }
-        @media (max-width: 560px) { .ge-resumen { grid-template-columns: 1fr; } }
       `}</style>
 
       {/* Encabezado */}
@@ -555,19 +555,21 @@ export default function GastosEventosPage() {
               </button>
             </div>
 
-            {/* Resumen recalculado al vuelo */}
+            {/* Resumen recalculado al vuelo — una sola línea compacta */}
             <div className="ge-resumen">
-              <div>
-                <div className="lbl">Recaudado</div>
-                <div className="val" style={{ color: NAVY_700 }}>{fmtMoney(modalRecaudado)}</div>
+              <div className="ge-res-item">
+                <span className="lbl">Recaudado</span>
+                <span className="val">{fmtMoney(modalRecaudado)}</span>
               </div>
-              <div>
-                <div className="lbl">Gastos declarados</div>
-                <div className="val" style={{ color: RED }}>{fmtMoney(modalGastos)}</div>
+              <span className="ge-res-sep">·</span>
+              <div className="ge-res-item">
+                <span className="lbl">Gastos</span>
+                <span className="val" style={{ color: RED }}>{fmtMoney(modalGastos)}</span>
               </div>
-              <div>
-                <div className="lbl">Restante de lo recaudado</div>
-                <div className="val" style={{ color: modalNeto >= 0 ? GREEN : RED }}>{fmtMoney(modalNeto)}</div>
+              <span className="ge-res-sep">·</span>
+              <div className="ge-res-item">
+                <span className="lbl">Restante</span>
+                <span className="val" style={{ color: modalNeto >= 0 ? GREEN : RED }}>{fmtMoney(modalNeto)}</span>
               </div>
             </div>
 
