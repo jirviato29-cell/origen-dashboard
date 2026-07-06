@@ -498,7 +498,11 @@ export default function GastosEventosPage() {
                     <td className="ge-num">{fmtMoney(gastos)}</td>
                     <td className={`ge-num ${neto >= 0 ? 'ge-neto-pos' : 'ge-neto-neg'}`}>{fmtMoney(neto)}</td>
                     <td className="ge-num">
-                      <button className="ge-btn-ver" onClick={() => abrirModal(e)}>
+                      <button
+                        className="ge-btn-ver"
+                        onClick={() => abrirModal(e)}
+                        style={{ background: VER_BG, color: VER_FG, borderColor: VER_BORDER, opacity: 1 }}
+                      >
                         <I.receipt size={14} /> Ver gastos
                       </button>
                     </td>
