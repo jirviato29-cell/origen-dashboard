@@ -75,6 +75,10 @@ export default function GastosEventosPage() {
   const [gastosPorEvento,  setGastosPorEvento]  = useState({});   // { evento_id: [gastos...] }
   const [loading,          setLoading]          = useState(true);
 
+  // ── Desglose colapsable por tarjeta (por defecto todas colapsadas) ────────────
+  const [expandidos, setExpandidos] = useState({});   // { evento_id: true/false }
+  const toggleExpandido = (id) => setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
+
   // ── Estado del modal (solo registrar) ────────────────────────────────────────
   const [modalAbierto,  setModalAbierto]  = useState(false);
   const [eventoActivo,  setEventoActivo]  = useState(null);
@@ -353,6 +357,15 @@ export default function GastosEventosPage() {
         .ge-metric-val { font-size: 17px; font-weight: 800; margin-top: 4px; color: var(--ink); font-variant-numeric: tabular-nums; }
 
         .ge-desglose { padding: 14px 18px; border-top: 1px solid ${GRAY_100}; }
+        .ge-desglose-toggle {
+          width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+          background: none; border: 0; padding: 2px 0; cursor: pointer; text-align: left;
+          font-family: var(--font-ui); font-size: 12px; font-weight: 700;
+          text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .ge-desglose-toggle:disabled { cursor: default; opacity: .65; }
+        .ge-chev { display: inline-flex; flex-shrink: 0; transition: transform 0.18s; }
+        .ge-desglose-list { margin-top: 10px; }
         .ge-evento-foot { padding: 14px 18px; border-top: 1px solid ${GRAY_100}; display: flex; justify-content: flex-end; }
         .ge-empty { text-align: center; padding: 44px 0; color: var(--muted); font-size: 14px; }
         @media (max-width: 600px) { .ge-metrics { grid-template-columns: repeat(2, 1fr); } }
@@ -511,15 +524,25 @@ export default function GastosEventosPage() {
                 </div>
               </div>
 
-              {/* Desglose de gastos de ESE evento */}
+              {/* Desglose de gastos de ESE evento (colapsable) */}
               <div className="ge-desglose">
-                <div className="ge-section-title" style={{ marginBottom: 10 }}>
-                  Gastos declarados{listaGastos.length ? ` (${listaGastos.length})` : ''}
-                </div>
-                {listaGastos.length === 0 ? (
-                  <div className="ge-empty-gastos">Sin gastos declarados.</div>
-                ) : (
-                  <div>
+                <button
+                  type="button"
+                  className="ge-desglose-toggle"
+                  onClick={() => listaGastos.length && toggleExpandido(e.id)}
+                  disabled={listaGastos.length === 0}
+                  style={{ color: GRAY_500 }}
+                >
+                  <span>Gastos declarados ({listaGastos.length})</span>
+                  {listaGastos.length > 0 && (
+                    <span className="ge-chev" style={{ transform: expandidos[e.id] ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+                      <I.chevR size={14} />
+                    </span>
+                  )}
+                </button>
+
+                {listaGastos.length > 0 && expandidos[e.id] && (
+                  <div className="ge-desglose-list">
                     {listaGastos.map(g => (
                       <div key={g.id} className="ge-gasto-item">
                         <div className="ge-gasto-main">
