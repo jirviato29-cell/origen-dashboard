@@ -161,8 +161,9 @@ export default function GastosEventosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalAbierto, saving, uploading]);
 
-  // ── Filas derivadas — todos los eventos de PE (activos y concluidos) ─────────
+  // ── Filas derivadas — solo eventos de PE con costo > 0 (activos y concluidos) ─
   const filas = [...eventos]
+    .filter(e => (Number(e.costo) || 0) > 0)
     .sort((a, b) => (toISODate(b.fecha) || '').localeCompare(toISODate(a.fecha) || ''))
     .map(e => {
       const inscritos = (participantesMap[e.id] || []).length;
@@ -467,7 +468,7 @@ export default function GastosEventosPage() {
         {loading ? (
           <div className="ge-empty">Cargando eventos…</div>
         ) : filas.length === 0 ? (
-          <div className="ge-empty">Sin eventos de Punto de Encuentro.</div>
+          <div className="ge-empty">No hay eventos con costo.</div>
         ) : (
           <div className="ge-table-wrap">
             <table className="ge-table">
