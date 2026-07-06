@@ -735,10 +735,20 @@ export default function GastosEventosPage() {
 
             {/* Pie: Guardar / Cerrar */}
             <div className="ge-modal-foot">
-              <button className="ge-btn ge-btn-ghost" onClick={() => { if (!isBusy) cerrarModal(); }} disabled={isBusy}>
+              <button
+                className="ge-btn ge-btn-ghost"
+                onClick={() => { if (!isBusy) cerrarModal(); }}
+                disabled={isBusy}
+                style={{ background: '#FFFFFF', color: '#112540', borderColor: GRAY_300, opacity: isBusy ? 0.5 : 1 }}
+              >
                 Cerrar
               </button>
-              <button className="ge-btn ge-btn-save" onClick={handleGuardar} disabled={isBusy}>
+              <button
+                className="ge-btn ge-btn-save"
+                onClick={handleGuardar}
+                disabled={isBusy}
+                style={{ background: VER_BG, color: VER_FG, borderColor: VER_BORDER, opacity: isBusy ? 0.5 : 1 }}
+              >
                 <I.check size={16} />
                 {uploading ? 'Subiendo archivo…' : saving ? 'Guardando…' : 'Guardar gasto'}
               </button>
