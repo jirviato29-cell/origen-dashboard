@@ -88,6 +88,50 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Login del voluntario: apodo + clave (los últimos 4 de su WhatsApp).
+  // Flujo aparte del login por rol del staff, pero guarda la sesión igual.
+  // Mismo contrato: nunca lanza, siempre { ok } o { ok: false, error }.
+  const loginVoluntario = async (apodo, clave) => {
+    try {
+      const { data } = await axios.post(`${API_URL}/login-voluntario`, { apodo, clave });
+
+      const t       = data?.token;
+      const usuario = data?.usuario;
+      const p       = data?.permisos ?? null;
+
+      if (!t || !usuario) {
+        return { ok: false, error: data?.error || 'Apodo o clave incorrectos' };
+      }
+
+      const nombre     = usuario.nombre ?? '';
+      const rol        = usuario.rol ?? 'voluntario';
+      const accesoGlob = usuario.acceso_global || false;
+
+      setToken(t);
+      setRole(rol);
+      setUserName(nombre);
+      setPermisos(p);
+      setAccesoGlobal(accesoGlob);
+
+      localStorage.setItem('token',         t);
+      localStorage.setItem('role',          rol);
+      localStorage.setItem('userName',      nombre);
+      localStorage.setItem('permisos',      JSON.stringify(p));
+      localStorage.setItem('acceso_global', String(accesoGlob));
+
+      if (!accesoGlob) {
+        localStorage.setItem('campus_activo', usuario.campus || 'ags');
+      }
+
+      return { ok: true, rol };
+    } catch (err) {
+      const status = err.response?.status;
+      const msg = err.response?.data?.error
+        || (status === 401 ? 'Apodo o clave incorrectos' : 'Error al iniciar sesión');
+      return { ok: false, error: msg };
+    }
+  };
+
   const logout = () => {
     setToken(null);
     setRole(null);
@@ -103,7 +147,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ role, userName, token, permisos, accesoGlobal, login, logout }}>
+    <AuthContext.Provider value={{ role, userName, token, permisos, accesoGlobal, login, loginVoluntario, logout }}>
       {children}
     </AuthContext.Provider>
   );

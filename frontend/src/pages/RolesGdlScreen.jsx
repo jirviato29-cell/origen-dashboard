@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 
 const MINT = '#2DD4BF';
 const INK_300 = '#9A9A9A';
@@ -64,6 +65,8 @@ const CSS = `
 .ogr-mdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .ogr-foot{margin-top:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
 .ogr-foot-note{font-size:11.5px;color:${INK_300};}
+.ogr-vol{font-size:12px;font-weight:600;color:${INK_300};text-decoration:none;transition:color .15s;}
+.ogr-vol:hover{color:#fff;}
 .ogr-copyright{text-align:center;margin-top:24px;font-size:11.5px;color:${INK_300};opacity:.7;}
 @media(max-width:560px){.ogr-roles{grid-template-columns:1fr;}.ogr-panel{padding:24px 22px;}}
 `;
@@ -113,6 +116,7 @@ export default function RolesGdlScreen({ roles = [], onSelect }) {
           </div>
           <div className="ogr-foot">
             <span className="ogr-foot-note">¿No ves tu rol? Pídele acceso al administrador.</span>
+            <Link to="/voluntario/login" className="ogr-vol">Soy voluntario →</Link>
           </div>
         </div>
         <div className="ogr-copyright">Dashboard interno · Origen Campus Guadalajara</div>

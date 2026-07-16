@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { I } from '../components/Icons';
 import { useIsMobile } from '../utils/useIsMobile';
@@ -355,9 +355,22 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Acceso de voluntarios — flujo aparte, no es una tarjeta de rol */}
+            <div style={{ textAlign: 'center', marginTop: 18 }}>
+              <Link
+                to="/voluntario/login"
+                style={{
+                  fontSize: 12.5, fontWeight: 600, color: NAVY_300,
+                  textDecoration: 'none',
+                }}
+              >
+                Soy voluntario →
+              </Link>
+            </div>
+
             {/* Copyright */}
             <div style={{
-              textAlign: 'center', fontSize: 11, color: NAVY_500, marginTop: 20,
+              textAlign: 'center', fontSize: 11, color: NAVY_500, marginTop: 14,
             }}>
               Dashboard interno · Origen Campus Aguascalientes
             </div>
