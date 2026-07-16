@@ -90,10 +90,10 @@ export default function LoginVoluntario() {
         <div className="lv-panel">
           <div className="lv-eyebrow">Voluntarios</div>
           <h1 className="lv-title">Entra a tu espacio</h1>
-          <div className="lv-sub">Usa el apodo que te dio tu líder de ministerio.</div>
+          <div className="lv-sub">Usa el nombre de acceso que te dio tu líder de ministerio.</div>
 
           <div className="lv-field">
-            <label className="lv-label" htmlFor="lv-apodo">Tu apodo</label>
+            <label className="lv-label" htmlFor="lv-apodo">Tu nombre de acceso</label>
             <input
               id="lv-apodo"
               ref={apodoRef}

@@ -205,7 +205,7 @@ export default function MisVoluntarios() {
             </div>
             <div>
               <label className="mv-label" htmlFor="mv-apodo">
-                Apodo <span className="mv-hint">(con esto entra)</span>
+                Nombre de acceso <span className="mv-hint">(con esto entra)</span>
               </label>
               <input id="mv-apodo" className="mv-input" type="text" value={form.apodo}
                 onChange={set('apodo')} placeholder="juanito" />
@@ -240,7 +240,7 @@ export default function MisVoluntarios() {
                 <div className="mv-info">
                   <div className="mv-nombre">{v.nombre}</div>
                   <div className="mv-meta">
-                    <span>Apodo: <strong>{v.apodo}</strong></span>
+                    <span>Nombre de acceso: <strong>{v.apodo}</strong></span>
                     {v.whatsapp && <span>{v.whatsapp}</span>}
                     {cumple && <span>🎂 {cumple}</span>}
                   </div>

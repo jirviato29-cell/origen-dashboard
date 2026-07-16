@@ -100,7 +100,7 @@ export function AuthProvider({ children }) {
       const p       = data?.permisos ?? null;
 
       if (!t || !usuario) {
-        return { ok: false, error: data?.error || 'Apodo o clave incorrectos' };
+        return { ok: false, error: data?.error || 'Nombre de acceso o clave incorrectos' };
       }
 
       const nombre     = usuario.nombre ?? '';
@@ -127,7 +127,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const status = err.response?.status;
       const msg = err.response?.data?.error
-        || (status === 401 ? 'Apodo o clave incorrectos' : 'Error al iniciar sesión');
+        || (status === 401 ? 'Nombre de acceso o clave incorrectos' : 'Error al iniciar sesión');
       return { ok: false, error: msg };
     }
   };
