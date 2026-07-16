@@ -10,6 +10,7 @@ export const ROLES = {
   PUNTO_ENCUENTRO: 'punto_encuentro',
   STEWARDSHIP:     'stewardship',
   LIDER_MINISTERIO: 'lider_ministerio',
+  VOLUNTARIO:       'voluntario',
 };
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';

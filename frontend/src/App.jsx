@@ -33,6 +33,7 @@ import CalendarioPage from './pages/stewardship/CalendarioPage';
 import VoluntariosPage from './pages/stewardship/VoluntariosPage';
 import BienvenidaCasaPage from './pages/anfitriones/BienvenidaCasaPage';
 import PanelLider from './pages/lider/PanelLider';
+import PanelVoluntario from './pages/voluntario/PanelVoluntario';
 import './index.css';
 
 // Protege una sección de rutas: redirige a / si no hay sesión,
@@ -128,6 +129,12 @@ function AppRoutes() {
       }>
         <Route index element={<PanelLider />} />
       </Route>
+
+      {/* ── Voluntario ─────────────────────────────────────────────────── */}
+      {/* Sin Layout: su flujo de acceso es aparte y no tiene nav lateral. */}
+      <Route path="/voluntario" element={
+        <ProtectedRoute routeRole="voluntario"><PanelVoluntario /></ProtectedRoute>
+      } />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

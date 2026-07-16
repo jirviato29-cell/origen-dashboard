@@ -39,6 +39,7 @@ export const PERMISOS = {
   // Sin secciones abiertas: solo alcanza su propio panel, que no expone datos
   // sensibles. Abrir una sección aquí le da acceso en toda la app.
   lider_ministerio: { total: false, secciones: {} },
+  voluntario:       { total: false, secciones: {} },
 };
 
 export function puedeVer(permisos, seccion) {
