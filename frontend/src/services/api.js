@@ -196,6 +196,14 @@ const realVoluntariosApi = {
   remove:  (id)       => http.delete(`/voluntarios/${id}`),
 };
 
+// ─── Voluntarios del líder (alta desde el panel del líder) ────────────────────
+// El backend saca el ministerio y el campus del token, no de aquí.
+export const liderVoluntariosApi = {
+  getAll: ()         => http.get('/lider/voluntarios'),
+  create: (data)     => http.post('/lider/voluntarios', data),
+  remove: (cuentaId) => http.delete(`/lider/voluntarios/${cuentaId}`),
+};
+
 // ─── Usuarios ─────────────────────────────────────────────────────────────────
 const realUsuariosApi = {
   getAll:       ()               => http.get('/usuarios'),

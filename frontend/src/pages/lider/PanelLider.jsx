@@ -1,6 +1,7 @@
-// Panel placeholder del líder de ministerio.
-// No consume datos: es solo el shell de la ruta hasta que existan las
-// secciones reales (Mis voluntarios, Disponibilidad, Asignar posiciones).
+// Panel del líder de ministerio.
+// "Mis voluntarios" ya es funcional; Disponibilidad y Asignar posiciones
+// siguen pendientes y se listan como placeholder.
+import MisVoluntarios from './MisVoluntarios';
 
 const NAVY_900 = '#112540';
 const NAVY_300 = '#9CB0CC';
@@ -23,7 +24,7 @@ const CSS = `
 .pl-badge{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${GRAY_500};}
 `;
 
-const SECCIONES = ['Mis voluntarios', 'Disponibilidad', 'Asignar posiciones'];
+const SECCIONES = ['Disponibilidad', 'Asignar posiciones'];
 
 export default function PanelLider() {
   return (
@@ -33,7 +34,11 @@ export default function PanelLider() {
       <div className="pl-eyebrow">Ministerio</div>
       <h1 className="pl-title">Panel de líder de ministerio</h1>
       <div className="pl-sub">
-        Este es tu espacio. Todavía está en construcción.
+        Este es tu espacio: da de alta a tu equipo y pásales su clave.
+      </div>
+
+      <div className="pl-card">
+        <MisVoluntarios />
       </div>
 
       <div className="pl-card">
