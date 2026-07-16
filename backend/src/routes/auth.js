@@ -1,8 +1,7 @@
 const express = require('express');
 const bcrypt  = require('bcryptjs');
-const jwt     = require('jsonwebtoken');
 const pool    = require('../db/pool');
-const PERMISOS = require('../permissions');
+const { signSession, construirPermisos } = require('../lib/session');
 
 const router = express.Router();
 
@@ -33,25 +32,15 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Clave incorrecta' });
     }
 
-    const basePermisos = PERMISOS[rol] || { total: false, secciones: {} };
-    const permisos = { ...basePermisos, secciones: { ...basePermisos.secciones } };
-    if (usuario.permisos_extra?.secciones) {
-      for (const [sec, overrides] of Object.entries(usuario.permisos_extra.secciones)) {
-        permisos.secciones[sec] = { ...(permisos.secciones[sec] || {}), ...overrides };
-      }
-    }
+    const permisos = construirPermisos(usuario.rol, usuario.permisos_extra);
 
-    const token = jwt.sign(
-      {
-        id:            usuario.id,
-        nombre:        usuario.nombre,
-        rol:           usuario.rol,
-        campus:        usuario.campus        || 'ags',
-        acceso_global: usuario.acceso_global || false,
-      },
-      process.env.JWT_SECRET || 'fallback_dev_secret',
-      { expiresIn: '7d' }
-    );
+    const token = signSession({
+      id:            usuario.id,
+      nombre:        usuario.nombre,
+      rol:           usuario.rol,
+      campus:        usuario.campus        || 'ags',
+      acceso_global: usuario.acceso_global || false,
+    });
 
     return res.json({
       token,

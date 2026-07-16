@@ -6,6 +6,7 @@ const cors = require('cors');
 const campusMiddleware           = require('./middleware/campus');
 const campusRouter               = require('./routes/campus');
 const authRouter          = require('./routes/auth');
+const authVoluntarioRouter = require('./routes/authVoluntario');
 const usuariosRouter      = require('./routes/usuarios');
 const voluntariosRouter   = require('./routes/voluntarios');
 const ingresosRouter      = require('./routes/ingresos');
@@ -38,6 +39,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'Origen Dashb
 
 // Rutas públicas (sin campus middleware)
 app.use('/api', authRouter);
+app.use('/api', authVoluntarioRouter);
 app.use('/api/campus', campusRouter);
 
 // A partir de aquí todas las peticiones resuelven req.campus
