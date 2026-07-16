@@ -22,7 +22,7 @@ const CSS = `
 .mv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
 .mv-h2{font-size:16px;font-weight:800;letter-spacing:-.02em;color:${NAVY_900};margin:0;}
 .mv-h2-note{font-size:12.5px;color:${GRAY_500};margin-top:3px;}
-.mv-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;border:none;background:${NAVY_900};color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s;}
+.mv-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;border:1px solid transparent;background:${NAVY_900};color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,border-color .15s;}
 .mv-btn:hover{background:#1B3A63;}
 .mv-btn:disabled{background:${GRAY_100};color:${GRAY_500};cursor:not-allowed;}
 .mv-btn-accent{background:${ORANGE_500};}
@@ -89,6 +89,9 @@ export default function MisVoluntarios() {
   const [guardando, setGuardando] = useState(false);
   const [quitando, setQuitando]  = useState(null);
   const [flash,    setFlash]    = useState(null);
+  // El hover del botón primario se lleva en estado porque su color va inline
+  // (ver estiloGuardar) y un :hover de CSS no puede pisar un estilo inline.
+  const [hoverGuardar, setHoverGuardar] = useState(false);
 
   // Carga inicial. Se cancela si el componente se desmonta antes de responder.
   useEffect(() => {
@@ -112,6 +115,30 @@ export default function MisVoluntarios() {
   };
 
   const listo = form.nombre.trim() && form.whatsapp.trim() && form.apodo.trim();
+
+  // index.css:106 tiene `.app button { font: inherit; color: inherit; }`, que
+  // por especificidad (0-1-1) le gana a `.mv-btn` (0-1-0): le roba el blanco y
+  // el peso, y el botón acababa con texto oscuro sobre fondo oscuro. Los
+  // colores van inline porque es lo único que una regla global no puede pisar.
+  const guardarActivo = Boolean(listo) && !guardando;
+  const estiloGuardar = {
+    fontFamily: '"DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: guardarActivo ? 'pointer' : 'not-allowed',
+    ...(guardarActivo
+      ? {
+          backgroundColor: hoverGuardar ? ORANGE_600 : ORANGE_500,
+          borderColor:     hoverGuardar ? ORANGE_600 : ORANGE_500,
+          color: '#fff',
+        }
+      : {
+          // Deshabilitado de verdad: atenuado y sin acento.
+          backgroundColor: GRAY_100,
+          borderColor:     GRAY_200,
+          color:           GRAY_500,
+        }),
+  };
 
   async function guardar() {
     if (!listo || guardando) return;
@@ -212,7 +239,14 @@ export default function MisVoluntarios() {
             </div>
           </div>
           <div className="mv-form-actions">
-            <button className="mv-btn" onClick={guardar} disabled={!listo || guardando}>
+            <button
+              className="mv-btn"
+              style={estiloGuardar}
+              onMouseEnter={() => setHoverGuardar(true)}
+              onMouseLeave={() => setHoverGuardar(false)}
+              onClick={guardar}
+              disabled={!listo || guardando}
+            >
               {guardando ? 'Guardando…' : 'Guardar voluntario'}
             </button>
             <button className="mv-btn mv-btn-ghost"
