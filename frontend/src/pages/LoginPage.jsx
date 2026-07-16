@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { I } from '../components/Icons';
-import { useIsMobile } from '../utils/useIsMobile';
 import RolesGdlScreen from './RolesGdlScreen';
 import ClaveGdlScreen from './ClaveGdlScreen';
 
@@ -20,7 +19,6 @@ const ORANGE_50  = '#FFF4EE';
 const GRAY_500 = '#7A8699';
 const GRAY_200 = '#E2E6EC';
 const GRAY_100 = '#EEF1F5';
-const GRAY_50  = '#F6F7F9';
 const TEAL     = '#5C7A6F';
 const TEAL_50  = '#EAF1EE';
 
@@ -81,6 +79,8 @@ function getGreetingLine() {
 }
 
 // ── Datos de roles ─────────────────────────────────────────────────────────
+// icon/icBg/icColor los sigue usando la pantalla de clave; las tarjetas de
+// selección ya no muestran ícono.
 const ROLES_LIST = [
   {
     id:         ROLES.PASTOR,
@@ -89,8 +89,6 @@ const ROLES_LIST = [
     icon:       StarIcon,
     icBg:       NAVY_900,
     icColor:    '#fff',
-    mdotColor:  NAVY_900,
-    meta:       'Vista general de la iglesia',
   },
   {
     id:         ROLES.STEWARDSHIP,
@@ -99,8 +97,6 @@ const ROLES_LIST = [
     icon:       WalletIcon,
     icBg:       NAVY_100,
     icColor:    NAVY_600,
-    mdotColor:  NAVY_600,
-    meta:       'Administrador del sistema',
   },
   {
     id:         ROLES.ANFITRIONES,
@@ -109,8 +105,6 @@ const ROLES_LIST = [
     icon:       UsersIcon,
     icBg:       ORANGE_50,
     icColor:    ORANGE_600,
-    mdotColor:  ORANGE_500,
-    meta:       'Asistencia · Bienvenida',
   },
   {
     id:         ROLES.PUNTO_ENCUENTRO,
@@ -119,8 +113,6 @@ const ROLES_LIST = [
     icon:       PinIcon,
     icBg:       TEAL_50,
     icColor:    TEAL,
-    mdotColor:  TEAL,
-    meta:       'Eventos · Participantes',
   },
   {
     id:         ROLES.LIDER_MINISTERIO,
@@ -129,16 +121,30 @@ const ROLES_LIST = [
     icon:       TeamIcon,
     icBg:       NAVY_100,
     icColor:    NAVY_700,
-    mdotColor:  NAVY_700,
-    meta:       'Voluntarios · Posiciones',
   },
 ];
+
+// ── Tarjetas de selección de rol ───────────────────────────────────────────
+// En clases (no inline) porque necesitan media queries y :hover.
+// Mismo diseño que la pantalla de GDL (RolesGdlScreen, prefijo ogr-).
+const ROLES_CSS = `
+.lr-roles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;}
+@media(max-width:900px){.lr-roles{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.lr-roles{grid-template-columns:1fr;}}
+.lr-role{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 13px;border:1px solid ${GRAY_200};border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;box-shadow:0 1px 2px rgba(11,26,47,.04);transition:.16s cubic-bezier(.3,.7,.3,1);}
+.lr-role:hover{border-color:${ORANGE_500};background:${ORANGE_50};box-shadow:0 6px 16px rgba(11,26,47,.10);}
+.lr-role-text{display:flex;flex-direction:column;flex:1;min-width:0;}
+.lr-name{font-size:13.5px;font-weight:600;letter-spacing:-.01em;color:${NAVY_900};}
+.lr-desc{font-size:11px;color:${GRAY_500};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lr-arrow{display:flex;align-items:center;color:${NAVY_300};flex-shrink:0;transition:color .16s;}
+.lr-arrow svg{width:16px;height:16px;}
+.lr-role:hover .lr-arrow{color:${ORANGE_500};}
+`;
 
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate  = useNavigate();
-  const isMobile  = useIsMobile();
 
   const campusActivo = localStorage.getItem('campus_activo');
 
@@ -146,7 +152,6 @@ export default function LoginPage() {
   const [clave,    setClave]    = useState('');
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
-  const [hovered,  setHovered]  = useState(null);
 
   const inputRef = useRef(null);
 
@@ -204,7 +209,8 @@ export default function LoginPage() {
       }} />
 
       {/* Wrap (z-index sobre los glows) */}
-      <div style={{ width: '100%', maxWidth: 680, position: 'relative', zIndex: 1 }}>
+      {/* 780 para que las 3 columnas quepan sin truncar los subtítulos */}
+      <div style={{ width: '100%', maxWidth: 780, position: 'relative', zIndex: 1 }}>
 
         {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: 34 }}>
@@ -223,6 +229,8 @@ export default function LoginPage() {
 
         {!selected ? (
           <>
+            <style>{ROLES_CSS}</style>
+
             {/* ── Panel principal ───────────────────────────────────── */}
             <div style={{
               background: '#fff', borderRadius: 22, padding: '30px 30px 26px',
@@ -248,93 +256,22 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Roles grid 2×2 */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                gap: 13, marginTop: 22,
-              }}>
-                {ROLES_LIST.map((r) => {
-                  const Ic = r.icon;
-                  const isH = hovered === r.id;
-                  return (
-                    <div
-                      key={r.id}
-                      onClick={() => setSelected(r)}
-                      onMouseEnter={() => setHovered(r.id)}
-                      onMouseLeave={() => setHovered(null)}
-                      style={{
-                        display: 'flex', flexDirection: 'column', textAlign: 'left',
-                        border: `1px solid ${isH ? NAVY_300 : GRAY_200}`,
-                        borderRadius: 15, padding: 18, background: '#fff',
-                        cursor: 'pointer', position: 'relative', overflow: 'hidden',
-                        transform: isH ? 'translateY(-3px)' : 'translateY(0)',
-                        boxShadow: isH ? '0 12px 30px rgba(11,26,47,.14)' : 'none',
-                        transition: '.16s cubic-bezier(.3,.7,.3,1)',
-                      }}
-                    >
-                      {/* Acento naranja inferior (::after) */}
-                      <div style={{
-                        position: 'absolute', left: 0, right: 0, bottom: 0, height: 3,
-                        background: ORANGE_500,
-                        transform: isH ? 'scaleX(1)' : 'scaleX(0)',
-                        transformOrigin: 'left',
-                        transition: 'transform .2s',
-                      }} />
-
-                      {/* role-top: ícono + flecha */}
-                      <div style={{
-                        display: 'flex', alignItems: 'center',
-                        justifyContent: 'space-between', marginBottom: 14,
-                      }}>
-                        <div style={{
-                          width: 46, height: 46, borderRadius: 13,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          background: r.icBg, color: r.icColor, flexShrink: 0,
-                        }}>
-                          <Ic />
-                        </div>
-                        <div style={{
-                          width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-                          background: isH ? ORANGE_500 : GRAY_50,
-                          border: `1px solid ${isH ? ORANGE_500 : GRAY_200}`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: isH ? '#fff' : GRAY_500,
-                          transition: '.16s',
-                        }}>
-                          <ChevronRight />
-                        </div>
-                      </div>
-
-                      {/* Nombre del rol */}
-                      <div style={{
-                        fontSize: 16, fontWeight: 800, letterSpacing: '-.02em', color: NAVY_900,
-                      }}>
-                        {r.label}
-                      </div>
-
-                      {/* Descripción */}
-                      <div style={{
-                        fontSize: 12.5, color: GRAY_500, marginTop: 3, lineHeight: 1.4,
-                      }}>
-                        {r.desc}
-                      </div>
-
-                      {/* Meta-línea */}
-                      <div style={{
-                        marginTop: 13, paddingTop: 12, borderTop: `1px solid ${GRAY_100}`,
-                        fontSize: 11, fontWeight: 600, color: GRAY_500,
-                        display: 'flex', alignItems: 'center', gap: 6,
-                      }}>
-                        <span style={{
-                          width: 6, height: 6, borderRadius: '50%',
-                          background: r.mdotColor, flexShrink: 0,
-                        }} />
-                        {r.meta}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Roles grid — 3 columnas: 3 arriba, 2 abajo */}
+              <div className="lr-roles">
+                {ROLES_LIST.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="lr-role"
+                    onClick={() => setSelected(r)}
+                  >
+                    <span className="lr-role-text">
+                      <span className="lr-name">{r.label}</span>
+                      <span className="lr-desc">{r.desc}</span>
+                    </span>
+                    <span className="lr-arrow"><ChevronRight /></span>
+                  </button>
+                ))}
               </div>
 
               {/* Panel footer */}
