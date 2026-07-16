@@ -133,6 +133,8 @@ const ROLES_CSS = `
 @media(max-width:560px){.lr-roles{grid-template-columns:1fr;}}
 .lr-role{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 13px;border:1px solid ${GRAY_200};border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;box-shadow:0 1px 2px rgba(11,26,47,.04);transition:.16s cubic-bezier(.3,.7,.3,1);}
 .lr-role:hover{border-color:${ORANGE_500};background:${ORANGE_50};box-shadow:0 6px 16px rgba(11,26,47,.10);}
+.lr-ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.lr-ic svg{width:18px;height:18px;}
 .lr-role-text{display:flex;flex-direction:column;flex:1;min-width:0;}
 .lr-name{font-size:13.5px;font-weight:600;letter-spacing:-.01em;color:${NAVY_900};}
 .lr-desc{font-size:11px;color:${GRAY_500};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -209,8 +211,9 @@ export default function LoginPage() {
       }} />
 
       {/* Wrap (z-index sobre los glows) */}
-      {/* 780 para que las 3 columnas quepan sin truncar los subtítulos */}
-      <div style={{ width: '100%', maxWidth: 780, position: 'relative', zIndex: 1 }}>
+      {/* 880: con el ícono de vuelta, las 3 columnas necesitan este ancho
+          para no truncar el subtítulo más largo */}
+      <div style={{ width: '100%', maxWidth: 880, position: 'relative', zIndex: 1 }}>
 
         {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: 34 }}>
@@ -258,20 +261,26 @@ export default function LoginPage() {
 
               {/* Roles grid — 3 columnas: 3 arriba, 2 abajo */}
               <div className="lr-roles">
-                {ROLES_LIST.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    className="lr-role"
-                    onClick={() => setSelected(r)}
-                  >
-                    <span className="lr-role-text">
-                      <span className="lr-name">{r.label}</span>
-                      <span className="lr-desc">{r.desc}</span>
-                    </span>
-                    <span className="lr-arrow"><ChevronRight /></span>
-                  </button>
-                ))}
+                {ROLES_LIST.map((r) => {
+                  const Ic = r.icon;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className="lr-role"
+                      onClick={() => setSelected(r)}
+                    >
+                      <span className="lr-ic" style={{ background: r.icBg, color: r.icColor }}>
+                        <Ic />
+                      </span>
+                      <span className="lr-role-text">
+                        <span className="lr-name">{r.label}</span>
+                        <span className="lr-desc">{r.desc}</span>
+                      </span>
+                      <span className="lr-arrow"><ChevronRight /></span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Panel footer */}

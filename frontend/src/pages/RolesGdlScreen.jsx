@@ -27,7 +27,7 @@ const CSS = `
 .ogr-root{background:#0A0A0A;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;position:relative;overflow:hidden;color:#fff;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;}
 .ogr-glow-tr{position:absolute;top:-180px;right:-140px;width:540px;height:540px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.12),transparent 68%);pointer-events:none;}
 .ogr-glow-bl{position:absolute;bottom:-220px;left:-160px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.05),transparent 70%);pointer-events:none;}
-.ogr-wrap{width:100%;max-width:780px;position:relative;z-index:1;}
+.ogr-wrap{width:100%;max-width:880px;position:relative;z-index:1;}
 .ogr-brand{text-align:center;margin-bottom:34px;}
 .ogr-brand img{width:172px;height:auto;display:block;margin-left:auto;margin-right:auto;}
 .ogr-tag{margin-top:14px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:${INK_300};}
@@ -38,6 +38,8 @@ const CSS = `
 .ogr-roles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;}
 .ogr-role{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 13px;border:1px solid ${GRAY_200};border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;box-shadow:0 1px 2px rgba(11,26,47,.04);transition:.16s cubic-bezier(.3,.7,.3,1);}
 .ogr-role:hover{border-color:${MINT};background:${MINT_50};box-shadow:0 6px 16px rgba(11,26,47,.10);}
+.ogr-ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ogr-ic svg{width:18px;height:18px;}
 .ogr-role-text{display:flex;flex-direction:column;flex:1;min-width:0;}
 .ogr-arrow{display:flex;align-items:center;color:${NAVY_300};flex-shrink:0;transition:color .16s;}
 .ogr-arrow svg{width:16px;height:16px;}
@@ -81,8 +83,16 @@ export default function RolesGdlScreen({ roles = [], onSelect }) {
           <div className="ogr-roles">
             {roles.map((r) => {
               const st = ROLE_STYLE[r.id] || { name: r.label || r.nombre || r.id, desc: '' };
+              // El ícono y sus colores vienen de la misma config de roles que
+              // usa ags (ROLES_LIST, que LoginPage pasa por props).
+              const Ic = r.icon;
               return (
                 <button key={r.id} type="button" className="ogr-role" onClick={() => onSelect && onSelect(r)}>
+                  {Ic ? (
+                    <span className="ogr-ic" style={{ background: r.icBg, color: r.icColor }}>
+                      <Ic />
+                    </span>
+                  ) : null}
                   <span className="ogr-role-text">
                     <span className="ogr-name">{st.name}</span>
                     {st.desc ? <span className="ogr-desc">{st.desc}</span> : null}
