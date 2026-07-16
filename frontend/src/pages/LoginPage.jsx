@@ -59,6 +59,15 @@ const TeamIcon = () => (
     <path d="M4.5 12.5a2.2 2.2 0 1 0 0-4.4M19.5 12.5a2.2 2.2 0 1 1 0-4.4" strokeLinecap="round"/>
   </svg>
 );
+// Geometría de UserPlus (lucide). Inline porque el proyecto no usa
+// lucide-react y no vale la pena una dependencia por un ícono.
+const VolunteerIcon = () => (
+  <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M19 8v6M22 11h-6"/>
+  </svg>
+);
 const HelpCircleIcon = () => (
   <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="12" r="9"/>
@@ -141,6 +150,13 @@ const ROLES_CSS = `
 .lr-arrow{display:flex;align-items:center;color:${NAVY_300};flex-shrink:0;transition:color .16s;}
 .lr-arrow svg{width:16px;height:16px;}
 .lr-role:hover .lr-arrow{color:${ORANGE_500};}
+/* Botón de voluntario: 6a celda del grid. Comparte la geometría de la
+   tarjeta (incluido .lr-ic, que le fija el alto) pero va en sólido para
+   que se lea como un acceso aparte. */
+.lr-vol{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 13px;border:1px solid ${ORANGE_500};border-radius:12px;background:${ORANGE_500};color:#fff;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 1px 2px rgba(11,26,47,.04);transition:.16s cubic-bezier(.3,.7,.3,1);}
+.lr-vol:hover{background:${ORANGE_600};border-color:${ORANGE_600};box-shadow:0 6px 16px rgba(11,26,47,.10);}
+.lr-vol-text{flex:1;min-width:0;font-size:13.5px;font-weight:600;letter-spacing:-.01em;color:#fff;}
+.lr-vol .lr-arrow{color:#fff;}
 `;
 
 // ── Page ──────────────────────────────────────────────────────────────────
@@ -281,6 +297,13 @@ export default function LoginPage() {
                     </button>
                   );
                 })}
+
+                {/* 6a celda: acceso de voluntarios, cierra la cuadrícula */}
+                <Link to="/voluntario/login" className="lr-vol">
+                  <span className="lr-ic"><VolunteerIcon /></span>
+                  <span className="lr-vol-text">Soy voluntario</span>
+                  <span className="lr-arrow"><ChevronRight /></span>
+                </Link>
               </div>
 
               {/* Panel footer */}
@@ -301,22 +324,9 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Acceso de voluntarios — flujo aparte, no es una tarjeta de rol */}
-            <div style={{ textAlign: 'center', marginTop: 18 }}>
-              <Link
-                to="/voluntario/login"
-                style={{
-                  fontSize: 12.5, fontWeight: 600, color: NAVY_300,
-                  textDecoration: 'none',
-                }}
-              >
-                Soy voluntario →
-              </Link>
-            </div>
-
             {/* Copyright */}
             <div style={{
-              textAlign: 'center', fontSize: 11, color: NAVY_500, marginTop: 14,
+              textAlign: 'center', fontSize: 11, color: NAVY_500, marginTop: 20,
             }}>
               Dashboard interno · Origen Campus Aguascalientes
             </div>

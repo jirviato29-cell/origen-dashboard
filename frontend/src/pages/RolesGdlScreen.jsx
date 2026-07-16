@@ -5,6 +5,8 @@ const MINT = '#2DD4BF';
 // Lavado claro de menta para el hover — equivalente al naranja claro que usa
 // la pantalla de ags. GDL usa menta como acento propio del campus.
 const MINT_50 = '#EEFCFA';
+// Menta oscura para el hover del botón sólido (equivale a ORANGE_600 en ags).
+const MINT_600 = '#14B8A6';
 const INK_300 = '#9A9A9A';
 const NAVY_900 = '#112540';
 const GRAY_500 = '#7A8699';
@@ -13,6 +15,14 @@ const NAVY_300 = '#9CB0CC';
 
 const Arrow = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+
+// Geometría de UserPlus (lucide). Inline porque el proyecto no usa
+// lucide-react y no vale la pena una dependencia por un ícono.
+const VolunteerIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" />
+  </svg>
 );
 
 const ROLE_STYLE = {
@@ -44,12 +54,17 @@ const CSS = `
 .ogr-arrow{display:flex;align-items:center;color:${NAVY_300};flex-shrink:0;transition:color .16s;}
 .ogr-arrow svg{width:16px;height:16px;}
 .ogr-role:hover .ogr-arrow{color:${MINT};}
+/* Botón de voluntario: 6a celda del grid. Comparte la geometría de la
+   tarjeta (incluido .ogr-ic, que le fija el alto) pero va en sólido para
+   que se lea como un acceso aparte. */
+.ogr-vol{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 13px;border:1px solid ${MINT};border-radius:12px;background:${MINT};color:#fff;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 1px 2px rgba(11,26,47,.04);transition:.16s cubic-bezier(.3,.7,.3,1);}
+.ogr-vol:hover{background:${MINT_600};border-color:${MINT_600};box-shadow:0 6px 16px rgba(11,26,47,.10);}
+.ogr-vol-text{flex:1;min-width:0;font-size:13.5px;font-weight:600;letter-spacing:-.01em;color:#fff;}
+.ogr-vol .ogr-arrow{color:#fff;}
 .ogr-name{font-size:13.5px;font-weight:600;letter-spacing:-.01em;color:${NAVY_900};}
 .ogr-desc{font-size:11px;color:${GRAY_500};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ogr-foot{margin-top:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
 .ogr-foot-note{font-size:11.5px;color:${INK_300};}
-.ogr-vol{font-size:12px;font-weight:600;color:${INK_300};text-decoration:none;transition:color .15s;}
-.ogr-vol:hover{color:#fff;}
 .ogr-copyright{text-align:center;margin-top:24px;font-size:11.5px;color:${INK_300};opacity:.7;}
 @media(max-width:900px){.ogr-roles{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:560px){.ogr-roles{grid-template-columns:1fr;}.ogr-panel{padding:24px 22px;}}
@@ -101,10 +116,16 @@ export default function RolesGdlScreen({ roles = [], onSelect }) {
                 </button>
               );
             })}
+
+            {/* 6a celda: acceso de voluntarios, cierra la cuadrícula */}
+            <Link to="/voluntario/login" className="ogr-vol">
+              <span className="ogr-ic">{VolunteerIcon}</span>
+              <span className="ogr-vol-text">Soy voluntario</span>
+              <span className="ogr-arrow">{Arrow}</span>
+            </Link>
           </div>
           <div className="ogr-foot">
             <span className="ogr-foot-note">¿No ves tu rol? Pídele acceso al administrador.</span>
-            <Link to="/voluntario/login" className="ogr-vol">Soy voluntario →</Link>
           </div>
         </div>
         <div className="ogr-copyright">Dashboard interno · Origen Campus Guadalajara</div>
