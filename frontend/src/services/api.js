@@ -204,6 +204,13 @@ export const liderVoluntariosApi = {
   remove: (cuentaId) => http.delete(`/lider/voluntarios/${cuentaId}`),
 };
 
+// ─── Disponibilidad del voluntario ────────────────────────────────────────────
+// El backend saca el campus de la ficha del voluntario (por el token), no de aquí.
+export const voluntarioDisponibilidadApi = {
+  getMes:  (mes)  => http.get('/voluntario/disponibilidad', { params: { mes } }),
+  marcar:  (data) => http.post('/voluntario/disponibilidad', data),
+};
+
 // ─── Usuarios ─────────────────────────────────────────────────────────────────
 const realUsuariosApi = {
   getAll:       ()               => http.get('/usuarios'),
