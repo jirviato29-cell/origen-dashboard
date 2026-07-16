@@ -6,7 +6,6 @@ import { liderVoluntariosApi } from '../../services/api';
 // en claro aquí para que el líder se la pase.
 
 const NAVY_900 = '#112540';
-const NAVY_300 = '#9CB0CC';
 const ORANGE_500 = '#FF6B2B';
 const ORANGE_600 = '#E0561B';
 const ORANGE_50 = '#FFF4EE';
@@ -15,6 +14,8 @@ const GRAY_200 = '#E2E6EC';
 const GRAY_100 = '#EEF1F5';
 const GRAY_50 = '#F6F7F9';
 const RED = '#EF4444';
+const DANGER = '#D23B36';
+const DANGER_BORDE = '#F3CBC9';
 const GREEN_50 = '#ECFDF5';
 const GREEN_700 = '#047857';
 
@@ -25,8 +26,6 @@ const CSS = `
 .mv-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;border:1px solid transparent;background:${NAVY_900};color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,border-color .15s;}
 .mv-btn:hover{background:#1B3A63;}
 .mv-btn:disabled{background:${GRAY_100};color:${GRAY_500};cursor:not-allowed;}
-.mv-btn-accent{background:${ORANGE_500};}
-.mv-btn-accent:hover{background:${ORANGE_600};}
 .mv-btn-ghost{background:transparent;color:${GRAY_500};border:1px solid ${GRAY_200};}
 .mv-btn-ghost:hover{background:${GRAY_50};color:${NAVY_900};}
 
@@ -50,9 +49,8 @@ const CSS = `
 .mv-clave-box{display:flex;flex-direction:column;align-items:center;padding:5px 11px;border-radius:9px;background:${ORANGE_50};border:1px solid #FFD9C7;flex-shrink:0;}
 .mv-clave-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${ORANGE_600};}
 .mv-clave-val{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;font-weight:800;letter-spacing:.14em;color:${ORANGE_600};}
-.mv-quitar{background:none;border:0;color:${NAVY_300};cursor:pointer;font-size:12px;font-weight:600;padding:6px;flex-shrink:0;font-family:inherit;}
-.mv-quitar:hover{color:${RED};}
-.mv-quitar:disabled{opacity:.5;cursor:not-allowed;}
+/* Solo geometría: el color y la fuente van inline (ver estiloQuitar). */
+.mv-quitar{border:1px solid transparent;border-radius:9px;padding:6px 11px;flex-shrink:0;transition:background-color .15s,border-color .15s,color .15s;}
 
 .mv-form{border:1px solid ${GRAY_200};border-radius:12px;padding:16px;background:${GRAY_50};margin-bottom:14px;}
 .mv-form-t{font-size:13.5px;font-weight:800;color:${NAVY_900};margin:0 0 12px;}
@@ -64,6 +62,52 @@ const CSS = `
 .mv-input:focus{border-color:${NAVY_900};}
 .mv-form-actions{display:flex;gap:8px;margin-top:13px;}
 `;
+
+// ─── Estilos de botón, inline a propósito ─────────────────────────────────────
+// index.css:106 tiene `.app button { font: inherit; color: inherit; }`, que por
+// especificidad (0-1-1) le gana a las clases .mv-btn / .mv-quitar (0-1-0) y les
+// roba el color, el peso y el tamaño. Inline es lo único que una regla global no
+// puede pisar. Por lo mismo el hover va en estado de React: un :hover de CSS
+// tampoco pisa un estilo inline.
+const FUENTE_BTN = {
+  fontFamily: '"DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+  fontSize: 13,
+  fontWeight: 600,
+};
+
+const APAGADO = {
+  backgroundColor: GRAY_100,
+  borderColor:     GRAY_200,
+  color:           GRAY_500,
+};
+
+// Primario: naranja sólido. Atenuado cuando está deshabilitado de verdad.
+const estiloPrimario = (activo, hover) => ({
+  ...FUENTE_BTN,
+  cursor: activo ? 'pointer' : 'not-allowed',
+  ...(activo
+    ? {
+        backgroundColor: hover ? ORANGE_600 : ORANGE_500,
+        borderColor:     hover ? ORANGE_600 : ORANGE_500,
+        color: '#fff',
+      }
+    : APAGADO),
+});
+
+// Destructivo: contorno rojo en reposo y rojo sólido al pasar el cursor. En
+// reposo va en contorno para no gritar en cada fila de la lista.
+const estiloQuitar = (activo, hover) => ({
+  ...FUENTE_BTN,
+  fontSize: 12,
+  cursor: activo ? 'pointer' : 'not-allowed',
+  ...(activo
+    ? {
+        backgroundColor: hover ? DANGER : '#fff',
+        borderColor:     hover ? DANGER : DANGER_BORDE,
+        color:           hover ? '#fff' : DANGER,
+      }
+    : APAGADO),
+});
 
 const inicial = (n) => (n || '?').trim().charAt(0).toUpperCase();
 
@@ -89,9 +133,11 @@ export default function MisVoluntarios() {
   const [guardando, setGuardando] = useState(false);
   const [quitando, setQuitando]  = useState(null);
   const [flash,    setFlash]    = useState(null);
-  // El hover del botón primario se lleva en estado porque su color va inline
-  // (ver estiloGuardar) y un :hover de CSS no puede pisar un estilo inline.
+  // Hover en estado: los colores van inline y un :hover de CSS no los pisa.
+  // hoverQuitar guarda el cuenta_id de la fila señalada, no un booleano.
   const [hoverGuardar, setHoverGuardar] = useState(false);
+  const [hoverAgregar, setHoverAgregar] = useState(false);
+  const [hoverQuitar,  setHoverQuitar]  = useState(null);
 
   // Carga inicial. Se cancela si el componente se desmonta antes de responder.
   useEffect(() => {
@@ -116,29 +162,7 @@ export default function MisVoluntarios() {
 
   const listo = form.nombre.trim() && form.whatsapp.trim() && form.apodo.trim();
 
-  // index.css:106 tiene `.app button { font: inherit; color: inherit; }`, que
-  // por especificidad (0-1-1) le gana a `.mv-btn` (0-1-0): le roba el blanco y
-  // el peso, y el botón acababa con texto oscuro sobre fondo oscuro. Los
-  // colores van inline porque es lo único que una regla global no puede pisar.
   const guardarActivo = Boolean(listo) && !guardando;
-  const estiloGuardar = {
-    fontFamily: '"DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: guardarActivo ? 'pointer' : 'not-allowed',
-    ...(guardarActivo
-      ? {
-          backgroundColor: hoverGuardar ? ORANGE_600 : ORANGE_500,
-          borderColor:     hoverGuardar ? ORANGE_600 : ORANGE_500,
-          color: '#fff',
-        }
-      : {
-          // Deshabilitado de verdad: atenuado y sin acento.
-          backgroundColor: GRAY_100,
-          borderColor:     GRAY_200,
-          color:           GRAY_500,
-        }),
-  };
 
   async function guardar() {
     if (!listo || guardando) return;
@@ -190,7 +214,13 @@ export default function MisVoluntarios() {
           </div>
         </div>
         {!abierto && (
-          <button className="mv-btn mv-btn-accent" onClick={() => { setAbierto(true); setError(''); }}>
+          <button
+            className="mv-btn"
+            style={estiloPrimario(true, hoverAgregar)}
+            onMouseEnter={() => setHoverAgregar(true)}
+            onMouseLeave={() => setHoverAgregar(false)}
+            onClick={() => { setAbierto(true); setError(''); }}
+          >
             + Agregar voluntario
           </button>
         )}
@@ -241,7 +271,7 @@ export default function MisVoluntarios() {
           <div className="mv-form-actions">
             <button
               className="mv-btn"
-              style={estiloGuardar}
+              style={estiloPrimario(guardarActivo, hoverGuardar)}
               onMouseEnter={() => setHoverGuardar(true)}
               onMouseLeave={() => setHoverGuardar(false)}
               onClick={guardar}
@@ -283,7 +313,14 @@ export default function MisVoluntarios() {
                   <span className="mv-clave-lbl">Clave</span>
                   <span className="mv-clave-val">{v.clave}</span>
                 </div>
-                <button className="mv-quitar" onClick={() => quitar(v)} disabled={quitando === v.cuenta_id}>
+                <button
+                  className="mv-quitar"
+                  style={estiloQuitar(quitando !== v.cuenta_id, hoverQuitar === v.cuenta_id)}
+                  onMouseEnter={() => setHoverQuitar(v.cuenta_id)}
+                  onMouseLeave={() => setHoverQuitar(null)}
+                  onClick={() => quitar(v)}
+                  disabled={quitando === v.cuenta_id}
+                >
                   {quitando === v.cuenta_id ? '…' : 'Quitar'}
                 </button>
               </div>
