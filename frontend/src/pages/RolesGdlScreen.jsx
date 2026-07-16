@@ -2,10 +2,11 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 const MINT = '#2DD4BF';
+// Lavado claro de menta para el hover — equivalente al naranja claro que usa
+// la pantalla de ags. GDL usa menta como acento propio del campus.
+const MINT_50 = '#EEFCFA';
 const INK_300 = '#9A9A9A';
 const NAVY_900 = '#112540';
-const ORANGE_500 = '#FF6B2B';
-const ORANGE_50 = '#FFF4EE';
 const GRAY_500 = '#7A8699';
 const GRAY_200 = '#E2E6EC';
 const NAVY_300 = '#9CB0CC';
@@ -36,11 +37,11 @@ const CSS = `
 .ogr-sub{font-size:13px;color:${INK_300};margin-top:5px;margin-bottom:22px;}
 .ogr-roles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;}
 .ogr-role{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 13px;border:1px solid ${GRAY_200};border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;box-shadow:0 1px 2px rgba(11,26,47,.04);transition:.16s cubic-bezier(.3,.7,.3,1);}
-.ogr-role:hover{border-color:${ORANGE_500};background:${ORANGE_50};box-shadow:0 6px 16px rgba(11,26,47,.10);}
+.ogr-role:hover{border-color:${MINT};background:${MINT_50};box-shadow:0 6px 16px rgba(11,26,47,.10);}
 .ogr-role-text{display:flex;flex-direction:column;flex:1;min-width:0;}
 .ogr-arrow{display:flex;align-items:center;color:${NAVY_300};flex-shrink:0;transition:color .16s;}
 .ogr-arrow svg{width:16px;height:16px;}
-.ogr-role:hover .ogr-arrow{color:${ORANGE_500};}
+.ogr-role:hover .ogr-arrow{color:${MINT};}
 .ogr-name{font-size:13.5px;font-weight:600;letter-spacing:-.01em;color:${NAVY_900};}
 .ogr-desc{font-size:11px;color:${GRAY_500};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ogr-foot{margin-top:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
