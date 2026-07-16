@@ -34,11 +34,14 @@ const WalletIcon = () => (
     <path d="M3 9h18"/>
   </svg>
 );
-const UsersIcon = () => (
-  <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth="1.8">
-    <circle cx="9" cy="9" r="3.2"/>
-    <path d="M3 19c0-3 2.7-5 6-5s6 2 6 5" strokeLinecap="round"/>
-    <circle cx="17" cy="10" r="2.5"/>
+// Anfitriones: puerta abierta = recibir/dar la bienvenida. Sin figura humana,
+// para no confundirse con Líder ni con Soy voluntario.
+const DoorIcon = () => (
+  <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M13 4h3a2 2 0 0 1 2 2v14"/>
+    <path d="M2 20h3M13 20h9"/>
+    <path d="M13 4.6v16.2a1 1 0 0 1-1.2 1L5.2 20a1 1 0 0 1-.7-1V5.6a1 1 0 0 1 .8-1l6-1.5A1 1 0 0 1 13 4.6z"/>
+    <path d="M10 12v.01"/>
   </svg>
 );
 const PinIcon = () => (
@@ -52,11 +55,12 @@ const ChevronRight = () => (
     <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
-const TeamIcon = () => (
-  <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth="1.8">
-    <circle cx="12" cy="7" r="3.2"/>
-    <path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" strokeLinecap="round"/>
-    <path d="M4.5 12.5a2.2 2.2 0 1 0 0-4.4M19.5 12.5a2.2 2.2 0 1 1 0-4.4" strokeLinecap="round"/>
+// Líder de Ministerio: escudo con estrella sólida = liderar. Sin figura
+// humana, para no confundirse con Soy voluntario (persona + más).
+const LeaderIcon = () => (
+  <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 21.5c4.5-2 7-5.5 7-9.5V5.5L12 2.8 5 5.5V12c0 4 2.5 7.5 7 9.5z"/>
+    <path d="M12 8.2l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4z" fill="currentColor" stroke="none"/>
   </svg>
 );
 // Geometría de UserPlus (lucide). Inline porque el proyecto no usa
@@ -88,8 +92,12 @@ function getGreetingLine() {
 }
 
 // ── Datos de roles ─────────────────────────────────────────────────────────
-// icon/icBg/icColor los sigue usando la pantalla de clave; las tarjetas de
-// selección ya no muestran ícono.
+// El orden de este array es el orden del grid en AMBAS pantallas: gdl
+// (RolesGdlScreen) lo recibe por props, así que no hay que reordenarlo allá.
+// Grid de 3 columnas:
+//   arriba: Pastor | Stewardship | Líder de Ministerio
+//   abajo:  Punto de Encuentro | Anfitriones | [Soy voluntario]
+// icon/icBg/icColor los sigue usando la pantalla de clave.
 const ROLES_LIST = [
   {
     id:         ROLES.PASTOR,
@@ -108,12 +116,12 @@ const ROLES_LIST = [
     icColor:    NAVY_600,
   },
   {
-    id:         ROLES.ANFITRIONES,
-    label:      'Anfitriones',
-    desc:       'Gestión de asistencia y bienvenida',
-    icon:       UsersIcon,
-    icBg:       ORANGE_50,
-    icColor:    ORANGE_600,
+    id:         ROLES.LIDER_MINISTERIO,
+    label:      'Líder de Ministerio',
+    desc:       'Tu equipo de voluntarios',
+    icon:       LeaderIcon,
+    icBg:       NAVY_100,
+    icColor:    NAVY_700,
   },
   {
     id:         ROLES.PUNTO_ENCUENTRO,
@@ -124,12 +132,12 @@ const ROLES_LIST = [
     icColor:    TEAL,
   },
   {
-    id:         ROLES.LIDER_MINISTERIO,
-    label:      'Líder de Ministerio',
-    desc:       'Tu equipo de voluntarios',
-    icon:       TeamIcon,
-    icBg:       NAVY_100,
-    icColor:    NAVY_700,
+    id:         ROLES.ANFITRIONES,
+    label:      'Anfitriones',
+    desc:       'Gestión de asistencia y bienvenida',
+    icon:       DoorIcon,
+    icBg:       ORANGE_50,
+    icColor:    ORANGE_600,
   },
 ];
 
