@@ -9,6 +9,7 @@ const authRouter          = require('./routes/auth');
 const authVoluntarioRouter = require('./routes/authVoluntario');
 const usuariosRouter      = require('./routes/usuarios');
 const voluntariosRouter   = require('./routes/voluntarios');
+const liderVoluntariosRouter = require('./routes/liderVoluntarios');
 const ingresosRouter      = require('./routes/ingresos');
 const gastosRouter        = require('./routes/gastos');
 const gastosEventosRouter = require('./routes/gastosEventos');
@@ -47,6 +48,8 @@ app.use(campusMiddleware);
 
 app.use('/api/usuarios',    usuariosRouter);
 app.use('/api/voluntarios', voluntariosRouter);
+// Protegido: el router exige token y rol de líder/staff (requireLider).
+app.use('/api/lider/voluntarios', liderVoluntariosRouter);
 
 
 app.use('/api/ingresos',   ingresosRouter);
