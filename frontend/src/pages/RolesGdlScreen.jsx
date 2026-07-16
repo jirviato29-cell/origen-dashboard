@@ -16,6 +16,9 @@ const Icon = {
   punto_encuentro: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z" /><circle cx="12" cy="9" r="2.5" /></svg>
   ),
+  lider_ministerio: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="7" r="3.2" /><path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" strokeLinecap="round" /><path d="M4.5 12.5a2.2 2.2 0 1 0 0-4.4M19.5 12.5a2.2 2.2 0 1 1 0-4.4" strokeLinecap="round" /></svg>
+  ),
 };
 const IconDefault = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /></svg>
@@ -29,6 +32,7 @@ const ROLE_STYLE = {
   stewardship:     { name:'Stewardship',        desc:'Ofrendas, finanzas y administración', icBg:'rgba(255,255,255,.1)', icColor:'#fff',    dot:INK_300,   meta:'Ingresos · Gastos · Balance' },
   anfitriones:     { name:'Anfitriones',        desc:'Gestión de asistencia y bienvenida',  icBg:'rgba(45,212,191,.18)', icColor:MINT,      dot:MINT,      meta:'Asistencia · Bienvenida' },
   punto_encuentro: { name:'Punto de Encuentro', desc:'Registro y seguimiento de eventos',   icBg:'rgba(92,122,111,.22)', icColor:'#8FB5A6', dot:'#5C7A6F', meta:'Eventos · Participantes' },
+  lider_ministerio:{ name:'Líder de Ministerio', desc:'Tu equipo de voluntarios',           icBg:'rgba(255,255,255,.1)', icColor:'#fff',    dot:INK_300,   meta:'Voluntarios · Posiciones' },
 };
 
 const CSS = `

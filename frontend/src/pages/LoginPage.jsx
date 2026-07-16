@@ -54,6 +54,13 @@ const ChevronRight = () => (
     <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
+const TeamIcon = () => (
+  <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth="1.8">
+    <circle cx="12" cy="7" r="3.2"/>
+    <path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" strokeLinecap="round"/>
+    <path d="M4.5 12.5a2.2 2.2 0 1 0 0-4.4M19.5 12.5a2.2 2.2 0 1 1 0-4.4" strokeLinecap="round"/>
+  </svg>
+);
 const HelpCircleIcon = () => (
   <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="12" r="9"/>
@@ -114,6 +121,16 @@ const ROLES_LIST = [
     icColor:    TEAL,
     mdotColor:  TEAL,
     meta:       'Eventos · Participantes',
+  },
+  {
+    id:         ROLES.LIDER_MINISTERIO,
+    label:      'Líder de Ministerio',
+    desc:       'Tu equipo de voluntarios',
+    icon:       TeamIcon,
+    icBg:       NAVY_100,
+    icColor:    NAVY_700,
+    mdotColor:  NAVY_700,
+    meta:       'Voluntarios · Posiciones',
   },
 ];
 

@@ -32,6 +32,7 @@ import StewardshipBalancePage from './pages/stewardship/BalancePage';
 import CalendarioPage from './pages/stewardship/CalendarioPage';
 import VoluntariosPage from './pages/stewardship/VoluntariosPage';
 import BienvenidaCasaPage from './pages/anfitriones/BienvenidaCasaPage';
+import PanelLider from './pages/lider/PanelLider';
 import './index.css';
 
 // Protege una sección de rutas: redirige a / si no hay sesión,
@@ -119,6 +120,13 @@ function AppRoutes() {
         <Route path="configuracion"      element={<ConfiguracionPage />} />
         <Route path="ofrendas-especiales"          element={<OfrendasEspecialesPage />} />
         <Route path="ofrendas-especiales/:id"      element={<OfrendasEspecialesDetallePage />} />
+      </Route>
+
+      {/* ── Líder de ministerio ────────────────────────────────────────── */}
+      <Route path="/lider_ministerio" element={
+        <ProtectedRoute routeRole="lider_ministerio"><Layout /></ProtectedRoute>
+      }>
+        <Route index element={<PanelLider />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

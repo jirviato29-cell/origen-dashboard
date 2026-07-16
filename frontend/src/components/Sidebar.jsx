@@ -71,6 +71,11 @@ const navByRole = {
       { to: '/stewardship/configuracion',     label: 'Configuración',           icon: I.settings },
     ]},
   ],
+  [ROLES.LIDER_MINISTERIO]: [
+    { group: 'Ministerio', items: [
+      { to: '/lider_ministerio', label: 'Panel de líder', icon: I.users, end: true },
+    ]},
+  ],
 };
 
 const roleLabel = {
@@ -79,6 +84,7 @@ const roleLabel = {
   [ROLES.ANFITRIONES]:     'Anfitriones',
   [ROLES.PUNTO_ENCUENTRO]: 'Punto de Encuentro',
   [ROLES.STEWARDSHIP]:     'Stewardship',
+  [ROLES.LIDER_MINISTERIO]: 'Líder de Ministerio',
 };
 
 const roleInitials = {
@@ -87,6 +93,7 @@ const roleInitials = {
   [ROLES.ANFITRIONES]:     'MR',
   [ROLES.PUNTO_ENCUENTRO]: 'PE',
   [ROLES.STEWARDSHIP]:     'SW',
+  [ROLES.LIDER_MINISTERIO]: 'LM',
 };
 
 // ─── Accordion nav item ────────────────────────────────────────────────────────
