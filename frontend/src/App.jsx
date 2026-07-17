@@ -132,13 +132,16 @@ function AppRoutes() {
       </Route>
 
       {/* ── Voluntario ─────────────────────────────────────────────────── */}
-      {/* Sin Layout: su flujo de acceso es aparte y no tiene nav lateral. */}
+      {/* /voluntario/login queda sin Layout (pantalla de acceso propia). */}
       <Route path="/voluntario/login" element={
         role ? <Navigate to={`/${role}`} replace /> : <LoginVoluntario />
       } />
       <Route path="/voluntario" element={
-        <ProtectedRoute routeRole="voluntario"><PanelVoluntario /></ProtectedRoute>
-      } />
+        <ProtectedRoute routeRole="voluntario"><Layout /></ProtectedRoute>
+      }>
+        <Route index element={<Navigate to="/voluntario/calendario" replace />} />
+        <Route path="calendario" element={<PanelVoluntario />} />
+      </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

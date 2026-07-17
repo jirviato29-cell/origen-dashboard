@@ -49,6 +49,8 @@ const ROUTE_INFO = {
   '/stewardship/voluntarios':           { section: 'Stewardship',        title: 'Directorio de voluntarios' },
   '/stewardship/configuracion':         { section: 'Stewardship',        title: 'Configuración' },
   '/lider_ministerio':                  { section: 'Ministerio',         title: 'Panel de líder' },
+  '/voluntario':                        { section: 'Voluntario',         title: 'Mi calendario' },
+  '/voluntario/calendario':             { section: 'Voluntario',         title: 'Mi calendario' },
 };
 
 export default function Layout() {

@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import { voluntarioDisponibilidadApi } from '../../services/api';
 
 // Calendario de disponibilidad del voluntario: marca por domingo y por evento.
@@ -8,7 +6,6 @@ import { voluntarioDisponibilidadApi } from '../../services/api';
 // pintan. Nunca se confía en el `bloqueado` local para autorizar: el POST se
 // revalida en el servidor.
 
-const NAVY_950 = '#0B1A2F';
 const NAVY_900 = '#112540';
 const NAVY_300 = '#9CB0CC';
 const ORANGE_500 = '#FF6B2B';
@@ -26,13 +23,8 @@ const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 const CSS = `
-.cv-root{min-height:100vh;background:${NAVY_950};padding:0 0 40px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;}
-.cv-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;max-width:560px;margin:0 auto;}
-.cv-hola{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.02em;}
-.cv-tag{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:${NAVY_300};margin-top:2px;}
-.cv-salir{background:transparent;border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:7px 12px;}
-.cv-wrap{max-width:560px;margin:0 auto;padding:0 20px;}
-.cv-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 20px 50px rgba(0,0,0,.35);}
+.cv-wrap{max-width:560px;margin:0 auto;padding:0 20px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;}
+.cv-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);border:1px solid ${GRAY_200};}
 
 .cv-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
 .cv-mes{font-size:16px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;}
@@ -53,7 +45,7 @@ const CSS = `
 .cv-leyenda-i{display:flex;align-items:center;gap:5px;font-size:10.5px;color:${GRAY_500};font-weight:600;}
 .cv-leyenda-c{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
 
-.cv-panel{margin-top:14px;background:#fff;border-radius:18px;padding:16px;box-shadow:0 20px 50px rgba(0,0,0,.35);}
+.cv-panel{margin-top:14px;background:#fff;border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);border:1px solid ${GRAY_200};}
 .cv-panel-f{font-size:14px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;}
 .cv-item{border-top:1px solid ${GRAY_100};padding-top:12px;margin-top:12px;}
 .cv-item:first-of-type{border-top:0;padding-top:0;margin-top:12px;}
@@ -67,10 +59,8 @@ const CSS = `
 .cv-vacio{padding:26px 10px;text-align:center;font-size:12.5px;color:${GRAY_500};}
 `;
 
-// index.css:106 tiene `.app button { font: inherit; color: inherit; }`. Esta
-// pantalla va fuera de <Layout> y hoy no la alcanza, pero los colores de los
-// botones van inline igual: es lo único que una regla global no puede pisar, y
-// así siguen bien si algún día se monta dentro del Layout.
+// index.css:106 tiene `.app button { font: inherit; color: inherit; }`. Los
+// colores de los botones van inline para que una regla global no los pise.
 const FUENTE_BTN = {
   fontFamily: '"DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
   fontWeight: 700,
@@ -86,7 +76,6 @@ const estiloAccion = (activo, color, colorSuave, habilitado) => ({
   color:           activo ? '#fff' : (habilitado ? color : GRAY_500),
 });
 
-const estiloSalir = { ...FUENTE_BTN, fontSize: 12, color: '#fff', cursor: 'pointer' };
 const estiloFlecha = (habilitada) => ({
   ...FUENTE_BTN,
   fontSize: 15,
@@ -113,9 +102,6 @@ const tituloMes = (mes) => {
 const diaDeISO = (iso) => Number(iso.slice(8, 10));
 
 export default function PanelVoluntario() {
-  const { userName, logout } = useAuth();
-  const navigate = useNavigate();
-
   const [mes,      setMes]      = useState(mesDeHoy);
   const [data,     setData]     = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -154,8 +140,6 @@ export default function PanelVoluntario() {
     setSel(null);
     setAviso('');
   };
-
-  const salir = () => { logout(); navigate('/'); };
 
   // Los días marcables de cada fecha (un domingo con evento tiene dos).
   const marcablesDe = (fecha) => (data?.dias ?? []).filter(d => d.fecha === fecha);
@@ -229,16 +213,8 @@ export default function PanelVoluntario() {
   const seleccionados = sel ? marcablesDe(sel) : [];
 
   return (
-    <div className="cv-root">
+    <>
       <style>{CSS}</style>
-
-      <div className="cv-top">
-        <div>
-          <div className="cv-hola">Hola, {userName || 'voluntario'}</div>
-          <div className="cv-tag">Tu disponibilidad</div>
-        </div>
-        <button className="cv-salir" style={estiloSalir} onClick={salir}>Salir</button>
-      </div>
 
       <div className="cv-wrap">
         <div className="cv-card">
@@ -370,6 +346,6 @@ export default function PanelVoluntario() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
