@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { calendarioApi, tiposEventoApi } from '../services/api';
 import { useCalendarioModal } from '../context/CalendarioModalContext';
 import { useTiposEvento } from '../context/TiposEventoContext';
+import { useMinisterios } from '../context/MinisteriosContext';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { puedeRegistrar } from '../permissions';
 import { I } from './Icons';
@@ -37,6 +38,7 @@ const labelStyle = {
 export default function GlobalCalendarioModal() {
   const { open, initialDate, editingEvent, lockPuntoEncuentro, closeModal, triggerRefresh } = useCalendarioModal();
   const { tipos, reload: reloadTipos } = useTiposEvento();
+  const { ministerios, reload: reloadMinisterios } = useMinisterios();
   const { permisos, role } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'calendario');
   // El rol Punto de Encuentro también puede gestionar los tipos de evento,
@@ -49,6 +51,7 @@ export default function GlobalCalendarioModal() {
   const [saved,     setSaved]     = useState(false);
   const [savedData, setSavedData] = useState(null);
   const [tieneCosto, setTieneCosto] = useState(false);
+  const [ministeriosSeleccionados, setMinisteriosSeleccionados] = useState([]);
 
   // Gestionar tipos state
   const [showGestionar,  setShowGestionar]  = useState(false);
@@ -75,6 +78,7 @@ export default function GlobalCalendarioModal() {
       setTipoMsgErr('');
       setConfirmDelTipo(null);
       reloadTipos();
+      reloadMinisterios();
       if (editingEvent) {
         const costoNum = parseFloat(editingEvent.costo) || 0;
         setTieneCosto(costoNum > 0);
@@ -87,12 +91,21 @@ export default function GlobalCalendarioModal() {
           enPuntoEncuentro: Boolean(editingEvent.en_punto_encuentro),
           paraVoluntarios:  Boolean(editingEvent.para_voluntarios),
         });
+        // Precarga los ministerios asignados si el evento ya era de servicio.
+        if (editingEvent.para_voluntarios) {
+          calendarioApi.getMinisterios(editingEvent.id)
+            .then(res => setMinisteriosSeleccionados(res.data.map(m => m.id)))
+            .catch(() => setMinisteriosSeleccionados([]));
+        } else {
+          setMinisteriosSeleccionados([]);
+        }
       } else {
         setTieneCosto(false);
         setForm({ ...makeEmpty(initialDate), enPuntoEncuentro: lockPuntoEncuentro });
+        setMinisteriosSeleccionados([]);
       }
     }
-  }, [open, initialDate, editingEvent, lockPuntoEncuentro, reloadTipos]);
+  }, [open, initialDate, editingEvent, lockPuntoEncuentro, reloadTipos, reloadMinisterios]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && !saved) closeModal(); };
@@ -115,6 +128,9 @@ export default function GlobalCalendarioModal() {
         costo:              form.costo ? parseFloat(form.costo) : 0,
         en_punto_encuentro: form.enPuntoEncuentro,
         para_voluntarios:   form.paraVoluntarios,
+        // El backend ignora ministerio_ids si para_voluntarios es false y
+        // limpia los vinculos previos igualmente.
+        ministerio_ids:     form.paraVoluntarios ? ministeriosSeleccionados : [],
       };
       if (isEditing) {
         await calendarioApi.update(editingEvent.id, payload);
@@ -411,7 +427,7 @@ export default function GlobalCalendarioModal() {
                 </div>
               </label>
 
-              {/* Checkbox Para voluntarios */}
+              {/* Checkbox Evento de servicio */}
               <label style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 14px', borderRadius: 10,
@@ -423,18 +439,73 @@ export default function GlobalCalendarioModal() {
                 <input
                   type="checkbox"
                   checked={form.paraVoluntarios}
-                  onChange={e => setForm(f => ({ ...f, paraVoluntarios: e.target.checked }))}
+                  onChange={e => {
+                    const marcado = e.target.checked;
+                    setForm(f => ({ ...f, paraVoluntarios: marcado }));
+                    if (!marcado) setMinisteriosSeleccionados([]);
+                  }}
                   style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
                 />
                 <div>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
-                    Este evento es para voluntarios
+                    Evento de servicio (los voluntarios pueden apuntarse)
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
                     Aparecerá en el calendario de disponibilidad de los voluntarios
                   </div>
                 </div>
               </label>
+
+              {/* Selector de ministerios — solo si es evento de servicio */}
+              {form.paraVoluntarios && (
+                <div style={{
+                  padding: '12px 14px', borderRadius: 10,
+                  border: '1.5px solid var(--border)', background: 'var(--surface)',
+                }}>
+                  <div style={{ ...labelStyle, marginBottom: 8 }}>
+                    ¿Qué ministerios sirven en este evento?
+                  </div>
+                  {ministerios.length === 0 ? (
+                    <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                      Aún no hay ministerios registrados en este campus.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {ministerios.map(m => {
+                        const checked = ministeriosSeleccionados.includes(m.id);
+                        return (
+                          <label key={m.id} style={{
+                            display: 'flex', alignItems: 'center', gap: 9,
+                            padding: '7px 10px', borderRadius: 8,
+                            background: checked ? '#fff' : 'transparent',
+                            border: `1px solid ${checked ? 'var(--chart-primary)' : 'var(--border)'}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.12s',
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={e => {
+                                const marcado = e.target.checked;
+                                setMinisteriosSeleccionados(prev =>
+                                  marcado ? [...prev, m.id] : prev.filter(x => x !== m.id)
+                                );
+                              }}
+                              style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
+                            />
+                            <span style={{
+                              display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
+                              background: m.color || '#64748B', flexShrink: 0,
+                              border: '1px solid rgba(0,0,0,.1)',
+                            }} />
+                            <span style={{ fontSize: 13.5, color: 'var(--ink)', flex: 1 }}>{m.nombre}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
             </div>
 

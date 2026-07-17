@@ -116,12 +116,13 @@ const realEventosApi = {
 
 // ─── Calendario ───────────────────────────────────────────────────────────────
 const realCalendarioApi = {
-  getAll:  (params) => http.get('/calendario', { params }),
-  getOne:  (id)     => http.get(`/calendario/${id}`),
-  create:  (data)   => http.post('/calendario', data),
-  update:  (id, d)  => http.put(`/calendario/${id}`, d),
-  remove:  (id)     => http.delete(`/calendario/${id}`),
-  cerrar:  (id)     => http.patch(`/calendario/${id}/cerrar`),
+  getAll:         (params) => http.get('/calendario', { params }),
+  getOne:         (id)     => http.get(`/calendario/${id}`),
+  getMinisterios: (id)     => http.get(`/calendario/${id}/ministerios`),
+  create:         (data)   => http.post('/calendario', data),
+  update:         (id, d)  => http.put(`/calendario/${id}`, d),
+  remove:         (id)     => http.delete(`/calendario/${id}`),
+  cerrar:         (id)     => http.patch(`/calendario/${id}/cerrar`),
 };
 
 // ─── Participantes ───────────────────────────────────────────────────────────
