@@ -1,91 +1,123 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { voluntarioDisponibilidadApi } from '../../services/api';
 
-// Calendario de disponibilidad del voluntario: marca por domingo y por evento.
-// El bloqueo (2 días antes) y el campus los decide el backend; aquí solo se
-// pintan. Nunca se confía en el `bloqueado` local para autorizar: el POST se
-// revalida en el servidor.
+// Calendario de disponibilidad del voluntario en vista dividida:
+//   izquierda: grid del mes (con puntos de color por evento)
+//   derecha:   lista vertical del mes (domingos + eventos, ordenados)
+// El bloqueo (2 dias antes) y la resolucion de campus/ministerio los decide el
+// backend; aqui solo se pinta. Nunca se confia en `bloqueado` ni `puede_marcar`
+// para autorizar: el POST se revalida en el servidor.
 
-const NAVY_900 = '#112540';
-const NAVY_300 = '#9CB0CC';
+const NAVY_900   = '#112540';
+const NAVY_300   = '#9CB0CC';
 const ORANGE_500 = '#FF6B2B';
-const VERDE = '#15915A';
-const VERDE_50 = '#E8F5EF';
-const ROJO = '#D23B36';
-const ROJO_50 = '#FCEBEA';
-const GRAY_500 = '#7A8699';
-const GRAY_200 = '#E2E6EC';
-const GRAY_100 = '#EEF1F5';
-const GRAY_50 = '#F6F7F9';
+const VERDE      = '#15915A';
+const VERDE_50   = '#E8F5EF';
+const ROJO       = '#D23B36';
+const ROJO_50    = '#FCEBEA';
+const GRAY_600   = '#5B6675';
+const GRAY_500   = '#7A8699';
+const GRAY_200   = '#E2E6EC';
+const GRAY_100   = '#EEF1F5';
+const GRAY_50    = '#F6F7F9';
 
-const DIAS_SEM = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DIAS_SEM       = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DIAS_SEM_LARGO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 const CSS = `
-.cv-wrap{max-width:560px;margin:0 auto;padding:0 20px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;}
-.cv-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);border:1px solid ${GRAY_200};}
+.pv-shell{max-width:1120px;margin:0 auto;padding:8px 20px 40px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;
+  display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:22px;align-items:start;}
+@media (max-width: 960px){.pv-shell{grid-template-columns:1fr;padding:6px 14px 32px;}}
 
-.cv-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
-.cv-mes{font-size:16px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;}
-.cv-mes-sub{font-size:11px;color:${GRAY_500};margin-top:1px;}
-.cv-flecha{width:32px;height:32px;border-radius:9px;border:1px solid ${GRAY_200};background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pv-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);border:1px solid ${GRAY_200};}
+.pv-card + .pv-card{margin-top:14px;}
 
-.cv-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
-.cv-sem-d{text-align:center;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${GRAY_500};padding:3px 0;}
-.cv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
-.cv-celda{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;font-size:13px;}
-.cv-vacia{background:transparent;}
-.cv-apagado{color:${NAVY_300};background:${GRAY_50};}
-.cv-num{font-weight:700;line-height:1;}
-.cv-punto{position:absolute;bottom:6px;width:5px;height:5px;border-radius:50%;background:${ORANGE_500};}
-.cv-candado{position:absolute;top:3px;right:4px;font-size:8px;opacity:.75;}
+.pv-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.pv-mes{font-size:17px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;}
+.pv-mes-sub{font-size:12px;color:${GRAY_500};margin-top:1px;}
+.pv-flecha{width:36px;height:36px;border-radius:10px;border:1px solid ${GRAY_200};background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 
-.cv-leyenda{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:12px;padding-top:11px;border-top:1px solid ${GRAY_100};}
-.cv-leyenda-i{display:flex;align-items:center;gap:5px;font-size:10.5px;color:${GRAY_500};font-weight:600;}
-.cv-leyenda-c{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+.pv-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
+.pv-sem-d{text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${GRAY_500};padding:3px 0;}
+.pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.pv-celda{aspect-ratio:1;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;font-size:14px;}
+.pv-vacia{background:transparent;}
+.pv-apagado{color:${NAVY_300};background:${GRAY_50};}
+.pv-num{font-weight:700;line-height:1;}
+.pv-punto{position:absolute;bottom:6px;width:6px;height:6px;border-radius:50%;}
+.pv-punto + .pv-punto{margin-left:4px;}
+.pv-puntos{position:absolute;bottom:6px;display:flex;align-items:center;justify-content:center;gap:3px;}
+.pv-candado{position:absolute;top:4px;right:5px;font-size:9px;opacity:.75;}
 
-.cv-panel{margin-top:14px;background:#fff;border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);border:1px solid ${GRAY_200};}
-.cv-panel-f{font-size:14px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;}
-.cv-item{border-top:1px solid ${GRAY_100};padding-top:12px;margin-top:12px;}
-.cv-item:first-of-type{border-top:0;padding-top:0;margin-top:12px;}
-.cv-item-n{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:${NAVY_900};margin-bottom:9px;}
-.cv-chip{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:2px 6px;border-radius:5px;background:#FFF4EE;color:#E0561B;}
-.cv-acciones{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.cv-accion{padding:12px;border-radius:11px;border:1.5px solid;}
-.cv-aviso{margin-top:10px;padding:10px 12px;border-radius:10px;background:${GRAY_50};border:1px solid ${GRAY_200};font-size:12px;color:${GRAY_500};font-weight:600;}
-.cv-error{margin-top:12px;padding:11px 13px;border-radius:10px;background:${ROJO_50};border:1px solid #F3CBC9;color:${ROJO};font-size:12.5px;font-weight:600;}
-.cv-estado{margin-top:10px;text-align:center;font-size:12px;color:${GRAY_500};}
-.cv-vacio{padding:26px 10px;text-align:center;font-size:12.5px;color:${GRAY_500};}
+.pv-leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;padding-top:12px;border-top:1px solid ${GRAY_100};}
+.pv-leyenda-i{display:flex;align-items:center;gap:6px;font-size:11.5px;color:${GRAY_500};font-weight:600;}
+.pv-leyenda-c{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+.pv-right-title{font-size:15px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;margin:0 0 4px;}
+.pv-right-sub{font-size:12.5px;color:${GRAY_500};margin-bottom:10px;}
+
+.pv-item{display:flex;gap:14px;padding:14px 12px;border-radius:14px;border:1.5px solid ${GRAY_200};margin-top:10px;background:#fff;align-items:center;transition:box-shadow .15s,border-color .15s;}
+.pv-item:first-of-type{margin-top:0;}
+.pv-item-sel{border-color:${ORANGE_500};box-shadow:0 0 0 2px rgba(255,107,43,.15);}
+.pv-item-bloq{background:${GRAY_50};opacity:.85;}
+
+.pv-fecha-box{display:flex;flex-direction:column;align-items:center;justify-content:center;width:56px;height:60px;background:${GRAY_50};border-radius:11px;border:1px solid ${GRAY_200};flex-shrink:0;}
+.pv-fecha-num{font-size:22px;font-weight:800;color:${NAVY_900};line-height:1;font-variant-numeric:tabular-nums;}
+.pv-fecha-dow{font-size:10px;font-weight:700;text-transform:uppercase;color:${GRAY_500};letter-spacing:.05em;margin-top:3px;}
+
+.pv-body{flex:1;min-width:0;}
+.pv-body-title{font-size:15.5px;font-weight:700;color:${NAVY_900};line-height:1.25;}
+.pv-body-meta{display:flex;align-items:center;gap:7px;margin-top:5px;flex-wrap:wrap;}
+.pv-tipo-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,.08);}
+.pv-tipo-txt{font-size:12.5px;color:${GRAY_600};font-weight:600;}
+.pv-chip-info{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:5px;background:${GRAY_100};color:${GRAY_600};}
+.pv-chip-lock{font-size:12px;color:${GRAY_500};font-weight:600;}
+
+.pv-acciones{display:flex;gap:8px;flex-shrink:0;}
+@media (max-width:520px){
+  .pv-item{flex-wrap:wrap;}
+  .pv-acciones{width:100%;margin-top:4px;}
+}
+
+.pv-error{margin-top:12px;padding:12px 14px;border-radius:12px;background:${ROJO_50};border:1px solid #F3CBC9;color:${ROJO};font-size:13px;font-weight:600;}
+.pv-cargando{padding:26px 10px;text-align:center;font-size:13px;color:${GRAY_500};}
+.pv-vacio{padding:22px 10px;text-align:center;font-size:13px;color:${GRAY_500};}
+.pv-nota{margin-top:12px;text-align:center;font-size:12.5px;color:${GRAY_500};}
 `;
 
 // index.css:106 tiene `.app button { font: inherit; color: inherit; }`. Los
-// colores de los botones van inline para que una regla global no los pise.
+// colores/tipografia de los botones van inline para que una regla global no los pise.
 const FUENTE_BTN = {
   fontFamily: '"DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
   fontWeight: 700,
-  fontSize: 13,
 };
 
 const estiloAccion = (activo, color, colorSuave, habilitado) => ({
   ...FUENTE_BTN,
-  fontSize: 14,
+  fontSize: 15,
+  padding: '11px 16px',
+  minWidth: 96,
+  borderRadius: 12,
+  border: '1.5px solid',
   cursor: habilitado ? 'pointer' : 'not-allowed',
   backgroundColor: activo ? color : (habilitado ? '#fff' : GRAY_100),
   borderColor:     activo ? color : (habilitado ? colorSuave : GRAY_200),
   color:           activo ? '#fff' : (habilitado ? color : GRAY_500),
+  transition: 'background .12s,color .12s,border-color .12s',
 });
 
 const estiloFlecha = (habilitada) => ({
   ...FUENTE_BTN,
-  fontSize: 15,
+  fontSize: 17,
   color: habilitada ? NAVY_900 : GRAY_200,
   cursor: habilitada ? 'pointer' : 'not-allowed',
 });
 
 // ── Helpers de mes ───────────────────────────────────────────────────────────
-// Aritmética sobre 'YYYY-MM' en UTC: nunca construimos fechas locales, que se
-// correrían de día según la zona del navegador.
+// Aritmetica sobre 'YYYY-MM' en UTC: nunca construimos fechas locales que se
+// correrian de dia segun la zona del navegador.
 const mesDeHoy = () => {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
@@ -100,20 +132,29 @@ const tituloMes = (mes) => {
   return `${MESES[m - 1]} ${a}`;
 };
 const diaDeISO = (iso) => Number(iso.slice(8, 10));
+const diaSemanaISO = (iso) => {
+  const [a, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1, d)).getUTCDay();
+};
+
+// Color por defecto para eventos sin tipo_color (tipo no registrado en tipos_evento).
+const COLOR_EVENTO_DEFAULT = ORANGE_500;
 
 export default function PanelVoluntario() {
   const [mes,      setMes]      = useState(mesDeHoy);
   const [data,     setData]     = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error,    setError]    = useState('');
-  const [sel,      setSel]      = useState(null);   // fecha 'YYYY-MM-DD'
-  const [aviso,    setAviso]    = useState('');
-  const [enviando, setEnviando] = useState(null);   // clave del día que se envía
+  const [sel,      setSel]      = useState(null);   // fecha 'YYYY-MM-DD' seleccionada en el grid
+  const [enviando, setEnviando] = useState(null);   // clave del item que se envia
   const [recarga,  setRecarga]  = useState(0);      // fuerza refetch del mes actual
 
-  // La carga vive dentro del efecto y todos los setState ocurren después del
-  // await: llamarlos de forma síncrona desde un efecto encadena renders.
-  // El "cargando" lo enciende quien dispara la acción (ver irAMes).
+  // Refs de items del listado para hacer scrollIntoView al tocar un dia del grid.
+  const itemRefs = useRef({});
+
+  // La carga vive dentro del efecto y los setState ocurren despues del await:
+  // llamarlos de forma sincrona desde un efecto encadena renders. El
+  // "cargando" lo enciende quien dispara la accion (ver irAMes).
   useEffect(() => {
     let vivo = true;
     (async () => {
@@ -132,52 +173,59 @@ export default function PanelVoluntario() {
     return () => { vivo = false; };
   }, [mes, recarga]);
 
-  // El día seleccionado se limpia aquí y no en el efecto: cambiar de mes es lo
-  // único que lo invalida, y así el efecto solo se ocupa de cargar.
   const irAMes = (n) => {
     setCargando(true);
     setMes(m => sumaMes(m, n));
     setSel(null);
-    setAviso('');
   };
 
-  // Los días marcables de cada fecha (un domingo con evento tiene dos).
-  const marcablesDe = (fecha) => (data?.dias ?? []).filter(d => d.fecha === fecha);
+  const dias = data?.dias ?? [];
 
+  // Los items del listado, en orden cronologico (el backend ya los devuelve
+  // ordenados, pero conservamos el sort defensivo por si acaso).
+  const listado = useMemo(() =>
+    [...dias].sort((a, b) =>
+      a.fecha === b.fecha
+        ? (a.tipo === 'domingo' ? -1 : 1)
+        : (a.fecha < b.fecha ? -1 : 1)
+    ),
+    [dias]
+  );
+
+  // Los items marcables/informativos de una fecha (un domingo con evento tiene dos).
+  const itemsDe = (fecha) => dias.filter(d => d.fecha === fecha);
+
+  // Toca un dia del grid: lo marca como seleccionado y scrollea el primer item
+  // de esa fecha en la lista para que quede visible sin buscar.
   function tocarDia(fecha) {
-    const ms = marcablesDe(fecha);
-    if (ms.length === 0) return;
-    if (ms.every(m => m.bloqueado)) {
-      setSel(fecha);
-      setAviso(ms[0].tipo === 'domingo'
-        ? 'Ya cerró el cambio para este domingo'
-        : 'Ya cerró el cambio para esta fecha');
-      return;
-    }
-    setAviso('');
+    const items = itemsDe(fecha);
+    if (items.length === 0) return;
     setSel(fecha);
+    const key = claveItem(items[0]);
+    const el = itemRefs.current[key];
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  async function marcar(dia, estado) {
-    const clave = `${dia.fecha}-${dia.evento_id ?? 'dom'}`;
+  async function marcar(item, estado) {
+    const clave = claveItem(item);
     setEnviando(clave);
     setError('');
     try {
       await voluntarioDisponibilidadApi.marcar({
-        fecha: dia.fecha,
-        evento_id: dia.evento_id,
+        fecha: item.fecha,
+        evento_id: item.evento_id,
         estado,
       });
-      // Refleja el cambio sin recargar todo el mes.
+      // Refleja el cambio local sin recargar todo el mes.
       setData(d => ({
         ...d,
         dias: d.dias.map(x =>
-          x.fecha === dia.fecha && x.evento_id === dia.evento_id ? { ...x, estado } : x
+          x.fecha === item.fecha && x.evento_id === item.evento_id ? { ...x, estado } : x
         ),
       }));
     } catch (err) {
       setError(err.response?.data?.error || 'No se pudo guardar tu respuesta');
-      // Si el servidor dice que ya cerró, el mes local está viejo: recárgalo.
+      // Si el servidor dice que ya cerro, el mes local esta viejo: recarga.
       if (err.response?.status === 403) { setCargando(true); setRecarga(n => n + 1); }
     } finally {
       setEnviando(null);
@@ -193,159 +241,199 @@ export default function PanelVoluntario() {
     }
   }
 
-  const estiloCelda = (ms) => {
-    // El color lo manda el domingo si lo hay; si no, el evento.
-    const principal = ms.find(m => m.tipo === 'domingo') ?? ms[0];
-    const bloqueado = ms.every(m => m.bloqueado);
-    const base = { cursor: bloqueado ? 'default' : 'pointer', border: '1.5px solid' };
+  const estiloCelda = (items) => {
+    // El color de la celda lo manda el domingo si lo hay; si no, el evento.
+    const principal = items.find(m => m.tipo === 'domingo') ?? items[0];
+    const bloqueado = items.every(m => m.bloqueado);
+    const base = { cursor: 'pointer', border: '1.5px solid' };
     if (principal.estado === 'disponible') {
       return { ...base, backgroundColor: bloqueado ? VERDE_50 : VERDE, borderColor: VERDE,
-               color: bloqueado ? VERDE : '#fff', opacity: bloqueado ? .65 : 1 };
+               color: bloqueado ? VERDE : '#fff', opacity: bloqueado ? .7 : 1 };
     }
     if (principal.estado === 'no_disponible') {
       return { ...base, backgroundColor: bloqueado ? ROJO_50 : ROJO, borderColor: ROJO,
-               color: bloqueado ? ROJO : '#fff', opacity: bloqueado ? .65 : 1 };
+               color: bloqueado ? ROJO : '#fff', opacity: bloqueado ? .7 : 1 };
     }
     return { ...base, backgroundColor: '#fff', borderColor: bloqueado ? GRAY_200 : NAVY_900,
-             color: NAVY_900, opacity: bloqueado ? .5 : 1 };
+             color: NAVY_900, opacity: bloqueado ? .55 : 1 };
   };
-
-  const seleccionados = sel ? marcablesDe(sel) : [];
 
   return (
     <>
       <style>{CSS}</style>
 
-      <div className="cv-wrap">
-        <div className="cv-card">
-          <div className="cv-nav">
-            <button className="cv-flecha" style={estiloFlecha(true)}
-              onClick={() => irAMes(-1)} aria-label="Mes anterior">‹</button>
-            <div style={{ textAlign: 'center' }}>
-              <div className="cv-mes">{tituloMes(mes)}</div>
-              <div className="cv-mes-sub">Marca los domingos y eventos</div>
+      <div className="pv-shell">
+
+        {/* ── Columna izquierda: calendario ─────────────────────────────── */}
+        <div>
+          <div className="pv-card">
+            <div className="pv-nav">
+              <button className="pv-flecha" style={estiloFlecha(true)}
+                onClick={() => irAMes(-1)} aria-label="Mes anterior">‹</button>
+              <div style={{ textAlign: 'center' }}>
+                <div className="pv-mes">{tituloMes(mes)}</div>
+                <div className="pv-mes-sub">Toca un día para verlo en la lista</div>
+              </div>
+              <button className="pv-flecha" style={estiloFlecha(true)}
+                onClick={() => irAMes(1)} aria-label="Mes siguiente">›</button>
             </div>
-            <button className="cv-flecha" style={estiloFlecha(true)}
-              onClick={() => irAMes(1)} aria-label="Mes siguiente">›</button>
+
+            <div className="pv-sem">
+              {DIAS_SEM.map(d => <div key={d} className="pv-sem-d">{d}</div>)}
+            </div>
+
+            {cargando ? (
+              <div className="pv-cargando">Cargando tu calendario…</div>
+            ) : !data ? (
+              <div className="pv-vacio">Sin datos de este mes.</div>
+            ) : (
+              <div className="pv-grid">
+                {celdas.map((fecha, i) => {
+                  if (!fecha) return <div key={`v${i}`} className="pv-celda pv-vacia" />;
+                  const items = itemsDe(fecha);
+                  const num = diaDeISO(fecha);
+
+                  if (items.length === 0) {
+                    return (
+                      <div key={fecha} className="pv-celda pv-apagado">
+                        <span className="pv-num">{num}</span>
+                      </div>
+                    );
+                  }
+
+                  const bloqueado = items.every(m => m.bloqueado);
+                  const eventos = items.filter(m => m.tipo === 'evento');
+                  const esSel = sel === fecha;
+                  const st = estiloCelda(items);
+
+                  // Hasta 3 puntos de color por celda para no saturar.
+                  const puntos = eventos.slice(0, 3).map(e => e.tipo_color || COLOR_EVENTO_DEFAULT);
+
+                  return (
+                    <button
+                      key={fecha}
+                      className="pv-celda"
+                      style={{
+                        ...FUENTE_BTN,
+                        ...st,
+                        boxShadow: esSel ? `0 0 0 2px ${ORANGE_500}` : 'none',
+                      }}
+                      onClick={() => tocarDia(fecha)}
+                      title={items.map(m => m.nombre).join(' · ')}
+                    >
+                      <span className="pv-num">{num}</span>
+                      {bloqueado && <span className="pv-candado">🔒</span>}
+                      {puntos.length > 0 && (
+                        <span className="pv-puntos">
+                          {puntos.map((c, idx) => (
+                            <span key={idx} className="pv-punto" style={{ background: c, position: 'static' }} />
+                          ))}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="pv-leyenda">
+              <span className="pv-leyenda-i">
+                <span className="pv-leyenda-c" style={{ background: VERDE }} />Sí sirvo</span>
+              <span className="pv-leyenda-i">
+                <span className="pv-leyenda-c" style={{ background: ROJO }} />No puedo</span>
+              <span className="pv-leyenda-i">
+                <span className="pv-leyenda-c" style={{ background: '#fff', border: `1.5px solid ${NAVY_900}` }} />Sin responder</span>
+              <span className="pv-leyenda-i">
+                <span className="pv-leyenda-c" style={{ background: ORANGE_500, borderRadius: '50%' }} />Evento</span>
+              <span className="pv-leyenda-i">🔒 Ya cerró</span>
+            </div>
           </div>
 
-          <div className="cv-sem">
-            {DIAS_SEM.map(d => <div key={d} className="cv-sem-d">{d}</div>)}
+          {error && <div className="pv-error">{error}</div>}
+          {!cargando && data && (
+            <div className="pv-nota">Los cambios cierran 2 días antes de cada fecha.</div>
+          )}
+        </div>
+
+        {/* ── Columna derecha: lista del mes ────────────────────────────── */}
+        <div className="pv-card">
+          <h2 className="pv-right-title">Domingos y eventos del mes</h2>
+          <div className="pv-right-sub">
+            Marca “Sí sirvo” o “No puedo” en los que te toca servir.
           </div>
 
           {cargando ? (
-            <div className="cv-vacio">Cargando tu calendario…</div>
-          ) : !data ? (
-            <div className="cv-vacio">Sin datos de este mes.</div>
+            <div className="pv-cargando">Cargando…</div>
+          ) : listado.length === 0 ? (
+            <div className="pv-vacio">Este mes no tiene domingos ni eventos.</div>
           ) : (
-            <div className="cv-grid">
-              {celdas.map((fecha, i) => {
-                if (!fecha) return <div key={`v${i}`} className="cv-celda cv-vacia" />;
-                const ms = marcablesDe(fecha);
-                const num = diaDeISO(fecha);
-
-                if (ms.length === 0) {
-                  return (
-                    <div key={fecha} className="cv-celda cv-apagado">
-                      <span className="cv-num">{num}</span>
-                    </div>
-                  );
-                }
-
-                const bloqueado = ms.every(m => m.bloqueado);
-                const hayEvento = ms.some(m => m.tipo === 'evento');
-                const esSel = sel === fecha;
-                const st = estiloCelda(ms);
-
-                return (
-                  <button
-                    key={fecha}
-                    className="cv-celda"
-                    style={{
-                      ...FUENTE_BTN,
-                      ...st,
-                      boxShadow: esSel ? `0 0 0 2px ${ORANGE_500}` : 'none',
-                    }}
-                    onClick={() => tocarDia(fecha)}
-                    title={ms.map(m => m.nombre).join(' · ')}
-                  >
-                    <span className="cv-num">{num}</span>
-                    {bloqueado && <span className="cv-candado">🔒</span>}
-                    {hayEvento && <span className="cv-punto" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="cv-leyenda">
-            <span className="cv-leyenda-i">
-              <span className="cv-leyenda-c" style={{ background: VERDE }} />Sí sirvo</span>
-            <span className="cv-leyenda-i">
-              <span className="cv-leyenda-c" style={{ background: ROJO }} />No puedo</span>
-            <span className="cv-leyenda-i">
-              <span className="cv-leyenda-c" style={{ background: '#fff', border: `1.5px solid ${NAVY_900}` }} />Sin responder</span>
-            <span className="cv-leyenda-i">
-              <span className="cv-leyenda-c" style={{ background: ORANGE_500, borderRadius: '50%' }} />Evento</span>
-            <span className="cv-leyenda-i">🔒 Ya cerró</span>
-          </div>
-        </div>
-
-        {error && <div className="cv-error">{error}</div>}
-
-        {sel && seleccionados.length > 0 && (
-          <div className="cv-panel">
-            <div className="cv-panel-f">
-              {DIAS_SEM[(data.diaSemanaPrimero + diaDeISO(sel) - 1) % 7]} {diaDeISO(sel)} de {tituloMes(mes)}
-            </div>
-
-            {seleccionados.map((dia) => {
-              const clave = `${dia.fecha}-${dia.evento_id ?? 'dom'}`;
+            listado.map(item => {
+              const clave = claveItem(item);
               const ocupado = enviando === clave;
-              const habilitado = !dia.bloqueado && !ocupado;
+              const habilitado = item.puede_marcar && !item.bloqueado && !ocupado;
+              const esSel = sel === item.fecha;
+              const dow = diaSemanaISO(item.fecha);
+              const punto = item.tipo === 'domingo' ? NAVY_900 : (item.tipo_color || COLOR_EVENTO_DEFAULT);
+              const esInformativo = !item.puede_marcar;
               return (
-                <div key={clave} className="cv-item">
-                  <div className="cv-item-n">
-                    {dia.tipo === 'evento' && <span className="cv-chip">Evento</span>}
-                    {dia.nombre}
-                    {dia.bloqueado && <span style={{ color: GRAY_500, fontWeight: 600 }}>· 🔒 ya cerró</span>}
+                <div
+                  key={clave}
+                  ref={el => { if (el) itemRefs.current[clave] = el; }}
+                  className={`pv-item ${esSel ? 'pv-item-sel' : ''} ${item.bloqueado ? 'pv-item-bloq' : ''}`}
+                >
+                  <div className="pv-fecha-box">
+                    <div className="pv-fecha-num">{diaDeISO(item.fecha)}</div>
+                    <div className="pv-fecha-dow">{DIAS_SEM[dow]}</div>
                   </div>
-                  <div className="cv-acciones">
-                    <button
-                      className="cv-accion"
-                      style={estiloAccion(dia.estado === 'disponible', VERDE, '#A7D9C2', habilitado)}
-                      onClick={() => marcar(dia, 'disponible')}
-                      disabled={!habilitado}
-                    >
-                      {ocupado ? '…' : 'Sí sirvo'}
-                    </button>
-                    <button
-                      className="cv-accion"
-                      style={estiloAccion(dia.estado === 'no_disponible', ROJO, '#F3CBC9', habilitado)}
-                      onClick={() => marcar(dia, 'no_disponible')}
-                      disabled={!habilitado}
-                    >
-                      {ocupado ? '…' : 'No puedo'}
-                    </button>
+
+                  <div className="pv-body">
+                    <div className="pv-body-title">{item.nombre}</div>
+                    <div className="pv-body-meta">
+                      <span className="pv-tipo-dot" style={{ background: punto }} />
+                      <span className="pv-tipo-txt">
+                        {item.tipo === 'domingo'
+                          ? DIAS_SEM_LARGO[dow]
+                          : (item.tipo_evento || 'Evento')}
+                      </span>
+                      {esInformativo && (
+                        <span className="pv-chip-info">Solo informativo</span>
+                      )}
+                      {item.bloqueado && (
+                        <span className="pv-chip-lock">· 🔒 ya cerró</span>
+                      )}
+                    </div>
                   </div>
+
+                  {item.puede_marcar && (
+                    <div className="pv-acciones">
+                      <button
+                        style={estiloAccion(item.estado === 'disponible', VERDE, '#A7D9C2', habilitado)}
+                        onClick={() => marcar(item, 'disponible')}
+                        disabled={!habilitado}
+                        aria-label="Sí sirvo"
+                      >
+                        {ocupado ? '…' : 'Sí sirvo'}
+                      </button>
+                      <button
+                        style={estiloAccion(item.estado === 'no_disponible', ROJO, '#F3CBC9', habilitado)}
+                        onClick={() => marcar(item, 'no_disponible')}
+                        disabled={!habilitado}
+                        aria-label="No puedo"
+                      >
+                        {ocupado ? '…' : 'No puedo'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
-            })}
-
-            {aviso && <div className="cv-aviso">🔒 {aviso}</div>}
-          </div>
-        )}
-
-        {sel && seleccionados.length === 0 && aviso && (
-          <div className="cv-panel"><div className="cv-aviso">🔒 {aviso}</div></div>
-        )}
-
-        {!cargando && data && (
-          <div className="cv-estado">
-            Los cambios cierran 2 días antes de cada fecha.
-          </div>
-        )}
+            })
+          )}
+        </div>
       </div>
     </>
   );
+}
+
+function claveItem(item) {
+  return `${item.fecha}-${item.evento_id ?? 'dom'}`;
 }
