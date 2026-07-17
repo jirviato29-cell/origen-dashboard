@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 
-// GET /api/calendario?year=2026&en_punto_encuentro=true
+// GET /api/calendario?year=2026&en_punto_encuentro=true&para_voluntarios=true
 router.get('/', async (req, res) => {
   try {
-    const { year, en_punto_encuentro } = req.query;
+    const { year, en_punto_encuentro, para_voluntarios } = req.query;
     const params = [req.campus];
     const conditions = ['campus=$1'];
 
@@ -15,6 +15,9 @@ router.get('/', async (req, res) => {
     }
     if (en_punto_encuentro === 'true') {
       conditions.push(`en_punto_encuentro = true`);
+    }
+    if (para_voluntarios === 'true') {
+      conditions.push(`para_voluntarios = true`);
     }
 
     const query = `SELECT * FROM calendario_eventos WHERE ${conditions.join(' AND ')} ORDER BY fecha ASC`;
@@ -42,13 +45,14 @@ router.get('/:id', async (req, res) => {
 // POST /api/calendario
 router.post('/', async (req, res) => {
   try {
-    const { nombre, fecha, tipo, nota, en_punto_encuentro, costo } = req.body;
+    const { nombre, fecha, tipo, nota, en_punto_encuentro, para_voluntarios, costo } = req.body;
     if (!nombre || !fecha) return res.status(400).json({ error: 'nombre y fecha son requeridos' });
     const { rows } = await pool.query(
-      `INSERT INTO calendario_eventos (nombre, fecha, tipo, nota, en_punto_encuentro, costo, campus)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      `INSERT INTO calendario_eventos (nombre, fecha, tipo, nota, en_punto_encuentro, para_voluntarios, costo, campus)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
       [nombre, fecha, tipo || 'General', nota || null,
        en_punto_encuentro === true || en_punto_encuentro === 'true',
+       para_voluntarios === true || para_voluntarios === 'true',
        costo ? parseFloat(costo) : 0,
        req.campus]
     );
@@ -61,13 +65,14 @@ router.post('/', async (req, res) => {
 // PUT /api/calendario/:id
 router.put('/:id', async (req, res) => {
   try {
-    const { nombre, fecha, tipo, nota, en_punto_encuentro, costo } = req.body;
+    const { nombre, fecha, tipo, nota, en_punto_encuentro, para_voluntarios, costo } = req.body;
     const { rows } = await pool.query(
       `UPDATE calendario_eventos
-       SET nombre=$1, fecha=$2, tipo=$3, nota=$4, en_punto_encuentro=$5, costo=$6
-       WHERE id=$7 AND campus=$8 RETURNING *`,
+       SET nombre=$1, fecha=$2, tipo=$3, nota=$4, en_punto_encuentro=$5, para_voluntarios=$6, costo=$7
+       WHERE id=$8 AND campus=$9 RETURNING *`,
       [nombre, fecha, tipo || 'General', nota || null,
        en_punto_encuentro === true || en_punto_encuentro === 'true',
+       para_voluntarios === true || para_voluntarios === 'true',
        costo ? parseFloat(costo) : 0,
        req.params.id, req.campus]
     );

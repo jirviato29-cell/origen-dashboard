@@ -21,7 +21,7 @@ function formatDateLong(iso) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-const makeEmpty = (date) => ({ fecha: date || todayISO(), nombre: '', tipo: '', nota: '', costo: '', enPuntoEncuentro: false });
+const makeEmpty = (date) => ({ fecha: date || todayISO(), nombre: '', tipo: '', nota: '', costo: '', enPuntoEncuentro: false, paraVoluntarios: false });
 
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: 10,
@@ -85,6 +85,7 @@ export default function GlobalCalendarioModal() {
           nota:             editingEvent.nota   || '',
           costo:            costoNum > 0 ? String(editingEvent.costo) : '',
           enPuntoEncuentro: Boolean(editingEvent.en_punto_encuentro),
+          paraVoluntarios:  Boolean(editingEvent.para_voluntarios),
         });
       } else {
         setTieneCosto(false);
@@ -113,6 +114,7 @@ export default function GlobalCalendarioModal() {
         nota:               form.nota.trim() || null,
         costo:              form.costo ? parseFloat(form.costo) : 0,
         en_punto_encuentro: form.enPuntoEncuentro,
+        para_voluntarios:   form.paraVoluntarios,
       };
       if (isEditing) {
         await calendarioApi.update(editingEvent.id, payload);
@@ -405,6 +407,31 @@ export default function GlobalCalendarioModal() {
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
                     El evento aparecerá también en la vista de Punto de Encuentro
+                  </div>
+                </div>
+              </label>
+
+              {/* Checkbox Para voluntarios */}
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px', borderRadius: 10,
+                background: form.paraVoluntarios ? 'rgba(0,180,216,0.07)' : 'var(--surface)',
+                border: `1.5px solid ${form.paraVoluntarios ? 'var(--chart-primary)' : 'var(--border)'}`,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={form.paraVoluntarios}
+                  onChange={e => setForm(f => ({ ...f, paraVoluntarios: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
+                />
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                    Este evento es para voluntarios
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+                    Aparecerá en el calendario de disponibilidad de los voluntarios
                   </div>
                 </div>
               </label>
