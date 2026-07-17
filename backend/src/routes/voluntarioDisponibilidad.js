@@ -112,12 +112,15 @@ router.get('/', async (req, res) => {
     const ultimoDia = `${mes}-${String(diasEnMes).padStart(2, '0')}`;
     const hoy = hoyMexico();
 
-    // Eventos del mes, solo de su campus. to_char evita que el driver convierta
-    // el DATE a un Date de JS y lo corra de dia por zona horaria.
+    // Eventos del mes, solo de su campus y marcados para voluntarios. to_char
+    // evita que el driver convierta el DATE a un Date de JS y lo corra de dia
+    // por zona horaria. El voluntario nunca ve eventos que stewardship no haya
+    // marcado explicitamente con para_voluntarios = true.
     const { rows: eventos } = await pool.query(
       `SELECT id, nombre, to_char(fecha, 'YYYY-MM-DD') AS fecha
          FROM calendario_eventos
         WHERE campus = $1 AND fecha >= $2 AND fecha <= $3
+          AND para_voluntarios = true
         ORDER BY fecha, id`,
       [ctx.campus, primerDia, ultimoDia]
     );
@@ -197,10 +200,13 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'Esa fecha no es un domingo' });
       }
     } else {
-      // Evento: tiene que existir, ser de su campus y caer en esa fecha.
+      // Evento: tiene que existir, ser de su campus, caer en esa fecha y estar
+      // marcado para voluntarios. Sin este filtro un voluntario podria marcar
+      // disponibilidad de un evento privado si adivinara el id.
       const { rows } = await pool.query(
         `SELECT 1 FROM calendario_eventos
-          WHERE id = $1 AND campus = $2 AND to_char(fecha, 'YYYY-MM-DD') = $3`,
+          WHERE id = $1 AND campus = $2 AND to_char(fecha, 'YYYY-MM-DD') = $3
+            AND para_voluntarios = true`,
         [eventoId, ctx.campus, fecha]
       );
       if (rows.length === 0) {
