@@ -78,18 +78,27 @@ router.use(requireVoluntario);
 
 // SEGURIDAD: el campus sale de la ficha del voluntario en la BD, buscada por el
 // voluntario_id del token. Nunca del cliente ni del header X-Campus: si no, un
-// voluntario podria marcarse en los eventos de otro campus.
-// Devuelve null y ya respondió si no hay contexto válido.
+// voluntario podria marcarse en los eventos de otro campus. El ministerio_id
+// vive en usuarios (lo pone el lider al alta) y define en cuales eventos puede
+// servir; se resuelve por el u.id del token para que no lo pueda alterar el
+// cliente. Devuelve null y ya respondio si no hay contexto valido.
 async function contextoVoluntario(req, res) {
   const { rows } = await pool.query(
-    'SELECT id, campus FROM voluntarios WHERE id = $1',
-    [req.authVoluntario.voluntario_id]
+    `SELECT v.id AS voluntario_id, v.campus, u.ministerio_id
+       FROM voluntarios v
+       JOIN usuarios u ON u.voluntario_id = v.id AND u.id = $2
+      WHERE v.id = $1`,
+    [req.authVoluntario.voluntario_id, req.authVoluntario.id]
   );
   if (rows.length === 0) {
     res.status(403).json({ error: 'Tu ficha de voluntario ya no existe' });
     return null;
   }
-  return { voluntarioId: rows[0].id, campus: rows[0].campus || 'ags' };
+  return {
+    voluntarioId: rows[0].voluntario_id,
+    campus:       rows[0].campus || 'ags',
+    ministerioId: rows[0].ministerio_id ?? null,
+  };
 }
 
 // ── GET /api/voluntario/disponibilidad?mes=YYYY-MM ────────────────────────────
@@ -112,17 +121,33 @@ router.get('/', async (req, res) => {
     const ultimoDia = `${mes}-${String(diasEnMes).padStart(2, '0')}`;
     const hoy = hoyMexico();
 
-    // Eventos del mes, solo de su campus y marcados para voluntarios. to_char
-    // evita que el driver convierta el DATE a un Date de JS y lo corra de dia
-    // por zona horaria. El voluntario nunca ve eventos que stewardship no haya
-    // marcado explicitamente con para_voluntarios = true.
+    // Eventos del mes de su campus (todos, servicio + informativos). Se
+    // agrega el color del tipo con LEFT JOIN a tipos_evento (que vive por
+    // campus y por nombre = calendario_eventos.tipo). puede_marcar sale de
+    // EXISTS contra evento_ministerios y solo es true si el evento es de
+    // servicio Y el ministerio del voluntario esta entre los del evento.
+    // Si el voluntario no tiene ministerio_id, puede_marcar es false para
+    // todos los eventos (los sigue viendo).
     const { rows: eventos } = await pool.query(
-      `SELECT id, nombre, to_char(fecha, 'YYYY-MM-DD') AS fecha
-         FROM calendario_eventos
-        WHERE campus = $1 AND fecha >= $2 AND fecha <= $3
-          AND para_voluntarios = true
-        ORDER BY fecha, id`,
-      [ctx.campus, primerDia, ultimoDia]
+      `SELECT
+         e.id,
+         e.nombre,
+         to_char(e.fecha, 'YYYY-MM-DD') AS fecha,
+         e.tipo,
+         e.para_voluntarios,
+         t.color AS tipo_color,
+         CASE
+           WHEN e.para_voluntarios = false OR $4::int IS NULL THEN false
+           ELSE EXISTS (
+             SELECT 1 FROM evento_ministerios em
+              WHERE em.evento_id = e.id AND em.ministerio_id = $4::int
+           )
+         END AS puede_marcar
+         FROM calendario_eventos e
+         LEFT JOIN tipos_evento t ON t.nombre = e.tipo AND t.campus = e.campus
+        WHERE e.campus = $1 AND e.fecha >= $2 AND e.fecha <= $3
+        ORDER BY e.fecha, e.id`,
+      [ctx.campus, primerDia, ultimoDia, ctx.ministerioId]
     );
 
     // Lo ya respondido por este voluntario en el mes.
@@ -148,6 +173,10 @@ router.get('/', async (req, res) => {
         evento_id: null,
         estado: estadoDomingo.get(fecha) ?? null,
         bloqueado: estaBloqueada(fecha, hoy),
+        para_voluntarios: false,
+        puede_marcar: true,       // domingos siempre marcables (salvo bloqueo)
+        tipo_evento: null,
+        tipo_color: null,
       })),
       ...eventos.map((e) => ({
         fecha: e.fecha,
@@ -156,6 +185,10 @@ router.get('/', async (req, res) => {
         evento_id: e.id,
         estado: estadoEvento.get(e.id) ?? null,
         bloqueado: estaBloqueada(e.fecha, hoy),
+        para_voluntarios: e.para_voluntarios === true,
+        puede_marcar: e.puede_marcar === true,
+        tipo_evento: e.tipo || null,
+        tipo_color: e.tipo_color || null,
       })),
     ].sort((a, b) => (a.fecha === b.fecha ? (a.tipo === 'domingo' ? -1 : 1) : a.fecha < b.fecha ? -1 : 1));
 
@@ -200,17 +233,26 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'Esa fecha no es un domingo' });
       }
     } else {
-      // Evento: tiene que existir, ser de su campus, caer en esa fecha y estar
-      // marcado para voluntarios. Sin este filtro un voluntario podria marcar
-      // disponibilidad de un evento privado si adivinara el id.
+      // Evento: tiene que existir, ser de su campus, caer en esa fecha, ser
+      // de servicio Y estar asignado a su ministerio en evento_ministerios.
+      // Sin este filtro un voluntario podria marcar disponibilidad de un
+      // evento donde no le toca servir aunque conozca el id.
+      if (ctx.ministerioId === null) {
+        return res.status(403).json({ error: 'No puedes apuntarte a este evento' });
+      }
       const { rows } = await pool.query(
-        `SELECT 1 FROM calendario_eventos
-          WHERE id = $1 AND campus = $2 AND to_char(fecha, 'YYYY-MM-DD') = $3
-            AND para_voluntarios = true`,
-        [eventoId, ctx.campus, fecha]
+        `SELECT 1 FROM calendario_eventos e
+          WHERE e.id = $1 AND e.campus = $2
+            AND to_char(e.fecha, 'YYYY-MM-DD') = $3
+            AND e.para_voluntarios = true
+            AND EXISTS (
+              SELECT 1 FROM evento_ministerios em
+               WHERE em.evento_id = e.id AND em.ministerio_id = $4
+            )`,
+        [eventoId, ctx.campus, fecha, ctx.ministerioId]
       );
       if (rows.length === 0) {
-        return res.status(400).json({ error: 'Ese evento no existe en tu campus en esa fecha' });
+        return res.status(403).json({ error: 'No puedes apuntarte a este evento' });
       }
     }
 
