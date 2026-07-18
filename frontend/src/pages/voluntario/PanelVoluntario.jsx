@@ -181,15 +181,21 @@ export default function PanelVoluntario() {
 
   const dias = data?.dias ?? [];
 
-  // Los items del listado, en orden cronologico (el backend ya los devuelve
-  // ordenados, pero conservamos el sort defensivo por si acaso).
+  // Los items del listado, en orden cronologico y SOLO fechas de hoy en
+  // adelante. El backend manda `data.hoy` como 'YYYY-MM-DD' en zona Mexico;
+  // la comparacion de strings ISO es cronologicamente correcta y evita
+  // corrimientos de zona. El calendario de la izquierda NO usa este filtro:
+  // sigue mostrando el mes completo.
+  const hoyISO = data?.hoy ?? '';
   const listado = useMemo(() =>
-    [...dias].sort((a, b) =>
-      a.fecha === b.fecha
-        ? (a.tipo === 'domingo' ? -1 : 1)
-        : (a.fecha < b.fecha ? -1 : 1)
-    ),
-    [dias]
+    [...dias]
+      .filter(d => !hoyISO || d.fecha >= hoyISO)
+      .sort((a, b) =>
+        a.fecha === b.fecha
+          ? (a.tipo === 'domingo' ? -1 : 1)
+          : (a.fecha < b.fecha ? -1 : 1)
+      ),
+    [dias, hoyISO]
   );
 
   // Los items marcables/informativos de una fecha (un domingo con evento tiene dos).
@@ -365,7 +371,11 @@ export default function PanelVoluntario() {
           {cargando ? (
             <div className="pv-cargando">Cargando…</div>
           ) : listado.length === 0 ? (
-            <div className="pv-vacio">Este mes no tiene domingos ni eventos.</div>
+            <div className="pv-vacio">
+              {dias.length > 0
+                ? 'No hay fechas próximas en este mes.'
+                : 'Este mes no tiene domingos ni eventos.'}
+            </div>
           ) : (
             listado.map(item => {
               const clave = claveItem(item);
