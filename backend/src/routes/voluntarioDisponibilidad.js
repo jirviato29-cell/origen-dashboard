@@ -39,10 +39,10 @@ const restaDias = (iso, n) => desdeUTC(aUTC(iso) - n * 86400000);
 const diaSemana = (iso) => new Date(aUTC(iso)).getUTCDay();
 const esDomingo = (iso) => diaSemana(iso) === 0;
 
-// Regla de cierre: el cambio se cierra 2 dias antes (el viernes para el
+// Regla de cierre: el cambio se cierra 1 dia antes (el sabado para el
 // domingo). Bloqueado si hoy (en Mexico) ya alcanzo esa fecha limite.
 // Comparar strings 'YYYY-MM-DD' es comparacion cronologica correcta.
-const estaBloqueada = (iso, hoy) => hoy >= restaDias(iso, 2);
+const estaBloqueada = (iso, hoy) => hoy >= restaDias(iso, 1);
 
 function domingosDelMes(anio, mes) {
   const dias = new Date(Date.UTC(anio, mes, 0)).getUTCDate();

@@ -4,7 +4,7 @@ import { voluntarioDisponibilidadApi } from '../../services/api';
 // Calendario de disponibilidad del voluntario en vista dividida:
 //   izquierda: grid del mes (con puntos de color por evento)
 //   derecha:   lista vertical del mes (domingos + eventos, ordenados)
-// El bloqueo (2 dias antes) y la resolucion de campus/ministerio los decide el
+// El bloqueo (1 dia antes) y la resolucion de campus/ministerio los decide el
 // backend; aqui solo se pinta. Nunca se confia en `bloqueado` ni `puede_marcar`
 // para autorizar: el POST se revalida en el servidor.
 
@@ -357,7 +357,7 @@ export default function PanelVoluntario() {
 
           {error && <div className="pv-error">{error}</div>}
           {!cargando && data && (
-            <div className="pv-nota">Los cambios cierran 2 días antes de cada fecha.</div>
+            <div className="pv-nota">Los cambios cierran 1 día antes de cada fecha.</div>
           )}
         </div>
 
