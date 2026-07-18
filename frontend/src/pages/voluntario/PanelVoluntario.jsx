@@ -135,8 +135,6 @@ const CSS = `
 .mc-state-line.mc-no .mc-ic{background:var(--red-600);}
 .mc-shell .mc-ch{margin-left:auto;font-size:11px;font-weight:600;color:var(--gray-400);cursor:pointer;background:transparent;border:0;padding:0;font-family:inherit;}
 .mc-shell .mc-ch:hover{color:var(--navy-700);}
-.mc-info-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--gray-500);margin-top:11px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:7px 10px;}
-.mc-info-pill svg{width:13px;height:13px;color:var(--gray-400);flex-shrink:0;}
 .mc-foot-note{padding:0 20px 18px;font-size:11.5px;color:var(--gray-400);text-align:center;}
 
 .mc-msg{padding:22px 10px;text-align:center;font-size:13px;color:var(--gray-500);}
@@ -165,10 +163,6 @@ const IcClock = ({ w = 24 }) => (
 const IcClockCircle = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="12" r="8.5" /><path d="M12 8v4l2.5 1.5" strokeLinecap="round" /></svg>
-);
-const IcInfo = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
-    <circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" strokeLinecap="round" /></svg>
 );
 const IcChevron = ({ dir }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17">
@@ -289,17 +283,20 @@ export default function PanelVoluntario() {
     return { si, no, pend };
   }, [dias]);
 
-  // ── Lista del rail: de hoy en adelante, agrupada por prioridad de acción ─────
-  // 0 pendiente-abierto · 1 respondido · 2 cerrado sin respuesta · 3 informativo
+  // ── Lista del rail: SOLO lo que el voluntario tiene que responder ────────────
+  // Filtro: domingos (siempre) + eventos donde puede_marcar (su ministerio sirve
+  // en ese evento de servicio). Los informativos y los eventos de otros
+  // ministerios NO entran a la lista (sí se ven en el calendario de la izquierda).
+  // Se mantiene el filtro de solo mostrar de hoy en adelante.
+  // Orden por prioridad de acción: 0 pendiente-abierto · 1 respondido · 2 cerrado.
   const listado = useMemo(() => {
     const prioridad = (d) => {
-      if (!d.puede_marcar) return 3;
       if (d.estado) return 1;
       if (d.bloqueado) return 2;
       return 0;
     };
     return [...dias]
-      .filter(d => !hoyISO || d.fecha >= hoyISO)
+      .filter(d => (!hoyISO || d.fecha >= hoyISO) && (d.tipo === 'domingo' || d.puede_marcar))
       .sort((a, b) => {
         const pa = prioridad(a), pb = prioridad(b);
         if (pa !== pb) return pa - pb;
@@ -312,8 +309,13 @@ export default function PanelVoluntario() {
     const items = itemsDe(fecha);
     if (items.length === 0) return;
     setSel(fecha);
-    const el = itemRefs.current[claveItem(items[0])];
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Busca el primer item de esa fecha que SÍ está en la lista (los
+    // informativos/otros ministerios ya no se renderizan como slot, así que su
+    // ref no existe): si ninguno está, solo resalta el día y no hace scroll.
+    for (const it of items) {
+      const el = itemRefs.current[claveItem(it)];
+      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); break; }
+    }
   }
 
   async function marcar(item, estado) {
@@ -494,16 +496,14 @@ export default function PanelVoluntario() {
       <div className="mc-card mc-rail">
         <div className="mc-rail-head">
           <h3>Te toca servir</h3>
-          <p>Marca tu disponibilidad. Los cambios cierran 1 día antes.</p>
+          <p>Estas son las fechas en las que te toca servir. Marca si puedes o no.</p>
         </div>
 
         <div className="mc-rail-list">
           {cargando ? (
             <div className="mc-msg">Cargando…</div>
           ) : listado.length === 0 ? (
-            <div className="mc-msg">
-              {dias.length > 0 ? 'No hay fechas próximas en este mes.' : 'Este mes no tiene domingos ni eventos.'}
-            </div>
+            <div className="mc-msg">No tienes fechas por responder este mes.</div>
           ) : (
             listado.map(item => {
               const clave   = claveItem(item);
@@ -511,7 +511,6 @@ export default function PanelVoluntario() {
               const dow     = dowDeISO(item.fecha);
               const color   = colorDe(item);
               const esSel   = sel === item.fecha;
-              const esInfo  = !item.puede_marcar;
               const reabierto = editando[clave];
               // Estados del slot.
               const pendienteAbierto = item.puede_marcar && !item.bloqueado && (item.estado == null || reabierto);
@@ -525,9 +524,9 @@ export default function PanelVoluntario() {
                   className={`mc-slot ${pendienteAbierto ? 'mc-pending' : ''} ${esSel ? 'mc-sel' : ''}`}
                 >
                   <div className="mc-slot-top">
-                    <div className="mc-date-chip" style={esInfo ? { background: 'var(--gray-100)' } : undefined}>
-                      <div className="mc-cd" style={esInfo ? { color: 'var(--navy-900)' } : undefined}>{diaDeISO(item.fecha)}</div>
-                      <div className="mc-cw" style={esInfo ? { color: 'var(--gray-500)' } : undefined}>{DOW_CORTO[dow]}</div>
+                    <div className="mc-date-chip">
+                      <div className="mc-cd">{diaDeISO(item.fecha)}</div>
+                      <div className="mc-cw">{DOW_CORTO[dow]}</div>
                     </div>
 
                     <div className="mc-slot-body">
@@ -556,11 +555,6 @@ export default function PanelVoluntario() {
                       {/* Cerrado sin respuesta */}
                       {cerradoSinResp && (
                         <div className="mc-state-line mc-closed">🔒 Ya cerró · sin respuesta</div>
-                      )}
-
-                      {/* Informativo */}
-                      {esInfo && (
-                        <div className="mc-info-pill"><IcInfo />Solo informativo · no requiere respuesta</div>
                       )}
                     </div>
                   </div>
