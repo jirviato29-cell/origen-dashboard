@@ -27,12 +27,12 @@ const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 const CSS = `
-.pv-shell{max-width:1200px;margin:0 auto;padding:8px 20px 40px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;
-  display:flex;flex-direction:column;gap:20px;align-items:stretch;}
-@media (max-width: 960px){.pv-shell{padding:6px 14px 32px;gap:16px;}}
+.pv-shell{max-width:1280px;margin:0 auto;padding:8px 20px 40px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;
+  display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;}
+@media (max-width: 900px){.pv-shell{grid-template-columns:1fr;padding:6px 14px 32px;gap:16px;}}
 
 .pv-card{background:#fff;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.06);border:1px solid ${GRAY_200};}
-.pv-lista-card{max-width:860px;width:100%;align-self:center;}
+.pv-lista-card{min-width:0;}
 
 .pv-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
 .pv-mes{font-size:20px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;}
@@ -297,7 +297,7 @@ export default function PanelVoluntario() {
 
       <div className="pv-shell">
 
-        {/* ── Calendario (arriba, ancho completo) ────────────────────── */}
+        {/* ── Columna izquierda: calendario (flexible, ancho) ──────────── */}
         <div>
           <div className="pv-card">
             <div className="pv-nav">
@@ -406,7 +406,7 @@ export default function PanelVoluntario() {
           )}
         </div>
 
-        {/* ── Lista del mes (abajo, ancho comodo de lectura) ──────────── */}
+        {/* ── Columna derecha: lista del mes (fija 380px, apila <900px) ─ */}
         <div className="pv-card pv-lista-card">
           <h2 className="pv-right-title">Domingos y eventos del mes</h2>
           <div className="pv-right-sub">
