@@ -42,7 +42,7 @@ const CSS = `
 .pv-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
 .pv-sem-d{text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${GRAY_500};padding:3px 0;}
 .pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:minmax(64px,auto);}
-.pv-celda{border-radius:10px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;position:relative;font-size:13px;padding:5px 5px 6px;overflow:hidden;gap:3px;text-align:left;}
+.pv-celda{border-radius:10px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;position:relative;font-size:13px;padding:5px 5px 6px;overflow:visible;gap:3px;text-align:left;}
 .pv-vacia{background:transparent;border:none;min-height:0;padding:0;}
 .pv-apagado{color:${NAVY_300};background:${GRAY_50};}
 .pv-celda-head{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;line-height:1;}
@@ -50,7 +50,7 @@ const CSS = `
 .pv-num-badge-hoy{background:${ORANGE_500};color:#fff;}
 .pv-candado{font-size:11.5px;opacity:.85;line-height:1;}
 .pv-pills{display:flex;flex-direction:column;gap:3px;width:100%;}
-.pv-pill{font-size:12px;font-weight:700;line-height:1.2;padding:3px 6px 3px 7px;border-radius:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.005em;text-align:left;border-left:3px solid transparent;word-break:break-word;overflow-wrap:anywhere;}
+.pv-pill{font-size:12px;font-weight:700;line-height:1.2;padding:3px 6px 3px 7px;border-radius:5px;display:block;overflow:visible;white-space:normal;letter-spacing:-.005em;text-align:left;border-left:3px solid transparent;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;}
 @media (max-width: 640px){
   .pv-card{padding:12px;}
   .pv-sem{gap:4px;}
