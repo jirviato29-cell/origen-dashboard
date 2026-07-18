@@ -27,30 +27,40 @@ const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 const CSS = `
-.pv-shell{max-width:1120px;margin:0 auto;padding:8px 20px 40px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;
-  display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:22px;align-items:start;}
-@media (max-width: 960px){.pv-shell{grid-template-columns:1fr;padding:6px 14px 32px;}}
+.pv-shell{max-width:1200px;margin:0 auto;padding:8px 20px 40px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;
+  display:flex;flex-direction:column;gap:20px;align-items:stretch;}
+@media (max-width: 960px){.pv-shell{padding:6px 14px 32px;gap:16px;}}
 
-.pv-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);border:1px solid ${GRAY_200};}
-.pv-card + .pv-card{margin-top:14px;}
+.pv-card{background:#fff;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.06);border:1px solid ${GRAY_200};}
+.pv-lista-card{max-width:860px;width:100%;align-self:center;}
 
-.pv-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
-.pv-mes{font-size:17px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;}
-.pv-mes-sub{font-size:12px;color:${GRAY_500};margin-top:1px;}
-.pv-flecha{width:36px;height:36px;border-radius:10px;border:1px solid ${GRAY_200};background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pv-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.pv-mes{font-size:20px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;}
+.pv-mes-sub{font-size:12.5px;color:${GRAY_500};margin-top:2px;}
+.pv-flecha{width:40px;height:40px;border-radius:10px;border:1px solid ${GRAY_200};background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 
-.pv-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
-.pv-sem-d{text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${GRAY_500};padding:3px 0;}
-.pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:minmax(78px,auto);}
-.pv-celda{border-radius:11px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;position:relative;font-size:14px;padding:5px 5px 6px;overflow:hidden;gap:3px;text-align:left;}
+.pv-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:6px;}
+.pv-sem-d{text-align:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${GRAY_500};padding:4px 0;}
+.pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;grid-auto-rows:minmax(96px,auto);}
+.pv-celda{border-radius:12px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;position:relative;font-size:14px;padding:7px 7px 8px;overflow:hidden;gap:5px;text-align:left;}
 .pv-vacia{background:transparent;border:none;min-height:0;padding:0;}
 .pv-apagado{color:${NAVY_300};background:${GRAY_50};}
 .pv-celda-head{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;line-height:1;}
-.pv-num-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;border-radius:6px;font-size:12.5px;font-weight:800;line-height:1;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.pv-num-badge{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:7px;font-size:13.5px;font-weight:800;line-height:1;flex-shrink:0;font-variant-numeric:tabular-nums;}
 .pv-num-badge-hoy{background:${ORANGE_500};color:#fff;}
-.pv-candado{font-size:11px;opacity:.85;line-height:1;}
-.pv-pills{display:flex;flex-direction:column;gap:3px;width:100%;}
-.pv-pill{font-size:11.5px;font-weight:700;line-height:1.22;padding:3px 5px 3px 6px;border-radius:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.005em;text-align:left;border-left:3px solid transparent;word-break:break-word;overflow-wrap:anywhere;}
+.pv-candado{font-size:12.5px;opacity:.85;line-height:1;}
+.pv-pills{display:flex;flex-direction:column;gap:4px;width:100%;}
+.pv-pill{font-size:13px;font-weight:700;line-height:1.25;padding:4px 7px 4px 8px;border-radius:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.005em;text-align:left;border-left:3px solid transparent;word-break:break-word;overflow-wrap:anywhere;}
+@media (max-width: 640px){
+  .pv-card{padding:14px;}
+  .pv-sem{gap:4px;}
+  .pv-grid{gap:4px;grid-auto-rows:minmax(74px,auto);}
+  .pv-celda{padding:5px 5px 6px;border-radius:10px;gap:3px;}
+  .pv-num-badge{min-width:20px;height:20px;padding:0 5px;font-size:12px;border-radius:6px;}
+  .pv-pill{font-size:10.5px;padding:2px 4px 2px 5px;border-left-width:3px;line-height:1.2;}
+  .pv-pills{gap:3px;}
+  .pv-mes{font-size:17px;}
+}
 
 .pv-leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;padding-top:12px;border-top:1px solid ${GRAY_100};}
 .pv-leyenda-i{display:flex;align-items:center;gap:6px;font-size:11.5px;color:${GRAY_500};font-weight:600;}
@@ -287,7 +297,7 @@ export default function PanelVoluntario() {
 
       <div className="pv-shell">
 
-        {/* ── Columna izquierda: calendario ─────────────────────────────── */}
+        {/* ── Calendario (arriba, ancho completo) ────────────────────── */}
         <div>
           <div className="pv-card">
             <div className="pv-nav">
@@ -396,8 +406,8 @@ export default function PanelVoluntario() {
           )}
         </div>
 
-        {/* ── Columna derecha: lista del mes ────────────────────────────── */}
-        <div className="pv-card">
+        {/* ── Lista del mes (abajo, ancho comodo de lectura) ──────────── */}
+        <div className="pv-card pv-lista-card">
           <h2 className="pv-right-title">Domingos y eventos del mes</h2>
           <div className="pv-right-sub">
             Marca “Sí sirvo” o “No puedo” en los que te toca servir.
