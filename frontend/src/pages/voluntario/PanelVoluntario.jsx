@@ -41,15 +41,16 @@ const CSS = `
 
 .pv-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
 .pv-sem-d{text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${GRAY_500};padding:3px 0;}
-.pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
-.pv-celda{aspect-ratio:1;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;font-size:14px;}
-.pv-vacia{background:transparent;}
+.pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:minmax(78px,auto);}
+.pv-celda{border-radius:11px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;position:relative;font-size:14px;padding:5px 5px 6px;overflow:hidden;gap:3px;text-align:left;}
+.pv-vacia{background:transparent;border:none;min-height:0;padding:0;}
 .pv-apagado{color:${NAVY_300};background:${GRAY_50};}
-.pv-num{font-weight:700;line-height:1;}
-.pv-punto{position:absolute;bottom:6px;width:6px;height:6px;border-radius:50%;}
-.pv-punto + .pv-punto{margin-left:4px;}
-.pv-puntos{position:absolute;bottom:6px;display:flex;align-items:center;justify-content:center;gap:3px;}
-.pv-candado{position:absolute;top:4px;right:5px;font-size:9px;opacity:.75;}
+.pv-celda-head{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;line-height:1;}
+.pv-num-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;border-radius:6px;font-size:12.5px;font-weight:800;line-height:1;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.pv-num-badge-hoy{background:${ORANGE_500};color:#fff;}
+.pv-candado{font-size:11px;opacity:.85;line-height:1;}
+.pv-pills{display:flex;flex-direction:column;gap:3px;width:100%;}
+.pv-pill{font-size:11.5px;font-weight:700;line-height:1.22;padding:3px 5px 3px 6px;border-radius:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.005em;text-align:left;border-left:3px solid transparent;word-break:break-word;overflow-wrap:anywhere;}
 
 .pv-leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;padding-top:12px;border-top:1px solid ${GRAY_100};}
 .pv-leyenda-i{display:flex;align-items:center;gap:6px;font-size:11.5px;color:${GRAY_500};font-weight:600;}
@@ -139,6 +140,22 @@ const diaSemanaISO = (iso) => {
 
 // Color por defecto para eventos sin tipo_color (tipo no registrado en tipos_evento).
 const COLOR_EVENTO_DEFAULT = ORANGE_500;
+
+// El backend manda tipo_color como un hex saturado por evento. Para el
+// fondo del pill necesitamos una version pastel OPACA (no rgba con alpha):
+// si fuese translucida se veria mezclada con el fondo verde/rojo del
+// domingo con estado. Precalculamos la mezcla lineal con blanco y
+// devolvemos rgb solido. Acepta '#RGB' y '#RRGGBB'.
+function tintePastel(hex, peso) {
+  if (typeof hex !== 'string') return '#EEEEEE';
+  let h = hex.trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  if (h.length !== 6 || /[^0-9a-f]/i.test(h)) return '#EEEEEE';
+  const n = parseInt(h, 16);
+  const R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255;
+  const mix = (v) => Math.round(255 - (255 - v) * peso);
+  return `rgb(${mix(R)},${mix(G)},${mix(B)})`;
+}
 
 export default function PanelVoluntario() {
   const [mes,      setMes]      = useState(mesDeHoy);
@@ -298,11 +315,14 @@ export default function PanelVoluntario() {
                   if (!fecha) return <div key={`v${i}`} className="pv-celda pv-vacia" />;
                   const items = itemsDe(fecha);
                   const num = diaDeISO(fecha);
+                  const esHoy = fecha === hoyISO;
 
                   if (items.length === 0) {
                     return (
                       <div key={fecha} className="pv-celda pv-apagado">
-                        <span className="pv-num">{num}</span>
+                        <div className="pv-celda-head">
+                          <span className={`pv-num-badge ${esHoy ? 'pv-num-badge-hoy' : ''}`}>{num}</span>
+                        </div>
                       </div>
                     );
                   }
@@ -311,9 +331,6 @@ export default function PanelVoluntario() {
                   const eventos = items.filter(m => m.tipo === 'evento');
                   const esSel = sel === fecha;
                   const st = estiloCelda(items);
-
-                  // Hasta 3 puntos de color por celda para no saturar.
-                  const puntos = eventos.slice(0, 3).map(e => e.tipo_color || COLOR_EVENTO_DEFAULT);
 
                   return (
                     <button
@@ -327,14 +344,32 @@ export default function PanelVoluntario() {
                       onClick={() => tocarDia(fecha)}
                       title={items.map(m => m.nombre).join(' · ')}
                     >
-                      <span className="pv-num">{num}</span>
-                      {bloqueado && <span className="pv-candado">🔒</span>}
-                      {puntos.length > 0 && (
-                        <span className="pv-puntos">
-                          {puntos.map((c, idx) => (
-                            <span key={idx} className="pv-punto" style={{ background: c, position: 'static' }} />
-                          ))}
-                        </span>
+                      <div className="pv-celda-head">
+                        <span
+                          className={`pv-num-badge ${esHoy ? 'pv-num-badge-hoy' : ''}`}
+                          style={esHoy ? undefined : { color: 'inherit' }}
+                        >{num}</span>
+                        {bloqueado && <span className="pv-candado" aria-label="Ya cerró">🔒</span>}
+                      </div>
+                      {eventos.length > 0 && (
+                        <div className="pv-pills">
+                          {eventos.map(ev => {
+                            const c = ev.tipo_color || COLOR_EVENTO_DEFAULT;
+                            return (
+                              <span
+                                key={ev.evento_id}
+                                className="pv-pill"
+                                style={{
+                                  background:      bloqueado ? GRAY_100 : tintePastel(c, 0.20),
+                                  color:           bloqueado ? GRAY_500 : NAVY_900,
+                                  borderLeftColor: bloqueado ? GRAY_200 : c,
+                                }}
+                              >
+                                {ev.nombre}
+                              </span>
+                            );
+                          })}
+                        </div>
                       )}
                     </button>
                   );
