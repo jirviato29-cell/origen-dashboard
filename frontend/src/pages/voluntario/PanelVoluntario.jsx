@@ -70,11 +70,11 @@ const CSS = `
 .mc-shell .mc-cell:hover{border-color:var(--gray-300);box-shadow:var(--shadow-sm);}
 .mc-shell .mc-cell.mc-out{background:var(--gray-50);border-color:transparent;cursor:default;}
 .mc-shell .mc-cell.mc-out:hover{box-shadow:none;}
-.mc-shell .mc-cell.mc-past{background:var(--gray-50);cursor:default;}
-.mc-shell .mc-cell.mc-past .mc-num{color:var(--gray-400);}
-.mc-shell .mc-cell.mc-past .mc-ev{background:var(--gray-100)!important;color:var(--gray-400)!important;}
-.mc-shell .mc-cell.mc-past .mc-badge.mc-si,.mc-shell .mc-cell.mc-past .mc-badge.mc-no{background:var(--gray-400);}
-.mc-shell .mc-cell.mc-past:hover{box-shadow:none;border-color:var(--gray-100);}
+/* Día pasado: invisible (sin caja/fondo/sombra/color) pero conserva su lugar
+   en la cuadrícula. Solo el número, en gris muy tenue. No interactivo. */
+.mc-shell .mc-cell.mc-gone{background:transparent;border-color:transparent;box-shadow:none;cursor:default;}
+.mc-shell .mc-cell.mc-gone:hover{box-shadow:none;border-color:transparent;}
+.mc-shell .mc-cell.mc-gone .mc-num{color:var(--gray-300);font-weight:600;opacity:.55;}
 .mc-num{font-size:12px;font-weight:700;color:var(--navy-800);height:18px;display:flex;align-items:center;}
 .mc-shell .mc-cell.mc-out .mc-num{color:var(--gray-300);}
 .mc-shell .mc-cell.mc-sun .mc-num{color:var(--navy-900);}
@@ -85,7 +85,6 @@ const CSS = `
 .mc-shell .mc-cell.mc-status-si::after{background:var(--green-500);}
 .mc-shell .mc-cell.mc-status-no::after{background:var(--red-600);}
 .mc-shell .mc-cell.mc-status-pend::after{background:var(--amber-600);}
-.mc-shell .mc-cell.mc-past.mc-status-pend::after{opacity:.35;}
 
 .mc-ev{font-size:10px;font-weight:600;line-height:1.15;border-radius:5px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mc-ev-mas{color:var(--gray-500);font-weight:600;padding:1px 7px;background:transparent;}
@@ -411,9 +410,16 @@ export default function PanelVoluntario() {
                 if (c.tipo === 'out') {
                   return <div key={`o${i}`} className="mc-cell mc-out"><span className="mc-num">{c.num}</span></div>;
                 }
+                // Día pasado (fecha < hoy, en zona México, comparando strings
+                // ISO): se vuelve invisible pero SIGUE ocupando su lugar en la
+                // cuadrícula (mismo <div> con min-height que las demás celdas),
+                // así las semanas no se descuadran. Sin caja, sin eventos, sin
+                // estado, sin click: solo el número en gris muy tenue.
+                if (hoyISO && c.fecha < hoyISO) {
+                  return <div key={c.fecha} className="mc-cell mc-gone"><span className="mc-num">{c.num}</span></div>;
+                }
                 const items = itemsDe(c.fecha);
                 const esHoy = c.fecha === hoyISO;
-                const esPasado = hoyISO && c.fecha < hoyISO;
                 const esDomingo = dowDeISO(c.fecha) === 0;
                 const eventos = items.filter(m => m.tipo === 'evento');
                 const domingo = items.find(m => m.tipo === 'domingo');
@@ -435,7 +441,6 @@ export default function PanelVoluntario() {
                 const clases = ['mc-cell'];
                 if (esDomingo) clases.push('mc-sun');
                 if (esHoy) clases.push('mc-today');
-                if (esPasado) clases.push('mc-past');
                 if (servicio) clases.push('mc-serve');
                 if (statusCls) clases.push(statusCls);
                 const esSel = sel === c.fecha;
@@ -465,7 +470,7 @@ export default function PanelVoluntario() {
                     {servicio && statusCls === 'mc-status-pend' && <span className="mc-badge mc-pend"><IcClock w={10} /></span>}
                     {visibles.map(p => (
                       <div key={p.key} className="mc-ev"
-                        style={esPasado ? undefined : {
+                        style={{
                           background: p.sunday ? 'var(--sky-50)' : tintePastel(p.color, 0.20),
                           color: p.sunday ? '#1c6294' : p.color,
                         }}>
