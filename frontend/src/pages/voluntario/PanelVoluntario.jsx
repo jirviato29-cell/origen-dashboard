@@ -28,9 +28,9 @@ const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 const CSS = `
-.pv-shell{max-width:1200px;margin:0 auto;padding:8px 20px 40px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;
-  display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start;}
-@media (max-width: 900px){.pv-shell{grid-template-columns:1fr;padding:6px 14px 32px;gap:16px;}}
+.pv-shell{width:100%;padding:0 0 8px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;
+  display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start;}
+@media (max-width: 900px){.pv-shell{grid-template-columns:1fr;padding:0 0 8px;gap:16px;}}
 
 .pv-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);border:1px solid ${GRAY_200};}
 .pv-lista-card{min-width:0;}
@@ -42,7 +42,7 @@ const CSS = `
 
 .pv-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
 .pv-sem-d{text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${GRAY_500};padding:3px 0;}
-.pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:84px;}
+.pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:96px;}
 .pv-celda{border-radius:10px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;position:relative;font-size:13px;padding:5px 5px 6px;overflow:hidden;gap:3px;text-align:left;}
 .pv-vacia{background:transparent;border:none;min-height:0;padding:0;}
 .pv-apagado{color:${NAVY_300};background:${GRAY_50};}
@@ -51,7 +51,7 @@ const CSS = `
 .pv-num-badge-hoy{background:${ORANGE_500};color:#fff;}
 .pv-candado{font-size:11.5px;opacity:.85;line-height:1;}
 .pv-pills{display:flex;flex-direction:column;gap:3px;width:100%;}
-.pv-pill{font-size:11.5px;font-weight:700;line-height:1.2;padding:2px 6px 2px 7px;border-radius:5px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;white-space:normal;letter-spacing:-.005em;text-align:left;border-left:3px solid transparent;word-break:break-word;overflow-wrap:anywhere;}
+.pv-pill{font-size:12px;font-weight:700;line-height:1.2;padding:3px 6px 3px 7px;border-radius:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;white-space:normal;letter-spacing:-.005em;text-align:left;border-left:3px solid transparent;word-break:break-word;overflow-wrap:anywhere;}
 .pv-pill-mas{background:${GRAY_100};color:${GRAY_600};border-left-color:${GRAY_300};font-weight:800;}
 @media (max-width: 640px){
   .pv-card{padding:12px;}
