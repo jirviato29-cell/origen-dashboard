@@ -17,6 +17,7 @@ const ROJO       = '#D23B36';
 const ROJO_50    = '#FCEBEA';
 const GRAY_600   = '#5B6675';
 const GRAY_500   = '#7A8699';
+const GRAY_300   = '#CBD2DC';
 const GRAY_200   = '#E2E6EC';
 const GRAY_100   = '#EEF1F5';
 const GRAY_50    = '#F6F7F9';
