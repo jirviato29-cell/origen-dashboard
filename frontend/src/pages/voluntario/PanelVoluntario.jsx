@@ -1,136 +1,181 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { voluntarioDisponibilidadApi } from '../../services/api';
 
-// Calendario de disponibilidad del voluntario en vista dividida:
-//   izquierda: grid del mes (con puntos de color por evento)
-//   derecha:   lista vertical del mes (domingos + eventos, ordenados)
-// El bloqueo (1 dia antes) y la resolucion de campus/ministerio los decide el
-// backend; aqui solo se pinta. Nunca se confia en `bloqueado` ni `puede_marcar`
-// para autorizar: el POST se revalida en el servidor.
+// "Mi calendario" del voluntario, implementado según el handoff de diseño
+// (referencia-Mi-Calendario.html / SPEC-Mi-Calendario.md): sistema azul marino +
+// naranja, panel "Te toca servir" a la izquierda (410px, la acción va primero) y
+// el calendario del mes a la derecha con las 3 mini-KPI arriba.
+//
+// El sidebar y la topbar los pone el Layout de la app; aquí solo va el cuerpo.
+// El bloqueo (cierra 1 día antes), el campus y el ministerio los decide el
+// backend; aquí solo se pinta y se revalida en el POST.
 
-const NAVY_900   = '#112540';
-const NAVY_300   = '#9CB0CC';
-const ORANGE_500 = '#FF6B2B';
-const VERDE      = '#15915A';
-const VERDE_50   = '#E8F5EF';
-const ROJO       = '#D23B36';
-const ROJO_50    = '#FCEBEA';
-const GRAY_600   = '#5B6675';
-const GRAY_500   = '#7A8699';
-const GRAY_300   = '#CBD2DC';
-const GRAY_200   = '#E2E6EC';
-const GRAY_100   = '#EEF1F5';
-const GRAY_50    = '#F6F7F9';
+const DOW_CORTO = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-const DIAS_SEM       = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const DIAS_SEM_LARGO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const COLOR_EVENTO_DEFAULT = '#FF6B2B';
+const SKY = '#2C86C4';
 
+// Los estilos van todos scoped bajo `.mc-shell`; los tokens de color se
+// declaran ahí mismo para poder reusar las reglas de la referencia tal cual.
+// Las reglas de botones/celdas llevan doble clase (`.mc-shell .mc-act`) para
+// ganarle por especificidad a la regla global `.app button{font/color:inherit}`.
 const CSS = `
-.pv-shell{width:100%;padding:0 0 8px;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;
-  display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start;}
-@media (max-width: 900px){.pv-shell{grid-template-columns:1fr;padding:0 0 8px;gap:16px;}}
-
-.pv-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);border:1px solid ${GRAY_200};}
-.pv-lista-card{min-width:0;}
-
-.pv-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
-.pv-mes{font-size:18px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;}
-.pv-mes-sub{font-size:12px;color:${GRAY_500};margin-top:2px;}
-.pv-flecha{width:36px;height:36px;border-radius:10px;border:1px solid ${GRAY_200};background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-
-.pv-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
-.pv-sem-d{text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${GRAY_500};padding:3px 0;}
-.pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:96px;}
-.pv-celda{border-radius:10px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;position:relative;font-size:13px;padding:5px 5px 6px;overflow:hidden;gap:3px;text-align:left;}
-.pv-vacia{background:transparent;border:none;min-height:0;padding:0;}
-.pv-apagado{color:${NAVY_300};background:${GRAY_50};}
-.pv-celda-head{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;line-height:1;}
-.pv-num-badge{display:inline-flex;align-items:center;justify-content:center;min-width:21px;height:21px;padding:0 5px;border-radius:6px;font-size:12.5px;font-weight:800;line-height:1;flex-shrink:0;font-variant-numeric:tabular-nums;}
-.pv-num-badge-hoy{background:${ORANGE_500};color:#fff;}
-.pv-candado{font-size:11.5px;opacity:.85;line-height:1;}
-.pv-pills{display:flex;flex-direction:column;gap:3px;width:100%;}
-.pv-pill{font-size:12px;font-weight:700;line-height:1.2;padding:3px 6px 3px 7px;border-radius:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;white-space:normal;letter-spacing:-.005em;text-align:left;border-left:3px solid transparent;word-break:break-word;overflow-wrap:anywhere;}
-.pv-pill-mas{background:${GRAY_100};color:${GRAY_600};border-left-color:${GRAY_300};font-weight:800;}
-@media (max-width: 640px){
-  .pv-card{padding:12px;}
-  .pv-sem{gap:4px;}
-  .pv-grid{gap:4px;grid-auto-rows:68px;}
-  .pv-celda{padding:4px 4px 5px;border-radius:9px;gap:2px;}
-  .pv-num-badge{min-width:19px;height:19px;padding:0 4px;font-size:11.5px;border-radius:5px;}
-  .pv-pill{font-size:10.5px;padding:1px 4px 1px 5px;line-height:1.18;}
-  .pv-pills{gap:2px;}
-  .pv-mes{font-size:16px;}
+.mc-shell{
+  --navy-950:#0B1A2F;--navy-900:#112540;--navy-800:#1A3354;--navy-700:#244169;
+  --navy-300:#9CB0CC;--navy-100:#DCE4EF;
+  --orange-600:#E0561B;--orange-500:#FF6B2B;--orange-400:#FF8A52;--orange-100:#FFE5D6;--orange-50:#FFF4EE;
+  --ink:#16233A;--gray-700:#3D4654;--gray-600:#5A6472;--gray-500:#7A8699;--gray-400:#A7B0BD;--gray-300:#CBD2DC;
+  --gray-200:#E2E6EC;--gray-100:#EEF1F5;--gray-50:#F6F7F9;
+  --green-600:#15915A;--green-500:#1BA968;--green-50:#E6F5EC;--green-100:#C9EBD6;
+  --red-600:#D23B36;--red-50:#FBEAE9;--amber-600:#C98A14;--amber-50:#FBF2DC;
+  --sky:#2C86C4;--sky-50:#E8F2FA;
+  --r-sm:7px;--r-md:10px;--r-lg:14px;--r-xl:16px;
+  --shadow-sm:0 1px 2px rgba(11,26,47,.06);
+  font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  letter-spacing:-.006em;color:var(--ink);width:100%;
+  display:grid;grid-template-columns:410px 1fr;gap:16px;align-items:start;
 }
+.mc-shell *{box-sizing:border-box;}
+.mc-shell>*{min-width:0;}
 
-.pv-leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;padding-top:12px;border-top:1px solid ${GRAY_100};}
-.pv-leyenda-i{display:flex;align-items:center;gap:6px;font-size:11.5px;color:${GRAY_500};font-weight:600;}
-.pv-leyenda-c{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.mc-card{background:#fff;border:1px solid var(--gray-200);border-radius:var(--r-xl);box-shadow:var(--shadow-sm);}
 
-.pv-right-title{font-size:15px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;margin:0 0 4px;}
-.pv-right-sub{font-size:12.5px;color:${GRAY_500};margin-bottom:10px;}
+/* ===== mini-KPIs ===== */
+.mc-sumrow{display:flex;gap:10px;margin-bottom:16px;}
+.mc-sum{flex:1;background:#fff;border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:13px 15px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;}
+.mc-sum-dot{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mc-sum-dot svg{width:17px;height:17px;}
+.mc-sum-n{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--navy-900);font-variant-numeric:tabular-nums;}
+.mc-sum-l{font-size:11.5px;color:var(--gray-500);font-weight:600;margin-top:3px;}
 
-.pv-item{display:flex;gap:14px;padding:14px 12px;border-radius:14px;border:1.5px solid ${GRAY_200};margin-top:10px;background:#fff;align-items:center;transition:box-shadow .15s,border-color .15s;}
-.pv-item:first-of-type{margin-top:0;}
-.pv-item-sel{border-color:${ORANGE_500};box-shadow:0 0 0 2px rgba(255,107,43,.15);}
-.pv-item-bloq{background:${GRAY_50};opacity:.85;}
+/* ===== calendario ===== */
+.mc-cal-wrap{padding:20px 22px 22px;}
+.mc-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.mc-cal-title{display:flex;align-items:baseline;gap:10px;}
+.mc-cal-title .mc-m{font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--navy-900);}
+.mc-cal-title .mc-y{font-size:14px;font-weight:600;color:var(--gray-400);}
+.mc-cal-nav{display:flex;align-items:center;gap:8px;}
+.mc-shell .mc-cal-today{font-size:12px;font-weight:600;color:var(--navy-700);background:#fff;border:1px solid var(--gray-200);border-radius:8px;padding:7px 12px;cursor:pointer;}
+.mc-shell .mc-cal-today:hover{background:var(--gray-50);}
+.mc-shell .mc-cal-arrow{width:34px;height:34px;border-radius:9px;border:1px solid var(--gray-200);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--navy-700);cursor:pointer;}
+.mc-shell .mc-cal-arrow:hover{background:var(--gray-50);}
+.mc-cal-sub{font-size:12.5px;color:var(--gray-500);margin-bottom:16px;}
 
-.pv-fecha-box{display:flex;flex-direction:column;align-items:center;justify-content:center;width:56px;height:60px;background:${GRAY_50};border-radius:11px;border:1px solid ${GRAY_200};flex-shrink:0;}
-.pv-fecha-num{font-size:22px;font-weight:800;color:${NAVY_900};line-height:1;font-variant-numeric:tabular-nums;}
-.pv-fecha-dow{font-size:10px;font-weight:700;text-transform:uppercase;color:${GRAY_500};letter-spacing:.05em;margin-top:3px;}
+.mc-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;}
+.mc-dow div{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-400);text-align:center;padding:4px 0;}
+.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.mc-shell .mc-cell{min-height:46px;border:1px solid var(--gray-100);border-radius:9px;padding:5px 7px 5px 9px;display:flex;flex-direction:column;gap:3px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:left;width:100%;font-family:inherit;}
+.mc-shell .mc-cell:hover{border-color:var(--gray-300);box-shadow:var(--shadow-sm);}
+.mc-shell .mc-cell.mc-out{background:var(--gray-50);border-color:transparent;cursor:default;}
+.mc-shell .mc-cell.mc-out:hover{box-shadow:none;}
+.mc-shell .mc-cell.mc-past{background:var(--gray-50);cursor:default;}
+.mc-shell .mc-cell.mc-past .mc-num{color:var(--gray-400);}
+.mc-shell .mc-cell.mc-past .mc-ev{background:var(--gray-100)!important;color:var(--gray-400)!important;}
+.mc-shell .mc-cell.mc-past .mc-badge.mc-si,.mc-shell .mc-cell.mc-past .mc-badge.mc-no{background:var(--gray-400);}
+.mc-shell .mc-cell.mc-past:hover{box-shadow:none;border-color:var(--gray-100);}
+.mc-num{font-size:12px;font-weight:700;color:var(--navy-800);height:18px;display:flex;align-items:center;}
+.mc-shell .mc-cell.mc-out .mc-num{color:var(--gray-300);}
+.mc-shell .mc-cell.mc-sun .mc-num{color:var(--navy-900);}
+.mc-shell .mc-cell.mc-today .mc-num{color:var(--orange-600);}
+.mc-shell .mc-cell.mc-today{border-color:var(--orange-400);box-shadow:inset 0 0 0 1px var(--orange-400);}
+.mc-shell .mc-cell.mc-serve{border-color:var(--gray-200);}
+.mc-shell .mc-cell.mc-status-si::after,.mc-shell .mc-cell.mc-status-no::after,.mc-shell .mc-cell.mc-status-pend::after{content:"";position:absolute;left:0;top:6px;bottom:6px;width:5px;border-radius:0 4px 4px 0;}
+.mc-shell .mc-cell.mc-status-si::after{background:var(--green-500);}
+.mc-shell .mc-cell.mc-status-no::after{background:var(--red-600);}
+.mc-shell .mc-cell.mc-status-pend::after{background:var(--amber-600);}
+.mc-shell .mc-cell.mc-past.mc-status-pend::after{opacity:.35;}
 
-.pv-body{flex:1;min-width:0;}
-.pv-body-title{font-size:15.5px;font-weight:700;color:${NAVY_900};line-height:1.25;}
-.pv-body-meta{display:flex;align-items:center;gap:7px;margin-top:5px;flex-wrap:wrap;}
-.pv-tipo-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,.08);}
-.pv-tipo-txt{font-size:12.5px;color:${GRAY_600};font-weight:600;}
-.pv-chip-info{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:5px;background:${GRAY_100};color:${GRAY_600};}
-.pv-chip-lock{font-size:12px;color:${GRAY_500};font-weight:600;}
+.mc-ev{font-size:10px;font-weight:600;line-height:1.15;border-radius:5px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mc-ev-mas{color:var(--gray-500);font-weight:600;padding:1px 7px;background:transparent;}
+.mc-badge{position:absolute;top:5px;right:5px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.mc-badge svg{width:10px;height:10px;}
+.mc-badge.mc-si{background:var(--green-500);color:#fff;}
+.mc-badge.mc-no{background:var(--red-600);color:#fff;}
+.mc-badge.mc-pend{background:#fff;border:1.5px dashed var(--amber-600);color:var(--amber-600);}
 
-.pv-acciones{display:flex;gap:8px;flex-shrink:0;}
-@media (max-width:520px){
-  .pv-item{flex-wrap:wrap;}
-  .pv-acciones{width:100%;margin-top:4px;}
+.mc-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);}
+.mc-lg{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--gray-600);font-weight:500;}
+.mc-lg .mc-sw{width:11px;height:11px;border-radius:4px;}
+.mc-lg .mc-rr{width:11px;height:11px;border-radius:3px;border:1.5px solid var(--gray-300);background:#fff;}
+
+/* ===== rail "Te toca servir" ===== */
+.mc-rail{order:-1;display:flex;flex-direction:column;position:sticky;top:0;}
+.mc-rail-head{padding:20px 22px 0;}
+.mc-rail-head h3{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--navy-900);margin:0;}
+.mc-rail-head p{font-size:13px;color:var(--gray-500);margin:6px 0 0;}
+.mc-rail-list{padding:16px 18px 20px;display:flex;flex-direction:column;gap:12px;}
+.mc-slot{border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:15px 16px;transition:.12s;scroll-margin-top:12px;}
+.mc-slot.mc-pending{border-color:var(--amber-600);background:linear-gradient(180deg,var(--amber-50),#fff 60%);}
+.mc-slot.mc-sel{box-shadow:0 0 0 2px rgba(255,107,43,.30);border-color:var(--orange-400);}
+.mc-slot-top{display:flex;gap:12px;align-items:flex-start;}
+.mc-date-chip{width:50px;flex-shrink:0;text-align:center;border-radius:11px;padding:7px 0 8px;background:var(--navy-900);color:#fff;}
+.mc-date-chip .mc-cd{font-size:20px;font-weight:800;letter-spacing:-.03em;line-height:1;}
+.mc-date-chip .mc-cw{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--navy-300);margin-top:3px;}
+.mc-slot-body{flex:1;min-width:0;}
+.mc-slot-name{font-size:15px;font-weight:700;color:var(--navy-900);line-height:1.25;}
+.mc-slot-meta{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap;}
+.mc-chip-role{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--gray-600);}
+.mc-chip-role .mc-rd{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.mc-tag{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--gray-100);color:var(--gray-500);}
+.mc-tag.mc-tag-warn{background:var(--amber-50);color:var(--amber-600);}
+.mc-slot-actions{display:flex;gap:9px;margin-top:14px;}
+.mc-shell .mc-act{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;padding:11px;border-radius:10px;border:1px solid var(--gray-200);background:#fff;color:var(--gray-700);cursor:pointer;transition:.12s;font-family:inherit;}
+.mc-shell .mc-act svg{width:15px;height:15px;}
+.mc-shell .mc-act.mc-si:hover,.mc-shell .mc-act.mc-si.mc-on{background:var(--green-500);border-color:var(--green-500);color:#fff;}
+.mc-shell .mc-act.mc-no:hover,.mc-shell .mc-act.mc-no.mc-on{background:var(--red-600);border-color:var(--red-600);color:#fff;}
+.mc-shell .mc-act:disabled{opacity:.6;cursor:not-allowed;}
+.mc-state-line{display:flex;align-items:center;gap:7px;margin-top:11px;font-size:12px;font-weight:600;}
+.mc-state-line.mc-si{color:var(--green-600);}
+.mc-state-line.mc-no{color:var(--red-600);}
+.mc-state-line.mc-closed{color:var(--gray-500);}
+.mc-state-line .mc-ic{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+.mc-state-line.mc-si .mc-ic{background:var(--green-500);}
+.mc-state-line.mc-no .mc-ic{background:var(--red-600);}
+.mc-shell .mc-ch{margin-left:auto;font-size:11px;font-weight:600;color:var(--gray-400);cursor:pointer;background:transparent;border:0;padding:0;font-family:inherit;}
+.mc-shell .mc-ch:hover{color:var(--navy-700);}
+.mc-info-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--gray-500);margin-top:11px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:7px 10px;}
+.mc-info-pill svg{width:13px;height:13px;color:var(--gray-400);flex-shrink:0;}
+.mc-foot-note{padding:0 20px 18px;font-size:11.5px;color:var(--gray-400);text-align:center;}
+
+.mc-msg{padding:22px 10px;text-align:center;font-size:13px;color:var(--gray-500);}
+.mc-err{margin:0 18px 16px;padding:12px 14px;border-radius:12px;background:var(--red-50);border:1px solid #F3CBC9;color:var(--red-600);font-size:13px;font-weight:600;}
+.mc-cal-err{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--red-50);border:1px solid #F3CBC9;color:var(--red-600);font-size:13px;font-weight:600;}
+
+@media(max-width:1120px){
+  .mc-shell{grid-template-columns:1fr;}
+  .mc-rail{position:static;order:0;}
 }
-
-.pv-error{margin-top:12px;padding:12px 14px;border-radius:12px;background:${ROJO_50};border:1px solid #F3CBC9;color:${ROJO};font-size:13px;font-weight:600;}
-.pv-cargando{padding:26px 10px;text-align:center;font-size:13px;color:${GRAY_500};}
-.pv-vacio{padding:22px 10px;text-align:center;font-size:13px;color:${GRAY_500};}
-.pv-nota{margin-top:12px;text-align:center;font-size:12.5px;color:${GRAY_500};}
 `;
 
-// index.css:106 tiene `.app button { font: inherit; color: inherit; }`. Los
-// colores/tipografia de los botones van inline para que una regla global no los pise.
-const FUENTE_BTN = {
-  fontFamily: '"DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-  fontWeight: 700,
-};
+// ── Iconos (inline, como la referencia) ───────────────────────────────────────
+const IcCheck = ({ w = 24 }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" width={w} height={w}>
+    <path d="M5 12.5l4 4 10-10" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+const IcCross = ({ w = 24 }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" width={w} height={w}>
+    <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /></svg>
+);
+const IcClock = ({ w = 24 }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width={w} height={w}>
+    <path d="M12 8v4l2.5 1.5" strokeLinecap="round" /></svg>
+);
+const IcClockCircle = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="8.5" /><path d="M12 8v4l2.5 1.5" strokeLinecap="round" /></svg>
+);
+const IcInfo = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
+    <circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" strokeLinecap="round" /></svg>
+);
+const IcChevron = ({ dir }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17">
+    <path d={dir === 'l' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
 
-const estiloAccion = (activo, color, colorSuave, habilitado) => ({
-  ...FUENTE_BTN,
-  fontSize: 15,
-  padding: '11px 16px',
-  minWidth: 96,
-  borderRadius: 12,
-  border: '1.5px solid',
-  cursor: habilitado ? 'pointer' : 'not-allowed',
-  backgroundColor: activo ? color : (habilitado ? '#fff' : GRAY_100),
-  borderColor:     activo ? color : (habilitado ? colorSuave : GRAY_200),
-  color:           activo ? '#fff' : (habilitado ? color : GRAY_500),
-  transition: 'background .12s,color .12s,border-color .12s',
-});
-
-const estiloFlecha = (habilitada) => ({
-  ...FUENTE_BTN,
-  fontSize: 17,
-  color: habilitada ? NAVY_900 : GRAY_200,
-  cursor: habilitada ? 'pointer' : 'not-allowed',
-});
-
-// ── Helpers de mes ───────────────────────────────────────────────────────────
-// Aritmetica sobre 'YYYY-MM' en UTC: nunca construimos fechas locales que se
-// correrian de dia segun la zona del navegador.
+// ── Helpers de fecha (aritmética en UTC para no correr de día por zona) ───────
 const mesDeHoy = () => {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
@@ -140,24 +185,17 @@ const sumaMes = (mes, n) => {
   const d = new Date(Date.UTC(a, m - 1 + n, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 };
-const tituloMes = (mes) => {
-  const [a, m] = mes.split('-').map(Number);
-  return `${MESES[m - 1]} ${a}`;
-};
 const diaDeISO = (iso) => Number(iso.slice(8, 10));
-const diaSemanaISO = (iso) => {
+const dowDeISO = (iso) => {
   const [a, m, d] = iso.split('-').map(Number);
   return new Date(Date.UTC(a, m - 1, d)).getUTCDay();
 };
+const aUTC = (iso) => { const [a, m, d] = iso.split('-').map(Number); return Date.UTC(a, m - 1, d); };
+const diffDias = (isoA, isoB) => Math.round((aUTC(isoB) - aUTC(isoA)) / 86400000);
+const claveItem = (item) => `${item.fecha}-${item.evento_id ?? 'dom'}`;
 
-// Color por defecto para eventos sin tipo_color (tipo no registrado en tipos_evento).
-const COLOR_EVENTO_DEFAULT = ORANGE_500;
-
-// El backend manda tipo_color como un hex saturado por evento. Para el
-// fondo del pill necesitamos una version pastel OPACA (no rgba con alpha):
-// si fuese translucida se veria mezclada con el fondo verde/rojo del
-// domingo con estado. Precalculamos la mezcla lineal con blanco y
-// devolvemos rgb solido. Acepta '#RGB' y '#RRGGBB'.
+// Mezcla lineal con blanco → tinte pastel OPACO (no rgba con alpha, que se
+// mezclaría con el fondo). Acepta '#RGB' y '#RRGGBB'.
 function tintePastel(hex, peso) {
   if (typeof hex !== 'string') return '#EEEEEE';
   let h = hex.trim().replace('#', '');
@@ -169,21 +207,31 @@ function tintePastel(hex, peso) {
   return `rgb(${mix(R)},${mix(G)},${mix(B)})`;
 }
 
+// Color base de un item para chips/tintes: domingo → celeste; evento → su color.
+const colorDe = (item) => (item.tipo === 'domingo' ? SKY : (item.tipo_color || COLOR_EVENTO_DEFAULT));
+
+// Etiqueta de cierre para un slot pendiente. El backend bloquea cuando
+// hoy >= fecha-1, así que un item abierto tiene fecha-1 > hoy.
+function etiquetaCierre(fecha, hoy) {
+  if (!hoy) return 'Por responder';
+  const dias = diffDias(hoy, fecha) - 1; // días hasta el cierre (fecha-1)
+  if (dias <= 0) return 'Cierra hoy';
+  if (dias === 1) return 'Cierra mañana';
+  return `Cierra en ${dias} días`;
+}
+
 export default function PanelVoluntario() {
   const [mes,      setMes]      = useState(mesDeHoy);
   const [data,     setData]     = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error,    setError]    = useState('');
   const [sel,      setSel]      = useState(null);   // fecha 'YYYY-MM-DD' seleccionada en el grid
-  const [enviando, setEnviando] = useState(null);   // clave del item que se envia
-  const [recarga,  setRecarga]  = useState(0);      // fuerza refetch del mes actual
+  const [enviando, setEnviando] = useState(null);   // clave del item que se envía
+  const [editando, setEditando] = useState({});     // claveItem -> true (reabrir botones tras "Cambiar")
+  const [recarga,  setRecarga]  = useState(0);
 
-  // Refs de items del listado para hacer scrollIntoView al tocar un dia del grid.
   const itemRefs = useRef({});
 
-  // La carga vive dentro del efecto y los setState ocurren despues del await:
-  // llamarlos de forma sincrona desde un efecto encadena renders. El
-  // "cargando" lo enciende quien dispara la accion (ver irAMes).
   useEffect(() => {
     let vivo = true;
     (async () => {
@@ -206,38 +254,65 @@ export default function PanelVoluntario() {
     setCargando(true);
     setMes(m => sumaMes(m, n));
     setSel(null);
+    setEditando({});
+  };
+  const irHoy = () => {
+    setCargando(true);
+    setMes(mesDeHoy());
+    setSel(null);
+    setEditando({});
   };
 
-  const dias = data?.dias ?? [];
-
-  // Los items del listado, en orden cronologico y SOLO fechas de hoy en
-  // adelante. El backend manda `data.hoy` como 'YYYY-MM-DD' en zona Mexico;
-  // la comparacion de strings ISO es cronologicamente correcta y evita
-  // corrimientos de zona. El calendario de la izquierda NO usa este filtro:
-  // sigue mostrando el mes completo.
+  const dias  = data?.dias ?? [];
   const hoyISO = data?.hoy ?? '';
-  const listado = useMemo(() =>
-    [...dias]
+
+  // Items por fecha (un domingo con evento tiene dos).
+  const itemsPorFecha = useMemo(() => {
+    const map = new Map();
+    for (const d of dias) {
+      if (!map.has(d.fecha)) map.set(d.fecha, []);
+      map.get(d.fecha).push(d);
+    }
+    return map;
+  }, [dias]);
+  const itemsDe = (fecha) => itemsPorFecha.get(fecha) ?? [];
+
+  // ── Mini-KPIs del mes (sobre lo que le toca marcar) ──────────────────────────
+  const kpis = useMemo(() => {
+    let si = 0, no = 0, pend = 0;
+    for (const d of dias) {
+      if (!d.puede_marcar) continue;
+      if (d.estado === 'disponible') si++;
+      else if (d.estado === 'no_disponible') no++;
+      else if (!d.bloqueado) pend++;
+    }
+    return { si, no, pend };
+  }, [dias]);
+
+  // ── Lista del rail: de hoy en adelante, agrupada por prioridad de acción ─────
+  // 0 pendiente-abierto · 1 respondido · 2 cerrado sin respuesta · 3 informativo
+  const listado = useMemo(() => {
+    const prioridad = (d) => {
+      if (!d.puede_marcar) return 3;
+      if (d.estado) return 1;
+      if (d.bloqueado) return 2;
+      return 0;
+    };
+    return [...dias]
       .filter(d => !hoyISO || d.fecha >= hoyISO)
-      .sort((a, b) =>
-        a.fecha === b.fecha
-          ? (a.tipo === 'domingo' ? -1 : 1)
-          : (a.fecha < b.fecha ? -1 : 1)
-      ),
-    [dias, hoyISO]
-  );
+      .sort((a, b) => {
+        const pa = prioridad(a), pb = prioridad(b);
+        if (pa !== pb) return pa - pb;
+        if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+        return a.tipo === 'domingo' ? -1 : 1;
+      });
+  }, [dias, hoyISO]);
 
-  // Los items marcables/informativos de una fecha (un domingo con evento tiene dos).
-  const itemsDe = (fecha) => dias.filter(d => d.fecha === fecha);
-
-  // Toca un dia del grid: lo marca como seleccionado y scrollea el primer item
-  // de esa fecha en la lista para que quede visible sin buscar.
   function tocarDia(fecha) {
     const items = itemsDe(fecha);
     if (items.length === 0) return;
     setSel(fecha);
-    const key = claveItem(items[0]);
-    const el = itemRefs.current[key];
+    const el = itemRefs.current[claveItem(items[0])];
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -247,249 +322,261 @@ export default function PanelVoluntario() {
     setError('');
     try {
       await voluntarioDisponibilidadApi.marcar({
-        fecha: item.fecha,
-        evento_id: item.evento_id,
-        estado,
+        fecha: item.fecha, evento_id: item.evento_id, estado,
       });
-      // Refleja el cambio local sin recargar todo el mes.
       setData(d => ({
         ...d,
         dias: d.dias.map(x =>
-          x.fecha === item.fecha && x.evento_id === item.evento_id ? { ...x, estado } : x
-        ),
+          x.fecha === item.fecha && x.evento_id === item.evento_id ? { ...x, estado } : x),
       }));
+      setEditando(e => { const n = { ...e }; delete n[clave]; return n; });
     } catch (err) {
       setError(err.response?.data?.error || 'No se pudo guardar tu respuesta');
-      // Si el servidor dice que ya cerro, el mes local esta viejo: recarga.
       if (err.response?.status === 403) { setCargando(true); setRecarga(n => n + 1); }
     } finally {
       setEnviando(null);
     }
   }
 
-  // ── Celdas del grid ────────────────────────────────────────────────────────
-  const celdas = [];
-  if (data) {
-    for (let i = 0; i < data.diaSemanaPrimero; i++) celdas.push(null);
+  // ── Celdas del grid (con días de meses vecinos como en la referencia) ────────
+  const celdas = useMemo(() => {
+    if (!data) return [];
+    const [anio, nMes] = data.mes.split('-').map(Number);
+    const lead = data.diaSemanaPrimero;                     // 0 = domingo
+    const prevDias = new Date(Date.UTC(anio, nMes - 1, 0)).getUTCDate();
+    const out = [];
+    for (let i = lead - 1; i >= 0; i--) out.push({ tipo: 'out', num: prevDias - i });
     for (let d = 1; d <= data.diasEnMes; d++) {
-      celdas.push(`${data.mes}-${String(d).padStart(2, '0')}`);
+      out.push({ tipo: 'dia', num: d, fecha: `${data.mes}-${String(d).padStart(2, '0')}` });
     }
-  }
+    const trail = (7 - (out.length % 7)) % 7;
+    for (let d = 1; d <= trail; d++) out.push({ tipo: 'out', num: d });
+    return out;
+  }, [data]);
 
-  const estiloCelda = (items) => {
-    // El color de la celda lo manda el domingo si lo hay; si no, el evento.
-    const principal = items.find(m => m.tipo === 'domingo') ?? items[0];
-    const bloqueado = items.every(m => m.bloqueado);
-    const base = { cursor: 'pointer', border: '1.5px solid' };
-    if (principal.estado === 'disponible') {
-      return { ...base, backgroundColor: bloqueado ? VERDE_50 : VERDE, borderColor: VERDE,
-               color: bloqueado ? VERDE : '#fff', opacity: bloqueado ? .7 : 1 };
-    }
-    if (principal.estado === 'no_disponible') {
-      return { ...base, backgroundColor: bloqueado ? ROJO_50 : ROJO, borderColor: ROJO,
-               color: bloqueado ? ROJO : '#fff', opacity: bloqueado ? .7 : 1 };
-    }
-    return { ...base, backgroundColor: '#fff', borderColor: bloqueado ? GRAY_200 : NAVY_900,
-             color: NAVY_900, opacity: bloqueado ? .55 : 1 };
+  // Estado de servicio de una celda (marca el badge/barra): el domingo manda,
+  // si no el primer item marcable.
+  const servicioDe = (items) => {
+    const marcables = items.filter(m => m.puede_marcar);
+    if (marcables.length === 0) return null;
+    return marcables.find(m => m.tipo === 'domingo') ?? marcables[0];
   };
 
   return (
-    <>
+    <div className="mc-shell">
       <style>{CSS}</style>
 
-      <div className="pv-shell">
-
-        {/* ── Columna izquierda: calendario (flexible, ancho) ──────────── */}
-        <div>
-          <div className="pv-card">
-            <div className="pv-nav">
-              <button className="pv-flecha" style={estiloFlecha(true)}
-                onClick={() => irAMes(-1)} aria-label="Mes anterior">‹</button>
-              <div style={{ textAlign: 'center' }}>
-                <div className="pv-mes">{tituloMes(mes)}</div>
-                <div className="pv-mes-sub">Toca un día para verlo en la lista</div>
-              </div>
-              <button className="pv-flecha" style={estiloFlecha(true)}
-                onClick={() => irAMes(1)} aria-label="Mes siguiente">›</button>
-            </div>
-
-            <div className="pv-sem">
-              {DIAS_SEM.map(d => <div key={d} className="pv-sem-d">{d}</div>)}
-            </div>
-
-            {cargando ? (
-              <div className="pv-cargando">Cargando tu calendario…</div>
-            ) : !data ? (
-              <div className="pv-vacio">Sin datos de este mes.</div>
-            ) : (
-              <div className="pv-grid">
-                {celdas.map((fecha, i) => {
-                  if (!fecha) return <div key={`v${i}`} className="pv-celda pv-vacia" />;
-                  const items = itemsDe(fecha);
-                  const num = diaDeISO(fecha);
-                  const esHoy = fecha === hoyISO;
-
-                  if (items.length === 0) {
-                    return (
-                      <div key={fecha} className="pv-celda pv-apagado">
-                        <div className="pv-celda-head">
-                          <span className={`pv-num-badge ${esHoy ? 'pv-num-badge-hoy' : ''}`}>{num}</span>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  const bloqueado = items.every(m => m.bloqueado);
-                  const eventos = items.filter(m => m.tipo === 'evento');
-                  const esSel = sel === fecha;
-                  const st = estiloCelda(items);
-
-                  return (
-                    <button
-                      key={fecha}
-                      className="pv-celda"
-                      style={{
-                        ...FUENTE_BTN,
-                        ...st,
-                        boxShadow: esSel ? `0 0 0 2px ${ORANGE_500}` : 'none',
-                      }}
-                      onClick={() => tocarDia(fecha)}
-                      title={items.map(m => m.nombre).join(' · ')}
-                    >
-                      <div className="pv-celda-head">
-                        <span
-                          className={`pv-num-badge ${esHoy ? 'pv-num-badge-hoy' : ''}`}
-                          style={esHoy ? undefined : { color: 'inherit' }}
-                        >{num}</span>
-                        {bloqueado && <span className="pv-candado" aria-label="Ya cerró">🔒</span>}
-                      </div>
-                      {eventos.length > 0 && (
-                        <div className="pv-pills">
-                          {/* Celda de altura fija: caben 2 pills de 1 linea; si
-                              hay mas, se muestra la 1a y una pill "+N mas"
-                              con el resto de nombres en el tooltip. La lista
-                              lateral muestra todos los eventos con detalle. */}
-                          {eventos.slice(0, eventos.length > 2 ? 1 : 2).map(ev => {
-                            const c = ev.tipo_color || COLOR_EVENTO_DEFAULT;
-                            return (
-                              <span
-                                key={ev.evento_id}
-                                className="pv-pill"
-                                style={{
-                                  background:      bloqueado ? GRAY_100 : tintePastel(c, 0.20),
-                                  color:           bloqueado ? GRAY_500 : NAVY_900,
-                                  borderLeftColor: bloqueado ? GRAY_200 : c,
-                                }}
-                              >
-                                {ev.nombre}
-                              </span>
-                            );
-                          })}
-                          {eventos.length > 2 && (
-                            <span
-                              className="pv-pill pv-pill-mas"
-                              title={eventos.slice(1).map(e => e.nombre).join(' · ')}
-                            >
-                              +{eventos.length - 1} más
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="pv-leyenda">
-              <span className="pv-leyenda-i">
-                <span className="pv-leyenda-c" style={{ background: VERDE }} />Sí sirvo</span>
-              <span className="pv-leyenda-i">
-                <span className="pv-leyenda-c" style={{ background: ROJO }} />No puedo</span>
-              <span className="pv-leyenda-i">
-                <span className="pv-leyenda-c" style={{ background: '#fff', border: `1.5px solid ${NAVY_900}` }} />Sin responder</span>
-              <span className="pv-leyenda-i">
-                <span className="pv-leyenda-c" style={{ background: ORANGE_500, borderRadius: '50%' }} />Evento</span>
-              <span className="pv-leyenda-i">🔒 Ya cerró</span>
-            </div>
+      {/* ── Columna derecha (1fr): KPIs + calendario ──────────────────────── */}
+      <div>
+        <div className="mc-sumrow">
+          <div className="mc-sum">
+            <span className="mc-sum-dot" style={{ background: 'var(--green-50)', color: 'var(--green-600)' }}><IcCheck /></span>
+            <div><div className="mc-sum-n">{kpis.si}</div><div className="mc-sum-l">Sí sirvo</div></div>
           </div>
-
-          {error && <div className="pv-error">{error}</div>}
-          {!cargando && data && (
-            <div className="pv-nota">Los cambios cierran 1 día antes de cada fecha.</div>
-          )}
+          <div className="mc-sum">
+            <span className="mc-sum-dot" style={{ background: 'var(--red-50)', color: 'var(--red-600)' }}><IcCross /></span>
+            <div><div className="mc-sum-n">{kpis.no}</div><div className="mc-sum-l">No puedo</div></div>
+          </div>
+          <div className="mc-sum">
+            <span className="mc-sum-dot" style={{ background: 'var(--amber-50)', color: 'var(--amber-600)' }}><IcClockCircle /></span>
+            <div><div className="mc-sum-n">{kpis.pend}</div><div className="mc-sum-l">Por responder</div></div>
+          </div>
         </div>
 
-        {/* ── Columna derecha: lista del mes (fija 380px, apila <900px) ─ */}
-        <div className="pv-card pv-lista-card">
-          <h2 className="pv-right-title">Domingos y eventos del mes</h2>
-          <div className="pv-right-sub">
-            Marca “Sí sirvo” o “No puedo” en los que te toca servir.
+        <div className="mc-card mc-cal-wrap">
+          <div className="mc-cal-head">
+            <div className="mc-cal-title">
+              <span className="mc-m">{MESES[Number(mes.slice(5, 7)) - 1]}</span>
+              <span className="mc-y">{mes.slice(0, 4)}</span>
+            </div>
+            <div className="mc-cal-nav">
+              <button className="mc-cal-today" onClick={irHoy}>Hoy</button>
+              <button className="mc-cal-arrow" onClick={() => irAMes(-1)} aria-label="Mes anterior"><IcChevron dir="l" /></button>
+              <button className="mc-cal-arrow" onClick={() => irAMes(1)} aria-label="Mes siguiente"><IcChevron dir="r" /></button>
+            </div>
           </div>
+          <div className="mc-cal-sub">Toca un día para verlo en la lista. Los eventos donde te toca servir llevan una marca de estado.</div>
+
+          <div className="mc-dow">{DOW_CORTO.map(d => <div key={d}>{d}</div>)}</div>
 
           {cargando ? (
-            <div className="pv-cargando">Cargando…</div>
+            <div className="mc-msg">Cargando tu calendario…</div>
+          ) : !data ? (
+            <div className="mc-msg">Sin datos de este mes.</div>
+          ) : (
+            <div className="mc-grid">
+              {celdas.map((c, i) => {
+                if (c.tipo === 'out') {
+                  return <div key={`o${i}`} className="mc-cell mc-out"><span className="mc-num">{c.num}</span></div>;
+                }
+                const items = itemsDe(c.fecha);
+                const esHoy = c.fecha === hoyISO;
+                const esPasado = hoyISO && c.fecha < hoyISO;
+                const esDomingo = dowDeISO(c.fecha) === 0;
+                const eventos = items.filter(m => m.tipo === 'evento');
+                const domingo = items.find(m => m.tipo === 'domingo');
+                const servicio = servicioDe(items);
+
+                // Tinte de fondo por tipo (domingo → celeste; si no, color del 1er evento).
+                let tint = null;
+                if (domingo) tint = { background: 'var(--sky-50)', borderColor: '#CFE4F3' };
+                else if (eventos[0]) tint = { background: tintePastel(colorDe(eventos[0]), 0.13), borderColor: tintePastel(colorDe(eventos[0]), 0.30) };
+
+                // Clase de estado de servicio.
+                let statusCls = '';
+                if (servicio) {
+                  if (servicio.estado === 'disponible') statusCls = 'mc-status-si';
+                  else if (servicio.estado === 'no_disponible') statusCls = 'mc-status-no';
+                  else if (!servicio.bloqueado) statusCls = 'mc-status-pend';
+                }
+
+                const clases = ['mc-cell'];
+                if (esDomingo) clases.push('mc-sun');
+                if (esHoy) clases.push('mc-today');
+                if (esPasado) clases.push('mc-past');
+                if (servicio) clases.push('mc-serve');
+                if (statusCls) clases.push(statusCls);
+                const esSel = sel === c.fecha;
+
+                // Pills: domingo primero, luego eventos. Máx 2, si hay más "+N".
+                const pills = [];
+                if (domingo) pills.push({ key: 'dom', nombre: domingo.nombre, color: SKY, sunday: true });
+                for (const ev of eventos) pills.push({ key: ev.evento_id, nombre: ev.nombre, color: colorDe(ev), sunday: false });
+                const visibles = pills.slice(0, pills.length > 2 ? 1 : 2);
+                const resto = pills.length - visibles.length;
+
+                return (
+                  <button
+                    key={c.fecha}
+                    className={clases.join(' ')}
+                    style={{
+                      ...(tint || {}),
+                      ...(esHoy ? { borderColor: 'var(--orange-400)' } : {}),
+                      ...(esSel ? { boxShadow: '0 0 0 2px var(--orange-500)' } : {}),
+                    }}
+                    onClick={() => tocarDia(c.fecha)}
+                    title={items.map(m => m.nombre).join(' · ')}
+                  >
+                    <span className="mc-num">{c.num}</span>
+                    {servicio && statusCls === 'mc-status-si' && <span className="mc-badge mc-si"><IcCheck w={10} /></span>}
+                    {servicio && statusCls === 'mc-status-no' && <span className="mc-badge mc-no"><IcCross w={10} /></span>}
+                    {servicio && statusCls === 'mc-status-pend' && <span className="mc-badge mc-pend"><IcClock w={10} /></span>}
+                    {visibles.map(p => (
+                      <div key={p.key} className="mc-ev"
+                        style={esPasado ? undefined : {
+                          background: p.sunday ? 'var(--sky-50)' : tintePastel(p.color, 0.20),
+                          color: p.sunday ? '#1c6294' : p.color,
+                        }}>
+                        {p.nombre}
+                      </div>
+                    ))}
+                    {resto > 0 && <div className="mc-ev mc-ev-mas">+{resto} más</div>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="mc-legend">
+            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--green-500)' }} />Sí sirvo</div>
+            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--red-600)' }} />No puedo</div>
+            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--amber-600)' }} />Por responder</div>
+            <div className="mc-lg"><span className="mc-rr" />Sin servicio</div>
+            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--sky)' }} />Domingo</div>
+            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--orange-500)' }} />Evento</div>
+          </div>
+
+          {error && <div className="mc-cal-err">{error}</div>}
+        </div>
+      </div>
+
+      {/* ── Columna izquierda (410px, order:-1): Te toca servir ────────────── */}
+      <div className="mc-card mc-rail">
+        <div className="mc-rail-head">
+          <h3>Te toca servir</h3>
+          <p>Marca tu disponibilidad. Los cambios cierran 1 día antes.</p>
+        </div>
+
+        <div className="mc-rail-list">
+          {cargando ? (
+            <div className="mc-msg">Cargando…</div>
           ) : listado.length === 0 ? (
-            <div className="pv-vacio">
-              {dias.length > 0
-                ? 'No hay fechas próximas en este mes.'
-                : 'Este mes no tiene domingos ni eventos.'}
+            <div className="mc-msg">
+              {dias.length > 0 ? 'No hay fechas próximas en este mes.' : 'Este mes no tiene domingos ni eventos.'}
             </div>
           ) : (
             listado.map(item => {
-              const clave = claveItem(item);
+              const clave   = claveItem(item);
               const ocupado = enviando === clave;
-              const habilitado = item.puede_marcar && !item.bloqueado && !ocupado;
-              const esSel = sel === item.fecha;
-              const dow = diaSemanaISO(item.fecha);
-              const punto = item.tipo === 'domingo' ? NAVY_900 : (item.tipo_color || COLOR_EVENTO_DEFAULT);
-              const esInformativo = !item.puede_marcar;
+              const dow     = dowDeISO(item.fecha);
+              const color   = colorDe(item);
+              const esSel   = sel === item.fecha;
+              const esInfo  = !item.puede_marcar;
+              const reabierto = editando[clave];
+              // Estados del slot.
+              const pendienteAbierto = item.puede_marcar && !item.bloqueado && (item.estado == null || reabierto);
+              const respondido = item.puede_marcar && item.estado != null && !reabierto;
+              const cerradoSinResp = item.puede_marcar && item.bloqueado && item.estado == null;
+
               return (
                 <div
                   key={clave}
                   ref={el => { if (el) itemRefs.current[clave] = el; }}
-                  className={`pv-item ${esSel ? 'pv-item-sel' : ''} ${item.bloqueado ? 'pv-item-bloq' : ''}`}
+                  className={`mc-slot ${pendienteAbierto ? 'mc-pending' : ''} ${esSel ? 'mc-sel' : ''}`}
                 >
-                  <div className="pv-fecha-box">
-                    <div className="pv-fecha-num">{diaDeISO(item.fecha)}</div>
-                    <div className="pv-fecha-dow">{DIAS_SEM[dow]}</div>
-                  </div>
+                  <div className="mc-slot-top">
+                    <div className="mc-date-chip" style={esInfo ? { background: 'var(--gray-100)' } : undefined}>
+                      <div className="mc-cd" style={esInfo ? { color: 'var(--navy-900)' } : undefined}>{diaDeISO(item.fecha)}</div>
+                      <div className="mc-cw" style={esInfo ? { color: 'var(--gray-500)' } : undefined}>{DOW_CORTO[dow]}</div>
+                    </div>
 
-                  <div className="pv-body">
-                    <div className="pv-body-title">{item.nombre}</div>
-                    <div className="pv-body-meta">
-                      <span className="pv-tipo-dot" style={{ background: punto }} />
-                      <span className="pv-tipo-txt">
-                        {item.tipo === 'domingo'
-                          ? DIAS_SEM_LARGO[dow]
-                          : (item.tipo_evento || 'Evento')}
-                      </span>
-                      {esInformativo && (
-                        <span className="pv-chip-info">Solo informativo</span>
+                    <div className="mc-slot-body">
+                      <div className="mc-slot-name">{item.nombre}</div>
+                      <div className="mc-slot-meta">
+                        <span className="mc-chip-role">
+                          <span className="mc-rd" style={{ background: color }} />
+                          {item.tipo === 'domingo' ? 'Domingo' : (item.tipo_evento || 'Evento')}
+                        </span>
+                        {pendienteAbierto && item.estado == null && (
+                          <span className="mc-tag mc-tag-warn">{etiquetaCierre(item.fecha, hoyISO)}</span>
+                        )}
+                      </div>
+
+                      {/* Respondido: línea de estado + Cambiar */}
+                      {respondido && (
+                        <div className={`mc-state-line ${item.estado === 'disponible' ? 'mc-si' : 'mc-no'}`}>
+                          <span className="mc-ic">{item.estado === 'disponible' ? <IcCheck w={11} /> : <IcCross w={11} />}</span>
+                          {item.estado === 'disponible' ? 'Confirmado · Sí sirvo' : 'No puedo servir'}
+                          {!item.bloqueado && (
+                            <button className="mc-ch" onClick={() => setEditando(e => ({ ...e, [clave]: true }))}>Cambiar</button>
+                          )}
+                        </div>
                       )}
-                      {item.bloqueado && (
-                        <span className="pv-chip-lock">· 🔒 ya cerró</span>
+
+                      {/* Cerrado sin respuesta */}
+                      {cerradoSinResp && (
+                        <div className="mc-state-line mc-closed">🔒 Ya cerró · sin respuesta</div>
+                      )}
+
+                      {/* Informativo */}
+                      {esInfo && (
+                        <div className="mc-info-pill"><IcInfo />Solo informativo · no requiere respuesta</div>
                       )}
                     </div>
                   </div>
 
-                  {item.puede_marcar && (
-                    <div className="pv-acciones">
+                  {/* Pendiente/abierto o reabierto con "Cambiar": botones */}
+                  {pendienteAbierto && (
+                    <div className="mc-slot-actions">
                       <button
-                        style={estiloAccion(item.estado === 'disponible', VERDE, '#A7D9C2', habilitado)}
-                        onClick={() => marcar(item, 'disponible')}
-                        disabled={!habilitado}
-                        aria-label="Sí sirvo"
-                      >
-                        {ocupado ? '…' : 'Sí sirvo'}
+                        className={`mc-act mc-si ${item.estado === 'disponible' ? 'mc-on' : ''}`}
+                        onClick={() => marcar(item, 'disponible')} disabled={ocupado}>
+                        <IcCheck w={15} />{ocupado ? '…' : 'Sí sirvo'}
                       </button>
                       <button
-                        style={estiloAccion(item.estado === 'no_disponible', ROJO, '#F3CBC9', habilitado)}
-                        onClick={() => marcar(item, 'no_disponible')}
-                        disabled={!habilitado}
-                        aria-label="No puedo"
-                      >
-                        {ocupado ? '…' : 'No puedo'}
+                        className={`mc-act mc-no ${item.estado === 'no_disponible' ? 'mc-on' : ''}`}
+                        onClick={() => marcar(item, 'no_disponible')} disabled={ocupado}>
+                        <IcCross w={15} />{ocupado ? '…' : 'No puedo'}
                       </button>
                     </div>
                   )}
@@ -498,11 +585,8 @@ export default function PanelVoluntario() {
             })
           )}
         </div>
+        <div className="mc-foot-note">Los cambios cierran 1 día antes de cada fecha.</div>
       </div>
-    </>
+    </div>
   );
-}
-
-function claveItem(item) {
-  return `${item.fecha}-${item.evento_id ?? 'dom'}`;
 }
