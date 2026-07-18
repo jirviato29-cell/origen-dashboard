@@ -41,8 +41,8 @@ const CSS = `
 
 .pv-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
 .pv-sem-d{text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${GRAY_500};padding:3px 0;}
-.pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:minmax(64px,auto);}
-.pv-celda{border-radius:10px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;position:relative;font-size:13px;padding:5px 5px 6px;overflow:visible;gap:3px;text-align:left;}
+.pv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:84px;}
+.pv-celda{border-radius:10px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;position:relative;font-size:13px;padding:5px 5px 6px;overflow:hidden;gap:3px;text-align:left;}
 .pv-vacia{background:transparent;border:none;min-height:0;padding:0;}
 .pv-apagado{color:${NAVY_300};background:${GRAY_50};}
 .pv-celda-head{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;line-height:1;}
@@ -50,14 +50,15 @@ const CSS = `
 .pv-num-badge-hoy{background:${ORANGE_500};color:#fff;}
 .pv-candado{font-size:11.5px;opacity:.85;line-height:1;}
 .pv-pills{display:flex;flex-direction:column;gap:3px;width:100%;}
-.pv-pill{font-size:12px;font-weight:700;line-height:1.2;padding:3px 6px 3px 7px;border-radius:5px;display:block;overflow:visible;white-space:normal;letter-spacing:-.005em;text-align:left;border-left:3px solid transparent;word-break:break-word;overflow-wrap:anywhere;hyphens:auto;}
+.pv-pill{font-size:11.5px;font-weight:700;line-height:1.2;padding:2px 6px 2px 7px;border-radius:5px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;white-space:normal;letter-spacing:-.005em;text-align:left;border-left:3px solid transparent;word-break:break-word;overflow-wrap:anywhere;}
+.pv-pill-mas{background:${GRAY_100};color:${GRAY_600};border-left-color:${GRAY_300};font-weight:800;}
 @media (max-width: 640px){
   .pv-card{padding:12px;}
   .pv-sem{gap:4px;}
-  .pv-grid{gap:4px;grid-auto-rows:minmax(58px,auto);}
+  .pv-grid{gap:4px;grid-auto-rows:68px;}
   .pv-celda{padding:4px 4px 5px;border-radius:9px;gap:2px;}
   .pv-num-badge{min-width:19px;height:19px;padding:0 4px;font-size:11.5px;border-radius:5px;}
-  .pv-pill{font-size:10.5px;padding:2px 4px 2px 5px;line-height:1.18;}
+  .pv-pill{font-size:10.5px;padding:1px 4px 1px 5px;line-height:1.18;}
   .pv-pills{gap:2px;}
   .pv-mes{font-size:16px;}
 }
@@ -363,7 +364,11 @@ export default function PanelVoluntario() {
                       </div>
                       {eventos.length > 0 && (
                         <div className="pv-pills">
-                          {eventos.map(ev => {
+                          {/* Celda de altura fija: caben 2 pills de 1 linea; si
+                              hay mas, se muestra la 1a y una pill "+N mas"
+                              con el resto de nombres en el tooltip. La lista
+                              lateral muestra todos los eventos con detalle. */}
+                          {eventos.slice(0, eventos.length > 2 ? 1 : 2).map(ev => {
                             const c = ev.tipo_color || COLOR_EVENTO_DEFAULT;
                             return (
                               <span
@@ -379,6 +384,14 @@ export default function PanelVoluntario() {
                               </span>
                             );
                           })}
+                          {eventos.length > 2 && (
+                            <span
+                              className="pv-pill pv-pill-mas"
+                              title={eventos.slice(1).map(e => e.nombre).join(' · ')}
+                            >
+                              +{eventos.length - 1} más
+                            </span>
+                          )}
                         </div>
                       )}
                     </button>
