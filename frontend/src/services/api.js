@@ -209,9 +209,10 @@ export const liderVoluntariosApi = {
 // Usa la misma instancia http (token + campus por interceptor). El ministerio y
 // el campus los resuelve el backend del token, no de aquí.
 export const liderPosicionesApi = {
-  getPosiciones:  ()       => http.get('/lider/posiciones'),
-  crearPosicion:  (nombre) => http.post('/lider/posiciones', { nombre }),
-  borrarPosicion: (id)     => http.delete(`/lider/posiciones/${id}`),
+  getPosiciones:  ()            => http.get('/lider/posiciones'),
+  crearPosicion:  (data)        => http.post('/lider/posiciones', data),
+  editarPosicion: (id, data)    => http.put(`/lider/posiciones/${id}`, data),
+  borrarPosicion: (id)          => http.delete(`/lider/posiciones/${id}`),
 };
 
 // ─── Asignaciones del líder (ver disponibles y asignar posiciones) ────────────

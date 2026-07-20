@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
     if (!ctx) return;
 
     const { rows } = await pool.query(
-      `SELECT id, nombre, orden
+      `SELECT id, nombre, descripcion, orden
          FROM posiciones
         WHERE ministerio_id = $1 AND activo = true
         ORDER BY orden ASC, nombre ASC`,
@@ -32,9 +32,16 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/lider/posiciones — crea una posición. Body { nombre }.
+// Descripción opcional del body: trim y null si viene vacía.
+function descripcionDe(body) {
+  const d = typeof body?.descripcion === 'string' ? body.descripcion.trim() : '';
+  return d || null;
+}
+
+// POST /api/lider/posiciones — crea una posición. Body { nombre, descripcion? }.
 router.post('/', async (req, res) => {
   const nombre = typeof req.body?.nombre === 'string' ? req.body.nombre.trim() : '';
+  const descripcion = descripcionDe(req.body);
   if (!nombre) {
     return res.status(400).json({ error: 'Escribe el nombre de la posición' });
   }
@@ -45,10 +52,10 @@ router.post('/', async (req, res) => {
 
     // ministerio_id y campus salen del contexto del líder, no del body.
     const { rows } = await pool.query(
-      `INSERT INTO posiciones (ministerio_id, nombre, campus)
-       VALUES ($1, $2, $3)
-       RETURNING id, nombre, orden`,
-      [ctx.ministerioId, nombre, ctx.campus]
+      `INSERT INTO posiciones (ministerio_id, nombre, descripcion, campus)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, nombre, descripcion, orden`,
+      [ctx.ministerioId, nombre, descripcion, ctx.campus]
     );
     return res.status(201).json(rows[0]);
   } catch (err) {
@@ -58,6 +65,52 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'Ya tienes una posición con ese nombre' });
     }
     console.error('[lider/posiciones] POST:', err);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// PUT /api/lider/posiciones/:id — edita nombre y descripción de una posición.
+router.put('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const nombre = typeof req.body?.nombre === 'string' ? req.body.nombre.trim() : '';
+  const descripcion = descripcionDe(req.body);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Posición inválida' });
+  }
+  if (!nombre) {
+    return res.status(400).json({ error: 'Escribe el nombre de la posición' });
+  }
+
+  try {
+    const ctx = await contextoLider(req, res);
+    if (!ctx) return;
+
+    // Verifica PRIMERO que la posición sea de su ministerio (mismo patrón que
+    // el DELETE); si no, 404.
+    const { rows: propia } = await pool.query(
+      'SELECT id FROM posiciones WHERE id = $1 AND ministerio_id = $2',
+      [id, ctx.ministerioId]
+    );
+    if (propia.length === 0) {
+      return res.status(404).json({ error: 'Esa posición no es de tu ministerio' });
+    }
+
+    // El ministerio_id NO se toca (ni sale del body): la fila sigue siendo del
+    // mismo ministerio. El AND ministerio_id es doble seguro.
+    const { rows } = await pool.query(
+      `UPDATE posiciones
+          SET nombre = $1, descripcion = $2
+        WHERE id = $3 AND ministerio_id = $4
+        RETURNING id, nombre, descripcion, orden`,
+      [nombre, descripcion, id, ctx.ministerioId]
+    );
+    return res.json(rows[0]);
+  } catch (err) {
+    // Choque con otra posición del mismo ministerio (índice único).
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Ya tienes una posición con ese nombre' });
+    }
+    console.error('[lider/posiciones] PUT:', err);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
