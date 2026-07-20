@@ -10,8 +10,8 @@ const authVoluntarioRouter = require('./routes/authVoluntario');
 const usuariosRouter      = require('./routes/usuarios');
 const voluntariosRouter   = require('./routes/voluntarios');
 const liderVoluntariosRouter = require('./routes/liderVoluntarios');
-const liderAsignacionesRouter = require('./routes/liderAsignaciones');
 const liderPosicionesRouter = require('./routes/liderPosiciones');
+const liderProgramarRouter = require('./routes/liderProgramar');
 const voluntarioDisponibilidadRouter = require('./routes/voluntarioDisponibilidad');
 const ingresosRouter      = require('./routes/ingresos');
 const gastosRouter        = require('./routes/gastos');
@@ -53,10 +53,10 @@ app.use('/api/usuarios',    usuariosRouter);
 app.use('/api/voluntarios', voluntariosRouter);
 // Protegido: el router exige token y rol de líder/staff (requireLider).
 app.use('/api/lider/voluntarios', liderVoluntariosRouter);
-// Protegido: mismo requireLider. Ver/asignar posiciones (PASO 5).
-app.use('/api/lider/asignaciones', liderAsignacionesRouter);
 // Protegido: mismo requireLider. Catálogo de posiciones del ministerio (PASO 5).
 app.use('/api/lider/posiciones', liderPosicionesRouter);
+// Protegido: mismo requireLider. Programar servicio: fechas, detalle y asignar (PASO 5).
+app.use('/api/lider/programar', liderProgramarRouter);
 // Protegido: el router exige token y rol de voluntario (requireVoluntario).
 app.use('/api/voluntario/disponibilidad', voluntarioDisponibilidadRouter);
 
