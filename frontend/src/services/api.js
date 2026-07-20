@@ -205,6 +205,15 @@ export const liderVoluntariosApi = {
   remove: (cuentaId) => http.delete(`/lider/voluntarios/${cuentaId}`),
 };
 
+// ─── Posiciones del líder (catálogo del ministerio) ───────────────────────────
+// Usa la misma instancia http (token + campus por interceptor). El ministerio y
+// el campus los resuelve el backend del token, no de aquí.
+export const liderPosicionesApi = {
+  getPosiciones:  ()       => http.get('/lider/posiciones'),
+  crearPosicion:  (nombre) => http.post('/lider/posiciones', { nombre }),
+  borrarPosicion: (id)     => http.delete(`/lider/posiciones/${id}`),
+};
+
 // ─── Asignaciones del líder (ver disponibles y asignar posiciones) ────────────
 // El backend saca el ministerio y el campus del token, no de aquí. evento_id se
 // omite (null) para los domingos.

@@ -2,6 +2,7 @@
 // "Mis voluntarios" da de alta al equipo; "Asignar posiciones" (PASO 5) ve la
 // disponibilidad y reparte posiciones por fecha.
 import MisVoluntarios from './MisVoluntarios';
+import PosicionesMinisterio from './PosicionesMinisterio';
 import AsignarPosiciones from './AsignarPosiciones';
 
 const NAVY_900 = '#112540';
@@ -30,6 +31,10 @@ export default function PanelLider() {
 
       <div className="pl-card">
         <MisVoluntarios />
+      </div>
+
+      <div className="pl-card">
+        <PosicionesMinisterio />
       </div>
 
       <div className="pl-card">
