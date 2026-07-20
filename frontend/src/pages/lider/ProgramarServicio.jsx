@@ -160,7 +160,11 @@ export default function ProgramarServicio() {
       try {
         const { data } = await liderProgramarApi.getFechas(mes);
         if (!vivo) return;
-        setFechas(Array.isArray(data.fechas) ? data.fechas : []);
+        const lista = Array.isArray(data.fechas) ? data.fechas : [];
+        setFechas(lista);
+        // Si no hay nada seleccionado, elige la primera fecha disponible (la más
+        // próxima) para mostrar de una la lista de voluntarios.
+        if (lista.length > 0) setSel(prev => prev ?? claveFecha(lista[0]));
         setError('');
       } catch (err) {
         if (vivo) { setError(err.response?.data?.error || 'No se pudieron cargar las fechas'); setFechas([]); }
@@ -282,8 +286,8 @@ export default function ProgramarServicio() {
         <div className="prg-loading">Cargando fechas…</div>
       ) : fechas.length === 0 ? (
         <div className="prg-empty">
-          <div className="prg-empty-t">Este mes tu ministerio no sirve en ninguna fecha</div>
-          <div className="prg-empty-s">Aparecerán los domingos y los eventos de servicio donde te toca.</div>
+          <div className="prg-empty-t">No hay fechas próximas en este mes.</div>
+          <div className="prg-empty-s">Se muestran solo las fechas de hoy en adelante donde sirve tu ministerio.</div>
         </div>
       ) : (
         <>

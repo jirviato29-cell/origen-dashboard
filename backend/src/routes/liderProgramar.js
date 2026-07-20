@@ -14,6 +14,16 @@ router.use(requireLider);
 // (posicion_id + posicion como historial).
 
 // ── Fechas (mismo criterio UTC que voluntarioDisponibilidad) ──────────────────
+// "Hoy" en la zona de la iglesia, NO en la del servidor: Render corre en UTC,
+// así que un `new Date()` directo se corre de día. Misma lógica exacta que
+// voluntarioDisponibilidad.js (hoyMexico no es exportable desde ahí). 'en-CA'
+// formatea YYYY-MM-DD, comparable como string.
+const TZ = 'America/Mexico_City';
+const fmtMx = new Intl.DateTimeFormat('en-CA', {
+  timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+});
+const hoyMexico = () => fmtMx.format(new Date());
+
 const esFechaISO = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
 const aUTC = (iso) => { const [a, m, d] = iso.split('-').map(Number); return Date.UTC(a, m - 1, d); };
 const esDomingo = (iso) => new Date(aUTC(iso)).getUTCDay() === 0;
@@ -140,6 +150,11 @@ router.get('/fechas', async (req, res) => {
       };
     };
 
+    // Solo fechas de HOY en adelante (hoy en zona México). Aplica igual a
+    // domingos y a eventos (ambos están en el mismo arreglo). Un mes futuro
+    // completo pasa entero; un mes ya pasado queda vacío. Comparar strings ISO
+    // 'YYYY-MM-DD' es cronológicamente correcto.
+    const hoy = hoyMexico();
     const fechas = [
       ...domingosDelMes(anio, nMes).map((fecha) => ({
         fecha, evento_id: null, tipo: 'domingo', nombre: 'Domingo',
@@ -150,9 +165,11 @@ router.get('/fechas', async (req, res) => {
         tipo_evento: e.tipo || null, tipo_color: e.tipo_color || null,
         ...conteos(e.fecha, e.id),
       })),
-    ].sort((a, b) => (a.fecha === b.fecha
-      ? (a.tipo === 'domingo' ? -1 : 1)
-      : (a.fecha < b.fecha ? -1 : 1)));
+    ]
+      .filter((f) => f.fecha >= hoy)
+      .sort((a, b) => (a.fecha === b.fecha
+        ? (a.tipo === 'domingo' ? -1 : 1)
+        : (a.fecha < b.fecha ? -1 : 1)));
 
     return res.json({ mes, fechas });
   } catch (err) {
