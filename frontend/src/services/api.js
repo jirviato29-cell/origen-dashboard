@@ -205,6 +205,12 @@ export const liderVoluntariosApi = {
   remove: (cuentaId) => http.delete(`/lider/voluntarios/${cuentaId}`),
 };
 
+// ─── Perfil del líder (nombre de su ministerio) ───────────────────────────────
+// El backend resuelve el ministerio del token, no de aquí.
+export const liderPerfilApi = {
+  get: () => http.get('/lider/perfil'),
+};
+
 // ─── Posiciones del líder (catálogo del ministerio) ───────────────────────────
 // Usa la misma instancia http (token + campus por interceptor). El ministerio y
 // el campus los resuelve el backend del token, no de aquí.
