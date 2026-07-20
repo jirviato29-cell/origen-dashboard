@@ -123,11 +123,12 @@ router.get('/', async (req, res) => {
 
     // Eventos del mes de su campus (todos, servicio + informativos). Se
     // agrega el color del tipo con LEFT JOIN a tipos_evento (que vive por
-    // campus y por nombre = calendario_eventos.tipo). puede_marcar sale de
-    // EXISTS contra evento_ministerios y solo es true si el evento es de
-    // servicio Y el ministerio del voluntario esta entre los del evento.
-    // Si el voluntario no tiene ministerio_id, puede_marcar es false para
-    // todos los eventos (los sigue viendo).
+    // campus y por nombre = calendario_eventos.tipo). puede_marcar es true si:
+    //  - el evento es de servicio (para_voluntarios), Y
+    //  - el evento es ABIERTO (evento_abierto), en cuyo caso cualquiera puede
+    //    marcar sin importar su ministerio (incluso sin ministerio_id), O
+    //  - el ministerio del voluntario esta entre los del evento.
+    // Un evento informativo (para_voluntarios = false) nunca es marcable.
     const { rows: eventos } = await pool.query(
       `SELECT
          e.id,
@@ -137,7 +138,9 @@ router.get('/', async (req, res) => {
          e.para_voluntarios,
          t.color AS tipo_color,
          CASE
-           WHEN e.para_voluntarios = false OR $4::int IS NULL THEN false
+           WHEN e.para_voluntarios = false THEN false
+           WHEN e.evento_abierto = true THEN true
+           WHEN $4::int IS NULL THEN false
            ELSE EXISTS (
              SELECT 1 FROM evento_ministerios em
               WHERE em.evento_id = e.id AND em.ministerio_id = $4::int
@@ -233,21 +236,23 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'Esa fecha no es un domingo' });
       }
     } else {
-      // Evento: tiene que existir, ser de su campus, caer en esa fecha, ser
-      // de servicio Y estar asignado a su ministerio en evento_ministerios.
-      // Sin este filtro un voluntario podria marcar disponibilidad de un
-      // evento donde no le toca servir aunque conozca el id.
-      if (ctx.ministerioId === null) {
-        return res.status(403).json({ error: 'No puedes apuntarte a este evento' });
-      }
+      // Evento: tiene que existir, ser de su campus, caer en esa fecha, ser de
+      // servicio Y (ser ABIERTO O estar asignado a su ministerio). Misma regla
+      // que puede_marcar del listado. Un evento abierto se permite aunque el
+      // voluntario no tenga ministerio_id; por eso ya no hay short-circuit por
+      // ministerioId null (para eventos no abiertos, el EXISTS contra
+      // em.ministerio_id = NULL no casa y sigue devolviendo 403).
       const { rows } = await pool.query(
         `SELECT 1 FROM calendario_eventos e
           WHERE e.id = $1 AND e.campus = $2
             AND to_char(e.fecha, 'YYYY-MM-DD') = $3
             AND e.para_voluntarios = true
-            AND EXISTS (
-              SELECT 1 FROM evento_ministerios em
-               WHERE em.evento_id = e.id AND em.ministerio_id = $4
+            AND (
+              e.evento_abierto = true
+              OR EXISTS (
+                SELECT 1 FROM evento_ministerios em
+                 WHERE em.evento_id = e.id AND em.ministerio_id = $4::int
+              )
             )`,
         [eventoId, ctx.campus, fecha, ctx.ministerioId]
       );
