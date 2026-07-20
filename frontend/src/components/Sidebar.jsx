@@ -73,7 +73,9 @@ const navByRole = {
   ],
   [ROLES.LIDER_MINISTERIO]: [
     { group: 'Ministerio', items: [
-      { to: '/lider_ministerio', label: 'Panel de líder', icon: I.users, end: true },
+      { to: '/lider_ministerio/voluntarios', label: 'Mis voluntarios',    icon: I.users },
+      { to: '/lider_ministerio/posiciones',  label: 'Posiciones',         icon: I.pin },
+      { to: '/lider_ministerio/programar',   label: 'Programar servicio', icon: I.calendar },
     ]},
   ],
   [ROLES.VOLUNTARIO]: [
