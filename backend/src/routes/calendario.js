@@ -3,17 +3,18 @@ const router = express.Router();
 const pool = require('../db/pool');
 
 // Sincroniza los ministerios asignados a un evento dentro de una transaccion.
-// - Si esParaVoluntarios es false o el array llega vacio, deja el evento sin
-//   ministerios (borra los previos y no inserta nada).
+// - Si esParaVoluntarios es false, o esAbierto es true, o el array llega vacio,
+//   deja el evento sin ministerios (borra los previos y no inserta nada). Un
+//   evento ABIERTO no necesita ministerios: cualquier voluntario puede servir.
 // - Si es true, primero valida que TODOS los ministerio_ids pertenezcan al
 //   mismo campus del evento; si alguno no coincide, lanza un Error con
 //   propiedad .status=400 para que el router responda 400.
-async function syncMinisteriosDeEvento(client, eventoId, ministerioIds, esParaVoluntarios, campus) {
+async function syncMinisteriosDeEvento(client, eventoId, ministerioIds, esParaVoluntarios, campus, esAbierto) {
   await client.query(
     'DELETE FROM evento_ministerios WHERE evento_id=$1',
     [eventoId]
   );
-  if (!esParaVoluntarios) return;
+  if (!esParaVoluntarios || esAbierto) return;
   const ids = Array.isArray(ministerioIds)
     ? ministerioIds.map(Number).filter(n => Number.isInteger(n) && n > 0)
     : [];
@@ -103,23 +104,26 @@ router.get('/:id/ministerios', async (req, res) => {
 
 // POST /api/calendario
 router.post('/', async (req, res) => {
-  const { nombre, fecha, tipo, nota, en_punto_encuentro, para_voluntarios, costo, ministerio_ids } = req.body;
+  const { nombre, fecha, tipo, nota, en_punto_encuentro, para_voluntarios, evento_abierto, costo, ministerio_ids } = req.body;
   if (!nombre || !fecha) return res.status(400).json({ error: 'nombre y fecha son requeridos' });
   const esParaVoluntarios = para_voluntarios === true || para_voluntarios === 'true';
+  // Un evento solo puede ser abierto si es de servicio.
+  const esAbierto = esParaVoluntarios && (evento_abierto === true || evento_abierto === 'true');
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      `INSERT INTO calendario_eventos (nombre, fecha, tipo, nota, en_punto_encuentro, para_voluntarios, costo, campus)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      `INSERT INTO calendario_eventos (nombre, fecha, tipo, nota, en_punto_encuentro, para_voluntarios, evento_abierto, costo, campus)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [nombre, fecha, tipo || 'General', nota || null,
        en_punto_encuentro === true || en_punto_encuentro === 'true',
        esParaVoluntarios,
+       esAbierto,
        costo ? parseFloat(costo) : 0,
        req.campus]
     );
-    await syncMinisteriosDeEvento(client, rows[0].id, ministerio_ids, esParaVoluntarios, req.campus);
+    await syncMinisteriosDeEvento(client, rows[0].id, ministerio_ids, esParaVoluntarios, req.campus, esAbierto);
     await client.query('COMMIT');
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -132,19 +136,22 @@ router.post('/', async (req, res) => {
 
 // PUT /api/calendario/:id
 router.put('/:id', async (req, res) => {
-  const { nombre, fecha, tipo, nota, en_punto_encuentro, para_voluntarios, costo, ministerio_ids } = req.body;
+  const { nombre, fecha, tipo, nota, en_punto_encuentro, para_voluntarios, evento_abierto, costo, ministerio_ids } = req.body;
   const esParaVoluntarios = para_voluntarios === true || para_voluntarios === 'true';
+  // Un evento solo puede ser abierto si es de servicio.
+  const esAbierto = esParaVoluntarios && (evento_abierto === true || evento_abierto === 'true');
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
       `UPDATE calendario_eventos
-       SET nombre=$1, fecha=$2, tipo=$3, nota=$4, en_punto_encuentro=$5, para_voluntarios=$6, costo=$7
-       WHERE id=$8 AND campus=$9 RETURNING *`,
+       SET nombre=$1, fecha=$2, tipo=$3, nota=$4, en_punto_encuentro=$5, para_voluntarios=$6, evento_abierto=$7, costo=$8
+       WHERE id=$9 AND campus=$10 RETURNING *`,
       [nombre, fecha, tipo || 'General', nota || null,
        en_punto_encuentro === true || en_punto_encuentro === 'true',
        esParaVoluntarios,
+       esAbierto,
        costo ? parseFloat(costo) : 0,
        req.params.id, req.campus]
     );
@@ -152,7 +159,7 @@ router.put('/:id', async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'No encontrado' });
     }
-    await syncMinisteriosDeEvento(client, rows[0].id, ministerio_ids, esParaVoluntarios, req.campus);
+    await syncMinisteriosDeEvento(client, rows[0].id, ministerio_ids, esParaVoluntarios, req.campus, esAbierto);
     await client.query('COMMIT');
     res.json(rows[0]);
   } catch (err) {

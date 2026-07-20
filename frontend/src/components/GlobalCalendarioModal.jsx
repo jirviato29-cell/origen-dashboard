@@ -22,7 +22,7 @@ function formatDateLong(iso) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-const makeEmpty = (date) => ({ fecha: date || todayISO(), nombre: '', tipo: '', nota: '', costo: '', enPuntoEncuentro: false, paraVoluntarios: false });
+const makeEmpty = (date) => ({ fecha: date || todayISO(), nombre: '', tipo: '', nota: '', costo: '', enPuntoEncuentro: false, paraVoluntarios: false, eventoAbierto: false });
 
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: 10,
@@ -90,6 +90,7 @@ export default function GlobalCalendarioModal() {
           costo:            costoNum > 0 ? String(editingEvent.costo) : '',
           enPuntoEncuentro: Boolean(editingEvent.en_punto_encuentro),
           paraVoluntarios:  Boolean(editingEvent.para_voluntarios),
+          eventoAbierto:    Boolean(editingEvent.evento_abierto),
         });
         // Precarga los ministerios asignados si el evento ya era de servicio.
         if (editingEvent.para_voluntarios) {
@@ -128,9 +129,11 @@ export default function GlobalCalendarioModal() {
         costo:              form.costo ? parseFloat(form.costo) : 0,
         en_punto_encuentro: form.enPuntoEncuentro,
         para_voluntarios:   form.paraVoluntarios,
-        // El backend ignora ministerio_ids si para_voluntarios es false y
-        // limpia los vinculos previos igualmente.
-        ministerio_ids:     form.paraVoluntarios ? ministeriosSeleccionados : [],
+        // Solo puede ser abierto si es de servicio.
+        evento_abierto:     form.paraVoluntarios && form.eventoAbierto,
+        // El backend ignora/limpia ministerio_ids si no es de servicio o es
+        // abierto; aqui mandamos vacio en esos casos.
+        ministerio_ids:     form.paraVoluntarios && !form.eventoAbierto ? ministeriosSeleccionados : [],
       };
       if (isEditing) {
         await calendarioApi.update(editingEvent.id, payload);
@@ -441,7 +444,8 @@ export default function GlobalCalendarioModal() {
                   checked={form.paraVoluntarios}
                   onChange={e => {
                     const marcado = e.target.checked;
-                    setForm(f => ({ ...f, paraVoluntarios: marcado }));
+                    // Al desmarcar "de servicio" se limpia tambien lo abierto y los ministerios.
+                    setForm(f => ({ ...f, paraVoluntarios: marcado, eventoAbierto: marcado ? f.eventoAbierto : false }));
                     if (!marcado) setMinisteriosSeleccionados([]);
                   }}
                   style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
@@ -456,8 +460,41 @@ export default function GlobalCalendarioModal() {
                 </div>
               </label>
 
-              {/* Selector de ministerios — solo si es evento de servicio */}
+              {/* Bloque de evento de servicio: evento abierto + ministerios */}
               {form.paraVoluntarios && (
+                <>
+                  {/* Checkbox Evento abierto */}
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 14px', borderRadius: 10,
+                    background: form.eventoAbierto ? 'rgba(0,180,216,0.07)' : 'var(--surface)',
+                    border: `1.5px solid ${form.eventoAbierto ? 'var(--chart-primary)' : 'var(--border)'}`,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={form.eventoAbierto}
+                      onChange={e => {
+                        const marcado = e.target.checked;
+                        setForm(f => ({ ...f, eventoAbierto: marcado }));
+                        // Un evento abierto no necesita ministerios: limpia la seleccion.
+                        if (marcado) setMinisteriosSeleccionados([]);
+                      }}
+                      style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
+                    />
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                        Evento abierto — todos los voluntarios pueden apuntarse
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+                        No importa su ministerio, cualquier voluntario podrá marcar si sirve.
+                      </div>
+                    </div>
+                  </label>
+
+              {/* Selector de ministerios — solo si es de servicio y NO abierto */}
+              {!form.eventoAbierto && (
                 <div style={{
                   padding: '12px 14px', borderRadius: 10,
                   border: '1.5px solid var(--border)', background: 'var(--surface)',
@@ -505,6 +542,8 @@ export default function GlobalCalendarioModal() {
                     </div>
                   )}
                 </div>
+                  )}
+                </>
               )}
 
             </div>
