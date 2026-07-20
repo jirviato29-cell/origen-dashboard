@@ -4,7 +4,7 @@
 // lo pone la topbar del Layout vía ROUTE_INFO.
 import MisVoluntarios from './MisVoluntarios';
 import PosicionesMinisterio from './PosicionesMinisterio';
-import AsignarPosiciones from './AsignarPosiciones';
+import ProgramarServicio from './ProgramarServicio';
 
 const NAVY_900 = '#112540';
 const ORANGE_500 = '#FF6B2B';
@@ -51,7 +51,7 @@ export function LiderPosiciones() {
 export function LiderProgramar() {
   return (
     <LiderShell title="Programar servicio" sub="Mira quién puede servir y reparte posiciones por fecha.">
-      <AsignarPosiciones />
+      <ProgramarServicio />
     </LiderShell>
   );
 }

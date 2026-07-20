@@ -215,16 +215,16 @@ export const liderPosicionesApi = {
   borrarPosicion: (id)          => http.delete(`/lider/posiciones/${id}`),
 };
 
-// ─── Asignaciones del líder (ver disponibles y asignar posiciones) ────────────
+// ─── Programar servicio del líder (fechas, detalle, asignar por catálogo) ─────
 // El backend saca el ministerio y el campus del token, no de aquí. evento_id se
 // omite (null) para los domingos.
-export const liderAsignacionesApi = {
-  getFechas: (mes)             => http.get('/lider/asignaciones/fechas', { params: { mes } }),
-  getRoster: (fecha, eventoId) => http.get('/lider/asignaciones', {
+export const liderProgramarApi = {
+  getFechas:  (mes)             => http.get('/lider/programar/fechas', { params: { mes } }),
+  getDetalle: (fecha, eventoId) => http.get('/lider/programar/detalle', {
     params: eventoId != null ? { fecha, evento_id: eventoId } : { fecha },
   }),
-  asignar:   (data)            => http.post('/lider/asignaciones', data),
-  quitar:    (id)              => http.delete(`/lider/asignaciones/${id}`),
+  asignar:    (data)            => http.post('/lider/programar/asignar', data),
+  quitar:     (asignacionId)    => http.delete(`/lider/programar/asignar/${asignacionId}`),
 };
 
 // ─── Disponibilidad del voluntario ────────────────────────────────────────────
