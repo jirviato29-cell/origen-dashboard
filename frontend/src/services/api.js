@@ -241,6 +241,7 @@ const realUsuariosApi = {
   toggle:       (id)             => http.patch(`/usuarios/${id}/toggle`),
   cambiarNombre:(id, nombre)     => http.patch(`/usuarios/${id}/nombre`, { nombre }),
   cambiarClave: (id, clave)      => http.patch(`/usuarios/${id}/clave`, { clave }),
+  cambiarMinisterio: (id, ministerio_id) => http.patch(`/usuarios/${id}/ministerio`, { ministerio_id }),
   remove:       (id)             => http.delete(`/usuarios/${id}`),
 };
 
