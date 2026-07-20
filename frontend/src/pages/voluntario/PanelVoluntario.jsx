@@ -74,7 +74,6 @@ const CSS = `
    en la cuadrícula. Solo el número, en gris muy tenue. No interactivo. */
 .mc-shell .mc-cell.mc-gone{background:transparent;border-color:transparent;box-shadow:none;cursor:default;}
 .mc-shell .mc-cell.mc-gone:hover{box-shadow:none;border-color:transparent;}
-.mc-shell .mc-cell.mc-gone .mc-num{color:var(--gray-300);font-weight:600;opacity:.55;}
 .mc-num{font-size:12px;font-weight:700;color:var(--navy-800);height:18px;display:flex;align-items:center;}
 .mc-shell .mc-cell.mc-out .mc-num{color:var(--gray-300);}
 .mc-shell .mc-cell.mc-sun .mc-num{color:var(--navy-900);}
@@ -340,19 +339,42 @@ export default function PanelVoluntario() {
   }
 
   // ── Celdas del grid (con días de meses vecinos como en la referencia) ────────
+  // Cada celda lleva su fecha ISO (incluidos los días 'out' de meses vecinos).
+  // Se agrupan en semanas de 7 y se DESCARTAN por completo las semanas totalmente
+  // pasadas (ninguna celda con fecha >= hoy): así no dejan franja vertical vacía.
+  // Como cada semana visible aporta exactamente 7 celdas, el grid de 7 columnas
+  // sigue alineado con el encabezado DOM..SÁB (solo desaparecen filas enteras).
   const celdas = useMemo(() => {
     if (!data) return [];
     const [anio, nMes] = data.mes.split('-').map(Number);
     const lead = data.diaSemanaPrimero;                     // 0 = domingo
     const prevDias = new Date(Date.UTC(anio, nMes - 1, 0)).getUTCDate();
-    const out = [];
-    for (let i = lead - 1; i >= 0; i--) out.push({ tipo: 'out', num: prevDias - i });
-    for (let d = 1; d <= data.diasEnMes; d++) {
-      out.push({ tipo: 'dia', num: d, fecha: `${data.mes}-${String(d).padStart(2, '0')}` });
+    const pad = (n) => String(n).padStart(2, '0');
+    // Mes anterior / siguiente para las fechas ISO de los días 'out'.
+    const pm = nMes - 1 < 1 ? 12 : nMes - 1;
+    const py = nMes - 1 < 1 ? anio - 1 : anio;
+    const nm = nMes + 1 > 12 ? 1 : nMes + 1;
+    const ny = nMes + 1 > 12 ? anio + 1 : anio;
+
+    const cells = [];
+    for (let i = lead - 1; i >= 0; i--) {
+      const num = prevDias - i;
+      cells.push({ tipo: 'out', num, fecha: `${py}-${pad(pm)}-${pad(num)}` });
     }
-    const trail = (7 - (out.length % 7)) % 7;
-    for (let d = 1; d <= trail; d++) out.push({ tipo: 'out', num: d });
-    return out;
+    for (let d = 1; d <= data.diasEnMes; d++) {
+      cells.push({ tipo: 'dia', num: d, fecha: `${data.mes}-${pad(d)}` });
+    }
+    const trail = (7 - (cells.length % 7)) % 7;
+    for (let d = 1; d <= trail; d++) {
+      cells.push({ tipo: 'out', num: d, fecha: `${ny}-${pad(nm)}-${pad(d)}` });
+    }
+
+    // Agrupar en semanas de 7 y quedarnos solo con las que tienen al menos un
+    // día de hoy en adelante. Sin `hoy` (fallback) se muestran todas.
+    const hoy = data.hoy || '';
+    const semanas = [];
+    for (let i = 0; i < cells.length; i += 7) semanas.push(cells.slice(i, i + 7));
+    return semanas.filter(sem => !hoy || sem.some(c => c.fecha >= hoy)).flat();
   }, [data]);
 
   // Estado de servicio de una celda (marca el badge/barra): el domingo manda,
@@ -410,13 +432,13 @@ export default function PanelVoluntario() {
                 if (c.tipo === 'out') {
                   return <div key={`o${i}`} className="mc-cell mc-out"><span className="mc-num">{c.num}</span></div>;
                 }
-                // Día pasado (fecha < hoy, en zona México, comparando strings
-                // ISO): se vuelve invisible pero SIGUE ocupando su lugar en la
-                // cuadrícula (mismo <div> con min-height que las demás celdas),
-                // así las semanas no se descuadran. Sin caja, sin eventos, sin
-                // estado, sin click: solo el número en gris muy tenue.
+                // Día pasado (fecha < hoy, zona México, comparando strings ISO):
+                // celda COMPLETAMENTE VACÍA (sin número, sin caja, sin nada) que
+                // solo ocupa su lugar en la cuadrícula para no descuadrar las
+                // columnas. Las semanas 100% pasadas ya ni llegan aquí (se
+                // colapsan en el useMemo de `celdas`). No es clickable.
                 if (hoyISO && c.fecha < hoyISO) {
-                  return <div key={c.fecha} className="mc-cell mc-gone"><span className="mc-num">{c.num}</span></div>;
+                  return <div key={c.fecha} className="mc-cell mc-gone" aria-hidden="true" />;
                 }
                 const items = itemsDe(c.fecha);
                 const esHoy = c.fecha === hoyISO;
