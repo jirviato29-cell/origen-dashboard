@@ -34,14 +34,22 @@ const CSS = `
 .prg-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 12px;}
 .prg-mes{font-size:15px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;text-align:center;}
 
-.prg-fechas{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;-webkit-overflow-scrolling:touch;}
-.prg-chip{flex:0 0 auto;min-width:150px;text-align:left;padding:11px 13px;border-radius:12px;border:1.5px solid ${GRAY_200};background:#fff;display:flex;flex-direction:column;gap:7px;}
-.prg-chip-top{display:flex;align-items:baseline;gap:7px;}
-.prg-chip-num{font-size:20px;font-weight:800;color:${NAVY_900};line-height:1;font-variant-numeric:tabular-nums;}
+/* Grid que acomoda TODAS las fechas del mes en varias filas, sin scroll. */
+.prg-fechas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:2px 0 4px;}
+@media(max-width:560px){.prg-fechas{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));}}
+.prg-chip{min-width:0;text-align:left;padding:10px 12px;border-radius:12px;border:1.5px solid ${GRAY_200};background:#fff;display:flex;flex-direction:column;gap:6px;}
+.prg-chip-top{display:flex;align-items:baseline;gap:6px;}
+.prg-chip-num{font-size:19px;font-weight:800;color:${NAVY_900};line-height:1;font-variant-numeric:tabular-nums;}
 .prg-chip-dow{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:${GRAY_500};}
 .prg-chip-nombre{font-size:12px;font-weight:700;color:${NAVY_900};line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.prg-chip-cont{font-size:11px;color:${GRAY_600};line-height:1.35;}
-.prg-chip-asig{display:inline-block;margin-top:2px;font-size:10px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:5px;background:${ORANGE_50};color:${ORANGE_600};}
+/* Contadores compactos: tres números con color (verde/rojo/gris). */
+.prg-conts{display:flex;align-items:center;gap:11px;}
+.prg-c{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;}
+.prg-c-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.prg-chip-asig{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:5px;background:${ORANGE_50};color:${ORANGE_600};align-self:flex-start;}
+.prg-leg{display:flex;flex-wrap:wrap;gap:5px 14px;margin:8px 2px 0;font-size:11px;color:${GRAY_500};font-weight:600;}
+.prg-leg-i{display:inline-flex;align-items:center;gap:6px;}
+.prg-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
 .prg-warn{margin:12px 0;padding:12px 14px;border-radius:12px;background:${ORANGE_50};border:1px solid ${ORANGE_500};color:${GRAY_700};font-size:13px;line-height:1.5;}
 .prg-warn a{color:${ORANGE_600};font-weight:700;text-decoration:none;}
@@ -278,6 +286,7 @@ export default function ProgramarServicio() {
           <div className="prg-empty-s">Aparecerán los domingos y los eventos de servicio donde te toca.</div>
         </div>
       ) : (
+        <>
         <div className="prg-fechas">
           {fechas.map((f) => {
             const activa = claveFecha(f) === sel;
@@ -289,14 +298,25 @@ export default function ProgramarServicio() {
                   <span className="prg-chip-dow">{DIAS_SEM[dowDeISO(f.fecha)]}</span>
                 </div>
                 <div className="prg-chip-nombre">{f.nombre}</div>
-                <div className="prg-chip-cont">
-                  {f.disponibles} disponibles · {f.no_disponibles} no puede · {f.sin_responder} sin responder
+                <div className="prg-conts">
+                  <span className="prg-c" style={{ color: VERDE }} title="Disponibles">
+                    <span className="prg-c-dot" style={{ background: VERDE }} />{f.disponibles}</span>
+                  <span className="prg-c" style={{ color: ROJO }} title="No pueden">
+                    <span className="prg-c-dot" style={{ background: ROJO }} />{f.no_disponibles}</span>
+                  <span className="prg-c" style={{ color: GRAY_500 }} title="Sin responder">
+                    <span className="prg-c-dot" style={{ background: GRAY_500 }} />{f.sin_responder}</span>
                 </div>
                 {f.asignados > 0 && <span className="prg-chip-asig">{f.asignados} asignados</span>}
               </button>
             );
           })}
         </div>
+        <div className="prg-leg">
+          <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: VERDE }} />disponibles</span>
+          <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: ROJO }} />no pueden</span>
+          <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: GRAY_500 }} />sin responder</span>
+        </div>
+        </>
       )}
 
       {error && <div className="prg-error">{error}</div>}
