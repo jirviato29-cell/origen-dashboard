@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { liderProgramarApi, liderPosicionesApi } from '../../services/api';
-import SelectorFechasMinisterio from '../../components/SelectorFechasMinisterio';
 
 // "Quién va dónde" (PASO 5, parte 3): vista de TABLERO, SOLO LECTURA. Para una
 // fecha, muestra una COLUMNA por cada posición del catálogo del ministerio y,
 // debajo, los colaboradores asignados a esa posición. Aparte lista a los que sí
 // pueden pero aún no tienen posición. NO asigna ni quita nada (eso vive en
 // "Programar servicio"): aquí solo se ve cómo quedó armado el equipo.
-// Reusa los mismos endpoints que Programar servicio; no toca el backend.
+// La fecha se elige con un filtro simple (un <select>), no con el calendario de
+// tarjetas: esta pantalla es de consulta y debe verse ligera. Reusa los mismos
+// endpoints que Programar servicio; no toca el backend.
 
 const NAVY_900   = '#112540';
 const ORANGE_500 = '#FF6B2B';
@@ -29,11 +30,19 @@ const GRAY_50    = '#F6F7F9';
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const DIAS_LARGO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 const CSS = `
 .qvd-head{margin-bottom:14px;}
 .qvd-h2{font-size:16px;font-weight:800;letter-spacing:-.02em;color:${NAVY_900};margin:0;}
 .qvd-h2-note{font-size:12.5px;color:${GRAY_500};margin-top:3px;}
+
+/* Filtro compacto en una sola línea: etiqueta + desplegable de fechas. */
+.qvd-filtro{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 4px;}
+.qvd-filtro-lbl{font-size:12px;font-weight:700;color:${NAVY_900};flex-shrink:0;}
+.qvd-filtro-hint{font-size:12.5px;color:${GRAY_500};}
+.qvd-select{flex:1;min-width:240px;max-width:440px;padding:9px 12px;border-radius:10px;border:1.5px solid ${GRAY_200};font-size:13.5px;font-weight:600;outline:none;box-sizing:border-box;color:${NAVY_900};font-family:inherit;background:#fff;cursor:pointer;}
+.qvd-select:focus{border-color:${NAVY_900};}
 
 .qvd-warn{margin:12px 0;padding:12px 14px;border-radius:12px;background:${ORANGE_50};border:1px solid ${ORANGE_500};color:${GRAY_700};font-size:13px;line-height:1.5;}
 .qvd-warn a{color:${ORANGE_600};font-weight:700;text-decoration:none;}
@@ -43,7 +52,7 @@ const CSS = `
 .qvd-empty-s{font-size:12px;color:${GRAY_500};margin-top:4px;}
 .qvd-loading{padding:20px;text-align:center;font-size:13px;color:${GRAY_500};}
 
-.qvd-detalle{margin-top:10px;}
+.qvd-detalle{margin-top:14px;}
 .qvd-detalle-t{font-size:14px;font-weight:800;color:${NAVY_900};margin-bottom:12px;}
 
 /* Tablero: una columna por posición; envuelven a varias filas sin scroll. */
@@ -76,8 +85,29 @@ const CSS = `
 .qvd-ok{display:inline-flex;align-items:center;gap:8px;padding:11px 14px;border-radius:12px;background:${VERDE_50};border:1px solid #BFE6D3;color:${VERDE_700};font-size:12.5px;font-weight:700;margin-top:16px;}
 `;
 
-const inicial = (n) => (n || '?').trim().charAt(0).toUpperCase();
+// ── Helpers de fecha (aritmética UTC para no correr de día por zona) ──────────
+const mesDeHoy = () => {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+};
+const sumaMes = (mes, n) => {
+  const [a, m] = mes.split('-').map(Number);
+  const d = new Date(Date.UTC(a, m - 1 + n, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+};
 const diaDeISO = (iso) => Number(iso.slice(8, 10));
+const dowDeISO = (iso) => {
+  const [a, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1, d)).getUTCDay();
+};
+const inicial = (n) => (n || '?').trim().charAt(0).toUpperCase();
+// Clave estable de una fecha (fecha + evento, o 'dom' para domingos sin evento).
+const claveFecha = (f) => `${f.fecha}|${f.evento_id ?? 'dom'}`;
+// Etiqueta legible para el desplegable: "Domingo 26 de julio — Servicio dominical".
+const etiquetaFecha = (f) => {
+  const base = `${DIAS_LARGO[dowDeISO(f.fecha)]} ${diaDeISO(f.fecha)} de ${MESES[Number(f.fecha.slice(5, 7)) - 1]}`;
+  return f.nombre ? `${base} — ${f.nombre}` : base;
+};
 
 // Estado de confirmación → color + etiqueta discreta. Sin dato = pendiente.
 const CONF = {
@@ -88,7 +118,9 @@ const CONF = {
 const confDe = (estado) => CONF[estado] || CONF.pendiente;
 
 export default function TableroServicio() {
-  const [fechaSel, setFechaSel] = useState(null);  // la elige el selector
+  const [fechas, setFechas] = useState([]);        // varias-meses, ya ordenadas
+  const [cargandoFechas, setCargandoFechas] = useState(true);
+  const [selKey, setSelKey] = useState(null);      // clave de la fecha elegida
   const [detalle, setDetalle] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [posiciones, setPosiciones] = useState([]);
@@ -105,6 +137,54 @@ export default function TableroServicio() {
     })();
     return () => { vivo = false; };
   }, []);
+
+  // Fechas del mes actual + los 2 siguientes (3 llamadas), juntas y ordenadas.
+  // Así el líder consulta cualquier domingo próximo desde el desplegable sin
+  // navegar mes por mes. La primera (la más cercana) queda seleccionada.
+  useEffect(() => {
+    let vivo = true;
+    setCargandoFechas(true);
+    (async () => {
+      const base = mesDeHoy();
+      const meses = [base, sumaMes(base, 1), sumaMes(base, 2)];
+      const res = await Promise.allSettled(meses.map(m => liderProgramarApi.getFechas(m)));
+      if (!vivo) return;
+      const juntas = [];
+      let algunOk = false;
+      for (const r of res) {
+        if (r.status === 'fulfilled') {
+          algunOk = true;
+          const arr = Array.isArray(r.value?.data?.fechas) ? r.value.data.fechas : [];
+          juntas.push(...arr);
+        }
+      }
+      if (!algunOk) {
+        setError('No se pudieron cargar las fechas');
+        setFechas([]);
+        setCargandoFechas(false);
+        return;
+      }
+      // Ordena por fecha y de-duplica por clave (por si algún mes se solapa).
+      juntas.sort((a, b) => a.fecha.localeCompare(b.fecha) || claveFecha(a).localeCompare(claveFecha(b)));
+      const vistos = new Set();
+      const unicas = juntas.filter(f => {
+        const k = claveFecha(f);
+        if (vistos.has(k)) return false;
+        vistos.add(k);
+        return true;
+      });
+      setFechas(unicas);
+      setSelKey(prev => prev ?? (unicas.length ? claveFecha(unicas[0]) : null));
+      setError('');
+      setCargandoFechas(false);
+    })();
+    return () => { vivo = false; };
+  }, []);
+
+  const fechaSel = useMemo(
+    () => fechas.find(f => claveFecha(f) === selKey) || null,
+    [fechas, selKey],
+  );
 
   // Detalle (roster) de la fecha elegida.
   useEffect(() => {
@@ -164,10 +244,26 @@ export default function TableroServicio() {
         </div>
       )}
 
-      <SelectorFechasMinisterio
-        onSelect={setFechaSel}
-        onError={setError}
-      />
+      {/* Filtro simple: desplegable con las fechas próximas (varios meses). */}
+      <div className="qvd-filtro">
+        <label className="qvd-filtro-lbl" htmlFor="qvd-fecha">Fecha</label>
+        {cargandoFechas ? (
+          <span className="qvd-filtro-hint">Cargando fechas…</span>
+        ) : fechas.length === 0 ? (
+          <span className="qvd-filtro-hint">No hay fechas próximas donde sirva tu ministerio.</span>
+        ) : (
+          <select
+            id="qvd-fecha"
+            className="qvd-select"
+            value={selKey ?? ''}
+            onChange={(e) => setSelKey(e.target.value)}
+          >
+            {fechas.map(f => (
+              <option key={claveFecha(f)} value={claveFecha(f)}>{etiquetaFecha(f)}</option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {error && <div className="qvd-error">{error}</div>}
 
