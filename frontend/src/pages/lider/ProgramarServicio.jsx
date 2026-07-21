@@ -279,7 +279,7 @@ export default function ProgramarServicio() {
       <div className="prg-head">
         <h2 className="prg-h2">Programar servicio</h2>
         <div className="prg-h2-note">
-          Elige una fecha y asígnale a cada voluntario disponible su posición.
+          Elige una fecha y asígnale a cada colaborador su posición.
         </div>
       </div>
 
@@ -320,9 +320,9 @@ export default function ProgramarServicio() {
                 </div>
                 <div className="prg-chip-nombre">{f.nombre}</div>
                 <div className="prg-conts">
-                  <span className="prg-c" style={{ color: VERDE }} title="Disponibles">
+                  <span className="prg-c" style={{ color: VERDE }} title="Colaboradores">
                     <span className="prg-c-dot" style={{ background: VERDE }} />{f.disponibles}</span>
-                  <span className="prg-c" style={{ color: ROJO }} title="No pueden">
+                  <span className="prg-c" style={{ color: ROJO }} title="No pueden esta fecha">
                     <span className="prg-c-dot" style={{ background: ROJO }} />{f.no_disponibles}</span>
                   <span className="prg-c" style={{ color: GRAY_500 }} title="Sin responder">
                     <span className="prg-c-dot" style={{ background: GRAY_500 }} />{f.sin_responder}</span>
@@ -333,8 +333,8 @@ export default function ProgramarServicio() {
           })}
         </div>
         <div className="prg-leg">
-          <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: VERDE }} />disponibles</span>
-          <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: ROJO }} />no pueden</span>
+          <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: VERDE }} />colaboradores</span>
+          <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: ROJO }} />no pueden esta fecha</span>
           <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: GRAY_500 }} />sin responder</span>
         </div>
         </>
@@ -357,11 +357,11 @@ export default function ProgramarServicio() {
             </div>
           ) : (
             <>
-              {/* Pueden servir */}
+              {/* Colaboradores */}
               <div className="prg-group">
                 <div className="prg-group-h" style={{ color: VERDE }}>
                   <span className="prg-group-dot" style={{ background: VERDE }} />
-                  Pueden servir ({grupos.disponibles.length})
+                  Colaboradores ({grupos.disponibles.length})
                 </div>
                 {grupos.disponibles.length === 0 ? (
                   <div className="prg-empty-s" style={{ paddingLeft: 2 }}>Nadie ha marcado “Sí sirvo” para esta fecha.</div>
@@ -430,12 +430,12 @@ export default function ProgramarServicio() {
                 </div>
               )}
 
-              {/* No pueden */}
+              {/* No pueden esta fecha */}
               {grupos.noPueden.length > 0 && (
                 <div className="prg-group">
                   <div className="prg-group-h" style={{ color: ROJO }}>
                     <span className="prg-group-dot" style={{ background: ROJO }} />
-                    No pueden ({grupos.noPueden.length})
+                    No pueden esta fecha ({grupos.noPueden.length})
                   </div>
                   <div className="prg-list">
                     {grupos.noPueden.map((v) => (
