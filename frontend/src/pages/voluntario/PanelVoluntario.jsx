@@ -394,7 +394,7 @@ export default function PanelVoluntario() {
         <div className="mc-sumrow">
           <div className="mc-sum">
             <span className="mc-sum-dot" style={{ background: 'var(--green-50)', color: 'var(--green-600)' }}><IcCheck /></span>
-            <div><div className="mc-sum-n">{kpis.si}</div><div className="mc-sum-l">Sí sirvo</div></div>
+            <div><div className="mc-sum-n">{kpis.si}</div><div className="mc-sum-l">Sí colaboro</div></div>
           </div>
           <div className="mc-sum">
             <span className="mc-sum-dot" style={{ background: 'var(--red-50)', color: 'var(--red-600)' }}><IcCross /></span>
@@ -418,7 +418,7 @@ export default function PanelVoluntario() {
               <button className="mc-cal-arrow" onClick={() => irAMes(1)} aria-label="Mes siguiente"><IcChevron dir="r" /></button>
             </div>
           </div>
-          <div className="mc-cal-sub">Toca un día para verlo en la lista. Los eventos donde te toca servir llevan una marca de estado.</div>
+          <div className="mc-cal-sub">Toca un día para verlo en la lista. Los eventos donde te toca colaborar llevan una marca de estado.</div>
 
           <div className="mc-dow">{DOW_CORTO.map(d => <div key={d}>{d}</div>)}</div>
 
@@ -507,7 +507,7 @@ export default function PanelVoluntario() {
           )}
 
           <div className="mc-legend">
-            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--green-500)' }} />Sí sirvo</div>
+            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--green-500)' }} />Sí colaboro</div>
             <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--red-600)' }} />No puedo</div>
             <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--amber-600)' }} />Por responder</div>
             <div className="mc-lg"><span className="mc-rr" />Sin servicio</div>
@@ -522,8 +522,8 @@ export default function PanelVoluntario() {
       {/* ── Columna izquierda (410px, order:-1): Te toca servir ────────────── */}
       <div className="mc-card mc-rail">
         <div className="mc-rail-head">
-          <h3>Te toca servir</h3>
-          <p>Estas son las fechas en las que te toca servir. Marca si puedes o no.</p>
+          <h3>Donde colaboras</h3>
+          <p>Estas son las fechas en las que te toca colaborar. Marca si puedes o no.</p>
         </div>
 
         <div className="mc-rail-list">
@@ -572,7 +572,7 @@ export default function PanelVoluntario() {
                       {respondido && (
                         <div className={`mc-state-line ${item.estado === 'disponible' ? 'mc-si' : 'mc-no'}`}>
                           <span className="mc-ic">{item.estado === 'disponible' ? <IcCheck w={11} /> : <IcCross w={11} />}</span>
-                          {item.estado === 'disponible' ? 'Confirmado · Sí sirvo' : 'No puedo servir'}
+                          {item.estado === 'disponible' ? 'Confirmado · Sí colaboro' : 'No puedo colaborar'}
                           {!item.bloqueado && (
                             <button className="mc-ch" onClick={() => setEditando(e => ({ ...e, [clave]: true }))}>Cambiar</button>
                           )}
@@ -592,7 +592,7 @@ export default function PanelVoluntario() {
                       <button
                         className={`mc-act mc-si ${item.estado === 'disponible' ? 'mc-on' : ''}`}
                         onClick={() => marcar(item, 'disponible')} disabled={ocupado}>
-                        <IcCheck w={15} />{ocupado ? '…' : 'Sí sirvo'}
+                        <IcCheck w={15} />{ocupado ? '…' : 'Sí colaboro'}
                       </button>
                       <button
                         className={`mc-act mc-no ${item.estado === 'no_disponible' ? 'mc-on' : ''}`}

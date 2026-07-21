@@ -231,7 +231,7 @@ export default function ProgramarServicio() {
                   Colaboradores ({grupos.disponibles.length})
                 </div>
                 {grupos.disponibles.length === 0 ? (
-                  <div className="prg-empty-s" style={{ paddingLeft: 2 }}>Nadie ha marcado “Sí sirvo” para esta fecha.</div>
+                  <div className="prg-empty-s" style={{ paddingLeft: 2 }}>Nadie ha marcado “Sí colaboro” para esta fecha.</div>
                 ) : (
                   <div className="prg-list">
                     {grupos.disponibles.map((v) => {

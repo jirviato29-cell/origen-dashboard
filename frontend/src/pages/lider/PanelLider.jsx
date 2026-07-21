@@ -55,7 +55,7 @@ export function LiderPosiciones() {
 
 export function LiderProgramar() {
   return (
-    <LiderShell sub="Mira quién puede servir y reparte posiciones por fecha.">
+    <LiderShell sub="Mira quién puede colaborar y reparte posiciones por fecha.">
       <ProgramarServicio />
     </LiderShell>
   );
