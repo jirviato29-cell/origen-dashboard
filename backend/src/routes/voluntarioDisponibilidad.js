@@ -294,3 +294,7 @@ router.post('/', async (req, res) => {
 });
 
 module.exports = router;
+// Se exportan para reusarlos en otras rutas del voluntario (p. ej.
+// voluntarioPuestos), igual que liderVoluntarios expone requireLider/contextoLider.
+module.exports.requireVoluntario = requireVoluntario;
+module.exports.contextoVoluntario = contextoVoluntario;

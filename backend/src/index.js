@@ -14,6 +14,7 @@ const liderPosicionesRouter = require('./routes/liderPosiciones');
 const liderProgramarRouter = require('./routes/liderProgramar');
 const liderPerfilRouter = require('./routes/liderPerfil');
 const voluntarioDisponibilidadRouter = require('./routes/voluntarioDisponibilidad');
+const voluntarioPuestosRouter        = require('./routes/voluntarioPuestos');
 const ingresosRouter      = require('./routes/ingresos');
 const gastosRouter        = require('./routes/gastos');
 const gastosEventosRouter = require('./routes/gastosEventos');
@@ -62,6 +63,8 @@ app.use('/api/lider/programar', liderProgramarRouter);
 app.use('/api/lider/perfil', liderPerfilRouter);
 // Protegido: el router exige token y rol de voluntario (requireVoluntario).
 app.use('/api/voluntario/disponibilidad', voluntarioDisponibilidadRouter);
+// Protegido: mismo requireVoluntario. "Mis puestos": ve sus asignaciones (solo lectura).
+app.use('/api/voluntario/puestos', voluntarioPuestosRouter);
 
 
 app.use('/api/ingresos',   ingresosRouter);
