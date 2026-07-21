@@ -35,7 +35,9 @@ const CSS = `
   --shadow-sm:0 1px 2px rgba(11,26,47,.06);
   font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   letter-spacing:-.006em;color:var(--ink);width:100%;
-  display:grid;grid-template-columns:410px 1fr;gap:16px;align-items:start;
+  /* Panel izquierdo más angosto (pero ≥320px para que quepan sus 2 botones) y
+     el calendario con ~2.4× su ancho: celdas más anchas = más caracteres por línea. */
+  display:grid;grid-template-columns:minmax(320px,1fr) 2.4fr;gap:16px;align-items:start;
 }
 .mc-shell *{box-sizing:border-box;}
 .mc-shell>*{min-width:0;}
@@ -65,8 +67,10 @@ const CSS = `
 
 .mc-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;}
 .mc-dow div{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-400);text-align:center;padding:4px 0;}
-.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
-.mc-shell .mc-cell{min-height:46px;border:1px solid var(--gray-100);border-radius:9px;padding:5px 7px 5px 9px;display:flex;flex-direction:column;gap:3px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:left;width:100%;font-family:inherit;}
+/* Altura FIJA de celda (todas iguales). 88px caben: día(18) + 2 pills de 2
+   líneas (~26 c/u) + paddings/gaps. Ver cálculo del peor caso (6 semanas) en el commit. */
+.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:88px;gap:5px;}
+.mc-shell .mc-cell{height:100%;border:1px solid var(--gray-100);border-radius:9px;padding:5px 7px 5px 9px;display:flex;flex-direction:column;gap:3px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:left;width:100%;font-family:inherit;}
 .mc-shell .mc-cell:hover{border-color:var(--gray-300);box-shadow:var(--shadow-sm);}
 .mc-shell .mc-cell.mc-out{background:var(--gray-50);border-color:transparent;cursor:default;}
 .mc-shell .mc-cell.mc-out:hover{box-shadow:none;}
@@ -85,7 +89,10 @@ const CSS = `
 .mc-shell .mc-cell.mc-status-no::after{background:var(--red-600);}
 .mc-shell .mc-cell.mc-status-pend::after{background:var(--amber-600);}
 
-.mc-ev{font-size:10px;font-weight:600;line-height:1.15;border-radius:5px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Pills a HASTA 2 líneas (line-clamp): nombres largos ya no se cortan a 1 línea.
+   Fuente subida a 11px (legibilidad). Si aún no cabe en 2 líneas, corta con "…"
+   y el nombre completo queda en el title de la pill. */
+.mc-ev{font-size:11px;font-weight:600;line-height:1.1;border-radius:5px;padding:1px 7px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;}
 .mc-ev-mas{color:var(--gray-500);font-weight:600;padding:1px 7px;background:transparent;}
 .mc-badge{position:absolute;top:5px;right:5px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
 .mc-badge svg{width:10px;height:10px;}
@@ -492,6 +499,7 @@ export default function PanelVoluntario() {
                     {servicio && statusCls === 'mc-status-pend' && <span className="mc-badge mc-pend"><IcClock w={10} /></span>}
                     {visibles.map(p => (
                       <div key={p.key} className="mc-ev"
+                        title={p.nombre}
                         style={{
                           background: p.sunday ? 'var(--sky-50)' : tintePastel(p.color, 0.20),
                           color: p.sunday ? '#1c6294' : p.color,
