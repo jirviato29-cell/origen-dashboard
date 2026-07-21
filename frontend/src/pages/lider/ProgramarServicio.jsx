@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { liderProgramarApi, liderPosicionesApi } from '../../services/api';
+import { useTiposEvento } from '../../context/TiposEventoContext';
 
 // "Programar servicio" (PASO 5, parte 2): el líder elige una fecha donde sirve
 // su ministerio y, a los voluntarios que dijeron "sí sirvo", les asigna una
@@ -85,37 +86,23 @@ const FUENTE_BTN = {
   fontWeight: 700,
 };
 const estiloFlecha = () => ({ ...FUENTE_BTN, fontSize: 16, width: 34, height: 34, borderRadius: 10, border: `1px solid ${GRAY_200}`, background: '#fff', color: NAVY_900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' });
-// Mezcla lineal con blanco → tinte pastel OPACO (mismo helper que
-// PanelVoluntario.jsx). Acepta '#RGB' y '#RRGGBB'.
-function tintePastel(hex, peso) {
-  if (typeof hex !== 'string') return '#EEEEEE';
-  let h = hex.trim().replace('#', '');
-  if (h.length === 3) h = h.split('').map(c => c + c).join('');
-  if (h.length !== 6 || /[^0-9a-f]/i.test(h)) return '#EEEEEE';
-  const n = parseInt(h, 16);
-  const R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255;
-  const mix = (v) => Math.round(255 - (255 - v) * peso);
-  return `rgb(${mix(R)},${mix(G)},${mix(B)})`;
-}
-
-// Tarjeta de fecha pintada con el color de su tipo: fondo pastel + barra
-// lateral del color puro. Sin color → neutro. La fecha SELECCIONADA se distingue
-// con un anillo naranja (boxShadow), sin perder el color del tipo.
-const estiloChip = (activa, color) => {
-  const c = (typeof color === 'string' && color) ? color : null;
-  return {
-    ...FUENTE_BTN,
-    cursor: 'pointer',
-    background: c ? tintePastel(c, 0.14) : '#fff',
-    borderStyle: 'solid',
-    borderWidth: '1.5px',
-    borderColor: c ? tintePastel(c, 0.34) : GRAY_200,
-    borderLeftWidth: '4px',
-    borderLeftColor: c || GRAY_300,
-    boxShadow: activa ? `0 0 0 2px ${ORANGE_500}, 0 6px 16px rgba(255,107,43,.20)` : 'none',
-    transition: 'box-shadow .12s, border-color .12s',
-  };
-};
+// Tarjeta de fecha pintada con el color de su tipo, EXACTAMENTE como el
+// calendario de stewardship: fondo = tipoCellBg[tipo], barra lateral =
+// tipoColor[tipo] (ambos de useTiposEvento, los mismos mapas fusionados
+// static+BD). Sin tipo/mapa → neutro. La fecha SELECCIONADA se distingue con un
+// anillo naranja (boxShadow), sin perder el color del tipo.
+const estiloChip = (activa, cellBg, accent) => ({
+  ...FUENTE_BTN,
+  cursor: 'pointer',
+  background: cellBg || '#fff',
+  borderStyle: 'solid',
+  borderWidth: '1.5px',
+  borderColor: GRAY_200,
+  borderLeftWidth: '4px',
+  borderLeftColor: accent || GRAY_300,
+  boxShadow: activa ? `0 0 0 2px ${ORANGE_500}, 0 6px 16px rgba(255,107,43,.20)` : 'none',
+  transition: 'box-shadow .12s, border-color .12s',
+});
 const estiloQuitar = (habilitado, hover) => ({
   ...FUENTE_BTN,
   fontSize: 12,
@@ -153,6 +140,8 @@ const inicial = (n) => (n || '?').trim().charAt(0).toUpperCase();
 const claveFecha = (f) => `${f.fecha}|${f.evento_id ?? 'dom'}`;
 
 export default function ProgramarServicio() {
+  // Mismos mapas de color que el calendario de stewardship (provider app-wide).
+  const { tipoCellBg = {}, tipoColor = {} } = useTiposEvento() || {};
   const [mes, setMes] = useState(mesDeHoy);
   const [fechas, setFechas] = useState([]);
   const [cargandoFechas, setCargandoFechas] = useState(true);
@@ -319,8 +308,11 @@ export default function ProgramarServicio() {
         <div className="prg-fechas">
           {fechas.map((f) => {
             const activa = claveFecha(f) === sel;
+            // Color por NOMBRE de tipo, con los mismos mapas que stewardship.
+            const cellBg = f.tipo_evento ? tipoCellBg[f.tipo_evento] : null;
+            const accent = f.tipo_evento ? tipoColor[f.tipo_evento] : null;
             return (
-              <button key={claveFecha(f)} className="prg-chip" style={estiloChip(activa, f.tipo_color)}
+              <button key={claveFecha(f)} className="prg-chip" style={estiloChip(activa, cellBg, accent)}
                 onClick={() => setSel(claveFecha(f))} title={f.nombre}>
                 <div className="prg-chip-top">
                   <span className="prg-chip-num">{diaDeISO(f.fecha)}</span>
