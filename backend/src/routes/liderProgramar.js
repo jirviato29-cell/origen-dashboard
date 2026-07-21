@@ -173,12 +173,20 @@ router.get('/fechas', async (req, res) => {
     const hoy = hoyMexico();
     const fechas = [
       ...domingosDelMes(anio, nMes).map((fecha) => {
-        // Si ese domingo tiene un evento del campus, se usa su nombre y color.
+        // Si ese domingo tiene un evento real del campus, se usa su nombre y
+        // color (prioridad al dato real). Si NO, cae al tipo sintético
+        // 'Servicio dominical': ese tipo NO es una fila de calendario_eventos,
+        // es una convención del sistema para todo domingo. Stewardship hace lo
+        // mismo en el frontend (CalendarioPage: `if (esDomingo) add('Servicio
+        // dominical')`), así el color sale solo por NOMBRE con useTiposEvento
+        // ('Servicio dominical' ya está en TIPO_CELL_BG/TIPO_COLOR). No quitar
+        // esto pensando que es un hardcode raro: es intencional y replica
+        // stewardship.
         const ev = mapEvFecha.get(fecha);
         return {
           fecha, evento_id: null, tipo: 'domingo',
-          nombre: ev?.nombre || 'Domingo',
-          tipo_evento: ev?.tipo || null,
+          nombre: ev?.nombre || 'Servicio dominical',
+          tipo_evento: ev?.tipo || 'Servicio dominical',
           tipo_color: ev?.tipo_color || null,
           ...conteos(fecha, null),
         };
