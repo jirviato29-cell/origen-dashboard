@@ -53,6 +53,7 @@ const ROUTE_INFO = {
   '/lider_ministerio/voluntarios':      { section: 'Ministerio',         title: 'Mis voluntarios' },
   '/lider_ministerio/posiciones':       { section: 'Ministerio',         title: 'Posiciones' },
   '/lider_ministerio/programar':        { section: 'Ministerio',         title: 'Programar servicio' },
+  '/lider_ministerio/tablero':          { section: 'Ministerio',         title: 'Quién va dónde' },
   '/voluntario':                        { section: 'Voluntario',         title: 'Mi calendario' },
   '/voluntario/calendario':             { section: 'Voluntario',         title: 'Mi calendario' },
 };

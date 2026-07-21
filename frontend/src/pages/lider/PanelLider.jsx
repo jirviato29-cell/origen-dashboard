@@ -6,6 +6,7 @@ import useLiderPerfil from '../../hooks/useLiderPerfil';
 import MisVoluntarios from './MisVoluntarios';
 import PosicionesMinisterio from './PosicionesMinisterio';
 import ProgramarServicio from './ProgramarServicio';
+import TableroServicio from './TableroServicio';
 
 const GRAY_500 = '#7A8699';
 const GRAY_200 = '#E2E6EC';
@@ -56,6 +57,14 @@ export function LiderProgramar() {
   return (
     <LiderShell sub="Mira quién puede servir y reparte posiciones por fecha.">
       <ProgramarServicio />
+    </LiderShell>
+  );
+}
+
+export function LiderTablero() {
+  return (
+    <LiderShell sub="Ve cómo quedó armado el equipo por posición en cada fecha.">
+      <TableroServicio />
     </LiderShell>
   );
 }

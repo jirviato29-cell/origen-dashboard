@@ -32,7 +32,7 @@ import StewardshipBalancePage from './pages/stewardship/BalancePage';
 import CalendarioPage from './pages/stewardship/CalendarioPage';
 import VoluntariosPage from './pages/stewardship/VoluntariosPage';
 import BienvenidaCasaPage from './pages/anfitriones/BienvenidaCasaPage';
-import { LiderVoluntarios, LiderPosiciones, LiderProgramar } from './pages/lider/PanelLider';
+import { LiderVoluntarios, LiderPosiciones, LiderProgramar, LiderTablero } from './pages/lider/PanelLider';
 import PanelVoluntario from './pages/voluntario/PanelVoluntario';
 import LoginVoluntario from './pages/voluntario/LoginVoluntario';
 import './index.css';
@@ -132,6 +132,7 @@ function AppRoutes() {
         <Route path="voluntarios" element={<LiderVoluntarios />} />
         <Route path="posiciones"  element={<LiderPosiciones />} />
         <Route path="programar"   element={<LiderProgramar />} />
+        <Route path="tablero"     element={<LiderTablero />} />
       </Route>
 
       {/* ── Voluntario ─────────────────────────────────────────────────── */}

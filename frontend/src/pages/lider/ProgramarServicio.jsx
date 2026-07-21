@@ -1,30 +1,29 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { liderProgramarApi, liderPosicionesApi } from '../../services/api';
-import { useTiposEvento } from '../../context/TiposEventoContext';
+import SelectorFechasMinisterio from '../../components/SelectorFechasMinisterio';
 
 // "Programar servicio" (PASO 5, parte 2): el líder elige una fecha donde sirve
 // su ministerio y, a los voluntarios que dijeron "sí sirvo", les asigna una
 // POSICIÓN del catálogo de su ministerio. Toda la seguridad (ministerio, campus,
 // a quién puede asignar, que haya dicho que sí) la resuelve el backend.
+// El selector de fechas de arriba es el componente compartido
+// SelectorFechasMinisterio (mismo que usa "Quién va dónde").
 
 const NAVY_900   = '#112540';
-const ORANGE_500 = '#FF6B2B';
-const ORANGE_600 = '#E0561B';
 const ORANGE_50  = '#FFF4EE';
+const ORANGE_600 = '#E0561B';
+const ORANGE_500 = '#FF6B2B';
 const VERDE      = '#15915A';
-const VERDE_50   = '#E8F5EF';
 const ROJO       = '#D23B36';
 const ROJO_50    = '#FCEBEA';
 const GRAY_700   = '#3D4654';
 const GRAY_600   = '#5B6675';
 const GRAY_500   = '#7A8699';
-const GRAY_300   = '#CBD2DC';
 const GRAY_200   = '#E2E6EC';
 const GRAY_100   = '#EEF1F5';
 const GRAY_50    = '#F6F7F9';
 
-const DIAS_SEM = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
@@ -32,26 +31,6 @@ const CSS = `
 .prg-head{margin-bottom:14px;}
 .prg-h2{font-size:16px;font-weight:800;letter-spacing:-.02em;color:${NAVY_900};margin:0;}
 .prg-h2-note{font-size:12.5px;color:${GRAY_500};margin-top:3px;}
-
-.prg-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 12px;}
-.prg-mes{font-size:15px;font-weight:800;color:${NAVY_900};letter-spacing:-.02em;text-transform:capitalize;text-align:center;}
-
-/* Grid que acomoda TODAS las fechas del mes en varias filas, sin scroll. */
-.prg-fechas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:2px 0 4px;}
-@media(max-width:560px){.prg-fechas{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));}}
-.prg-chip{min-width:0;text-align:left;padding:10px 12px;border-radius:12px;border:1.5px solid ${GRAY_200};background:#fff;display:flex;flex-direction:column;gap:6px;}
-.prg-chip-top{display:flex;align-items:baseline;gap:6px;}
-.prg-chip-num{font-size:19px;font-weight:800;color:${NAVY_900};line-height:1;font-variant-numeric:tabular-nums;}
-.prg-chip-dow{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:${GRAY_500};}
-.prg-chip-nombre{font-size:12px;font-weight:700;color:${NAVY_900};line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
-/* Contadores compactos: tres números con color (verde/rojo/gris). */
-.prg-conts{display:flex;align-items:center;gap:11px;}
-.prg-c{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;}
-.prg-c-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.prg-chip-asig{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:5px;background:${ORANGE_50};color:${ORANGE_600};align-self:flex-start;}
-.prg-leg{display:flex;flex-wrap:wrap;gap:5px 14px;margin:8px 2px 0;font-size:11px;color:${GRAY_500};font-weight:600;}
-.prg-leg-i{display:inline-flex;align-items:center;gap:6px;}
-.prg-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
 .prg-warn{margin:12px 0;padding:12px 14px;border-radius:12px;background:${ORANGE_50};border:1px solid ${ORANGE_500};color:${GRAY_700};font-size:13px;line-height:1.5;}
 .prg-warn a{color:${ORANGE_600};font-weight:700;text-decoration:none;}
@@ -85,24 +64,6 @@ const FUENTE_BTN = {
   fontFamily: '"DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
   fontWeight: 700,
 };
-const estiloFlecha = () => ({ ...FUENTE_BTN, fontSize: 16, width: 34, height: 34, borderRadius: 10, border: `1px solid ${GRAY_200}`, background: '#fff', color: NAVY_900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' });
-// Tarjeta de fecha pintada con el color de su tipo, EXACTAMENTE como el
-// calendario de stewardship: fondo = tipoCellBg[tipo], barra lateral =
-// tipoColor[tipo] (ambos de useTiposEvento, los mismos mapas fusionados
-// static+BD). Sin tipo/mapa → neutro. La fecha SELECCIONADA se distingue con un
-// anillo naranja (boxShadow), sin perder el color del tipo.
-const estiloChip = (activa, cellBg, accent) => ({
-  ...FUENTE_BTN,
-  cursor: 'pointer',
-  background: cellBg || '#fff',
-  borderStyle: 'solid',
-  borderWidth: '1.5px',
-  borderColor: GRAY_200,
-  borderLeftWidth: '4px',
-  borderLeftColor: accent || GRAY_300,
-  boxShadow: activa ? `0 0 0 2px ${ORANGE_500}, 0 6px 16px rgba(255,107,43,.20)` : 'none',
-  transition: 'box-shadow .12s, border-color .12s',
-});
 const estiloQuitar = (habilitado, hover) => ({
   ...FUENTE_BTN,
   fontSize: 12,
@@ -117,35 +78,11 @@ const estiloQuitar = (habilitado, hover) => ({
   transition: 'background .12s, color .12s, border-color .12s',
 });
 
-// ── Helpers de mes (aritmética UTC para no correr de día por zona) ────────────
-const mesDeHoy = () => {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
-};
-const sumaMes = (mes, n) => {
-  const [a, m] = mes.split('-').map(Number);
-  const d = new Date(Date.UTC(a, m - 1 + n, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-};
-const tituloMes = (mes) => {
-  const [a, m] = mes.split('-').map(Number);
-  return `${MESES[m - 1]} ${a}`;
-};
 const diaDeISO = (iso) => Number(iso.slice(8, 10));
-const dowDeISO = (iso) => {
-  const [a, m, d] = iso.split('-').map(Number);
-  return new Date(Date.UTC(a, m - 1, d)).getUTCDay();
-};
 const inicial = (n) => (n || '?').trim().charAt(0).toUpperCase();
-const claveFecha = (f) => `${f.fecha}|${f.evento_id ?? 'dom'}`;
 
 export default function ProgramarServicio() {
-  // Mismos mapas de color que el calendario de stewardship (provider app-wide).
-  const { tipoCellBg = {}, tipoColor = {} } = useTiposEvento() || {};
-  const [mes, setMes] = useState(mesDeHoy);
-  const [fechas, setFechas] = useState([]);
-  const [cargandoFechas, setCargandoFechas] = useState(true);
-  const [sel, setSel] = useState(null);            // clave de la fecha elegida
+  const [fechaSel, setFechaSel] = useState(null);  // la elige el selector
   const [detalle, setDetalle] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [posiciones, setPosiciones] = useState([]);
@@ -166,31 +103,6 @@ export default function ProgramarServicio() {
     return () => { vivo = false; };
   }, []);
 
-  // Fechas del mes.
-  useEffect(() => {
-    let vivo = true;
-    setCargandoFechas(true);
-    (async () => {
-      try {
-        const { data } = await liderProgramarApi.getFechas(mes);
-        if (!vivo) return;
-        const lista = Array.isArray(data.fechas) ? data.fechas : [];
-        setFechas(lista);
-        // Si no hay nada seleccionado, elige la primera fecha disponible (la más
-        // próxima) para mostrar de una la lista de voluntarios.
-        if (lista.length > 0) setSel(prev => prev ?? claveFecha(lista[0]));
-        setError('');
-      } catch (err) {
-        if (vivo) { setError(err.response?.data?.error || 'No se pudieron cargar las fechas'); setFechas([]); }
-      } finally {
-        if (vivo) setCargandoFechas(false);
-      }
-    })();
-    return () => { vivo = false; };
-  }, [mes, recargaFechas]);
-
-  const fechaSel = useMemo(() => fechas.find(f => claveFecha(f) === sel) || null, [fechas, sel]);
-
   // Detalle (roster) de la fecha elegida.
   useEffect(() => {
     if (!fechaSel) { setDetalle(null); return; }
@@ -209,9 +121,8 @@ export default function ProgramarServicio() {
       }
     })();
     return () => { vivo = false; };
-  }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fechaSel]);
 
-  const irAMes = (n) => { setMes(m => sumaMes(m, n)); setSel(null); setDetalle(null); };
   const refrescarFechas = () => setRecargaFechas(n => n + 1);
 
   async function asignar(v, posicionId) {
@@ -283,62 +194,18 @@ export default function ProgramarServicio() {
         </div>
       </div>
 
-      {sinPosiciones && !cargandoFechas && (
+      {sinPosiciones && (
         <div className="prg-warn">
           Primero crea las posiciones de tu ministerio en la pestaña{' '}
           <Link to="/lider_ministerio/posiciones">Posiciones</Link>.
         </div>
       )}
 
-      <div className="prg-nav">
-        <button style={estiloFlecha()} onClick={() => irAMes(-1)} aria-label="Mes anterior">‹</button>
-        <div className="prg-mes">{tituloMes(mes)}</div>
-        <button style={estiloFlecha()} onClick={() => irAMes(1)} aria-label="Mes siguiente">›</button>
-      </div>
-
-      {cargandoFechas ? (
-        <div className="prg-loading">Cargando fechas…</div>
-      ) : fechas.length === 0 ? (
-        <div className="prg-empty">
-          <div className="prg-empty-t">No hay fechas próximas en este mes.</div>
-          <div className="prg-empty-s">Se muestran solo las fechas de hoy en adelante donde sirve tu ministerio.</div>
-        </div>
-      ) : (
-        <>
-        <div className="prg-fechas">
-          {fechas.map((f) => {
-            const activa = claveFecha(f) === sel;
-            // Color por NOMBRE de tipo, con los mismos mapas que stewardship.
-            const cellBg = f.tipo_evento ? tipoCellBg[f.tipo_evento] : null;
-            const accent = f.tipo_evento ? tipoColor[f.tipo_evento] : null;
-            return (
-              <button key={claveFecha(f)} className="prg-chip" style={estiloChip(activa, cellBg, accent)}
-                onClick={() => setSel(claveFecha(f))} title={f.nombre}>
-                <div className="prg-chip-top">
-                  <span className="prg-chip-num">{diaDeISO(f.fecha)}</span>
-                  <span className="prg-chip-dow">{DIAS_SEM[dowDeISO(f.fecha)]}</span>
-                </div>
-                <div className="prg-chip-nombre">{f.nombre}</div>
-                <div className="prg-conts">
-                  <span className="prg-c" style={{ color: VERDE }} title="Colaboradores">
-                    <span className="prg-c-dot" style={{ background: VERDE }} />{f.disponibles}</span>
-                  <span className="prg-c" style={{ color: ROJO }} title="No pueden esta fecha">
-                    <span className="prg-c-dot" style={{ background: ROJO }} />{f.no_disponibles}</span>
-                  <span className="prg-c" style={{ color: GRAY_500 }} title="Sin responder">
-                    <span className="prg-c-dot" style={{ background: GRAY_500 }} />{f.sin_responder}</span>
-                </div>
-                {f.asignados > 0 && <span className="prg-chip-asig">{f.asignados} asignados</span>}
-              </button>
-            );
-          })}
-        </div>
-        <div className="prg-leg">
-          <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: VERDE }} />colaboradores</span>
-          <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: ROJO }} />no pueden esta fecha</span>
-          <span className="prg-leg-i"><span className="prg-leg-dot" style={{ background: GRAY_500 }} />sin responder</span>
-        </div>
-        </>
-      )}
+      <SelectorFechasMinisterio
+        onSelect={setFechaSel}
+        onError={setError}
+        reloadSignal={recargaFechas}
+      />
 
       {error && <div className="prg-error">{error}</div>}
 

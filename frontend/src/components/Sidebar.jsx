@@ -76,6 +76,7 @@ const navByRole = {
       { to: '/lider_ministerio/voluntarios', label: 'Mis voluntarios',    icon: I.users },
       { to: '/lider_ministerio/posiciones',  label: 'Posiciones',         icon: I.pin },
       { to: '/lider_ministerio/programar',   label: 'Programar servicio', icon: I.calendar },
+      { to: '/lider_ministerio/tablero',     label: 'Quién va dónde',     icon: I.dashboard },
     ]},
   ],
   [ROLES.VOLUNTARIO]: [
