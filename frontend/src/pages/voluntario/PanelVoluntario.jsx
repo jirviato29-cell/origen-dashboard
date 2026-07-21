@@ -113,6 +113,10 @@ const CSS = `
 .mc-rail-list{padding:16px 18px 20px;display:flex;flex-direction:column;gap:12px;}
 .mc-slot{border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:15px 16px;transition:.12s;scroll-margin-top:12px;}
 .mc-slot.mc-pending{border-color:var(--amber-600);background:linear-gradient(180deg,var(--amber-50),#fff 60%);}
+/* Ya respondido: la fecha SE QUEDA en la lista con acento de color (mismo código
+   que el calendario). Verde = sí colaboro; rojo = no puedo. Solo desaparece al pasar. */
+.mc-slot.mc-confirmed{border-color:var(--green-600);background:var(--green-50);}
+.mc-slot.mc-rejected{border-color:var(--red-600);background:var(--red-50);}
 .mc-slot.mc-sel{box-shadow:0 0 0 2px rgba(255,107,43,.30);border-color:var(--orange-400);}
 .mc-slot-top{display:flex;gap:12px;align-items:flex-start;}
 .mc-date-chip{width:50px;flex-shrink:0;text-align:center;border-radius:11px;padding:7px 0 8px;background:var(--navy-900);color:#fff;}
@@ -552,11 +556,19 @@ export default function PanelVoluntario() {
               const respondido = item.puede_marcar && item.estado != null && !reabierto;
               const cerradoSinResp = item.puede_marcar && item.bloqueado && item.estado == null;
 
+              // Acento del ítem por estado (consistente con el calendario): ámbar
+              // pendiente · verde "sí colaboro" · rojo "no puedo". La fecha NO se va
+              // de la lista al responder: cambia de color y conserva "Cambiar".
+              const acento = pendienteAbierto ? 'mc-pending'
+                : (respondido && item.estado === 'disponible') ? 'mc-confirmed'
+                : (respondido && item.estado === 'no_disponible') ? 'mc-rejected'
+                : '';
+
               return (
                 <div
                   key={clave}
                   ref={el => { if (el) itemRefs.current[clave] = el; }}
-                  className={`mc-slot ${pendienteAbierto ? 'mc-pending' : ''} ${esSel ? 'mc-sel' : ''}`}
+                  className={`mc-slot ${acento} ${esSel ? 'mc-sel' : ''}`}
                 >
                   <div className="mc-slot-top">
                     <div className="mc-date-chip">
