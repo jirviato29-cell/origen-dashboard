@@ -309,9 +309,9 @@ export default function TableroServicio() {
                             const conf = confDe(v.estado_confirmacion);
                             return (
                               <div key={v.voluntario_id} className="qvd-card">
-                                <div className="qvd-av">{inicial(v.nombre)}</div>
+                                <div className="qvd-av">{inicial(v.apodo || v.nombre)}</div>
                                 <div className="qvd-card-b">
-                                  <div className="qvd-card-nombre" title={v.nombre}>{v.nombre}</div>
+                                  <div className="qvd-card-nombre" title={v.nombre}>{v.apodo || v.nombre}</div>
                                   <span className="qvd-conf" style={{ color: conf.c }}>
                                     <span className="qvd-conf-dot" style={{ background: conf.c }} />{conf.t}
                                   </span>
@@ -336,8 +336,8 @@ export default function TableroServicio() {
                   <div className="qvd-pend-wrap">
                     {pendientes.map((v) => (
                       <span key={v.voluntario_id} className="qvd-pill" title={v.nombre}>
-                        <span className="qvd-pill-av">{inicial(v.nombre)}</span>
-                        <span className="qvd-pill-n">{v.nombre}</span>
+                        <span className="qvd-pill-av">{inicial(v.apodo || v.nombre)}</span>
+                        <span className="qvd-pill-n">{v.apodo || v.nombre}</span>
                       </span>
                     ))}
                   </div>
