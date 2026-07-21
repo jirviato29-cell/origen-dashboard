@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
+import useLiderPerfil from '../hooks/useLiderPerfil';
 import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useGastosModal } from '../context/GastosModalContext';
@@ -65,6 +66,9 @@ export default function Layout() {
   const { openModal: openCalendarioModal } = useCalendarioModal();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  // Perfil del líder para el badge de la topbar. Solo hace la llamada cuando el
+  // rol es lider_ministerio; para los demás roles queda 'idle' sin fetch.
+  const liderPerfil = useLiderPerfil(role === ROLES.LIDER_MINISTERIO);
 
   if (!role) return <Navigate to="/" replace />;
 
@@ -140,6 +144,19 @@ export default function Layout() {
 
           <div className="topbar-right">
 
+            {/* Líder de ministerio — nombre de su ministerio (solo para ese rol) */}
+            {role === ROLES.LIDER_MINISTERIO && liderPerfil.estado === 'ok' && liderPerfil.nombre && (
+              <>
+                <style>{`
+.lmb{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:#FFF4EE;border:1px solid #FFE5D6;color:#112540;font-size:12.5px;font-weight:700;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lmb-dot{width:7px;height:7px;border-radius:50%;background:#FF6B2B;flex-shrink:0;}
+@media(max-width:640px){.lmb{display:none;}}
+`}</style>
+                <span className="lmb" title={liderPerfil.nombre}>
+                  <span className="lmb-dot" />{liderPerfil.nombre}
+                </span>
+              </>
+            )}
 
             {/* Stewardship — Registrar ofrenda */}
             {isStewardship && isIngresos && canRegIngresos && (
