@@ -104,6 +104,22 @@ router.get('/fechas', async (req, res) => {
       [ctx.campus, primerDia, ultimoDia, ctx.ministerioId]
     );
 
+    // Para nombrar/colorear los DOMINGOS: el primer evento (por id) de cada
+    // fecha del campus, con el color de su tipo (mismo LEFT JOIN a tipos_evento).
+    // Si un domingo tiene un evento (p. ej. "Servicio dominical"), la tarjeta usa
+    // su nombre y color; si hay varios ese día se toma el de menor id.
+    const { rows: evPorFecha } = await pool.query(
+      `SELECT DISTINCT ON (e.fecha)
+              to_char(e.fecha, 'YYYY-MM-DD') AS fecha, e.nombre, e.tipo,
+              t.color AS tipo_color
+         FROM calendario_eventos e
+         LEFT JOIN tipos_evento t ON t.nombre = e.tipo AND t.campus = e.campus
+        WHERE e.campus = $1 AND e.fecha >= $2 AND e.fecha <= $3
+        ORDER BY e.fecha, e.id`,
+      [ctx.campus, primerDia, ultimoDia]
+    );
+    const mapEvFecha = new Map(evPorFecha.map(r => [r.fecha, r]));
+
     // Total de voluntarios del ministerio (para calcular "sin responder").
     const { rows: totalRows } = await pool.query(
       `SELECT count(*)::int AS n FROM usuarios
@@ -156,10 +172,17 @@ router.get('/fechas', async (req, res) => {
     // 'YYYY-MM-DD' es cronológicamente correcto.
     const hoy = hoyMexico();
     const fechas = [
-      ...domingosDelMes(anio, nMes).map((fecha) => ({
-        fecha, evento_id: null, tipo: 'domingo', nombre: 'Domingo',
-        tipo_color: null, ...conteos(fecha, null),
-      })),
+      ...domingosDelMes(anio, nMes).map((fecha) => {
+        // Si ese domingo tiene un evento del campus, se usa su nombre y color.
+        const ev = mapEvFecha.get(fecha);
+        return {
+          fecha, evento_id: null, tipo: 'domingo',
+          nombre: ev?.nombre || 'Domingo',
+          tipo_evento: ev?.tipo || null,
+          tipo_color: ev?.tipo_color || null,
+          ...conteos(fecha, null),
+        };
+      }),
       ...eventos.map((e) => ({
         fecha: e.fecha, evento_id: e.id, tipo: 'evento', nombre: e.nombre,
         tipo_evento: e.tipo || null, tipo_color: e.tipo_color || null,

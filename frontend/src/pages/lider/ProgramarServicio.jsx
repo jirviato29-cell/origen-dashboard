@@ -18,6 +18,7 @@ const ROJO_50    = '#FCEBEA';
 const GRAY_700   = '#3D4654';
 const GRAY_600   = '#5B6675';
 const GRAY_500   = '#7A8699';
+const GRAY_300   = '#CBD2DC';
 const GRAY_200   = '#E2E6EC';
 const GRAY_100   = '#EEF1F5';
 const GRAY_50    = '#F6F7F9';
@@ -41,7 +42,7 @@ const CSS = `
 .prg-chip-top{display:flex;align-items:baseline;gap:6px;}
 .prg-chip-num{font-size:19px;font-weight:800;color:${NAVY_900};line-height:1;font-variant-numeric:tabular-nums;}
 .prg-chip-dow{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:${GRAY_500};}
-.prg-chip-nombre{font-size:12px;font-weight:700;color:${NAVY_900};line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prg-chip-nombre{font-size:12px;font-weight:700;color:${NAVY_900};line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
 /* Contadores compactos: tres números con color (verde/rojo/gris). */
 .prg-conts{display:flex;align-items:center;gap:11px;}
 .prg-c{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;}
@@ -84,13 +85,37 @@ const FUENTE_BTN = {
   fontWeight: 700,
 };
 const estiloFlecha = () => ({ ...FUENTE_BTN, fontSize: 16, width: 34, height: 34, borderRadius: 10, border: `1px solid ${GRAY_200}`, background: '#fff', color: NAVY_900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' });
-const estiloChip = (activa) => ({
-  ...FUENTE_BTN,
-  cursor: 'pointer',
-  borderColor: activa ? ORANGE_500 : GRAY_200,
-  boxShadow: activa ? '0 0 0 2px rgba(255,107,43,.18)' : 'none',
-  transition: 'border-color .12s, box-shadow .12s',
-});
+// Mezcla lineal con blanco → tinte pastel OPACO (mismo helper que
+// PanelVoluntario.jsx). Acepta '#RGB' y '#RRGGBB'.
+function tintePastel(hex, peso) {
+  if (typeof hex !== 'string') return '#EEEEEE';
+  let h = hex.trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  if (h.length !== 6 || /[^0-9a-f]/i.test(h)) return '#EEEEEE';
+  const n = parseInt(h, 16);
+  const R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255;
+  const mix = (v) => Math.round(255 - (255 - v) * peso);
+  return `rgb(${mix(R)},${mix(G)},${mix(B)})`;
+}
+
+// Tarjeta de fecha pintada con el color de su tipo: fondo pastel + barra
+// lateral del color puro. Sin color → neutro. La fecha SELECCIONADA se distingue
+// con un anillo naranja (boxShadow), sin perder el color del tipo.
+const estiloChip = (activa, color) => {
+  const c = (typeof color === 'string' && color) ? color : null;
+  return {
+    ...FUENTE_BTN,
+    cursor: 'pointer',
+    background: c ? tintePastel(c, 0.14) : '#fff',
+    borderStyle: 'solid',
+    borderWidth: '1.5px',
+    borderColor: c ? tintePastel(c, 0.34) : GRAY_200,
+    borderLeftWidth: '4px',
+    borderLeftColor: c || GRAY_300,
+    boxShadow: activa ? `0 0 0 2px ${ORANGE_500}, 0 6px 16px rgba(255,107,43,.20)` : 'none',
+    transition: 'box-shadow .12s, border-color .12s',
+  };
+};
 const estiloQuitar = (habilitado, hover) => ({
   ...FUENTE_BTN,
   fontSize: 12,
@@ -295,8 +320,8 @@ export default function ProgramarServicio() {
           {fechas.map((f) => {
             const activa = claveFecha(f) === sel;
             return (
-              <button key={claveFecha(f)} className="prg-chip" style={estiloChip(activa)}
-                onClick={() => setSel(claveFecha(f))}>
+              <button key={claveFecha(f)} className="prg-chip" style={estiloChip(activa, f.tipo_color)}
+                onClick={() => setSel(claveFecha(f))} title={f.nombre}>
                 <div className="prg-chip-top">
                   <span className="prg-chip-num">{diaDeISO(f.fecha)}</span>
                   <span className="prg-chip-dow">{DIAS_SEM[dowDeISO(f.fecha)]}</span>
