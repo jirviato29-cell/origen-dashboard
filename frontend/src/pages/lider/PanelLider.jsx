@@ -11,7 +11,9 @@ const GRAY_500 = '#7A8699';
 const GRAY_200 = '#E2E6EC';
 
 const CSS = `
-.pl-root{font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;max-width:720px;}
+/* Ancho completo del área de contenido (el padding lo pone .page del Layout);
+   sin max-width para que no quede espacio muerto a la derecha. */
+.pl-root{font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;width:100%;}
 .pl-sub{font-size:13px;color:${GRAY_500};margin:0;}
 .pl-warn{margin-top:12px;padding:11px 14px;border-radius:10px;background:#FEF2F2;border:1px solid #FECACA;color:#D23B36;font-size:12.5px;font-weight:600;}
 .pl-card{margin-top:16px;background:#fff;border:1px solid ${GRAY_200};border-radius:16px;padding:24px;}
