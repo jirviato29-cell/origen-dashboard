@@ -4,6 +4,7 @@ import { useAuth, ROLES } from '../context/AuthContext';
 import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
+import usePuestosNuevos from '../hooks/usePuestosNuevos';
 import { I } from './Icons';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
@@ -82,6 +83,7 @@ const navByRole = {
   [ROLES.VOLUNTARIO]: [
     { group: 'Voluntario', items: [
       { to: '/voluntario/calendario', label: 'Mi calendario', icon: I.calendar },
+      { to: '/voluntario/puestos',    label: 'Mis puestos',   icon: I.pin, badge: 'puestosNuevos' },
     ]},
   ],
 };
@@ -157,6 +159,9 @@ export default function Sidebar({ onClose }) {
   const navigate = useNavigate();
   const { openModal } = useRegistrarModal();
   const { openModal: openOfrendasModal } = useOfrendasModal();
+  // Badge de "Mis puestos": solo para el voluntario. Para los demás roles pasa
+  // enabled=false, así el hook no hace ninguna llamada (gateado como useLiderPerfil).
+  const { nuevos: puestosNuevos } = usePuestosNuevos(role === ROLES.VOLUNTARIO);
   const sections = navByRole[role] || [];
   const campusActivo = localStorage.getItem('campus_activo') || 'ags';
   const logoSrc = campusActivo === 'gdl' ? '/assets/origen-mark-blanco.png' : '/assets/origen-logo-white.png';
@@ -244,6 +249,14 @@ export default function Sidebar({ onClose }) {
                 >
                   <span className="nav-icon"><Ic size={18} /></span>
                   <span className="nav-label">{item.label}</span>
+                  {item.badge === 'puestosNuevos' && puestosNuevos > 0 && (
+                    <span style={{
+                      marginLeft: 'auto', minWidth: 18, height: 18, padding: '0 5px',
+                      borderRadius: 9, background: '#FF6B2B', color: '#fff', fontSize: 11,
+                      fontWeight: 800, display: 'inline-flex', alignItems: 'center',
+                      justifyContent: 'center', flexShrink: 0, lineHeight: 1,
+                    }}>{puestosNuevos}</span>
+                  )}
                 </NavLink>
               );
             })}

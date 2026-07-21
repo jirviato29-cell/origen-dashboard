@@ -34,6 +34,7 @@ import VoluntariosPage from './pages/stewardship/VoluntariosPage';
 import BienvenidaCasaPage from './pages/anfitriones/BienvenidaCasaPage';
 import { LiderVoluntarios, LiderPosiciones, LiderProgramar, LiderTablero } from './pages/lider/PanelLider';
 import PanelVoluntario from './pages/voluntario/PanelVoluntario';
+import MisPuestos from './pages/voluntario/MisPuestos';
 import LoginVoluntario from './pages/voluntario/LoginVoluntario';
 import './index.css';
 
@@ -145,6 +146,7 @@ function AppRoutes() {
       }>
         <Route index element={<Navigate to="/voluntario/calendario" replace />} />
         <Route path="calendario" element={<PanelVoluntario />} />
+        <Route path="puestos"    element={<MisPuestos />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

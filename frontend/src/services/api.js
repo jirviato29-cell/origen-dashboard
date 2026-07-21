@@ -240,6 +240,15 @@ export const voluntarioDisponibilidadApi = {
   marcar:  (data) => http.post('/voluntario/disponibilidad', data),
 };
 
+// ─── Mis puestos del voluntario (solo lectura) ────────────────────────────────
+// Asignaciones del voluntario del token; el badge usa /nuevos y se limpia con
+// /marcar-vistos. Todo lo resuelve el backend por el voluntario_id del token.
+export const voluntarioPuestosApi = {
+  getAll:        () => http.get('/voluntario/puestos'),
+  getNuevos:     () => http.get('/voluntario/puestos/nuevos'),
+  marcarVistos:  () => http.post('/voluntario/puestos/marcar-vistos'),
+};
+
 // ─── Usuarios ─────────────────────────────────────────────────────────────────
 const realUsuariosApi = {
   getAll:       ()               => http.get('/usuarios'),

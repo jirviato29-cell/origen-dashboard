@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
 import useLiderPerfil from '../hooks/useLiderPerfil';
+import usePuestosNuevos from '../hooks/usePuestosNuevos';
 import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useGastosModal } from '../context/GastosModalContext';
@@ -56,6 +57,7 @@ const ROUTE_INFO = {
   '/lider_ministerio/tablero':          { section: 'Ministerio',         title: 'Quién va dónde' },
   '/voluntario':                        { section: 'Voluntario',         title: 'Mi calendario' },
   '/voluntario/calendario':             { section: 'Voluntario',         title: 'Mi calendario' },
+  '/voluntario/puestos':                { section: 'Voluntario',         title: 'Mis puestos' },
 };
 
 export default function Layout() {
@@ -70,6 +72,9 @@ export default function Layout() {
   // Perfil del líder para el badge de la topbar. Solo hace la llamada cuando el
   // rol es lider_ministerio; para los demás roles queda 'idle' sin fetch.
   const liderPerfil = useLiderPerfil(role === ROLES.LIDER_MINISTERIO);
+  // Puntito de la campanita: SOLO para el voluntario. Para los demás roles pasa
+  // enabled=false, así el hook no dispara ninguna llamada (igual que useLiderPerfil).
+  const { nuevos: puestosNuevos } = usePuestosNuevos(role === ROLES.VOLUNTARIO);
 
   if (!role) return <Navigate to="/" replace />;
 
@@ -187,8 +192,14 @@ export default function Layout() {
               </button>
             )}
 
-            <button className="icon-btn" aria-label="Notificaciones">
+            <button className="icon-btn" aria-label="Notificaciones" style={{ position: 'relative' }}>
               <I.bell size={17} />
+              {role === ROLES.VOLUNTARIO && puestosNuevos > 0 && (
+                <span style={{
+                  position: 'absolute', top: 6, right: 6, width: 8, height: 8,
+                  borderRadius: '50%', background: '#FF6B2B', border: '2px solid #fff',
+                }} />
+              )}
             </button>
           </div>
         </header>
