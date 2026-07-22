@@ -247,6 +247,7 @@ export const voluntarioPuestosApi = {
   getAll:        () => http.get('/voluntario/puestos'),
   getNuevos:     () => http.get('/voluntario/puestos/nuevos'),
   marcarVistos:  () => http.post('/voluntario/puestos/marcar-vistos'),
+  confirmar:     (asignacionId, estado) => http.post(`/voluntario/puestos/${asignacionId}/confirmar`, { estado }),
 };
 
 // ─── Usuarios ─────────────────────────────────────────────────────────────────

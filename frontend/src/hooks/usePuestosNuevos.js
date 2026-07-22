@@ -42,6 +42,16 @@ export function marcarPuestosVistos() {
   notificar();
 }
 
+// Invalida la caché y vuelve a consultar el conteo al backend. Se llama tras
+// confirmar/rechazar un puesto, por si esa acción cambió lo que cuenta como
+// "nuevo", para que el badge del sidebar y la campanita queden consistentes.
+export function invalidarPuestosNuevos() {
+  const token = cache.key;
+  cache = { key: token, estado: 'cargando', nuevos: cache.nuevos, promise: null };
+  cargar(token);
+  notificar();
+}
+
 export default function usePuestosNuevos(enabled = true) {
   const token = (typeof localStorage !== 'undefined' && localStorage.getItem('token')) || '';
   const [, forzar] = useState(0);
