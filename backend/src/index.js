@@ -8,6 +8,7 @@ const campusRouter               = require('./routes/campus');
 const authRouter          = require('./routes/auth');
 const authVoluntarioRouter = require('./routes/authVoluntario');
 const usuariosRouter      = require('./routes/usuarios');
+const equiposRouter       = require('./routes/equipos');
 const voluntariosRouter   = require('./routes/voluntarios');
 const liderVoluntariosRouter = require('./routes/liderVoluntarios');
 const liderPosicionesRouter = require('./routes/liderPosiciones');
@@ -52,6 +53,9 @@ app.use('/api/campus', campusRouter);
 app.use(campusMiddleware);
 
 app.use('/api/usuarios',    usuariosRouter);
+// Protegido: mismo requireAdmin (stewardship/administracion). Vista global de
+// ministerios con su lider y voluntarios con cuenta. Solo lectura, por campus.
+app.use('/api/equipos',     equiposRouter);
 app.use('/api/voluntarios', voluntariosRouter);
 // Protegido: el router exige token y rol de líder/staff (requireLider).
 app.use('/api/lider/voluntarios', liderVoluntariosRouter);

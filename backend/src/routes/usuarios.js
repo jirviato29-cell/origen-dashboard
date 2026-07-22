@@ -191,3 +191,6 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
+// Se exporta para reusar el MISMO guard (solo stewardship/administracion) en
+// otras rutas de admin (p. ej. equipos), sin duplicar la lógica.
+module.exports.requireAdmin = requireAdmin;
