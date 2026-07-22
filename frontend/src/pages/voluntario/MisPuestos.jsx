@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { voluntarioPuestosApi } from '../../services/api';
 import { useTiposEvento } from '../../context/TiposEventoContext';
-import { marcarPuestosVistos } from '../../hooks/usePuestosNuevos';
+import { marcarPuestosVistos, invalidarPuestosNuevos } from '../../hooks/usePuestosNuevos';
 
 // "Mis puestos" del voluntario (PASO 5, parte 4): SOLO LECTURA. Lista las
 // posiciones que su líder le asignó, de la fecha más próxima a la más lejana.
@@ -21,6 +21,11 @@ const GRAY_500   = '#7A8699';
 const GRAY_300   = '#CBD2DC';
 const GRAY_200   = '#E2E6EC';
 const GRAY_50    = '#F6F7F9';
+
+// Pila de fuente que se aplica INLINE en los botones de respuesta: la regla
+// global `.app button { color: inherit }` también pisa la familia/tamaño, así
+// que los botones se blindan con estilo inline (color, fondo, borde y fuente).
+const FONT = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -56,6 +61,19 @@ const CSS = `
 .mp-min{font-size:11.5px;color:${GRAY_500};font-weight:600;}
 .mp-conf{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;}
 .mp-conf-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+/* Zona de respuesta del voluntario. Colores/fuente van INLINE (ver FONT). */
+.mp-resp{margin-top:2px;display:flex;flex-direction:column;gap:9px;}
+.mp-resp-btns{display:flex;gap:10px;}
+.mp-resp-btn{flex:1;min-width:0;border:2px solid transparent;border-radius:13px;padding:14px 10px;line-height:1.15;cursor:pointer;-webkit-appearance:none;appearance:none;}
+.mp-resp-btn:disabled{opacity:.55;cursor:default;}
+.mp-resp-state{display:inline-flex;align-items:center;gap:8px;}
+.mp-resp-state-t{font-size:15.5px;font-weight:800;letter-spacing:-.01em;}
+.mp-resp-ic{font-size:17px;line-height:1;}
+.mp-resp-lock{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:${GRAY_500};}
+.mp-resp-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.mp-resp-cambiar{border:none;background:none;padding:0;text-decoration:underline;cursor:pointer;}
+.mp-resp-err{font-size:12.5px;font-weight:600;color:${ROJO};line-height:1.4;}
 `;
 
 const diaDeISO = (iso) => Number(iso.slice(8, 10));
@@ -64,19 +82,52 @@ const dowDeISO = (iso) => {
   return new Date(Date.UTC(a, m - 1, d)).getUTCDay();
 };
 
-// Estado de confirmación → color + etiqueta discreta. Sin dato = pendiente.
+// Estado de confirmación → cómo se ve la respuesta ya dada. Sin dato = pendiente.
 const CONF = {
-  confirmado: { c: VERDE,    t: 'Confirmado' },
-  rechazado:  { c: ROJO,     t: 'Rechazado' },
-  pendiente:  { c: GRAY_500, t: 'Pendiente' },
+  confirmado: { c: VERDE, t: 'Confirmado', ic: '✓' },
+  rechazado:  { c: ROJO,  t: 'No podrás',  ic: '✕' },
 };
-const confDe = (estado) => CONF[estado] || CONF.pendiente;
+const respondio = (estado) => estado === 'confirmado' || estado === 'rechazado';
 
 export default function MisPuestos() {
   const { tipoCellBg = {}, tipoColor = {} } = useTiposEvento() || {};
   const [puestos, setPuestos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
+  // UI de confirmación, por asignación:
+  const [guardando, setGuardando]   = useState(null);       // asignacion_id en curso
+  const [editando, setEditando]     = useState(() => new Set()); // ids donde pulsó "Cambiar"
+  const [erroresConf, setErroresConf] = useState({});       // id → mensaje del backend
+
+  // Enviar respuesta (confirmado/rechazado). Actualiza la tarjeta en sitio y
+  // muestra el error del backend (p. ej. 403 por cierre) sin tumbar la pantalla.
+  const responder = async (p, estado) => {
+    const id = p.asignacion_id;
+    if (!id || guardando) return;
+    setGuardando(id);
+    setErroresConf((e) => ({ ...e, [id]: '' }));
+    try {
+      const { data } = await voluntarioPuestosApi.confirmar(id, estado);
+      const a = data?.asignacion || {};
+      setPuestos((prev) => prev.map((x) => (x.asignacion_id === id
+        ? { ...x, estado_confirmacion: a.estado_confirmacion ?? estado, bloqueado: a.bloqueado ?? x.bloqueado }
+        : x)));
+      setEditando((prev) => { const n = new Set(prev); n.delete(id); return n; });
+      // Por si la respuesta cambió lo que cuenta como "nuevo", refresca el badge.
+      invalidarPuestosNuevos();
+    } catch (err) {
+      const msg = err.response?.data?.error || 'No se pudo guardar tu respuesta';
+      setErroresConf((e) => ({ ...e, [id]: msg }));
+      // Si el backend dice que ya cerró, refleja el bloqueo en la tarjeta.
+      if (err.response?.status === 403) {
+        setPuestos((prev) => prev.map((x) => (x.asignacion_id === id ? { ...x, bloqueado: true } : x)));
+      }
+    } finally {
+      setGuardando(null);
+    }
+  };
+
+  const abrirCambio = (id) => setEditando((prev) => { const n = new Set(prev); n.add(id); return n; });
 
   // Carga de puestos.
   useEffect(() => {
@@ -110,7 +161,7 @@ export default function MisPuestos() {
       <div className="mp-head">
         <h2 className="mp-h2">Mis puestos</h2>
         <div className="mp-h2-note">
-          Aquí ves dónde te toca colaborar en cada fecha. La confirmación la coordinas con tu líder por WhatsApp.
+          Aquí ves dónde te toca colaborar en cada fecha. Responde si puedes ir con «Confirmo» o «No podré»; tu líder lo verá al instante.
         </div>
       </div>
 
@@ -128,7 +179,14 @@ export default function MisPuestos() {
           {puestos.map((p) => {
             const accent = tipoColor[p.tipo_evento] || p.tipo_color || GRAY_300;
             const cellBg = tipoCellBg[p.tipo_evento] || null;
-            const conf = confDe(p.estado_confirmacion);
+            const estado = p.estado_confirmacion || 'pendiente';
+            const bloqueado = !!p.bloqueado;
+            const id = p.asignacion_id;
+            const yaRespondio = respondio(estado);
+            const info = CONF[estado];                       // undefined si pendiente
+            const mostrarBotones = !!id && !bloqueado && (!yaRespondio || editando.has(id));
+            const guardandoEste = guardando === id;
+            const errConf = erroresConf[id];
             return (
               <div key={`${p.fecha}|${p.evento_id ?? 'dom'}`} className="mp-card" style={{ borderLeftColor: accent, background: cellBg || '#fff' }}>
                 <div className="mp-fecha">
@@ -149,11 +207,61 @@ export default function MisPuestos() {
                     {p.descripcion && <div className="mp-pos-desc">{p.descripcion}</div>}
                   </div>
 
-                  <div className="mp-foot">
-                    {p.ministerio && <span className="mp-min">{p.ministerio}</span>}
-                    <span className="mp-conf" style={{ color: conf.c }}>
-                      <span className="mp-conf-dot" style={{ background: conf.c }} />{conf.t}
-                    </span>
+                  {p.ministerio && (
+                    <div className="mp-foot"><span className="mp-min">{p.ministerio}</span></div>
+                  )}
+
+                  <div className="mp-resp">
+                    {mostrarBotones ? (
+                      <div className="mp-resp-btns">
+                        <button
+                          type="button"
+                          className="mp-resp-btn"
+                          disabled={guardandoEste}
+                          onClick={() => responder(p, 'confirmado')}
+                          style={{ fontFamily: FONT, fontWeight: 800, fontSize: '15.5px', backgroundColor: VERDE, color: '#FFFFFF', borderColor: VERDE }}
+                        >
+                          {guardandoEste ? 'Guardando…' : 'Confirmo'}
+                        </button>
+                        <button
+                          type="button"
+                          className="mp-resp-btn"
+                          disabled={guardandoEste}
+                          onClick={() => responder(p, 'rechazado')}
+                          style={{ fontFamily: FONT, fontWeight: 800, fontSize: '15.5px', backgroundColor: '#FFFFFF', color: ROJO, borderColor: ROJO }}
+                        >
+                          No podré
+                        </button>
+                      </div>
+                    ) : bloqueado ? (
+                      <div className="mp-resp-row">
+                        {info ? (
+                          <span className="mp-resp-state">
+                            <span className="mp-resp-ic" style={{ color: info.c }}>{info.ic}</span>
+                            <span className="mp-resp-state-t" style={{ color: info.c }}>{info.t}</span>
+                          </span>
+                        ) : (
+                          <span className="mp-resp-state-t" style={{ color: GRAY_500 }}>Sin responder</span>
+                        )}
+                        <span className="mp-resp-lock">🔒 Ya cerró</span>
+                      </div>
+                    ) : (
+                      <div className="mp-resp-row">
+                        <span className="mp-resp-state">
+                          <span className="mp-resp-ic" style={{ color: info.c }}>{info.ic}</span>
+                          <span className="mp-resp-state-t" style={{ color: info.c }}>{info.t}</span>
+                        </span>
+                        <button
+                          type="button"
+                          className="mp-resp-cambiar"
+                          onClick={() => abrirCambio(id)}
+                          style={{ fontFamily: FONT, fontWeight: 700, fontSize: '12.5px', color: GRAY_600, backgroundColor: 'transparent', borderColor: 'transparent' }}
+                        >
+                          Cambiar
+                        </button>
+                      </div>
+                    )}
+                    {errConf && <div className="mp-resp-err">{errConf}</div>}
                   </div>
                 </div>
               </div>
