@@ -31,6 +31,7 @@ import StewardshipGastosPorPagarPage from './pages/stewardship/GastosPorPagarPag
 import StewardshipBalancePage from './pages/stewardship/BalancePage';
 import CalendarioPage from './pages/stewardship/CalendarioPage';
 import VoluntariosPage from './pages/stewardship/VoluntariosPage';
+import EquiposPage from './pages/stewardship/EquiposPage';
 import BienvenidaCasaPage from './pages/anfitriones/BienvenidaCasaPage';
 import { LiderVoluntarios, LiderPosiciones, LiderProgramar, LiderTablero } from './pages/lider/PanelLider';
 import PanelVoluntario from './pages/voluntario/PanelVoluntario';
@@ -120,6 +121,7 @@ function AppRoutes() {
         <Route path="bienvenida-a-casa"  element={<BienvenidaCasaPage />} />
         <Route path="voluntarios"        element={<VoluntariosPage />} />
         <Route path="calendario"         element={<CalendarioPage />} />
+        <Route path="equipos"            element={<EquiposPage />} />
         <Route path="configuracion"      element={<ConfiguracionPage />} />
         <Route path="ofrendas-especiales"          element={<OfrendasEspecialesPage />} />
         <Route path="ofrendas-especiales/:id"      element={<OfrendasEspecialesDetallePage />} />

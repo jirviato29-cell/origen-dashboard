@@ -280,6 +280,12 @@ export const ministeriosApi = {
   borrar:     (id)       => http.delete(`/ministerios/${id}`),
 };
 
+// ─── Equipos (vista global de stewardship: ministerios + líder + voluntarios) ──
+// Solo lectura. El backend filtra por el campus del contexto (requireAdmin).
+export const equiposApi = {
+  getAll: () => http.get('/equipos'),
+};
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 export const ofrendasEspecialesApi = realOfrendasEspecialesApi;
 export const ingresosApi   = USE_MOCK ? mock.ingresosApi   : realIngresosApi;

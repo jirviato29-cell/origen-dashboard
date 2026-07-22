@@ -49,6 +49,7 @@ const ROUTE_INFO = {
   '/stewardship/bienvenida-a-casa':     { section: 'Stewardship',        title: 'Bienvenida a Casa' },
   '/stewardship/calendario':            { section: 'Stewardship',        title: 'Calendario' },
   '/stewardship/voluntarios':           { section: 'Stewardship',        title: 'Directorio de voluntarios' },
+  '/stewardship/equipos':               { section: 'Stewardship',        title: 'Líderes y equipos' },
   '/stewardship/configuracion':         { section: 'Stewardship',        title: 'Configuración' },
   '/lider_ministerio':                  { section: 'Ministerio',         title: 'Panel de líder' },
   '/lider_ministerio/voluntarios':      { section: 'Ministerio',         title: 'Mis voluntarios' },
