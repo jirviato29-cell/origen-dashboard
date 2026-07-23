@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { voluntarioDisponibilidadApi } from '../../services/api';
+import BotonNotificaciones from '../../components/BotonNotificaciones';
 
 // "Mi calendario" del voluntario, implementado según el handoff de diseño
 // (referencia-Mi-Calendario.html / SPEC-Mi-Calendario.md): sistema azul marino +
@@ -536,6 +537,11 @@ export default function PanelVoluntario() {
         <div className="mc-rail-head">
           <h3>Donde colaboras</h3>
           <p>Estas son las fechas en las que te toca colaborar. Marca si puedes o no.</p>
+        </div>
+
+        {/* Activar notificaciones push (cualquier rol; aquí para el voluntario). */}
+        <div style={{ padding: '16px 18px 0' }}>
+          <BotonNotificaciones />
         </div>
 
         <div className="mc-rail-list">

@@ -250,6 +250,16 @@ export const voluntarioPuestosApi = {
   confirmar:     (asignacionId, estado) => http.post(`/voluntario/puestos/${asignacionId}/confirmar`, { estado }),
 };
 
+// ─── Notificaciones push (cualquier rol autenticado) ─────────────────────────
+// El backend liga la suscripción al usuario del token. `suscribir` recibe el
+// objeto PushSubscription serializado ({ endpoint, keys }).
+export const pushApi = {
+  estado:      ()          => http.get('/push/estado'),
+  suscribir:   (sub)       => http.post('/push/suscribir', sub),
+  desuscribir: (endpoint)  => http.delete('/push/suscribir', { data: { endpoint } }),
+  prueba:      ()          => http.post('/push/prueba'),
+};
+
 // ─── Usuarios ─────────────────────────────────────────────────────────────────
 const realUsuariosApi = {
   getAll:       ()               => http.get('/usuarios'),
