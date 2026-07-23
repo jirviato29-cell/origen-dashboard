@@ -35,6 +35,7 @@ const ofrendasEspecialesRouter   = require('./routes/ofrendas_especiales');
 const tiposEventoRouter          = require('./routes/tiposEvento');
 const ministeriosRouter          = require('./routes/ministerios');
 const camposPersonalizadosRouter = require('./routes/camposPersonalizados');
+const pushRouter                 = require('./routes/push');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,6 +49,11 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'Origen Dashb
 app.use('/api', authRouter);
 app.use('/api', authVoluntarioRouter);
 app.use('/api/campus', campusRouter);
+
+// Notificaciones push: ruta protegida con su PROPIO middleware de JWT
+// (acepta cualquier rol autenticado). No depende de req.campus, por eso se
+// monta antes del campusMiddleware.
+app.use('/api/push', pushRouter);
 
 // A partir de aquí todas las peticiones resuelven req.campus
 app.use(campusMiddleware);
