@@ -14,6 +14,13 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
 
+      // injectManifest: usamos NUESTRO service worker (src/sw.js) para poder
+      // manejar push/notificationclick. El precache del shell, skipWaiting,
+      // clientsClaim y el navigateFallback (sin /api) viven dentro de ese archivo.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+
       manifest: {
         name: 'Origen Dashboard',
         short_name: 'Origen',
@@ -47,29 +54,15 @@ export default defineConfig({
         ],
       },
 
-      workbox: {
-        // Nueva versión activa de inmediato, sin quedar "waiting".
-        skipWaiting: true,
-        clientsClaim: true,
-
+      // Con injectManifest solo se configura QUÉ entra al precache; el resto del
+      // comportamiento (skipWaiting, clientsClaim, navigateFallback, sin caché de
+      // /api) está codificado en src/sw.js.
+      injectManifest: {
         // SOLO el shell entra al precache: html, js, css, iconos y favicon.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,woff,woff2}'],
         // El bundle principal de la app supera los 2 MiB por defecto; subimos el
         // límite para que el shell completo (incluido el JS) quede precacheado.
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-
-        // Las rutas del SPA (p. ej. /voluntario/calendario abierta directo) caen a index.html...
-        navigateFallback: '/index.html',
-        // ...PERO nunca interceptamos la API ni rutas con extensión de archivo.
-        navigateFallbackDenylist: [
-          /^\/api\//,
-          /^\/api$/,
-          /\/[^/?]+\.[^/]+$/, // cualquier ruta que termine en un archivo con extensión
-        ],
-
-        // CRÍTICO: NO hay runtimeCaching. La API (/api y el backend en Render) NUNCA se cachea.
-        // Sin runtimeCaching definido, cada petición fetch/axios va siempre a la red.
-        runtimeCaching: [],
       },
 
       devOptions: {
