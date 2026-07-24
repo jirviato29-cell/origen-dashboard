@@ -224,3 +224,7 @@ router.delete('/:cuentaId', async (req, res) => {
 });
 
 module.exports = router;
+// Se exportan para reusar la MISMA autenticación/contexto en otros routers del
+// líder (p. ej. liderPosiciones) sin duplicar la lógica.
+module.exports.requireLider = requireLider;
+module.exports.contextoLider = contextoLider;

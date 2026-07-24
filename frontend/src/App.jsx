@@ -31,10 +31,14 @@ import StewardshipGastosPorPagarPage from './pages/stewardship/GastosPorPagarPag
 import StewardshipBalancePage from './pages/stewardship/BalancePage';
 import CalendarioPage from './pages/stewardship/CalendarioPage';
 import VoluntariosPage from './pages/stewardship/VoluntariosPage';
+import EquiposPage from './pages/stewardship/EquiposPage';
+import Avisos from './pages/stewardship/Avisos';
 import BienvenidaCasaPage from './pages/anfitriones/BienvenidaCasaPage';
-import PanelLider from './pages/lider/PanelLider';
+import { LiderVoluntarios, LiderPosiciones, LiderProgramar, LiderTablero } from './pages/lider/PanelLider';
 import PanelVoluntario from './pages/voluntario/PanelVoluntario';
+import MisPuestos from './pages/voluntario/MisPuestos';
 import LoginVoluntario from './pages/voluntario/LoginVoluntario';
+import Configuracion from './pages/Configuracion';
 import './index.css';
 
 // Protege una sección de rutas: redirige a / si no hay sesión,
@@ -119,6 +123,8 @@ function AppRoutes() {
         <Route path="bienvenida-a-casa"  element={<BienvenidaCasaPage />} />
         <Route path="voluntarios"        element={<VoluntariosPage />} />
         <Route path="calendario"         element={<CalendarioPage />} />
+        <Route path="equipos"            element={<EquiposPage />} />
+        <Route path="avisos"             element={<Avisos />} />
         <Route path="configuracion"      element={<ConfiguracionPage />} />
         <Route path="ofrendas-especiales"          element={<OfrendasEspecialesPage />} />
         <Route path="ofrendas-especiales/:id"      element={<OfrendasEspecialesDetallePage />} />
@@ -128,17 +134,27 @@ function AppRoutes() {
       <Route path="/lider_ministerio" element={
         <ProtectedRoute routeRole="lider_ministerio"><Layout /></ProtectedRoute>
       }>
-        <Route index element={<PanelLider />} />
+        <Route index element={<Navigate to="/lider_ministerio/voluntarios" replace />} />
+        <Route path="voluntarios" element={<LiderVoluntarios />} />
+        <Route path="posiciones"  element={<LiderPosiciones />} />
+        <Route path="programar"   element={<LiderProgramar />} />
+        <Route path="tablero"     element={<LiderTablero />} />
+        <Route path="configuracion" element={<Configuracion />} />
       </Route>
 
       {/* ── Voluntario ─────────────────────────────────────────────────── */}
-      {/* Sin Layout: su flujo de acceso es aparte y no tiene nav lateral. */}
+      {/* /voluntario/login queda sin Layout (pantalla de acceso propia). */}
       <Route path="/voluntario/login" element={
         role ? <Navigate to={`/${role}`} replace /> : <LoginVoluntario />
       } />
       <Route path="/voluntario" element={
-        <ProtectedRoute routeRole="voluntario"><PanelVoluntario /></ProtectedRoute>
-      } />
+        <ProtectedRoute routeRole="voluntario"><Layout /></ProtectedRoute>
+      }>
+        <Route index element={<Navigate to="/voluntario/calendario" replace />} />
+        <Route path="calendario"    element={<PanelVoluntario />} />
+        <Route path="puestos"       element={<MisPuestos />} />
+        <Route path="configuracion" element={<Configuracion />} />
+      </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

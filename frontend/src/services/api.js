@@ -116,12 +116,13 @@ const realEventosApi = {
 
 // ─── Calendario ───────────────────────────────────────────────────────────────
 const realCalendarioApi = {
-  getAll:  (params) => http.get('/calendario', { params }),
-  getOne:  (id)     => http.get(`/calendario/${id}`),
-  create:  (data)   => http.post('/calendario', data),
-  update:  (id, d)  => http.put(`/calendario/${id}`, d),
-  remove:  (id)     => http.delete(`/calendario/${id}`),
-  cerrar:  (id)     => http.patch(`/calendario/${id}/cerrar`),
+  getAll:         (params) => http.get('/calendario', { params }),
+  getOne:         (id)     => http.get(`/calendario/${id}`),
+  getMinisterios: (id)     => http.get(`/calendario/${id}/ministerios`),
+  create:         (data)   => http.post('/calendario', data),
+  update:         (id, d)  => http.put(`/calendario/${id}`, d),
+  remove:         (id)     => http.delete(`/calendario/${id}`),
+  cerrar:         (id)     => http.patch(`/calendario/${id}/cerrar`),
 };
 
 // ─── Participantes ───────────────────────────────────────────────────────────
@@ -204,11 +205,76 @@ export const liderVoluntariosApi = {
   remove: (cuentaId) => http.delete(`/lider/voluntarios/${cuentaId}`),
 };
 
+// ─── Perfil del líder (nombre de su ministerio) ───────────────────────────────
+// El backend resuelve el ministerio del token, no de aquí.
+export const liderPerfilApi = {
+  get: () => http.get('/lider/perfil'),
+};
+
+// ─── Posiciones del líder (catálogo del ministerio) ───────────────────────────
+// Usa la misma instancia http (token + campus por interceptor). El ministerio y
+// el campus los resuelve el backend del token, no de aquí.
+export const liderPosicionesApi = {
+  getPosiciones:  ()            => http.get('/lider/posiciones'),
+  crearPosicion:  (data)        => http.post('/lider/posiciones', data),
+  editarPosicion: (id, data)    => http.put(`/lider/posiciones/${id}`, data),
+  borrarPosicion: (id)          => http.delete(`/lider/posiciones/${id}`),
+};
+
+// ─── Programar servicio del líder (fechas, detalle, asignar por catálogo) ─────
+// El backend saca el ministerio y el campus del token, no de aquí. evento_id se
+// omite (null) para los domingos.
+export const liderProgramarApi = {
+  getFechas:  (mes)             => http.get('/lider/programar/fechas', { params: { mes } }),
+  getDetalle: (fecha, eventoId) => http.get('/lider/programar/detalle', {
+    params: eventoId != null ? { fecha, evento_id: eventoId } : { fecha },
+  }),
+  asignar:    (data)            => http.post('/lider/programar/asignar', data),
+  quitar:     (asignacionId)    => http.delete(`/lider/programar/asignar/${asignacionId}`),
+};
+
 // ─── Disponibilidad del voluntario ────────────────────────────────────────────
 // El backend saca el campus de la ficha del voluntario (por el token), no de aquí.
 export const voluntarioDisponibilidadApi = {
   getMes:  (mes)  => http.get('/voluntario/disponibilidad', { params: { mes } }),
   marcar:  (data) => http.post('/voluntario/disponibilidad', data),
+};
+
+// ─── Mis puestos del voluntario (solo lectura) ────────────────────────────────
+// Asignaciones del voluntario del token; el badge usa /nuevos y se limpia con
+// /marcar-vistos. Todo lo resuelve el backend por el voluntario_id del token.
+export const voluntarioPuestosApi = {
+  getAll:        () => http.get('/voluntario/puestos'),
+  getNuevos:     () => http.get('/voluntario/puestos/nuevos'),
+  marcarVistos:  () => http.post('/voluntario/puestos/marcar-vistos'),
+  confirmar:     (asignacionId, estado) => http.post(`/voluntario/puestos/${asignacionId}/confirmar`, { estado }),
+};
+
+// ─── Notificaciones push (cualquier rol autenticado) ─────────────────────────
+// El backend liga la suscripción al usuario del token. `suscribir` recibe el
+// objeto PushSubscription serializado ({ endpoint, keys }).
+export const pushApi = {
+  estado:      ()          => http.get('/push/estado'),
+  suscribir:   (sub)       => http.post('/push/suscribir', sub),
+  desuscribir: (endpoint)  => http.delete('/push/suscribir', { data: { endpoint } }),
+  prueba:      ()          => http.post('/push/prueba'),
+};
+
+// ─── Mi perfil (cualquier rol autenticado) ────────────────────────────────────
+// Datos de solo lectura para la pestaña Configuración: nombre de acceso, campus y
+// ministerio. El backend los resuelve por el usuario del token, no de aquí.
+export const miPerfilApi = {
+  get: () => http.get('/mi-perfil'),
+};
+
+// ─── Avisos push masivos (solo stewardship) ───────────────────────────────────
+// El backend verifica el rol del token y resuelve los destinatarios; aquí solo
+// mandamos los filtros del formulario. `destinatarios` es el conteo previo para
+// el modal de confirmación.
+export const avisosApi = {
+  historial:     ()        => http.get('/avisos'),
+  destinatarios: (params)  => http.get('/avisos/destinatarios', { params }),
+  enviar:        (body)    => http.post('/avisos', body),
 };
 
 // ─── Usuarios ─────────────────────────────────────────────────────────────────
@@ -218,6 +284,7 @@ const realUsuariosApi = {
   toggle:       (id)             => http.patch(`/usuarios/${id}/toggle`),
   cambiarNombre:(id, nombre)     => http.patch(`/usuarios/${id}/nombre`, { nombre }),
   cambiarClave: (id, clave)      => http.patch(`/usuarios/${id}/clave`, { clave }),
+  cambiarMinisterio: (id, ministerio_id) => http.patch(`/usuarios/${id}/ministerio`, { ministerio_id }),
   remove:       (id)             => http.delete(`/usuarios/${id}`),
 };
 
@@ -239,6 +306,12 @@ export const ministeriosApi = {
   crear:      (body)     => http.post('/ministerios', body),
   actualizar: (id, body) => http.put(`/ministerios/${id}`, body),
   borrar:     (id)       => http.delete(`/ministerios/${id}`),
+};
+
+// ─── Equipos (vista global de stewardship: ministerios + líder + voluntarios) ──
+// Solo lectura. El backend filtra por el campus del contexto (requireAdmin).
+export const equiposApi = {
+  getAll: () => http.get('/equipos'),
 };
 
 // ─── Exports ──────────────────────────────────────────────────────────────────

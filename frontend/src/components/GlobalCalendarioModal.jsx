@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { calendarioApi, tiposEventoApi } from '../services/api';
 import { useCalendarioModal } from '../context/CalendarioModalContext';
 import { useTiposEvento } from '../context/TiposEventoContext';
+import { useMinisterios } from '../context/MinisteriosContext';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { puedeRegistrar } from '../permissions';
 import { I } from './Icons';
@@ -21,7 +22,7 @@ function formatDateLong(iso) {
     .replace(/^\w/, c => c.toUpperCase());
 }
 
-const makeEmpty = (date) => ({ fecha: date || todayISO(), nombre: '', tipo: '', nota: '', costo: '', enPuntoEncuentro: false });
+const makeEmpty = (date) => ({ fecha: date || todayISO(), nombre: '', tipo: '', nota: '', costo: '', enPuntoEncuentro: false, paraVoluntarios: false, eventoAbierto: false });
 
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: 10,
@@ -37,6 +38,7 @@ const labelStyle = {
 export default function GlobalCalendarioModal() {
   const { open, initialDate, editingEvent, lockPuntoEncuentro, closeModal, triggerRefresh } = useCalendarioModal();
   const { tipos, reload: reloadTipos } = useTiposEvento();
+  const { ministerios, reload: reloadMinisterios } = useMinisterios();
   const { permisos, role } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'calendario');
   // El rol Punto de Encuentro también puede gestionar los tipos de evento,
@@ -49,6 +51,7 @@ export default function GlobalCalendarioModal() {
   const [saved,     setSaved]     = useState(false);
   const [savedData, setSavedData] = useState(null);
   const [tieneCosto, setTieneCosto] = useState(false);
+  const [ministeriosSeleccionados, setMinisteriosSeleccionados] = useState([]);
 
   // Gestionar tipos state
   const [showGestionar,  setShowGestionar]  = useState(false);
@@ -75,6 +78,7 @@ export default function GlobalCalendarioModal() {
       setTipoMsgErr('');
       setConfirmDelTipo(null);
       reloadTipos();
+      reloadMinisterios();
       if (editingEvent) {
         const costoNum = parseFloat(editingEvent.costo) || 0;
         setTieneCosto(costoNum > 0);
@@ -85,13 +89,24 @@ export default function GlobalCalendarioModal() {
           nota:             editingEvent.nota   || '',
           costo:            costoNum > 0 ? String(editingEvent.costo) : '',
           enPuntoEncuentro: Boolean(editingEvent.en_punto_encuentro),
+          paraVoluntarios:  Boolean(editingEvent.para_voluntarios),
+          eventoAbierto:    Boolean(editingEvent.evento_abierto),
         });
+        // Precarga los ministerios asignados si el evento ya era de servicio.
+        if (editingEvent.para_voluntarios) {
+          calendarioApi.getMinisterios(editingEvent.id)
+            .then(res => setMinisteriosSeleccionados(res.data.map(m => m.id)))
+            .catch(() => setMinisteriosSeleccionados([]));
+        } else {
+          setMinisteriosSeleccionados([]);
+        }
       } else {
         setTieneCosto(false);
         setForm({ ...makeEmpty(initialDate), enPuntoEncuentro: lockPuntoEncuentro });
+        setMinisteriosSeleccionados([]);
       }
     }
-  }, [open, initialDate, editingEvent, lockPuntoEncuentro, reloadTipos]);
+  }, [open, initialDate, editingEvent, lockPuntoEncuentro, reloadTipos, reloadMinisterios]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && !saved) closeModal(); };
@@ -113,6 +128,12 @@ export default function GlobalCalendarioModal() {
         nota:               form.nota.trim() || null,
         costo:              form.costo ? parseFloat(form.costo) : 0,
         en_punto_encuentro: form.enPuntoEncuentro,
+        para_voluntarios:   form.paraVoluntarios,
+        // Solo puede ser abierto si es de servicio.
+        evento_abierto:     form.paraVoluntarios && form.eventoAbierto,
+        // El backend ignora/limpia ministerio_ids si no es de servicio o es
+        // abierto; aqui mandamos vacio en esos casos.
+        ministerio_ids:     form.paraVoluntarios && !form.eventoAbierto ? ministeriosSeleccionados : [],
       };
       if (isEditing) {
         await calendarioApi.update(editingEvent.id, payload);
@@ -408,6 +429,122 @@ export default function GlobalCalendarioModal() {
                   </div>
                 </div>
               </label>
+
+              {/* Checkbox Evento de servicio */}
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px', borderRadius: 10,
+                background: form.paraVoluntarios ? 'rgba(0,180,216,0.07)' : 'var(--surface)',
+                border: `1.5px solid ${form.paraVoluntarios ? 'var(--chart-primary)' : 'var(--border)'}`,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={form.paraVoluntarios}
+                  onChange={e => {
+                    const marcado = e.target.checked;
+                    // Al desmarcar "de servicio" se limpia tambien lo abierto y los ministerios.
+                    setForm(f => ({ ...f, paraVoluntarios: marcado, eventoAbierto: marcado ? f.eventoAbierto : false }));
+                    if (!marcado) setMinisteriosSeleccionados([]);
+                  }}
+                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
+                />
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                    Evento de servicio (los voluntarios pueden apuntarse)
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+                    Aparecerá en el calendario de disponibilidad de los voluntarios
+                  </div>
+                </div>
+              </label>
+
+              {/* Bloque de evento de servicio: evento abierto + ministerios */}
+              {form.paraVoluntarios && (
+                <>
+                  {/* Checkbox Evento abierto */}
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 14px', borderRadius: 10,
+                    background: form.eventoAbierto ? 'rgba(0,180,216,0.07)' : 'var(--surface)',
+                    border: `1.5px solid ${form.eventoAbierto ? 'var(--chart-primary)' : 'var(--border)'}`,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={form.eventoAbierto}
+                      onChange={e => {
+                        const marcado = e.target.checked;
+                        setForm(f => ({ ...f, eventoAbierto: marcado }));
+                        // Un evento abierto no necesita ministerios: limpia la seleccion.
+                        if (marcado) setMinisteriosSeleccionados([]);
+                      }}
+                      style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
+                    />
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                        Evento abierto — todos los voluntarios pueden apuntarse
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+                        No importa su ministerio, cualquier voluntario podrá marcar si sirve.
+                      </div>
+                    </div>
+                  </label>
+
+              {/* Selector de ministerios — solo si es de servicio y NO abierto */}
+              {!form.eventoAbierto && (
+                <div style={{
+                  padding: '12px 14px', borderRadius: 10,
+                  border: '1.5px solid var(--border)', background: 'var(--surface)',
+                }}>
+                  <div style={{ ...labelStyle, marginBottom: 8 }}>
+                    ¿Qué ministerios sirven en este evento?
+                  </div>
+                  {ministerios.length === 0 ? (
+                    <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                      Aún no hay ministerios registrados en este campus.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {ministerios.map(m => {
+                        const checked = ministeriosSeleccionados.includes(m.id);
+                        return (
+                          <label key={m.id} style={{
+                            display: 'flex', alignItems: 'center', gap: 9,
+                            padding: '7px 10px', borderRadius: 8,
+                            background: checked ? '#fff' : 'transparent',
+                            border: `1px solid ${checked ? 'var(--chart-primary)' : 'var(--border)'}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.12s',
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={e => {
+                                const marcado = e.target.checked;
+                                setMinisteriosSeleccionados(prev =>
+                                  marcado ? [...prev, m.id] : prev.filter(x => x !== m.id)
+                                );
+                              }}
+                              style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--chart-primary)', flexShrink: 0 }}
+                            />
+                            <span style={{
+                              display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
+                              background: m.color || '#64748B', flexShrink: 0,
+                              border: '1px solid rgba(0,0,0,.1)',
+                            }} />
+                            <span style={{ fontSize: 13.5, color: 'var(--ink)', flex: 1 }}>{m.nombre}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                  )}
+                </>
+              )}
 
             </div>
 

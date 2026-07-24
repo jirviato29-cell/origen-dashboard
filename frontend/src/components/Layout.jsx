@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
+import useLiderPerfil from '../hooks/useLiderPerfil';
+import usePuestosNuevos from '../hooks/usePuestosNuevos';
 import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useGastosModal } from '../context/GastosModalContext';
@@ -47,8 +49,19 @@ const ROUTE_INFO = {
   '/stewardship/bienvenida-a-casa':     { section: 'Stewardship',        title: 'Bienvenida a Casa' },
   '/stewardship/calendario':            { section: 'Stewardship',        title: 'Calendario' },
   '/stewardship/voluntarios':           { section: 'Stewardship',        title: 'Directorio de voluntarios' },
+  '/stewardship/equipos':               { section: 'Stewardship',        title: 'Líderes y equipos' },
+  '/stewardship/avisos':                { section: 'Stewardship',        title: 'Avisos' },
   '/stewardship/configuracion':         { section: 'Stewardship',        title: 'Configuración' },
   '/lider_ministerio':                  { section: 'Ministerio',         title: 'Panel de líder' },
+  '/lider_ministerio/voluntarios':      { section: 'Ministerio',         title: 'Mis voluntarios' },
+  '/lider_ministerio/posiciones':       { section: 'Ministerio',         title: 'Posiciones' },
+  '/lider_ministerio/programar':        { section: 'Ministerio',         title: 'Programar servicio' },
+  '/lider_ministerio/tablero':          { section: 'Ministerio',         title: 'Quién va dónde' },
+  '/lider_ministerio/configuracion':    { section: 'Ministerio',         title: 'Configuración' },
+  '/voluntario':                        { section: 'Voluntario',         title: 'Mi calendario' },
+  '/voluntario/calendario':             { section: 'Voluntario',         title: 'Mi calendario' },
+  '/voluntario/puestos':                { section: 'Voluntario',         title: 'Mis puestos' },
+  '/voluntario/configuracion':          { section: 'Voluntario',         title: 'Configuración' },
 };
 
 export default function Layout() {
@@ -60,6 +73,12 @@ export default function Layout() {
   const { openModal: openCalendarioModal } = useCalendarioModal();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  // Perfil del líder para el badge de la topbar. Solo hace la llamada cuando el
+  // rol es lider_ministerio; para los demás roles queda 'idle' sin fetch.
+  const liderPerfil = useLiderPerfil(role === ROLES.LIDER_MINISTERIO);
+  // Puntito de la campanita: SOLO para el voluntario. Para los demás roles pasa
+  // enabled=false, así el hook no dispara ninguna llamada (igual que useLiderPerfil).
+  const { nuevos: puestosNuevos } = usePuestosNuevos(role === ROLES.VOLUNTARIO);
 
   if (!role) return <Navigate to="/" replace />;
 
@@ -135,6 +154,19 @@ export default function Layout() {
 
           <div className="topbar-right">
 
+            {/* Líder de ministerio — nombre de su ministerio (solo para ese rol) */}
+            {role === ROLES.LIDER_MINISTERIO && liderPerfil.estado === 'ok' && liderPerfil.nombre && (
+              <>
+                <style>{`
+.lmb{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:#FFF4EE;border:1px solid #FFE5D6;color:#112540;font-size:12.5px;font-weight:700;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lmb-dot{width:7px;height:7px;border-radius:50%;background:#FF6B2B;flex-shrink:0;}
+@media(max-width:640px){.lmb{display:none;}}
+`}</style>
+                <span className="lmb" title={liderPerfil.nombre}>
+                  <span className="lmb-dot" />{liderPerfil.nombre}
+                </span>
+              </>
+            )}
 
             {/* Stewardship — Registrar ofrenda */}
             {isStewardship && isIngresos && canRegIngresos && (
@@ -164,8 +196,14 @@ export default function Layout() {
               </button>
             )}
 
-            <button className="icon-btn" aria-label="Notificaciones">
+            <button className="icon-btn" aria-label="Notificaciones" style={{ position: 'relative' }}>
               <I.bell size={17} />
+              {role === ROLES.VOLUNTARIO && puestosNuevos > 0 && (
+                <span style={{
+                  position: 'absolute', top: 6, right: 6, width: 8, height: 8,
+                  borderRadius: '50%', background: '#FF6B2B', border: '2px solid #fff',
+                }} />
+              )}
             </button>
           </div>
         </header>

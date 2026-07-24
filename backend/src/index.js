@@ -8,9 +8,14 @@ const campusRouter               = require('./routes/campus');
 const authRouter          = require('./routes/auth');
 const authVoluntarioRouter = require('./routes/authVoluntario');
 const usuariosRouter      = require('./routes/usuarios');
+const equiposRouter       = require('./routes/equipos');
 const voluntariosRouter   = require('./routes/voluntarios');
 const liderVoluntariosRouter = require('./routes/liderVoluntarios');
+const liderPosicionesRouter = require('./routes/liderPosiciones');
+const liderProgramarRouter = require('./routes/liderProgramar');
+const liderPerfilRouter = require('./routes/liderPerfil');
 const voluntarioDisponibilidadRouter = require('./routes/voluntarioDisponibilidad');
+const voluntarioPuestosRouter        = require('./routes/voluntarioPuestos');
 const ingresosRouter      = require('./routes/ingresos');
 const gastosRouter        = require('./routes/gastos');
 const gastosEventosRouter = require('./routes/gastosEventos');
@@ -30,6 +35,9 @@ const ofrendasEspecialesRouter   = require('./routes/ofrendas_especiales');
 const tiposEventoRouter          = require('./routes/tiposEvento');
 const ministeriosRouter          = require('./routes/ministerios');
 const camposPersonalizadosRouter = require('./routes/camposPersonalizados');
+const pushRouter                 = require('./routes/push');
+const miPerfilRouter             = require('./routes/miPerfil');
+const avisosRouter               = require('./routes/avisos');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -44,15 +52,41 @@ app.use('/api', authRouter);
 app.use('/api', authVoluntarioRouter);
 app.use('/api/campus', campusRouter);
 
+// Notificaciones push: ruta protegida con su PROPIO middleware de JWT
+// (acepta cualquier rol autenticado). No depende de req.campus, por eso se
+// monta antes del campusMiddleware.
+app.use('/api/push', pushRouter);
+
+// Perfil de solo lectura del usuario del token (nombre, campus, ministerio) para
+// la pestaña Configuración. Mismo criterio que push: acepta cualquier rol y no
+// depende de req.campus, así que se monta antes del campusMiddleware.
+app.use('/api/mi-perfil', miPerfilRouter);
+
+// Avisos push masivos (solo stewardship). Verifica el rol del token y resuelve
+// los destinatarios en el backend; no depende de req.campus (el campus es un
+// filtro del body), por eso se monta antes del campusMiddleware.
+app.use('/api/avisos', avisosRouter);
+
 // A partir de aquí todas las peticiones resuelven req.campus
 app.use(campusMiddleware);
 
 app.use('/api/usuarios',    usuariosRouter);
+// Protegido: mismo requireAdmin (stewardship/administracion). Vista global de
+// ministerios con su lider y voluntarios con cuenta. Solo lectura, por campus.
+app.use('/api/equipos',     equiposRouter);
 app.use('/api/voluntarios', voluntariosRouter);
 // Protegido: el router exige token y rol de líder/staff (requireLider).
 app.use('/api/lider/voluntarios', liderVoluntariosRouter);
+// Protegido: mismo requireLider. Catálogo de posiciones del ministerio (PASO 5).
+app.use('/api/lider/posiciones', liderPosicionesRouter);
+// Protegido: mismo requireLider. Programar servicio: fechas, detalle y asignar (PASO 5).
+app.use('/api/lider/programar', liderProgramarRouter);
+// Protegido: mismo requireLider. Perfil del líder (nombre de su ministerio).
+app.use('/api/lider/perfil', liderPerfilRouter);
 // Protegido: el router exige token y rol de voluntario (requireVoluntario).
 app.use('/api/voluntario/disponibilidad', voluntarioDisponibilidadRouter);
+// Protegido: mismo requireVoluntario. "Mis puestos": ve sus asignaciones (solo lectura).
+app.use('/api/voluntario/puestos', voluntarioPuestosRouter);
 
 
 app.use('/api/ingresos',   ingresosRouter);

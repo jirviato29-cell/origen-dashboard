@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { I } from '../../components/Icons';
 import { usuariosApi } from '../../services/api';
+import { useMinisterios } from '../../context/MinisteriosContext';
 import { useIsMobile } from '../../utils/useIsMobile';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
@@ -51,6 +52,14 @@ const ROLES_LISTA = [
     dotColor: NAVY_600, avatarBg: NAVY_600,
   },
   {
+    id: 'lider_ministerio',
+    label: 'Líder de Ministerio',
+    desc: 'Gestiona su equipo de voluntarios y reparte posiciones. Necesita un ministerio asignado.',
+    perms: ['Voluntarios', 'Posiciones'],
+    tileBg: NAVY_100, tileColor: NAVY_700,
+    dotColor: NAVY_700, avatarBg: NAVY_700,
+  },
+  {
     id: 'pastor',
     label: 'Pastor',
     desc: 'Vista de solo lectura: puede consultar finanzas, asistencia, Punto de Encuentro y el calendario, pero no crear ni editar nada. No tiene acceso a Configuración ni a Voluntarios.',
@@ -70,7 +79,7 @@ const ROLES_LISTA = [
 
 const ROLES_VISIBLES = ROLES_LISTA.filter(r => r.id !== 'administracion');
 
-const EMPTY_ADD  = { nombre: '', rol: 'anfitriones', clave: '' };
+const EMPTY_ADD  = { nombre: '', rol: 'anfitriones', clave: '', ministerio_id: '' };
 const EMPTY_EDIT = { nombre: '', clave: '' };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -122,6 +131,7 @@ const labelStyle = {
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function ConfiguracionPage() {
   const isMobile = useIsMobile();
+  const { ministerios, reload: reloadMinisterios } = useMinisterios();
   const [usuarios, setUsuarios] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState('');
@@ -147,6 +157,8 @@ export default function ConfiguracionPage() {
   }, []);
 
   useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
+  // Asegura la lista de ministerios del campus activo para el selector de líder.
+  useEffect(() => { reloadMinisterios?.(); }, [reloadMinisterios]);
 
   const closeModal = () => { setModal(null); setFormErr(''); };
 
@@ -154,18 +166,35 @@ export default function ConfiguracionPage() {
 
   const openEdit = (u) => { setEditId(u.id); setEditForm({ nombre: u.nombre, clave: '' }); setFormErr(''); setModal('edit'); };
 
+  const esLider = addForm.rol === 'lider_ministerio';
+
   const handleAdd = async () => {
     if (!addForm.nombre.trim()) { setFormErr('El nombre no puede estar vacío'); return; }
     if (!addForm.clave.trim())  { setFormErr('La clave no puede estar vacía');  return; }
+    if (esLider && !addForm.ministerio_id) { setFormErr('Elige el ministerio del líder'); return; }
     setSaving(true); setFormErr('');
     try {
-      const { data } = await usuariosApi.create({ nombre: addForm.nombre.trim(), rol: addForm.rol, clave: addForm.clave.trim() });
+      const payload = { nombre: addForm.nombre.trim(), rol: addForm.rol, clave: addForm.clave.trim() };
+      if (esLider) payload.ministerio_id = Number(addForm.ministerio_id);
+      const { data } = await usuariosApi.create(payload);
       setUsuarios(prev => [...prev, data]);
       closeModal();
     } catch (e) {
       setFormErr(e.response?.data?.error || 'Error al crear usuario');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Cambia el ministerio de un líder existente (llama al PATCH nuevo).
+  const handleChangeMinisterio = async (id, ministerioId) => {
+    if (!ministerioId) return;
+    setError('');
+    try {
+      const { data } = await usuariosApi.cambiarMinisterio(id, Number(ministerioId));
+      setUsuarios(prev => prev.map(u => u.id === id ? data : u));
+    } catch (e) {
+      setError(e.response?.data?.error || 'No se pudo cambiar el ministerio');
     }
   };
 
@@ -390,6 +419,19 @@ export default function ConfiguracionPage() {
                         {u.activo ? 'Activo' : 'Inactivo'}
                       </button>
                     </div>
+                    {u.rol === 'lider_ministerio' && (
+                      <div style={{ marginBottom: 8 }}>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: GRAY_500, display: 'block', marginBottom: 3 }}>Ministerio</label>
+                        <select
+                          value={u.ministerio_id || ''}
+                          onChange={e => handleChangeMinisterio(u.id, e.target.value)}
+                          style={{ fontFamily: 'inherit', fontSize: 12, padding: '5px 8px', borderRadius: 8, border: `1px solid ${GRAY_200}`, background: '#fff', color: NAVY_700, cursor: 'pointer', width: '100%' }}
+                        >
+                          <option value="" disabled>Sin ministerio…</option>
+                          {ministerios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                        </select>
+                      </div>
+                    )}
                     <div style={{ fontSize: 12, color: GRAY_700, marginBottom: 8 }}>Alta: {fmtDate(u.created_at)}</div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => openEdit(u)} title="Cambiar clave" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 32, borderRadius: 8, border: `1px solid ${GRAY_200}`, background: '#fff', color: GRAY_500, cursor: 'pointer', fontSize: 12 }}>
@@ -438,10 +480,23 @@ export default function ConfiguracionPage() {
                         </div>
                       </td>
                       <td style={{ ...td, borderBottom: rowBdr }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: NAVY_700 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: r?.dotColor || NAVY_600, flexShrink: 0 }} />
-                          {r?.label || u.rol}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-start' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: NAVY_700 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: r?.dotColor || NAVY_600, flexShrink: 0 }} />
+                            {r?.label || u.rol}
+                          </span>
+                          {u.rol === 'lider_ministerio' && (
+                            <select
+                              value={u.ministerio_id || ''}
+                              onChange={e => handleChangeMinisterio(u.id, e.target.value)}
+                              title="Cambiar ministerio"
+                              style={{ fontFamily: 'inherit', fontSize: 11.5, padding: '3px 7px', borderRadius: 7, border: `1px solid ${GRAY_200}`, background: '#fff', color: NAVY_700, cursor: 'pointer', maxWidth: 190 }}
+                            >
+                              <option value="" disabled>Sin ministerio…</option>
+                              {ministerios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                            </select>
+                          )}
+                        </div>
                       </td>
                       <td style={{ ...td, borderBottom: rowBdr }}>
                         <button onClick={() => handleToggle(u.id)} style={{
@@ -528,6 +583,41 @@ export default function ConfiguracionPage() {
                     ))}
                   </select>
                 </div>
+
+                {/* Ministerio — solo y obligatorio para lider_ministerio */}
+                {esLider && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    <label style={labelStyle}>Ministerio</label>
+                    <select
+                      value={addForm.ministerio_id}
+                      onChange={e => { setAddForm(p => ({ ...p, ministerio_id: e.target.value })); setFormErr(''); }}
+                      style={{ ...inputStyle, background: 'white', cursor: 'pointer' }}
+                    >
+                      <option value="" disabled>Elige el ministerio…</option>
+                      {ministerios.map(m => (
+                        <option key={m.id} value={m.id}>{m.nombre}</option>
+                      ))}
+                    </select>
+                    {ministerios.length === 0 && (
+                      <p style={{ fontSize: 11.5, color: RED_600, margin: 0 }}>
+                        No hay ministerios en este campus. Créalos antes de asignar un líder.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Aviso: cada líder necesita una clave distinta */}
+                {esLider && (
+                  <div style={{ display: 'flex', gap: 9, padding: '10px 12px', borderRadius: 10, background: ORANGE_50, border: `1px solid ${ORANGE_500}` }}>
+                    <span style={{ color: ORANGE_600, flexShrink: 0, marginTop: 1 }}><I.bell size={15} /></span>
+                    <p style={{ fontSize: 12, color: GRAY_700, margin: 0, lineHeight: 1.45 }}>
+                      Cada líder debe tener una clave <b>distinta</b>. El acceso del staff es por rol, así que
+                      la clave es lo que identifica a cada líder; si dos comparten clave, el sistema no sabrá
+                      cuál es cuál.
+                    </p>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <label style={labelStyle}>Clave de acceso</label>
                   <input
@@ -548,8 +638,8 @@ export default function ConfiguracionPage() {
               <button
                 className="btn btn-primary anf-save-btn"
                 onClick={handleAdd}
-                disabled={!addForm.nombre.trim() || !addForm.clave.trim() || saving}
-                style={{ opacity: (!addForm.nombre.trim() || !addForm.clave.trim() || saving) ? 0.45 : 1, marginTop: 8 }}
+                disabled={!addForm.nombre.trim() || !addForm.clave.trim() || (esLider && !addForm.ministerio_id) || saving}
+                style={{ opacity: (!addForm.nombre.trim() || !addForm.clave.trim() || (esLider && !addForm.ministerio_id) || saving) ? 0.45 : 1, marginTop: 8 }}
               >
                 <I.check size={16} />
                 {saving ? 'Guardando…' : 'Agregar usuario'}
