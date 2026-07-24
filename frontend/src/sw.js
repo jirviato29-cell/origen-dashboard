@@ -72,14 +72,27 @@ self.addEventListener('push', (event) => {
 });
 
 // ── Click en la notificación ──────────────────────────────────────────────────
-// Cierra la notificación y abre/enfoca la app en la URL del payload (o en /).
+// Cierra la notificación y lleva al usuario al aviso (data.url = /avisos/ID).
+// Regla clave: NO abrir varias pestañas. Reutiliza una ventana ya abierta y la
+// navega a la ruta; solo abre una nueva si no hay ninguna.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = event.notification.data?.url || '/';
 
   event.waitUntil((async () => {
     const clientes = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    // Si ya hay una ventana de la app abierta, la enfocamos y navegamos.
+
+    // 1) Si ya hay una ventana JUSTO en esa ruta, solo la enfocamos (sin navegar).
+    for (const cliente of clientes) {
+      try {
+        if (new URL(cliente.url).pathname === url && 'focus' in cliente) {
+          return cliente.focus();
+        }
+      } catch { /* url no parseable; se ignora */ }
+    }
+
+    // 2) Si hay cualquier ventana de la app abierta, la enfocamos y la navegamos
+    //    a la ruta del aviso — sin abrir otra pestaña.
     for (const cliente of clientes) {
       if ('focus' in cliente) {
         await cliente.focus();
@@ -89,7 +102,8 @@ self.addEventListener('notificationclick', (event) => {
         return;
       }
     }
-    // Si no hay ninguna abierta, abrimos una nueva.
+
+    // 3) Ninguna ventana abierta: abrimos una nueva directamente en la ruta.
     if (self.clients.openWindow) await self.clients.openWindow(url);
   })());
 });
