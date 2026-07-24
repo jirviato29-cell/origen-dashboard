@@ -5,6 +5,7 @@ import {
   desactivarNotificaciones,
   mandarPrueba,
 } from '../utils/push';
+import { I } from './Icons';
 
 // Tarjeta "Notificaciones" autocontenida para cualquier rol. Detecta soporte del
 // navegador, el estado del permiso y si ya hay una suscripción activa, y expone
@@ -41,6 +42,8 @@ const card = {
   display: 'flex',
   flexDirection: 'column',
   gap: 10,
+  minWidth: 0,          // permite que la columna del grid se encoja sin desbordar
+  boxSizing: 'border-box',
 };
 
 // Base común de los botones (blindada contra .app button).
@@ -131,7 +134,9 @@ export default function NotificacionesCard() {
 
   const titulo = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span aria-hidden="true" style={{ fontSize: 16 }}>🔔</span>
+      <span aria-hidden="true" style={{ color: tema.accent, display: 'inline-flex' }}>
+        <I.bell size={17} />
+      </span>
       <span style={{ fontSize: 14, fontWeight: 800, color: tema.primary, letterSpacing: '-.01em' }}>
         Notificaciones
       </span>
