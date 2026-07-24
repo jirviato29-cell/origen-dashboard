@@ -13,7 +13,7 @@ import { I } from '../../components/Icons';
 
 const FONT = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 const MAX_TITULO  = 60;
-const MAX_MENSAJE = 180;
+const MAX_MENSAJE = 2000;
 
 function temaCampus() {
   const campus = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
@@ -66,6 +66,15 @@ function fmtFecha(iso) {
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+function fmtFechaHora(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('es-MX', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
+}
+
 export default function Avisos() {
   const tema = temaCampus();
   const { ministerios } = useMinisterios() || {};
@@ -84,6 +93,19 @@ export default function Avisos() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError]   = useState('');
   const [toast, setToast]   = useState('');
+
+  // Modal de "quién leyó": { aviso, cargando, lectores } | null
+  const [lectores, setLectores] = useState(null);
+
+  async function abrirLectores(aviso) {
+    setLectores({ aviso, cargando: true, lectores: [] });
+    try {
+      const { data } = await avisosApi.lectores(aviso.id);
+      setLectores({ aviso, cargando: false, lectores: Array.isArray(data?.lectores) ? data.lectores : [] });
+    } catch {
+      setLectores({ aviso, cargando: false, lectores: [] });
+    }
+  }
 
   const restantesMsg = MAX_MENSAJE - mensaje.length;
   const restantesTit = MAX_TITULO - titulo.length;
@@ -298,7 +320,7 @@ export default function Avisos() {
                   <th style={{ padding: '6px 8px', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>Fecha</th>
                   <th style={{ padding: '6px 8px', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>Título</th>
                   <th style={{ padding: '6px 8px', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>Destino</th>
-                  <th style={{ padding: '6px 8px', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Entregados</th>
+                  <th style={{ padding: '6px 8px', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Leídos / Entreg.</th>
                 </tr>
               </thead>
               <tbody>
@@ -307,7 +329,12 @@ export default function Avisos() {
                 ) : historial.length === 0 ? (
                   <tr><td colSpan={4} style={{ padding: '14px 8px', color: '#A3ABB6' }}>Aún no se han enviado avisos.</td></tr>
                 ) : historial.map((a) => (
-                  <tr key={a.id} style={{ borderTop: '1px solid #EEF1F5' }}>
+                  <tr
+                    key={a.id}
+                    onClick={() => abrirLectores(a)}
+                    title="Ver quién lo leyó"
+                    style={{ borderTop: '1px solid #EEF1F5', cursor: 'pointer' }}
+                  >
                     <td style={{ padding: '8px', color: '#5A6472', whiteSpace: 'nowrap' }}>{fmtFecha(a.created_at)}</td>
                     <td style={{ padding: '8px', fontWeight: 600, color: '#1A2230' }}>{a.titulo}</td>
                     <td style={{ padding: '8px', color: '#5A6472' }}>
@@ -316,7 +343,7 @@ export default function Avisos() {
                       {a.ministerio_nombre ? ` · ${a.ministerio_nombre}` : ''}
                     </td>
                     <td style={{ padding: '8px', fontWeight: 700, color: tema.primary, whiteSpace: 'nowrap' }}>
-                      {a.total_entregados}/{a.total_destinatarios}
+                      {(a.total_leidos ?? 0)}/{a.total_entregados}
                     </td>
                   </tr>
                 ))}
@@ -373,6 +400,41 @@ export default function Avisos() {
                 {enviando ? 'Enviando…' : 'Sí, enviar ahora'}
               </button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Modal de lectores (quién abrió el aviso) ─────────────────────────── */}
+      {lectores && (
+        <Modal title={`Leído por · ${lectores.aviso.titulo}`} onClose={() => setLectores(null)}>
+          <div style={{ fontFamily: FONT, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {lectores.cargando ? (
+              <div style={{ fontSize: 14, color: '#A3ABB6' }}>Cargando…</div>
+            ) : lectores.lectores.length === 0 ? (
+              <div style={{ fontSize: 13.5, color: '#8A93A0' }}>Nadie ha abierto este aviso todavía.</div>
+            ) : (
+              <>
+                <div style={{ fontSize: 12.5, color: '#8A93A0' }}>
+                  {lectores.lectores.length} {lectores.lectores.length === 1 ? 'persona lo leyó' : 'personas lo leyeron'}
+                </div>
+                <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {lectores.lectores.map((l, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                      padding: '8px 4px', borderTop: i === 0 ? 'none' : '1px solid #EEF1F5',
+                    }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#1A2230', minWidth: 0,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {l.nombre || 'Sin nombre'}
+                      </span>
+                      <span style={{ fontSize: 12, color: '#98A1AD', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        {fmtFechaHora(l.visto_at)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </Modal>
       )}

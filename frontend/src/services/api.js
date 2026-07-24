@@ -275,6 +275,16 @@ export const avisosApi = {
   historial:     ()        => http.get('/avisos'),
   destinatarios: (params)  => http.get('/avisos/destinatarios', { params }),
   enviar:        (body)    => http.post('/avisos', body),
+  lectores:      (id)      => http.get(`/avisos/${id}/lectores`),
+};
+
+// ─── Mis avisos (voluntario / líder) ──────────────────────────────────────────
+// Los avisos que le corresponden al usuario del token. El backend decide la
+// pertenencia con los mismos filtros del envío; el id nunca decide permisos.
+export const misAvisosApi = {
+  getAll:      ()   => http.get('/mis-avisos'),
+  getUno:      (id) => http.get(`/mis-avisos/${id}`),
+  marcarVisto: (id) => http.post(`/mis-avisos/${id}/visto`),
 };
 
 // ─── Usuarios ─────────────────────────────────────────────────────────────────
