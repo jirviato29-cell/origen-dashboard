@@ -70,6 +70,7 @@ const navByRole = {
       { to: '/stewardship/voluntarios',       label: 'Directorio voluntarios',  icon: I.users },
       { to: '/stewardship/calendario',        label: 'Calendario',              icon: I.calendar },
       { to: '/stewardship/equipos',           label: 'Líderes y equipos',       icon: I.users },
+      { to: '/stewardship/avisos',            label: 'Avisos',                  icon: I.bell },
       { to: '/stewardship/configuracion',     label: 'Configuración',           icon: I.settings },
     ]},
   ],
