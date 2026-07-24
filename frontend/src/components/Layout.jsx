@@ -62,6 +62,7 @@ const ROUTE_INFO = {
   '/voluntario/calendario':             { section: 'Voluntario',         title: 'Mi calendario' },
   '/voluntario/puestos':                { section: 'Voluntario',         title: 'Mis puestos' },
   '/voluntario/configuracion':          { section: 'Voluntario',         title: 'Configuración' },
+  '/avisos':                            { section: 'Avisos',             title: 'Avisos' },
 };
 
 export default function Layout() {
@@ -83,7 +84,10 @@ export default function Layout() {
   if (!role) return <Navigate to="/" replace />;
 
   const path = location.pathname;
-  const info = ROUTE_INFO[path] || { section: '', title: '' };
+  // El detalle de un aviso (/avisos/:id) es dinámico: no está en el mapa, así que
+  // se le da un título propio para el topbar.
+  const info = ROUTE_INFO[path]
+    || (path.startsWith('/avisos/') ? { section: 'Avisos', title: 'Aviso' } : { section: '', title: '' });
 
   const isStewardship    = role === ROLES.STEWARDSHIP;
   const isGastosPorPagar = path.endsWith('/gastos-por-pagar');

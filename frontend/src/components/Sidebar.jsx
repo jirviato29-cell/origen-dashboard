@@ -5,6 +5,7 @@ import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
 import usePuestosNuevos from '../hooks/usePuestosNuevos';
+import useMisAvisos from '../hooks/useMisAvisos';
 import { I } from './Icons';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
@@ -80,6 +81,7 @@ const navByRole = {
       { to: '/lider_ministerio/posiciones',  label: 'Posiciones',         icon: I.pin },
       { to: '/lider_ministerio/programar',   label: 'Programar servicio', icon: I.calendar },
       { to: '/lider_ministerio/tablero',     label: 'Quién va dónde',     icon: I.dashboard },
+      { to: '/avisos',                       label: 'Avisos',             icon: I.bell, badge: 'avisosNoLeidos' },
       { to: '/lider_ministerio/configuracion', label: 'Configuración',    icon: I.settings },
     ]},
   ],
@@ -87,6 +89,7 @@ const navByRole = {
     { group: 'Voluntario', items: [
       { to: '/voluntario/calendario',    label: 'Mi calendario', icon: I.calendar },
       { to: '/voluntario/puestos',       label: 'Mis puestos',   icon: I.pin, badge: 'puestosNuevos' },
+      { to: '/avisos',                   label: 'Avisos',        icon: I.bell, badge: 'avisosNoLeidos' },
       { to: '/voluntario/configuracion', label: 'Configuración', icon: I.settings },
     ]},
   ],
@@ -166,6 +169,11 @@ export default function Sidebar({ onClose }) {
   // Badge de "Mis puestos": solo para el voluntario. Para los demás roles pasa
   // enabled=false, así el hook no hace ninguna llamada (gateado como useLiderPerfil).
   const { nuevos: puestosNuevos } = usePuestosNuevos(role === ROLES.VOLUNTARIO);
+  // Contador de avisos no leídos: solo para voluntario y líder (los que tienen la
+  // entrada "Avisos"). Para los demás roles el hook no dispara ninguna llamada.
+  const { noLeidos: avisosNoLeidos } = useMisAvisos(
+    role === ROLES.VOLUNTARIO || role === ROLES.LIDER_MINISTERIO
+  );
   const sections = navByRole[role] || [];
   const campusActivo = localStorage.getItem('campus_activo') || 'ags';
   const logoSrc = campusActivo === 'gdl' ? '/assets/origen-mark-blanco.png' : '/assets/origen-logo-white.png';
@@ -253,14 +261,20 @@ export default function Sidebar({ onClose }) {
                 >
                   <span className="nav-icon"><Ic size={18} /></span>
                   <span className="nav-label">{item.label}</span>
-                  {item.badge === 'puestosNuevos' && puestosNuevos > 0 && (
-                    <span style={{
-                      marginLeft: 'auto', minWidth: 18, height: 18, padding: '0 5px',
-                      borderRadius: 9, background: '#FF6B2B', color: '#fff', fontSize: 11,
-                      fontWeight: 800, display: 'inline-flex', alignItems: 'center',
-                      justifyContent: 'center', flexShrink: 0, lineHeight: 1,
-                    }}>{puestosNuevos}</span>
-                  )}
+                  {(() => {
+                    const count = item.badge === 'puestosNuevos' ? puestosNuevos
+                      : item.badge === 'avisosNoLeidos' ? avisosNoLeidos
+                      : 0;
+                    if (!count) return null;
+                    return (
+                      <span style={{
+                        marginLeft: 'auto', minWidth: 18, height: 18, padding: '0 5px',
+                        borderRadius: 9, background: '#FF6B2B', color: '#fff', fontSize: 11,
+                        fontWeight: 800, display: 'inline-flex', alignItems: 'center',
+                        justifyContent: 'center', flexShrink: 0, lineHeight: 1,
+                      }}>{count}</span>
+                    );
+                  })()}
                 </NavLink>
               );
             })}

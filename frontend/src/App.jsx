@@ -39,6 +39,8 @@ import PanelVoluntario from './pages/voluntario/PanelVoluntario';
 import MisPuestos from './pages/voluntario/MisPuestos';
 import LoginVoluntario from './pages/voluntario/LoginVoluntario';
 import Configuracion from './pages/Configuracion';
+import MisAvisos from './pages/avisos/MisAvisos';
+import AvisoDetalle from './pages/avisos/AvisoDetalle';
 import './index.css';
 
 // Protege una sección de rutas: redirige a / si no hay sesión,
@@ -47,6 +49,16 @@ function ProtectedRoute({ routeRole, children }) {
   const { role } = useAuth();
   if (!role) return <Navigate to="/" replace />;
   if (role !== routeRole) return <Navigate to={`/${role}`} replace />;
+  return children;
+}
+
+// Igual que ProtectedRoute pero para rutas COMPARTIDAS por varios roles (p. ej.
+// /avisos, accesible a voluntario y líder). Sin sesión → inicio; con un rol que
+// no está en la lista → su propio inicio.
+function ProtectedRouteRoles({ roles, children }) {
+  const { role } = useAuth();
+  if (!role) return <Navigate to="/" replace />;
+  if (!roles.includes(role)) return <Navigate to={`/${role}`} replace />;
   return children;
 }
 
@@ -154,6 +166,14 @@ function AppRoutes() {
         <Route path="calendario"    element={<PanelVoluntario />} />
         <Route path="puestos"       element={<MisPuestos />} />
         <Route path="configuracion" element={<Configuracion />} />
+      </Route>
+
+      {/* ── Avisos (compartido: voluntario y líder) ────────────────────── */}
+      <Route path="/avisos" element={
+        <ProtectedRouteRoles roles={['voluntario', 'lider_ministerio']}><Layout /></ProtectedRouteRoles>
+      }>
+        <Route index      element={<MisAvisos />} />
+        <Route path=":id" element={<AvisoDetalle />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
