@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { voluntarioDisponibilidadApi } from '../../services/api';
 import AvisoDestacado from '../../components/AvisoDestacado';
+import Modal from '../../components/Modal';
 import { I } from '../../components/Icons';
+import { useTiposEvento } from '../../context/TiposEventoContext';
+
+const FONT_STACK = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 
 // "Mi calendario" del voluntario, implementado según el handoff de diseño
 // (referencia-Mi-Calendario.html / SPEC-Mi-Calendario.md): sistema azul marino +
@@ -185,7 +189,6 @@ const claveItem = (item) => `${item.fecha}-${item.evento_id ?? 'dom'}`;
 // fondo de cada celda de la cuadrícula.
 const SKY = '#2C86C4';
 const COLOR_EVENTO_DEFAULT = '#FF6B2B';
-const colorDe = (item) => (item.tipo === 'domingo' ? SKY : (item.tipo_color || COLOR_EVENTO_DEFAULT));
 function tintePastel(hex, peso) {
   if (typeof hex !== 'string') return '#EEEEEE';
   let h = hex.trim().replace('#', '');
@@ -195,21 +198,6 @@ function tintePastel(hex, peso) {
   const R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255;
   const mix = (v) => Math.round(255 - (255 - v) * peso);
   return `rgb(${mix(R)},${mix(G)},${mix(B)})`;
-}
-
-// Color SÓLIDO del estado del día (mismo criterio que el fondo de la celda),
-// para el punto del índice de eventos: verde = sí colaboro · rojo = no puedo ·
-// ámbar = por responder · celeste = domingo · color del evento si es informativo.
-function colorEstado(items) {
-  const marcables = items.filter(m => m.puede_marcar);
-  const servicio = marcables.find(m => m.tipo === 'domingo') ?? marcables[0] ?? null;
-  if (servicio && servicio.estado === 'disponible') return '#15915A';
-  if (servicio && servicio.estado === 'no_disponible') return '#D23B36';
-  if (servicio && !servicio.bloqueado) return '#C98A14';
-  if (items.some(m => m.tipo === 'domingo')) return SKY;
-  const evento = items.find(m => m.tipo === 'evento');
-  if (evento) return colorDe(evento);
-  return '#9CB0CC';
 }
 
 export default function PanelVoluntario() {
@@ -223,11 +211,30 @@ export default function PanelVoluntario() {
   const [recarga,  setRecarga]  = useState(0);
 
   const itemRefs = useRef({});
-  const detalleRef = useRef(null);   // para enfocar el detalle al seleccionar un día
+
+  // Colores de tipo de evento definidos en Stewardship (mismo origen que "Mis
+  // puestos"): así los eventos del calendario usan su color real, no uno genérico.
+  const { tipoColor = {} } = useTiposEvento() || {};
 
   // Acento naranja/menta del campus (para hoy, selección y "Sí colaboro").
   const accent = ((typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags') === 'gdl'
     ? '#2DD4BF' : '#FF6B2B';
+
+  // Color de un item: domingo → celeste; evento → su color de Stewardship.
+  const colorDeItem = (item) => (item.tipo === 'domingo'
+    ? SKY
+    : (tipoColor[item.tipo_evento] || item.tipo_color || COLOR_EVENTO_DEFAULT));
+
+  // Color del día por TIPO de evento (color de Stewardship): el punto y el fondo
+  // de la celda dicen QUÉ es el día (p. ej. Servicio en su color real). El estado
+  // (sí/no/por responder) NO va en este color: se ve en el marcador de forma de la
+  // celda y en el modal.
+  const colorDelDia = (items) => {
+    const evento = items.find(m => m.tipo === 'evento');
+    if (evento) return colorDeItem(evento);
+    if (items.some(m => m.tipo === 'domingo')) return SKY;
+    return '#9CB0CC';
+  };
 
   useEffect(() => {
     let vivo = true;
@@ -321,14 +328,12 @@ export default function PanelVoluntario() {
       });
   }, [dias, data, hoyISO]);
 
+  // Al tocar un día (celda o índice) se abre el modal con su detalle y, si se
+  // puede responder, los botones para marcar. Sin evento, no abre nada.
   function tocarDia(fecha) {
     const items = itemsDe(fecha);
     if (items.length === 0) return;
     setSel(fecha);
-    // Enfoca el detalle del día (está debajo de la cuadrícula y del índice).
-    requestAnimationFrame(() => {
-      detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
   }
 
   async function marcar(item, estado) {
@@ -448,21 +453,14 @@ export default function PanelVoluntario() {
                 const esDomingo = dowDeISO(c.fecha) === 0;
                 const esSel = sel === c.fecha;
 
-                // Color de FONDO por estado (regresa el color a la cuadrícula): el
-                // servicio representativo (domingo manda; si no, el 1er marcable)
-                // define verde/rojo/ámbar; sin servicio, tinte por tipo de evento.
-                const marcables = items.filter(m => m.puede_marcar);
-                const servicio = marcables.find(m => m.tipo === 'domingo') ?? marcables[0] ?? null;
+                // Color de FONDO por TIPO de evento (color de Stewardship): dice
+                // QUÉ es el día. El estado (sí/no/por responder) se muestra con el
+                // marcador de forma, no con el fondo.
+                const evento = items.find(m => m.tipo === 'evento');
+                const domingo = items.find(m => m.tipo === 'domingo');
                 let bg = null, bd = null;
-                if (servicio && servicio.estado === 'disponible') { bg = 'var(--green-50)'; bd = 'var(--green-100)'; }
-                else if (servicio && servicio.estado === 'no_disponible') { bg = 'var(--red-50)'; bd = '#F3CBC9'; }
-                else if (servicio && !servicio.bloqueado) { bg = 'var(--amber-50)'; bd = '#EFD9A6'; }
-                else {
-                  const domingo = items.find(m => m.tipo === 'domingo');
-                  const evento = items.find(m => m.tipo === 'evento');
-                  if (domingo) { bg = 'var(--sky-50)'; bd = '#CFE4F3'; }
-                  else if (evento) { bg = tintePastel(colorDe(evento), 0.13); bd = tintePastel(colorDe(evento), 0.30); }
-                }
+                if (evento) { bg = tintePastel(colorDeItem(evento), 0.16); bd = tintePastel(colorDeItem(evento), 0.34); }
+                else if (domingo) { bg = 'var(--sky-50)'; bd = '#CFE4F3'; }
 
                 // Marcadores por FORMA: un círculo por cada servicio que le toca
                 // marcar (relleno = sí · con equis = no · hueco = por responder).
@@ -521,97 +519,91 @@ export default function PanelVoluntario() {
                   style={sel === d.fecha ? { background: 'var(--gray-50)' } : undefined}
                   onClick={() => tocarDia(d.fecha)}
                 >
-                  <span className="mc-index-dot" style={{ background: colorEstado(itemsDe(d.fecha)) }} />
+                  <span className="mc-index-dot" style={{ background: colorDelDia(itemsDe(d.fecha)) }} />
                   <span className="mc-index-txt">{DOW_CORTO[dowDeISO(d.fecha)]} {diaDeISO(d.fecha)} · {d.nombre}</span>
                 </button>
               ))}
             </div>
           )}
 
-          {/* Detalle del día seleccionado, con el estado EN PALABRAS. */}
-          <div className="mc-detail" ref={detalleRef}>
-            {sel ? (
-              <>
-                <div className="mc-detail-date">{fechaLarga(sel)}</div>
-                {itemsDe(sel).length === 0 ? (
-                  <div className="mc-detail-row"><span className="mc-detail-hint">Sin eventos este día.</span></div>
-                ) : itemsDe(sel).map(it => {
-                  // Mismos estados y MISMA función de guardado que la lista.
-                  const clave = claveItem(it);
-                  const ocupado = enviando === clave;
-                  const reabierto = editando[clave];
-                  const pendienteAbierto = it.puede_marcar && !it.bloqueado && (it.estado == null || reabierto);
-                  const respondido = it.puede_marcar && it.estado != null && !reabierto;
-                  const cerradoSinResp = it.puede_marcar && it.bloqueado && it.estado == null;
-                  return (
-                    <div key={clave} className="mc-detail-item">
-                      <div className="mc-detail-row">
-                        <span className="mc-detail-name">{it.nombre}</span>
-                        {!it.puede_marcar && (
-                          <span className="mc-detail-state" style={{ color: 'var(--gray-600)' }}>
-                            {it.tipo === 'domingo' ? 'Domingo' : (it.tipo_evento || 'Informativo')}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Marca aquí mismo si va a servir (misma lógica de guardado). */}
-                      {pendienteAbierto ? (
-                        <div className="dc-btns" style={{ marginTop: 10 }}>
-                          <button
-                            type="button" className="dc-btn" disabled={ocupado}
-                            onClick={() => marcar(it, 'disponible')}
-                            style={{ fontFamily: 'inherit', fontSize: 17, fontWeight: 700, background: accent, color: '#FFFFFF', border: `2px solid ${accent}` }}
-                          >
-                            <I.check size={18} /> {ocupado ? '…' : 'Sí colaboro'}
-                          </button>
-                          <button
-                            type="button" className="dc-btn" disabled={ocupado}
-                            onClick={() => marcar(it, 'no_disponible')}
-                            style={{ fontFamily: 'inherit', fontSize: 17, fontWeight: 700, background: '#FFFFFF', color: 'var(--navy-900)', border: '2px solid var(--gray-300)' }}
-                          >
-                            <I.x size={18} /> {ocupado ? '…' : 'No puedo'}
-                          </button>
-                        </div>
-                      ) : respondido ? (
-                        <div className="dc-state-row" style={{ marginTop: 8 }}>
-                          {it.estado === 'disponible' ? (
-                            <span className="dc-state" style={{ color: 'var(--green-600)' }}>
-                              <span className="dc-state-ic" style={{ background: 'var(--green-50)', color: 'var(--green-600)' }}><I.check size={16} /></span>
-                              Sí colaboro
-                            </span>
-                          ) : (
-                            <span className="dc-state" style={{ color: 'var(--gray-600)' }}>
-                              <span style={{ display: 'inline-flex', color: 'var(--gray-600)' }}><I.x size={22} /></span>
-                              No puedo
-                            </span>
-                          )}
-                          {!it.bloqueado && (
-                            <button
-                              type="button" className="dc-cambiar"
-                              onClick={() => setEditando(e => ({ ...e, [clave]: true }))}
-                              style={{ fontFamily: 'inherit', fontSize: 16, fontWeight: 600, padding: '12px 18px', background: '#fff', color: 'var(--navy-900)', border: '1px solid var(--gray-300)' }}
-                            >
-                              Cambiar
-                            </button>
-                          )}
-                        </div>
-                      ) : cerradoSinResp ? (
-                        <div className="dc-state-row" style={{ marginTop: 8 }}>
-                          <span className="dc-state" style={{ color: 'var(--gray-600)' }}>Sin responder</span>
-                          <span className="dc-lock"><I.clock size={16} /> Ya cerró</span>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </>
-            ) : (
-              <span className="mc-detail-hint">Toca un día para ver su detalle.</span>
-            )}
-          </div>
-
           {error && <div className="mc-cal-err">{error}</div>}
         </div>
+
+      {/* ── Modal del día seleccionado: detalle + marcar (Sí colaboro / No puedo).
+          Sale al tocar una celda o un renglón del índice. Reusa la MISMA función
+          de guardado `marcar`; estilos inline para que el color sea confiable. ── */}
+      {sel && (
+        <Modal title={fechaLarga(sel)} onClose={() => setSel(null)}>
+          <div style={{ fontFamily: FONT_STACK, display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {itemsDe(sel).length === 0 ? (
+              <div style={{ fontSize: 15, color: '#5A6472' }}>Sin eventos este día.</div>
+            ) : itemsDe(sel).map(it => {
+              const clave = claveItem(it);
+              const ocupado = enviando === clave;
+              const reabierto = editando[clave];
+              const pendienteAbierto = it.puede_marcar && !it.bloqueado && (it.estado == null || reabierto);
+              const respondido = it.puede_marcar && it.estado != null && !reabierto;
+              const cerradoSinResp = it.puede_marcar && it.bloqueado && it.estado == null;
+              return (
+                <div key={clave}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: colorDelDia(itemsDe(sel)) }} />
+                    <span style={{ fontSize: 17, fontWeight: 600, color: '#112540' }}>{it.nombre}</span>
+                  </div>
+                  <div style={{ marginLeft: 20, marginTop: 2, fontSize: 15, color: '#5A6472' }}>
+                    {it.tipo === 'domingo' ? 'Domingo' : (it.tipo_evento || 'Evento')}
+                  </div>
+
+                  {pendienteAbierto ? (
+                    <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                      <button
+                        type="button" disabled={ocupado} onClick={() => marcar(it, 'disponible')}
+                        style={{ flex: 1, minHeight: 48, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', fontFamily: FONT_STACK, fontSize: 17, fontWeight: 700, background: accent, color: '#FFFFFF', border: `2px solid ${accent}`, opacity: ocupado ? 0.6 : 1 }}
+                      >
+                        <I.check size={18} /> {ocupado ? '…' : 'Sí colaboro'}
+                      </button>
+                      <button
+                        type="button" disabled={ocupado} onClick={() => marcar(it, 'no_disponible')}
+                        style={{ flex: 1, minHeight: 48, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', fontFamily: FONT_STACK, fontSize: 17, fontWeight: 700, background: '#FFFFFF', color: '#112540', border: '2px solid #CBD2DC', opacity: ocupado ? 0.6 : 1 }}
+                      >
+                        <I.x size={18} /> {ocupado ? '…' : 'No puedo'}
+                      </button>
+                    </div>
+                  ) : respondido ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+                      {it.estado === 'disponible' ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontSize: 17, fontWeight: 700, color: '#15915A' }}>
+                          <span style={{ width: 26, height: 26, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#E6F5EC', color: '#15915A' }}><I.check size={16} /></span>
+                          Sí colaboro
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontSize: 17, fontWeight: 700, color: '#5A6472' }}>
+                          <span style={{ display: 'inline-flex', color: '#5A6472' }}><I.x size={22} /></span>
+                          No puedo
+                        </span>
+                      )}
+                      {!it.bloqueado && (
+                        <button
+                          type="button" onClick={() => setEditando(e => ({ ...e, [clave]: true }))}
+                          style={{ minHeight: 48, borderRadius: 12, padding: '12px 18px', cursor: 'pointer', fontFamily: FONT_STACK, fontSize: 16, fontWeight: 600, background: '#fff', color: '#112540', border: '1px solid #CBD2DC' }}
+                        >
+                          Cambiar
+                        </button>
+                      )}
+                    </div>
+                  ) : cerradoSinResp ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 12 }}>
+                      <span style={{ fontSize: 17, fontWeight: 700, color: '#5A6472' }}>Sin responder</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 15, fontWeight: 700, color: '#5A6472' }}><I.clock size={16} /> Ya cerró</span>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+            {error && <div style={{ fontSize: 15, fontWeight: 600, color: '#D23B36' }}>{error}</div>}
+          </div>
+        </Modal>
+      )}
 
       {/* ── "Donde colaboras": OCULTA en "Mi calendario". El código y sus estilos
           NO se borran: se reutilizan en la pestaña de Invitaciones (paso posterior).
