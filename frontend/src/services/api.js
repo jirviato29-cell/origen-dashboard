@@ -267,6 +267,16 @@ export const miPerfilApi = {
   get: () => http.get('/mi-perfil'),
 };
 
+// ─── Avisos push masivos (solo stewardship) ───────────────────────────────────
+// El backend verifica el rol del token y resuelve los destinatarios; aquí solo
+// mandamos los filtros del formulario. `destinatarios` es el conteo previo para
+// el modal de confirmación.
+export const avisosApi = {
+  historial:     ()        => http.get('/avisos'),
+  destinatarios: (params)  => http.get('/avisos/destinatarios', { params }),
+  enviar:        (body)    => http.post('/avisos', body),
+};
+
 // ─── Usuarios ─────────────────────────────────────────────────────────────────
 const realUsuariosApi = {
   getAll:       ()               => http.get('/usuarios'),
