@@ -13,16 +13,14 @@ import { I } from '../../components/Icons';
 // backend; aquí solo se pinta y se revalida en el POST.
 
 const DOW_CORTO = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DOW_1 = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+const DIAS_LARGO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-const COLOR_EVENTO_DEFAULT = '#FF6B2B';
-const SKY = '#2C86C4';
-
 // Los estilos van todos scoped bajo `.mc-shell`; los tokens de color se
-// declaran ahí mismo para poder reusar las reglas de la referencia tal cual.
-// Las reglas de botones/celdas llevan doble clase (`.mc-shell .mc-act`) para
-// ganarle por especificidad a la regla global `.app button{font/color:inherit}`.
+// declaran ahí mismo. Los colores/fuente de los botones van INLINE (no por
+// clase) porque la regla global `.app button{font/color:inherit}` los pisaría.
 const CSS = `
 .mc-shell{
   --navy-950:#0B1A2F;--navy-900:#112540;--navy-800:#1A3354;--navy-700:#244169;
@@ -68,14 +66,12 @@ const CSS = `
 .mc-shell .mc-cal-today:hover{background:var(--gray-50);}
 .mc-shell .mc-cal-arrow{width:34px;height:34px;border-radius:9px;border:1px solid var(--gray-200);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--navy-700);cursor:pointer;}
 .mc-shell .mc-cal-arrow:hover{background:var(--gray-50);}
-.mc-cal-sub{font-size:12.5px;color:var(--gray-500);margin-bottom:16px;}
 
 .mc-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;}
-.mc-dow div{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-400);text-align:center;padding:4px 0;}
-/* Altura FIJA de celda (todas iguales). 88px caben: día(18) + 2 pills de 2
-   líneas (~26 c/u) + paddings/gaps. Ver cálculo del peor caso (6 semanas) en el commit. */
-.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:88px;gap:5px;}
-.mc-shell .mc-cell{height:100%;border:1px solid var(--gray-100);border-radius:9px;padding:5px 7px 5px 9px;display:flex;flex-direction:column;gap:3px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:left;width:100%;font-family:inherit;}
+.mc-dow div{font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--gray-600);text-align:center;padding:4px 0;}
+/* Celda cuadrada: número del día centrado + marcador(es) debajo. */
+.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.mc-shell .mc-cell{aspect-ratio:1;border:1px solid var(--gray-100);border-radius:9px;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:center;width:100%;font-family:inherit;}
 .mc-shell .mc-cell:hover{border-color:var(--gray-300);box-shadow:var(--shadow-sm);}
 .mc-shell .mc-cell.mc-out{background:var(--gray-50);border-color:transparent;cursor:default;}
 .mc-shell .mc-cell.mc-out:hover{box-shadow:none;}
@@ -83,32 +79,28 @@ const CSS = `
    en la cuadrícula. Solo el número, en gris muy tenue. No interactivo. */
 .mc-shell .mc-cell.mc-gone{background:transparent;border-color:transparent;box-shadow:none;cursor:default;}
 .mc-shell .mc-cell.mc-gone:hover{box-shadow:none;border-color:transparent;}
-.mc-num{font-size:12px;font-weight:700;color:var(--navy-800);height:18px;display:flex;align-items:center;}
+.mc-num{font-size:15px;font-weight:600;color:var(--navy-800);line-height:1;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
 .mc-shell .mc-cell.mc-out .mc-num{color:var(--gray-300);}
 .mc-shell .mc-cell.mc-sun .mc-num{color:var(--navy-900);}
-.mc-shell .mc-cell.mc-today .mc-num{color:var(--orange-600);}
-.mc-shell .mc-cell.mc-today{border-color:var(--orange-400);box-shadow:inset 0 0 0 1px var(--orange-400);}
-.mc-shell .mc-cell.mc-serve{border-color:var(--gray-200);}
-.mc-shell .mc-cell.mc-status-si::after,.mc-shell .mc-cell.mc-status-no::after,.mc-shell .mc-cell.mc-status-pend::after{content:"";position:absolute;left:0;top:6px;bottom:6px;width:5px;border-radius:0 4px 4px 0;}
-.mc-shell .mc-cell.mc-status-si::after{background:var(--green-500);}
-.mc-shell .mc-cell.mc-status-no::after{background:var(--red-600);}
-.mc-shell .mc-cell.mc-status-pend::after{background:var(--amber-600);}
 
-/* Pills a HASTA 2 líneas (line-clamp): nombres largos ya no se cortan a 1 línea.
-   Fuente subida a 11px (legibilidad). Si aún no cabe en 2 líneas, corta con "…"
-   y el nombre completo queda en el title de la pill. */
-.mc-ev{font-size:11px;font-weight:600;line-height:1.1;border-radius:5px;padding:1px 7px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;}
-.mc-ev-mas{color:var(--gray-500);font-weight:600;padding:1px 7px;background:transparent;}
-.mc-badge{position:absolute;top:5px;right:5px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
-.mc-badge svg{width:10px;height:10px;}
-.mc-badge.mc-si{background:var(--green-500);color:#fff;}
-.mc-badge.mc-no{background:var(--red-600);color:#fff;}
-.mc-badge.mc-pend{background:#fff;border:1.5px dashed var(--amber-600);color:var(--amber-600);}
+/* Marcador(es) del día: distinguen por FORMA además de color, para quien no
+   distingue bien los colores. Círculo relleno = sí · círculo con equis = no ·
+   círculo hueco con borde grueso = por responder. */
+.mc-marks{display:flex;align-items:center;justify-content:center;gap:3px;min-height:8px;}
+.mc-mk{width:8px;height:8px;border-radius:50%;box-sizing:border-box;flex-shrink:0;}
+.mc-mk-si{background:var(--green-600);}
+.mc-mk-no{background:#3D4654;color:#fff;display:inline-flex;align-items:center;justify-content:center;width:9px;height:9px;}
+.mc-mk-no svg{width:6px;height:6px;}
+.mc-mk-pend{width:9px;height:9px;background:#fff;border:2px solid currentColor;}
+.mc-mk-mas{font-size:11px;font-weight:700;color:var(--gray-600);line-height:1;}
 
-.mc-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);}
-.mc-lg{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--gray-600);font-weight:500;}
-.mc-lg .mc-sw{width:11px;height:11px;border-radius:4px;}
-.mc-lg .mc-rr{width:11px;height:11px;border-radius:3px;border:1.5px solid var(--gray-300);background:#fff;}
+/* Detalle del día seleccionado (reemplaza la leyenda de colores). */
+.mc-detail{margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);}
+.mc-detail-date{font-size:15px;font-weight:700;color:var(--navy-900);}
+.mc-detail-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;}
+.mc-detail-name{font-size:15px;color:var(--navy-900);font-weight:500;min-width:0;}
+.mc-detail-state{font-size:15px;font-weight:700;white-space:nowrap;flex-shrink:0;}
+.mc-detail-hint{font-size:15px;color:var(--gray-600);}
 
 /* ===== "Donde colaboras" (lista de fechas por responder) ===== */
 /* Mismo patrón visual que MisPuestos para que el voluntario reconozca la forma. */
@@ -152,10 +144,6 @@ const IcCross = ({ w = 24 }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" width={w} height={w}>
     <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /></svg>
 );
-const IcClock = ({ w = 24 }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width={w} height={w}>
-    <path d="M12 8v4l2.5 1.5" strokeLinecap="round" /></svg>
-);
 const IcClockCircle = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="12" r="8.5" /><path d="M12 8v4l2.5 1.5" strokeLinecap="round" /></svg>
@@ -180,35 +168,12 @@ const dowDeISO = (iso) => {
   const [a, m, d] = iso.split('-').map(Number);
   return new Date(Date.UTC(a, m - 1, d)).getUTCDay();
 };
-const aUTC = (iso) => { const [a, m, d] = iso.split('-').map(Number); return Date.UTC(a, m - 1, d); };
-const diffDias = (isoA, isoB) => Math.round((aUTC(isoB) - aUTC(isoA)) / 86400000);
+// Fecha escrita completa: "Domingo 26 de julio de 2026".
+const fechaLarga = (iso) => {
+  const [a, m, d] = iso.split('-').map(Number);
+  return `${DIAS_LARGO[dowDeISO(iso)]} ${d} de ${MESES[m - 1].toLowerCase()} de ${a}`;
+};
 const claveItem = (item) => `${item.fecha}-${item.evento_id ?? 'dom'}`;
-
-// Mezcla lineal con blanco → tinte pastel OPACO (no rgba con alpha, que se
-// mezclaría con el fondo). Acepta '#RGB' y '#RRGGBB'.
-function tintePastel(hex, peso) {
-  if (typeof hex !== 'string') return '#EEEEEE';
-  let h = hex.trim().replace('#', '');
-  if (h.length === 3) h = h.split('').map(c => c + c).join('');
-  if (h.length !== 6 || /[^0-9a-f]/i.test(h)) return '#EEEEEE';
-  const n = parseInt(h, 16);
-  const R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255;
-  const mix = (v) => Math.round(255 - (255 - v) * peso);
-  return `rgb(${mix(R)},${mix(G)},${mix(B)})`;
-}
-
-// Color base de un item para chips/tintes: domingo → celeste; evento → su color.
-const colorDe = (item) => (item.tipo === 'domingo' ? SKY : (item.tipo_color || COLOR_EVENTO_DEFAULT));
-
-// Etiqueta de cierre para un slot pendiente. El backend bloquea cuando
-// hoy >= fecha-1, así que un item abierto tiene fecha-1 > hoy.
-function etiquetaCierre(fecha, hoy) {
-  if (!hoy) return 'Por responder';
-  const dias = diffDias(hoy, fecha) - 1; // días hasta el cierre (fecha-1)
-  if (dias <= 0) return 'Cierra hoy';
-  if (dias === 1) return 'Cierra mañana';
-  return `Cierra en ${dias} días`;
-}
 
 export default function PanelVoluntario() {
   const [mes,      setMes]      = useState(mesDeHoy);
@@ -379,14 +344,6 @@ export default function PanelVoluntario() {
     return semanas.filter(sem => !hoy || sem.some(c => c.fecha >= hoy)).flat();
   }, [data]);
 
-  // Estado de servicio de una celda (marca el badge/barra): el domingo manda,
-  // si no el primer item marcable.
-  const servicioDe = (items) => {
-    const marcables = items.filter(m => m.puede_marcar);
-    if (marcables.length === 0) return null;
-    return marcables.find(m => m.tipo === 'domingo') ?? marcables[0];
-  };
-
   return (
     <>
       <AvisoDestacado />
@@ -422,9 +379,7 @@ export default function PanelVoluntario() {
               <button className="mc-cal-arrow" onClick={() => irAMes(1)} aria-label="Mes siguiente"><IcChevron dir="r" /></button>
             </div>
           </div>
-          <div className="mc-cal-sub">Toca un día para verlo en la lista. Los eventos donde te toca colaborar llevan una marca de estado.</div>
-
-          <div className="mc-dow">{DOW_CORTO.map(d => <div key={d}>{d}</div>)}</div>
+          <div className="mc-dow">{DOW_1.map((d, i) => <div key={i}>{d}</div>)}</div>
 
           {cargando ? (
             <div className="mc-msg">Cargando tu calendario…</div>
@@ -436,88 +391,86 @@ export default function PanelVoluntario() {
                 if (c.tipo === 'out') {
                   return <div key={`o${i}`} className="mc-cell mc-out"><span className="mc-num">{c.num}</span></div>;
                 }
-                // Día pasado (fecha < hoy, zona México, comparando strings ISO):
-                // celda COMPLETAMENTE VACÍA (sin número, sin caja, sin nada) que
-                // solo ocupa su lugar en la cuadrícula para no descuadrar las
-                // columnas. Las semanas 100% pasadas ya ni llegan aquí (se
-                // colapsan en el useMemo de `celdas`). No es clickable.
+                // Día pasado: celda vacía que solo ocupa su lugar en la cuadrícula.
                 if (hoyISO && c.fecha < hoyISO) {
                   return <div key={c.fecha} className="mc-cell mc-gone" aria-hidden="true" />;
                 }
                 const items = itemsDe(c.fecha);
                 const esHoy = c.fecha === hoyISO;
                 const esDomingo = dowDeISO(c.fecha) === 0;
-                const eventos = items.filter(m => m.tipo === 'evento');
-                const domingo = items.find(m => m.tipo === 'domingo');
-                const servicio = servicioDe(items);
+                const esSel = sel === c.fecha;
 
-                // Tinte de fondo por tipo (domingo → celeste; si no, color del 1er evento).
-                let tint = null;
-                if (domingo) tint = { background: 'var(--sky-50)', borderColor: '#CFE4F3' };
-                else if (eventos[0]) tint = { background: tintePastel(colorDe(eventos[0]), 0.13), borderColor: tintePastel(colorDe(eventos[0]), 0.30) };
-
-                // Clase de estado de servicio.
-                let statusCls = '';
-                if (servicio) {
-                  if (servicio.estado === 'disponible') statusCls = 'mc-status-si';
-                  else if (servicio.estado === 'no_disponible') statusCls = 'mc-status-no';
-                  else if (!servicio.bloqueado) statusCls = 'mc-status-pend';
-                }
+                // Marcadores por FORMA: un círculo por cada servicio que le toca
+                // marcar (relleno = sí · con equis = no · hueco = por responder).
+                // Los eventos informativos (sin servicio) no llevan marcador.
+                const marks = items
+                  .filter(m => m.puede_marcar)
+                  .map(m => (m.estado === 'disponible' ? 'si'
+                    : m.estado === 'no_disponible' ? 'no'
+                    : !m.bloqueado ? 'pend' : null))
+                  .filter(Boolean);
+                const visM = marks.length > 3 ? marks.slice(0, 2) : marks;
+                const restoM = marks.length - visM.length;
 
                 const clases = ['mc-cell'];
                 if (esDomingo) clases.push('mc-sun');
                 if (esHoy) clases.push('mc-today');
-                if (servicio) clases.push('mc-serve');
-                if (statusCls) clases.push(statusCls);
-                const esSel = sel === c.fecha;
-
-                // Pills: domingo primero, luego eventos. Máx 2, si hay más "+N".
-                const pills = [];
-                if (domingo) pills.push({ key: 'dom', nombre: domingo.nombre, color: SKY, sunday: true });
-                for (const ev of eventos) pills.push({ key: ev.evento_id, nombre: ev.nombre, color: colorDe(ev), sunday: false });
-                const visibles = pills.slice(0, pills.length > 2 ? 1 : 2);
-                const resto = pills.length - visibles.length;
 
                 return (
                   <button
                     key={c.fecha}
                     className={clases.join(' ')}
                     style={{
-                      ...(tint || {}),
-                      ...(esHoy ? { borderColor: 'var(--orange-400)' } : {}),
-                      ...(esSel ? { boxShadow: '0 0 0 2px var(--orange-500)' } : {}),
+                      ...(esHoy ? { borderColor: accent, boxShadow: `inset 0 0 0 1px ${accent}` } : {}),
+                      ...(esSel ? { boxShadow: `0 0 0 2px ${accent}` } : {}),
                     }}
                     onClick={() => tocarDia(c.fecha)}
                     title={items.map(m => m.nombre).join(' · ')}
                   >
-                    <span className="mc-num">{c.num}</span>
-                    {servicio && statusCls === 'mc-status-si' && <span className="mc-badge mc-si"><IcCheck w={10} /></span>}
-                    {servicio && statusCls === 'mc-status-no' && <span className="mc-badge mc-no"><IcCross w={10} /></span>}
-                    {servicio && statusCls === 'mc-status-pend' && <span className="mc-badge mc-pend"><IcClock w={10} /></span>}
-                    {visibles.map(p => (
-                      <div key={p.key} className="mc-ev"
-                        title={p.nombre}
-                        style={{
-                          background: p.sunday ? 'var(--sky-50)' : tintePastel(p.color, 0.20),
-                          color: p.sunday ? '#1c6294' : p.color,
-                        }}>
-                        {p.nombre}
-                      </div>
-                    ))}
-                    {resto > 0 && <div className="mc-ev mc-ev-mas">+{resto} más</div>}
+                    <span className="mc-num" style={esHoy ? { color: accent } : undefined}>{c.num}</span>
+                    <span className="mc-marks">
+                      {visM.map((mk, j) => (
+                        mk === 'si' ? <span key={j} className="mc-mk mc-mk-si" />
+                          : mk === 'no' ? <span key={j} className="mc-mk mc-mk-no"><IcCross w={6} /></span>
+                            : <span key={j} className="mc-mk mc-mk-pend" style={{ color: accent }} />
+                      ))}
+                      {restoM > 0 && <span className="mc-mk-mas">+{restoM}</span>}
+                    </span>
                   </button>
                 );
               })}
             </div>
           )}
 
-          <div className="mc-legend">
-            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--green-500)' }} />Sí colaboro</div>
-            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--red-600)' }} />No puedo</div>
-            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--amber-600)' }} />Por responder</div>
-            <div className="mc-lg"><span className="mc-rr" />Sin servicio</div>
-            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--sky)' }} />Domingo</div>
-            <div className="mc-lg"><span className="mc-sw" style={{ background: 'var(--orange-500)' }} />Evento</div>
+          {/* Detalle del día seleccionado, con el estado EN PALABRAS (reemplaza la leyenda). */}
+          <div className="mc-detail">
+            {sel ? (
+              <>
+                <div className="mc-detail-date">{fechaLarga(sel)}</div>
+                {itemsDe(sel).length === 0 ? (
+                  <div className="mc-detail-row"><span className="mc-detail-hint">Sin eventos este día.</span></div>
+                ) : itemsDe(sel).map(it => {
+                  let palabra, color;
+                  if (it.puede_marcar) {
+                    if (it.estado === 'disponible') { palabra = 'Sí colaboro'; color = 'var(--green-600)'; }
+                    else if (it.estado === 'no_disponible') { palabra = 'No puedo'; color = 'var(--gray-600)'; }
+                    else if (!it.bloqueado) { palabra = 'Sin responder'; color = accent; }
+                    else { palabra = 'Ya cerró'; color = 'var(--gray-600)'; }
+                  } else {
+                    palabra = it.tipo === 'domingo' ? 'Domingo' : (it.tipo_evento || 'Informativo');
+                    color = 'var(--gray-600)';
+                  }
+                  return (
+                    <div key={claveItem(it)} className="mc-detail-row">
+                      <span className="mc-detail-name">{it.nombre}</span>
+                      <span className="mc-detail-state" style={{ color }}>{palabra}</span>
+                    </div>
+                  );
+                })}
+              </>
+            ) : (
+              <span className="mc-detail-hint">Toca un día para ver su detalle.</span>
+            )}
           </div>
 
           {error && <div className="mc-cal-err">{error}</div>}
