@@ -103,6 +103,15 @@ const CSS = `
 /* Cada evento del día seleccionado: nombre + su acción (marcar / cambiar). */
 .mc-detail-item{margin-top:14px;}
 
+/* Índice de solo lectura: los eventos del mes visible, para saber qué es cada
+   día sin tocarlo. Cada renglón es tocable (selecciona ese día). */
+.mc-index{margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);}
+.mc-index-empty{font-size:15px;color:var(--gray-600);}
+.mc-shell .mc-index-row{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 4px;background:transparent;border:none;border-bottom:.5px solid var(--gray-100);border-radius:6px;cursor:pointer;text-align:left;font-family:inherit;}
+.mc-shell .mc-index-row:last-child{border-bottom:none;}
+.mc-index-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.mc-index-txt{font-size:15px;color:var(--navy-900);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
 /* ===== "Donde colaboras" (lista de fechas por responder) ===== */
 /* Mismo patrón visual que MisPuestos para que el voluntario reconozca la forma. */
 .mc-rail{grid-area:list;display:flex;flex-direction:column;position:sticky;top:0;}
@@ -188,6 +197,21 @@ function tintePastel(hex, peso) {
   return `rgb(${mix(R)},${mix(G)},${mix(B)})`;
 }
 
+// Color SÓLIDO del estado del día (mismo criterio que el fondo de la celda),
+// para el punto del índice de eventos: verde = sí colaboro · rojo = no puedo ·
+// ámbar = por responder · celeste = domingo · color del evento si es informativo.
+function colorEstado(items) {
+  const marcables = items.filter(m => m.puede_marcar);
+  const servicio = marcables.find(m => m.tipo === 'domingo') ?? marcables[0] ?? null;
+  if (servicio && servicio.estado === 'disponible') return '#15915A';
+  if (servicio && servicio.estado === 'no_disponible') return '#D23B36';
+  if (servicio && !servicio.bloqueado) return '#C98A14';
+  if (items.some(m => m.tipo === 'domingo')) return SKY;
+  const evento = items.find(m => m.tipo === 'evento');
+  if (evento) return colorDe(evento);
+  return '#9CB0CC';
+}
+
 export default function PanelVoluntario() {
   const [mes,      setMes]      = useState(mesDeHoy);
   const [data,     setData]     = useState(null);
@@ -199,6 +223,7 @@ export default function PanelVoluntario() {
   const [recarga,  setRecarga]  = useState(0);
 
   const itemRefs = useRef({});
+  const detalleRef = useRef(null);   // para enfocar el detalle al seleccionar un día
 
   // Acento naranja/menta del campus (para hoy, selección y "Sí colaboro").
   const accent = ((typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags') === 'gdl'
@@ -283,17 +308,27 @@ export default function PanelVoluntario() {
       });
   }, [dias, hoyISO]);
 
+  // Índice de solo lectura: los días CON evento del mes visible (de hoy en
+  // adelante, igual que la cuadrícula), ordenados por fecha ascendente. Un
+  // renglón por item (domingo primero si coincide con un evento el mismo día).
+  const indiceEventos = useMemo(() => {
+    if (!data) return [];
+    return dias
+      .filter(d => d.fecha.slice(0, 7) === data.mes && (!hoyISO || d.fecha >= hoyISO))
+      .sort((a, b) => {
+        if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+        return a.tipo === 'domingo' ? -1 : 1;
+      });
+  }, [dias, data, hoyISO]);
+
   function tocarDia(fecha) {
     const items = itemsDe(fecha);
     if (items.length === 0) return;
     setSel(fecha);
-    // Busca el primer item de esa fecha que SÍ está en la lista (los
-    // informativos/otros ministerios ya no se renderizan como slot, así que su
-    // ref no existe): si ninguno está, solo resalta el día y no hace scroll.
-    for (const it of items) {
-      const el = itemRefs.current[claveItem(it)];
-      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); break; }
-    }
+    // Enfoca el detalle del día (está debajo de la cuadrícula y del índice).
+    requestAnimationFrame(() => {
+      detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }
 
   async function marcar(item, estado) {
@@ -472,8 +507,29 @@ export default function PanelVoluntario() {
             </div>
           )}
 
-          {/* Detalle del día seleccionado, con el estado EN PALABRAS (reemplaza la leyenda). */}
-          <div className="mc-detail">
+          {/* Índice de solo lectura: eventos del mes visible. Tocar un renglón
+              selecciona ese día (misma función que tocar la celda). */}
+          {data && !cargando && (
+            <div className="mc-index">
+              {indiceEventos.length === 0 ? (
+                <div className="mc-index-empty">No hay eventos este mes.</div>
+              ) : indiceEventos.map(d => (
+                <button
+                  key={claveItem(d)}
+                  type="button"
+                  className="mc-index-row"
+                  style={sel === d.fecha ? { background: 'var(--gray-50)' } : undefined}
+                  onClick={() => tocarDia(d.fecha)}
+                >
+                  <span className="mc-index-dot" style={{ background: colorEstado(itemsDe(d.fecha)) }} />
+                  <span className="mc-index-txt">{DOW_CORTO[dowDeISO(d.fecha)]} {diaDeISO(d.fecha)} · {d.nombre}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Detalle del día seleccionado, con el estado EN PALABRAS. */}
+          <div className="mc-detail" ref={detalleRef}>
             {sel ? (
               <>
                 <div className="mc-detail-date">{fechaLarga(sel)}</div>
