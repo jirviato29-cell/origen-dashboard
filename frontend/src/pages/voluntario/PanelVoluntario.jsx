@@ -72,9 +72,11 @@ const CSS = `
 
 .mc-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;}
 .mc-dow div{font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--gray-600);text-align:center;padding:4px 0;}
-/* Celda cuadrada: número del día centrado + marcador(es) debajo. */
+/* Celda con evento: fondo del tipo · número arriba (color del tipo) · palabra
+   clave del tipo abajo. El estado de tu respuesta va en un indicador de esquina.
+   Un poco más alta que ancha (~0.82) para que quepa la palabra. */
 .mc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
-.mc-shell .mc-cell{aspect-ratio:1;border:1px solid var(--gray-100);border-radius:9px;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:center;width:100%;font-family:inherit;}
+.mc-shell .mc-cell{aspect-ratio:.82;border:1px solid var(--gray-100);border-radius:9px;padding:5px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:center;width:100%;font-family:inherit;}
 .mc-shell .mc-cell:hover{border-color:var(--gray-300);box-shadow:var(--shadow-sm);}
 .mc-shell .mc-cell.mc-out{background:var(--gray-50);border-color:transparent;cursor:default;}
 .mc-shell .mc-cell.mc-out:hover{box-shadow:none;}
@@ -82,20 +84,23 @@ const CSS = `
    en la cuadrícula. Solo el número, en gris muy tenue. No interactivo. */
 .mc-shell .mc-cell.mc-gone{background:transparent;border-color:transparent;box-shadow:none;cursor:default;}
 .mc-shell .mc-cell.mc-gone:hover{box-shadow:none;border-color:transparent;}
-.mc-num{font-size:15px;font-weight:600;color:var(--navy-800);line-height:1;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
+.mc-num{font-size:15px;font-weight:500;color:var(--navy-800);line-height:1;font-variant-numeric:tabular-nums;flex:none;}
 .mc-shell .mc-cell.mc-out .mc-num{color:var(--gray-300);}
-.mc-shell .mc-cell.mc-sun .mc-num{color:var(--navy-900);}
 
-/* Marcador(es) del día: distinguen por FORMA además de color, para quien no
-   distingue bien los colores. Círculo relleno = sí · círculo con equis = no ·
-   círculo hueco con borde grueso = por responder. */
-.mc-marks{display:flex;align-items:center;justify-content:center;gap:3px;min-height:8px;}
-.mc-mk{width:8px;height:8px;border-radius:50%;box-sizing:border-box;flex-shrink:0;}
-.mc-mk-si{background:var(--green-600);}
-.mc-mk-no{background:#3D4654;color:#fff;display:inline-flex;align-items:center;justify-content:center;width:9px;height:9px;}
-.mc-mk-no svg{width:6px;height:6px;}
-.mc-mk-pend{width:9px;height:9px;background:#fff;border:2px solid currentColor;}
-.mc-mk-mas{font-size:11px;font-weight:700;color:var(--gray-600);line-height:1;}
+/* Móvil: palabra clave del tipo (1–2 líneas, corte por palabra), 9px.
+   Escritorio: se aprovecha la celda grande → nombre completo del evento a 12px y
+   número a 16px (la palabra clave se oculta). */
+.mc-kw{font-size:9px;font-weight:700;line-height:1.05;text-align:center;letter-spacing:.01em;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;}
+.mc-kw-full{display:none;}
+@media(min-width:640px){
+  .mc-num{font-size:16px;}
+  .mc-kw{display:none;}
+  .mc-kw-full{display:-webkit-box;font-size:12px;font-weight:600;line-height:1.12;text-align:center;max-width:100%;padding:0 2px;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;}
+}
+
+/* Indicador del estado de TU respuesta, en la esquina: palomita · tacha · aro. */
+.mc-corner{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;}
+.mc-corner svg{width:9px;height:9px;}
 
 /* Detalle del día seleccionado (reemplaza la leyenda de colores). */
 .mc-detail{margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);}
@@ -187,7 +192,6 @@ const claveItem = (item) => `${item.fecha}-${item.evento_id ?? 'dom'}`;
 // Color base de un item (domingo → celeste; evento → su color) y mezcla a un
 // tinte pastel claro y OPACO. Se reutiliza para regresar el color por estado al
 // fondo de cada celda de la cuadrícula.
-const SKY = '#2C86C4';
 const COLOR_EVENTO_DEFAULT = '#FF6B2B';
 function tintePastel(hex, peso) {
   if (typeof hex !== 'string') return '#EEEEEE';
@@ -213,27 +217,37 @@ export default function PanelVoluntario() {
   const itemRefs = useRef({});
 
   // Colores de tipo de evento definidos en Stewardship (mismo origen que "Mis
-  // puestos"): así los eventos del calendario usan su color real, no uno genérico.
-  const { tipoColor = {} } = useTiposEvento() || {};
+  // puestos"): color de texto/borde, fondo de celda y tono oscuro, por tipo.
+  const { tipoColor = {}, tipoCellBg = {}, tipoColorDark = {} } = useTiposEvento() || {};
 
   // Acento naranja/menta del campus (para hoy, selección y "Sí colaboro").
   const accent = ((typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags') === 'gdl'
     ? '#2DD4BF' : '#FF6B2B';
 
-  // Color de un item: domingo → celeste; evento → su color de Stewardship.
-  const colorDeItem = (item) => (item.tipo === 'domingo'
-    ? SKY
-    : (tipoColor[item.tipo_evento] || item.tipo_color || COLOR_EVENTO_DEFAULT));
-
-  // Color del día por TIPO de evento (color de Stewardship): el punto y el fondo
-  // de la celda dicen QUÉ es el día (p. ej. Servicio en su color real). El estado
-  // (sí/no/por responder) NO va en este color: se ve en el marcador de forma de la
-  // celda y en el modal.
-  const colorDelDia = (items) => {
+  // Nombre del TIPO del día para color/fondo/palabra: el evento manda; un domingo
+  // genérico se trata como "Servicio dominical" (tipo que existe en tipos_evento).
+  const tipoNombreDe = (items) => {
     const evento = items.find(m => m.tipo === 'evento');
-    if (evento) return colorDeItem(evento);
-    if (items.some(m => m.tipo === 'domingo')) return SKY;
-    return '#9CB0CC';
+    if (evento) return evento.tipo_evento || null;
+    if (items.some(m => m.tipo === 'domingo')) return 'Servicio dominical';
+    return null;
+  };
+
+  // Palabra clave del tipo: primera palabra significativa del nombre del tipo
+  // ("Servicio dominical" → "Servicio", "Reunión de mujeres" → "Reunión").
+  const palabraClave = (nombre) => {
+    if (!nombre) return '';
+    const stop = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'y', 'a', 'en']);
+    const w = nombre.trim().split(/\s+/);
+    return w.find(x => !stop.has(x.toLowerCase())) || w[0] || '';
+  };
+
+  // Color sólido del tipo del día (para el punto del índice y del modal).
+  const colorTipoDia = (items) => {
+    const nombre = tipoNombreDe(items);
+    if (!nombre) return '#9CB0CC';
+    const evento = items.find(m => m.tipo === 'evento');
+    return tipoColor[nombre] || (evento && evento.tipo_color) || COLOR_EVENTO_DEFAULT;
   };
 
   useEffect(() => {
@@ -450,32 +464,29 @@ export default function PanelVoluntario() {
                 }
                 const items = itemsDe(c.fecha);
                 const esHoy = c.fecha === hoyISO;
-                const esDomingo = dowDeISO(c.fecha) === 0;
                 const esSel = sel === c.fecha;
 
-                // Color de FONDO por TIPO de evento (color de Stewardship): dice
-                // QUÉ es el día. El estado (sí/no/por responder) se muestra con el
-                // marcador de forma, no con el fondo.
+                // Tipo del día → color, fondo y palabra clave (de tipos_evento).
+                const tipoNombre = tipoNombreDe(items);
                 const evento = items.find(m => m.tipo === 'evento');
-                const domingo = items.find(m => m.tipo === 'domingo');
-                let bg = null, bd = null;
-                if (evento) { bg = tintePastel(colorDeItem(evento), 0.16); bd = tintePastel(colorDeItem(evento), 0.34); }
-                else if (domingo) { bg = 'var(--sky-50)'; bd = '#CFE4F3'; }
+                const conEvento = !!tipoNombre;
+                const tColor = conEvento ? (tipoColor[tipoNombre] || (evento && evento.tipo_color) || COLOR_EVENTO_DEFAULT) : null;
+                const tTexto = conEvento ? (tipoColorDark[tipoNombre] || tColor) : null;
+                const tBg = conEvento ? (tipoCellBg[tipoNombre] || tintePastel(tColor, 0.10)) : null;
+                const palabra = conEvento ? palabraClave(tipoNombre) : '';
+                const nombreCompleto = evento ? evento.nombre : (conEvento ? 'Servicio dominical' : '');
 
-                // Marcadores por FORMA: un círculo por cada servicio que le toca
-                // marcar (relleno = sí · con equis = no · hueco = por responder).
-                // Los eventos informativos (sin servicio) no llevan marcador.
-                const marks = items
-                  .filter(m => m.puede_marcar)
-                  .map(m => (m.estado === 'disponible' ? 'si'
-                    : m.estado === 'no_disponible' ? 'no'
-                    : !m.bloqueado ? 'pend' : null))
-                  .filter(Boolean);
-                const visM = marks.length > 3 ? marks.slice(0, 2) : marks;
-                const restoM = marks.length - visM.length;
+                // Estado de TU respuesta (indicador de esquina), no por fondo.
+                const marcables = items.filter(m => m.puede_marcar);
+                const servicio = marcables.find(m => m.tipo === 'domingo') ?? marcables[0] ?? null;
+                let estadoMark = null;
+                if (servicio) {
+                  if (servicio.estado === 'disponible') estadoMark = 'si';
+                  else if (servicio.estado === 'no_disponible') estadoMark = 'no';
+                  else if (!servicio.bloqueado) estadoMark = 'pend';
+                }
 
                 const clases = ['mc-cell'];
-                if (esDomingo) clases.push('mc-sun');
                 if (esHoy) clases.push('mc-today');
 
                 return (
@@ -483,22 +494,25 @@ export default function PanelVoluntario() {
                     key={c.fecha}
                     className={clases.join(' ')}
                     style={{
-                      ...(bg ? { background: bg, borderColor: bd } : {}),
+                      ...(tBg ? { background: tBg, borderColor: tintePastel(tColor, 0.34) } : {}),
                       ...(esHoy ? { borderColor: accent, boxShadow: `inset 0 0 0 1px ${accent}` } : {}),
                       ...(esSel ? { boxShadow: `0 0 0 2px ${accent}` } : {}),
                     }}
                     onClick={() => tocarDia(c.fecha)}
                     title={items.map(m => m.nombre).join(' · ')}
                   >
-                    <span className="mc-num" style={esHoy ? { color: accent } : undefined}>{c.num}</span>
-                    <span className="mc-marks">
-                      {visM.map((mk, j) => (
-                        mk === 'si' ? <span key={j} className="mc-mk mc-mk-si" />
-                          : mk === 'no' ? <span key={j} className="mc-mk mc-mk-no"><IcCross w={6} /></span>
-                            : <span key={j} className="mc-mk mc-mk-pend" style={{ color: accent }} />
-                      ))}
-                      {restoM > 0 && <span className="mc-mk-mas">+{restoM}</span>}
-                    </span>
+                    {estadoMark === 'si' && (
+                      <span className="mc-corner" style={{ background: '#15915A', color: '#fff' }}><I.check size={9} /></span>
+                    )}
+                    {estadoMark === 'no' && (
+                      <span className="mc-corner" style={{ background: '#D23B36', color: '#fff' }}><I.x size={9} /></span>
+                    )}
+                    {estadoMark === 'pend' && (
+                      <span className="mc-corner" style={{ background: '#fff', border: `2px solid ${accent}` }} />
+                    )}
+                    <span className="mc-num" style={{ color: conEvento ? tColor : '#9CB0CC' }}>{c.num}</span>
+                    {conEvento && <span className="mc-kw" style={{ color: tTexto }}>{palabra}</span>}
+                    {conEvento && <span className="mc-kw-full" style={{ color: tTexto }}>{nombreCompleto}</span>}
                   </button>
                 );
               })}
@@ -519,8 +533,8 @@ export default function PanelVoluntario() {
                   style={sel === d.fecha ? { background: 'var(--gray-50)' } : undefined}
                   onClick={() => tocarDia(d.fecha)}
                 >
-                  <span className="mc-index-dot" style={{ background: colorDelDia(itemsDe(d.fecha)) }} />
-                  <span className="mc-index-txt">{DOW_CORTO[dowDeISO(d.fecha)]} {diaDeISO(d.fecha)} · {d.nombre}</span>
+                  <span className="mc-index-dot" style={{ background: colorTipoDia(itemsDe(d.fecha)) }} />
+                  <span className="mc-index-txt">{DOW_CORTO[dowDeISO(d.fecha)]} {diaDeISO(d.fecha)} · {d.tipo === 'domingo' ? 'Servicio dominical' : d.nombre}</span>
                 </button>
               ))}
             </div>
@@ -547,12 +561,12 @@ export default function PanelVoluntario() {
               return (
                 <div key={clave}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: colorDelDia(itemsDe(sel)) }} />
-                    <span style={{ fontSize: 17, fontWeight: 600, color: '#112540' }}>{it.nombre}</span>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: colorTipoDia(itemsDe(sel)) }} />
+                    <span style={{ fontSize: 17, fontWeight: 600, color: '#112540' }}>{it.tipo === 'domingo' ? 'Servicio dominical' : it.nombre}</span>
                   </div>
-                  <div style={{ marginLeft: 20, marginTop: 2, fontSize: 15, color: '#5A6472' }}>
-                    {it.tipo === 'domingo' ? 'Domingo' : (it.tipo_evento || 'Evento')}
-                  </div>
+                  {it.tipo !== 'domingo' && it.tipo_evento && (
+                    <div style={{ marginLeft: 20, marginTop: 2, fontSize: 15, color: '#5A6472' }}>{it.tipo_evento}</div>
+                  )}
 
                   {pendienteAbierto ? (
                     <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
