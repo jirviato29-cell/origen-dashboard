@@ -142,7 +142,13 @@ router.post('/', async (req, res) => {
     );
 
     const totalPersonas = new Set(subs.map((s) => s.usuario_id)).size;
-    const payload = JSON.stringify({ titulo, cuerpo: mensaje, url: '/' });
+    const payload = JSON.stringify({
+      titulo,
+      cuerpo: mensaje,
+      url: '/',
+      icon: '/pwa-192x192.png',
+      badge: '/badge.png',
+    });
 
     // Envío en lotes de 100 con Promise.allSettled: un fallo individual nunca
     // detiene el resto. Las suscripciones muertas (404/410) se borran para que

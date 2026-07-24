@@ -92,6 +92,8 @@ async function enviarPushAUsuarios(usuarioIds, { titulo, cuerpo, url } = {}) {
     titulo: titulo || 'Origen',
     cuerpo: cuerpo || '',
     url:    url    || '/',
+    icon:   '/pwa-192x192.png',
+    badge:  '/badge.png',
   });
 
   const resultados = await Promise.all(rows.map((s) => enviarAUnaSuscripcion(s, payload)));
