@@ -260,6 +260,13 @@ export const pushApi = {
   prueba:      ()          => http.post('/push/prueba'),
 };
 
+// ─── Mi perfil (cualquier rol autenticado) ────────────────────────────────────
+// Datos de solo lectura para la pestaña Configuración: nombre de acceso, campus y
+// ministerio. El backend los resuelve por el usuario del token, no de aquí.
+export const miPerfilApi = {
+  get: () => http.get('/mi-perfil'),
+};
+
 // ─── Usuarios ─────────────────────────────────────────────────────────────────
 const realUsuariosApi = {
   getAll:       ()               => http.get('/usuarios'),
