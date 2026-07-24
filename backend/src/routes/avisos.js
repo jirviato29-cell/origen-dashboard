@@ -3,6 +3,11 @@ const jwt     = require('jsonwebtoken');
 const webpush = require('web-push');
 const pool    = require('../db/pool');
 const { JWT_SECRET } = require('../lib/session');
+const {
+  CAMPUS_VALIDOS,
+  TIPOS_VALIDOS,
+  filtroSuscripciones,
+} = require('../lib/avisosDestinatarios');
 
 const router = express.Router();
 
@@ -36,38 +41,26 @@ function requireStewardship(req, res, next) {
 }
 router.use(requireStewardship);
 
-// ── Constantes de validación y filtros ────────────────────────────────────────
+// ── Constantes de validación ──────────────────────────────────────────────────
+// El título sigue corto (cabe en la notificación). El texto ahora puede ser
+// largo: NO viaja completo en el push, sino que se lee dentro de la app.
 const MAX_TITULO  = 60;
-const MAX_MENSAJE = 180;
-const CAMPUS_VALIDOS = ['ags', 'gdl', 'todos'];
-const TIPOS_VALIDOS  = ['lideres', 'voluntarios', 'todos'];
+const MAX_MENSAJE = 2000;
 
-// tipo_destinatario → roles de usuarios que reciben.
-function rolesDeTipo(tipo) {
-  if (tipo === 'lideres')    return ['lider_ministerio'];
-  if (tipo === 'voluntarios') return ['voluntario'];
-  return ['lider_ministerio', 'voluntario']; // 'todos'
-}
+// Longitud del adelanto que sí viaja en la notificación (el resto se lee en la
+// app). La resolución de destinatarios y filtros vive en lib/avisosDestinatarios.
+const ADELANTO_MAX = 120;
 
-// Construye el WHERE de suscripciones según los filtros. Devuelve { where, params }.
-// - campus 'todos' → se ignora el filtro de campus.
-// - ministerio_id null → todos los ministerios.
-function filtroSuscripciones({ campus, ministerioId, tipo }) {
-  const params = [];
-  const cond = ['u.activo = true'];
-
-  params.push(rolesDeTipo(tipo));
-  cond.push(`u.rol = ANY($${params.length}::text[])`);
-
-  if (campus !== 'todos') {
-    params.push(campus);
-    cond.push(`u.campus = $${params.length}`);
-  }
-  if (ministerioId !== null) {
-    params.push(ministerioId);
-    cond.push(`u.ministerio_id = $${params.length}`);
-  }
-  return { where: cond.join(' AND '), params };
+// Recorta el texto a un adelanto para la notificación: corta en la última
+// palabra completa dentro del límite y agrega puntos suspensivos si se cortó.
+// El texto completo NUNCA viaja en el push; se lee dentro de la app.
+function adelantoTexto(texto, max = ADELANTO_MAX) {
+  const limpio = String(texto || '').replace(/\s+/g, ' ').trim();
+  if (limpio.length <= max) return limpio;
+  const cortado = limpio.slice(0, max);
+  const ultimoEspacio = cortado.lastIndexOf(' ');
+  const base = ultimoEspacio > 0 ? cortado.slice(0, ultimoEspacio) : cortado;
+  return `${base.trimEnd()}…`;
 }
 
 // ── GET /api/avisos/destinatarios ─────────────────────────────────────────────
@@ -142,11 +135,26 @@ router.post('/', async (req, res) => {
     );
 
     const totalPersonas = new Set(subs.map((s) => s.usuario_id)).size;
+
+    // Se registra el aviso ANTES de enviar para tener su id: la notificación
+    // lleva la URL /avisos/ID y el texto completo se lee dentro de la app. Los
+    // totales se guardan ahora (destinatarios) y se ajustan al final (entregados).
+    const { rows: insertados } = await pool.query(
+      `INSERT INTO avisos (titulo, texto, destinatarios, campus, ministerio_id, creado_por, total_destinatarios, total_entregados)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 0)
+       RETURNING id`,
+      [titulo, mensaje, tipo, campus, ministerioId, req.authUsuario.id, totalPersonas]
+    );
+    const avisoId = insertados[0].id;
+
+    // El push NO lleva el texto completo: solo un adelanto (primeros ~120
+    // caracteres, cortado en palabra completa). La URL apunta al aviso concreto.
     const payload = JSON.stringify({
       titulo,
-      cuerpo: mensaje,
-      url: '/',
-      icon: '/pwa-192x192.png',
+      cuerpo: adelantoTexto(mensaje),
+      url:   `/avisos/${avisoId}`,
+      avisoId,
+      icon:  '/pwa-192x192.png',
       badge: '/badge.png',
     });
 
@@ -192,12 +200,9 @@ router.post('/', async (req, res) => {
     const totalEntregados = personasEntregadas.size;
     const totalFallidos   = totalPersonas - totalEntregados;
 
-    // Registro con los totales REALES y el emisor del token.
-    await pool.query(
-      `INSERT INTO avisos (titulo, texto, destinatarios, campus, ministerio_id, creado_por, total_destinatarios, total_entregados)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [titulo, mensaje, tipo, campus, ministerioId, req.authUsuario.id, totalPersonas, totalEntregados]
-    );
+    // Ajusta el total de entregados REAL sobre el aviso ya registrado.
+    await pool.query('UPDATE avisos SET total_entregados = $1 WHERE id = $2', [totalEntregados, avisoId])
+      .catch((e) => console.error('[avisos] update total_entregados falló:', e?.message));
 
     return res.json({
       total_destinatarios: totalPersonas,
@@ -212,7 +217,7 @@ router.post('/', async (req, res) => {
 
 // ── GET /api/avisos ───────────────────────────────────────────────────────────
 // Historial: últimos 30 avisos, más recientes primero, con el nombre del
-// ministerio (si aplica) para mostrarlo en la tabla.
+// ministerio (si aplica) y el conteo de LEÍDOS (personas que abrieron el aviso).
 router.get('/', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -225,7 +230,8 @@ router.get('/', async (req, res) => {
               m.nombre AS ministerio_nombre,
               a.total_destinatarios,
               a.total_entregados,
-              a.created_at
+              a.created_at,
+              (SELECT COUNT(*)::int FROM avisos_vistos av WHERE av.aviso_id = a.id) AS total_leidos
          FROM avisos a
          LEFT JOIN ministerios m ON m.id = a.ministerio_id
         ORDER BY a.created_at DESC
@@ -234,6 +240,30 @@ router.get('/', async (req, res) => {
     return res.json(rows);
   } catch (err) {
     console.error('[avisos] GET /:', err);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ── GET /api/avisos/:id/lectores ──────────────────────────────────────────────
+// Solo stewardship (heredado del router). Nombres de quienes ABRIERON el aviso y
+// la fecha de lectura, del más reciente al más antiguo.
+router.get('/:id/lectores', async (req, res) => {
+  const avisoId = Number(req.params.id);
+  if (!Number.isInteger(avisoId)) {
+    return res.status(400).json({ error: 'id inválido' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.nombre, av.visto_at
+         FROM avisos_vistos av
+         JOIN usuarios u ON u.id = av.usuario_id
+        WHERE av.aviso_id = $1
+        ORDER BY av.visto_at DESC`,
+      [avisoId]
+    );
+    return res.json({ total: rows.length, lectores: rows });
+  } catch (err) {
+    console.error('[avisos] GET /:id/lectores:', err);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

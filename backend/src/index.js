@@ -38,6 +38,7 @@ const camposPersonalizadosRouter = require('./routes/camposPersonalizados');
 const pushRouter                 = require('./routes/push');
 const miPerfilRouter             = require('./routes/miPerfil');
 const avisosRouter               = require('./routes/avisos');
+const misAvisosRouter            = require('./routes/misAvisos');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -66,6 +67,11 @@ app.use('/api/mi-perfil', miPerfilRouter);
 // los destinatarios en el backend; no depende de req.campus (el campus es un
 // filtro del body), por eso se monta antes del campusMiddleware.
 app.use('/api/avisos', avisosRouter);
+
+// Lectura de avisos por el destinatario (voluntario/líder). Resuelve todo por el
+// usuario del token (campus/ministerio/rol desde la base), no depende de
+// req.campus, así que se monta antes del campusMiddleware, igual que push.
+app.use('/api/mis-avisos', misAvisosRouter);
 
 // A partir de aquí todas las peticiones resuelven req.campus
 app.use(campusMiddleware);
