@@ -34,13 +34,12 @@ const CSS = `
   --r-sm:7px;--r-md:10px;--r-lg:14px;--r-xl:16px;
   --shadow-sm:0 1px 2px rgba(11,26,47,.06);
   font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
-  letter-spacing:-.006em;color:var(--ink);width:100%;
-  /* Panel izquierdo más angosto (pero ≥320px para que quepan sus 2 botones) y
-     el calendario con ~2.4× su ancho. La lista "Donde colaboras" ocupa la
-     columna izquierda (2 filas); a la derecha van los contadores y, debajo, la
-     cuadrícula. En teléfono se apila: contadores → lista → cuadrícula. */
-  display:grid;grid-template-columns:minmax(320px,1fr) 2.4fr;
-  grid-template-areas:"list kpis" "list cal";gap:16px;align-items:start;
+  letter-spacing:-.006em;color:var(--ink);width:100%;max-width:820px;
+  /* "Mi calendario" es solo contadores + cuadrícula (la lista "Donde colaboras"
+     se moverá a otra pestaña). Una sola columna en todos los anchos: contadores
+     arriba, cuadrícula debajo. Ancho cómodo, sin espacio muerto. */
+  display:grid;grid-template-columns:1fr;grid-template-areas:"kpis" "cal";
+  gap:16px;align-items:start;
 }
 .mc-shell *{box-sizing:border-box;}
 .mc-shell>*{min-width:0;}
@@ -101,6 +100,8 @@ const CSS = `
 .mc-detail-name{font-size:15px;color:var(--navy-900);font-weight:500;min-width:0;}
 .mc-detail-state{font-size:15px;font-weight:700;white-space:nowrap;flex-shrink:0;}
 .mc-detail-hint{font-size:15px;color:var(--gray-600);}
+/* Cada evento del día seleccionado: nombre + su acción (marcar / cambiar). */
+.mc-detail-item{margin-top:14px;}
 
 /* ===== "Donde colaboras" (lista de fechas por responder) ===== */
 /* Mismo patrón visual que MisPuestos para que el voluntario reconozca la forma. */
@@ -127,12 +128,7 @@ const CSS = `
 
 .mc-msg{padding:22px 10px;text-align:center;font-size:15px;color:var(--gray-600);}
 .mc-err{margin:0 18px 16px;padding:12px 14px;border-radius:12px;background:var(--red-50);border:1px solid #F3CBC9;color:var(--red-600);font-size:15px;font-weight:600;}
-.mc-cal-err{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--red-50);border:1px solid #F3CBC9;color:var(--red-600);font-size:13px;font-weight:600;}
-
-@media(max-width:1120px){
-  .mc-shell{grid-template-columns:1fr;grid-template-areas:"kpis" "list" "cal";}
-  .mc-rail{position:static;}
-}
+.mc-cal-err{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--red-50);border:1px solid #F3CBC9;color:var(--red-600);font-size:15px;font-weight:600;}
 `;
 
 // ── Iconos (inline, como la referencia) ───────────────────────────────────────
@@ -484,20 +480,71 @@ export default function PanelVoluntario() {
                 {itemsDe(sel).length === 0 ? (
                   <div className="mc-detail-row"><span className="mc-detail-hint">Sin eventos este día.</span></div>
                 ) : itemsDe(sel).map(it => {
-                  let palabra, color;
-                  if (it.puede_marcar) {
-                    if (it.estado === 'disponible') { palabra = 'Sí colaboro'; color = 'var(--green-600)'; }
-                    else if (it.estado === 'no_disponible') { palabra = 'No puedo'; color = 'var(--gray-600)'; }
-                    else if (!it.bloqueado) { palabra = 'Sin responder'; color = accent; }
-                    else { palabra = 'Ya cerró'; color = 'var(--gray-600)'; }
-                  } else {
-                    palabra = it.tipo === 'domingo' ? 'Domingo' : (it.tipo_evento || 'Informativo');
-                    color = 'var(--gray-600)';
-                  }
+                  // Mismos estados y MISMA función de guardado que la lista.
+                  const clave = claveItem(it);
+                  const ocupado = enviando === clave;
+                  const reabierto = editando[clave];
+                  const pendienteAbierto = it.puede_marcar && !it.bloqueado && (it.estado == null || reabierto);
+                  const respondido = it.puede_marcar && it.estado != null && !reabierto;
+                  const cerradoSinResp = it.puede_marcar && it.bloqueado && it.estado == null;
                   return (
-                    <div key={claveItem(it)} className="mc-detail-row">
-                      <span className="mc-detail-name">{it.nombre}</span>
-                      <span className="mc-detail-state" style={{ color }}>{palabra}</span>
+                    <div key={clave} className="mc-detail-item">
+                      <div className="mc-detail-row">
+                        <span className="mc-detail-name">{it.nombre}</span>
+                        {!it.puede_marcar && (
+                          <span className="mc-detail-state" style={{ color: 'var(--gray-600)' }}>
+                            {it.tipo === 'domingo' ? 'Domingo' : (it.tipo_evento || 'Informativo')}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Marca aquí mismo si va a servir (misma lógica de guardado). */}
+                      {pendienteAbierto ? (
+                        <div className="dc-btns" style={{ marginTop: 10 }}>
+                          <button
+                            type="button" className="dc-btn" disabled={ocupado}
+                            onClick={() => marcar(it, 'disponible')}
+                            style={{ fontFamily: 'inherit', fontSize: 17, fontWeight: 700, background: accent, color: '#FFFFFF', border: `2px solid ${accent}` }}
+                          >
+                            <I.check size={18} /> {ocupado ? '…' : 'Sí colaboro'}
+                          </button>
+                          <button
+                            type="button" className="dc-btn" disabled={ocupado}
+                            onClick={() => marcar(it, 'no_disponible')}
+                            style={{ fontFamily: 'inherit', fontSize: 17, fontWeight: 700, background: '#FFFFFF', color: 'var(--navy-900)', border: '2px solid var(--gray-300)' }}
+                          >
+                            <I.x size={18} /> {ocupado ? '…' : 'No puedo'}
+                          </button>
+                        </div>
+                      ) : respondido ? (
+                        <div className="dc-state-row" style={{ marginTop: 8 }}>
+                          {it.estado === 'disponible' ? (
+                            <span className="dc-state" style={{ color: 'var(--green-600)' }}>
+                              <span className="dc-state-ic" style={{ background: 'var(--green-50)', color: 'var(--green-600)' }}><I.check size={16} /></span>
+                              Sí colaboro
+                            </span>
+                          ) : (
+                            <span className="dc-state" style={{ color: 'var(--gray-600)' }}>
+                              <span style={{ display: 'inline-flex', color: 'var(--gray-600)' }}><I.x size={22} /></span>
+                              No puedo
+                            </span>
+                          )}
+                          {!it.bloqueado && (
+                            <button
+                              type="button" className="dc-cambiar"
+                              onClick={() => setEditando(e => ({ ...e, [clave]: true }))}
+                              style={{ fontFamily: 'inherit', fontSize: 16, fontWeight: 600, padding: '12px 18px', background: '#fff', color: 'var(--navy-900)', border: '1px solid var(--gray-300)' }}
+                            >
+                              Cambiar
+                            </button>
+                          )}
+                        </div>
+                      ) : cerradoSinResp ? (
+                        <div className="dc-state-row" style={{ marginTop: 8 }}>
+                          <span className="dc-state" style={{ color: 'var(--gray-600)' }}>Sin responder</span>
+                          <span className="dc-lock"><I.clock size={16} /> Ya cerró</span>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -510,7 +557,11 @@ export default function PanelVoluntario() {
           {error && <div className="mc-cal-err">{error}</div>}
         </div>
 
-      {/* ── "Donde colaboras": fechas por responder (sube antes de la cuadrícula) ── */}
+      {/* ── "Donde colaboras": OCULTA en "Mi calendario". El código y sus estilos
+          NO se borran: se reutilizan en la pestaña de Invitaciones (paso posterior).
+          Por ahora solo NO se renderiza; marcar disponibilidad vive en el detalle
+          del día, arriba. ── */}
+      {false && (
       <div className="mc-card mc-rail">
         <div className="mc-rail-head">
           <h3>Donde colaboras</h3>
@@ -606,6 +657,7 @@ export default function PanelVoluntario() {
         </div>
         <div className="mc-foot-note">Los cambios cierran 1 día antes de cada fecha.</div>
       </div>
+      )}
       </div>
     </>
   );
