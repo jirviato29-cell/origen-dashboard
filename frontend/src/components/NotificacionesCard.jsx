@@ -2,21 +2,35 @@ import { useEffect, useState } from 'react';
 import {
   estadoNotificaciones,
   activarNotificaciones,
+  desactivarNotificaciones,
   mandarPrueba,
 } from '../utils/push';
 
-// Tarjeta "Activar notificaciones" para cualquier rol (aquí en la pantalla del
-// voluntario). Maneja todos los casos sin tumbar la pantalla: navegador no
-// compatible, iOS sin instalar, permiso denegado y error de red.
+// Tarjeta "Notificaciones" autocontenida para cualquier rol. Detecta soporte del
+// navegador, el estado del permiso y si ya hay una suscripción activa, y expone
+// activar / desactivar / mandar prueba.
+//
+// Maneja todos los casos sin tumbar la pantalla: navegador no compatible, iOS
+// sin instalar, permiso denegado y error de red.
 //
 // IMPORTANTE: los botones llevan estilo INLINE (color, fondo, borde y fuente)
 // porque la regla global `.app button { color: inherit }` pisaría los colores.
+//
+// Theming por campus: se lee `campus_activo` de localStorage (mismo mecanismo que
+// el Sidebar) para pintar el acento —Ags naranja, Gdl menta— sin depender del
+// cascade CSS, que no llega a los estilos inline.
 
 const FONT = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
-const NAVY   = '#112540';
-const ORANGE = '#FF6B2B';
-const GREEN  = '#15915A';
-const GRAY   = '#5A6472';
+const GREEN = '#15915A';
+const GRAY  = '#5A6472';
+
+// Paleta por campus. Ags: navy + naranja. Gdl: negro + menta.
+function temaCampus() {
+  const campus = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
+  return campus === 'gdl'
+    ? { primary: '#0A0A0A', accent: '#2DD4BF', accentInk: '#0A0A0A' }
+    : { primary: '#112540', accent: '#FF6B2B', accentInk: '#FFFFFF' };
+}
 
 const card = {
   fontFamily: FONT,
@@ -46,11 +60,13 @@ const btnBase = {
   width: '100%',
 };
 
-export default function BotonNotificaciones() {
-  const [estado, setEstado]   = useState(null);   // resultado de estadoNotificaciones()
-  const [cargando, setCargando] = useState(false); // activando/probando
-  const [error, setError]     = useState('');
-  const [aviso, setAviso]     = useState('');      // mensaje de éxito breve
+export default function NotificacionesCard() {
+  const [estado, setEstado]     = useState(null);   // resultado de estadoNotificaciones()
+  const [cargando, setCargando] = useState(false);  // activando/probando/desactivando
+  const [error, setError]       = useState('');
+  const [aviso, setAviso]       = useState('');      // mensaje de éxito breve
+
+  const tema = temaCampus();
 
   async function refrescar() {
     try {
@@ -86,6 +102,19 @@ export default function BotonNotificaciones() {
     }
   }
 
+  async function onDesactivar() {
+    setError(''); setAviso(''); setCargando(true);
+    try {
+      await desactivarNotificaciones();
+      await refrescar();
+      setAviso('Notificaciones desactivadas en este dispositivo.');
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.message || 'No se pudieron desactivar las notificaciones.');
+    } finally {
+      setCargando(false);
+    }
+  }
+
   async function onPrueba() {
     setError(''); setAviso(''); setCargando(true);
     try {
@@ -103,7 +132,7 @@ export default function BotonNotificaciones() {
   const titulo = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span aria-hidden="true" style={{ fontSize: 16 }}>🔔</span>
-      <span style={{ fontSize: 14, fontWeight: 800, color: NAVY, letterSpacing: '-.01em' }}>
+      <span style={{ fontSize: 14, fontWeight: 800, color: tema.primary, letterSpacing: '-.01em' }}>
         Notificaciones
       </span>
     </div>
@@ -155,7 +184,7 @@ export default function BotonNotificaciones() {
     );
   }
 
-  // 4) Ya activadas → confirmación + "Mandar prueba".
+  // 4) Ya activadas → confirmación + "Mandar prueba" + "Desactivar".
   if (estado.activo && estado.permiso === 'granted') {
     return (
       <div style={card}>
@@ -170,12 +199,26 @@ export default function BotonNotificaciones() {
           style={{
             ...btnBase,
             background: '#fff',
-            color: NAVY,
-            border: `1px solid #CBD2DC`,
+            color: tema.primary,
+            border: '1px solid #CBD2DC',
             opacity: cargando ? 0.6 : 1,
           }}
         >
           {cargando ? 'Enviando…' : 'Mandar prueba'}
+        </button>
+        <button
+          type="button"
+          onClick={onDesactivar}
+          disabled={cargando}
+          style={{
+            ...btnBase,
+            background: '#fff',
+            color: '#D23B36',
+            border: '1px solid #F0C4C2',
+            opacity: cargando ? 0.6 : 1,
+          }}
+        >
+          {cargando ? 'Un momento…' : 'Desactivar notificaciones'}
         </button>
         {msgError}
         {msgAviso}
@@ -196,9 +239,9 @@ export default function BotonNotificaciones() {
         disabled={cargando}
         style={{
           ...btnBase,
-          background: ORANGE,
-          color: '#fff',
-          border: `1px solid ${ORANGE}`,
+          background: tema.accent,
+          color: tema.accentInk,
+          border: `1px solid ${tema.accent}`,
           opacity: cargando ? 0.6 : 1,
         }}
       >
