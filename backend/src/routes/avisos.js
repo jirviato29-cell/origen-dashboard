@@ -86,14 +86,20 @@ router.get('/destinatarios', async (req, res) => {
     }
 
     const { where, params } = filtroSuscripciones({ campus, ministerioId, tipo });
+    // Una fila por PERSONA (agrupada por usuario, no por dispositivo), ordenada
+    // alfabéticamente. El conteo es el número de personas; los nombres van para
+    // el modal de confirmación. No cambia la lógica de resolución de filtros.
     const { rows } = await pool.query(
-      `SELECT COUNT(DISTINCT ps.usuario_id)::int AS total
+      `SELECT u.nombre
          FROM push_suscripciones ps
          JOIN usuarios u ON u.id = ps.usuario_id
-        WHERE ${where}`,
+        WHERE ${where}
+        GROUP BY u.id, u.nombre
+        ORDER BY lower(u.nombre) ASC`,
       params
     );
-    return res.json({ total: rows[0]?.total || 0 });
+    const nombres = rows.map((r) => r.nombre).filter(Boolean);
+    return res.json({ total: nombres.length, nombres });
   } catch (err) {
     console.error('[avisos] GET /destinatarios:', err);
     return res.status(500).json({ error: 'Error interno del servidor' });

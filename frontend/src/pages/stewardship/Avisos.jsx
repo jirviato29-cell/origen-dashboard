@@ -137,7 +137,7 @@ export default function Avisos() {
         tipo_destinatario: tipo,
         ...(ministerioId ? { ministerio_id: ministerioId } : {}),
       });
-      setConfirm({ total: data?.total ?? 0 });
+      setConfirm({ total: data?.total ?? 0, nombres: Array.isArray(data?.nombres) ? data.nombres : [] });
     } catch (err) {
       setError(err?.response?.data?.error || 'No se pudo calcular los destinatarios.');
     } finally {
@@ -337,9 +337,17 @@ export default function Avisos() {
               </strong>{' '}
               con notificaciones activas. <strong>Es irreversible</strong> y llegará a sus dispositivos de inmediato.
             </p>
-            {confirm.total === 0 && (
+            {confirm.total === 0 ? (
               <div style={{ fontSize: 12.5, fontWeight: 600, color: '#D23B36' }}>
-                No hay destinatarios con notificaciones activas para estos filtros.
+                Nadie tiene notificaciones activas todavía para estos filtros.
+              </div>
+            ) : confirm.nombres.length > 0 && (
+              <div style={{
+                fontSize: 12, color: '#8A93A0', lineHeight: 1.5,
+                maxHeight: 96, overflowY: 'auto',
+              }}>
+                {confirm.nombres.slice(0, 10).join(', ')}
+                {confirm.nombres.length > 10 ? ` y ${confirm.nombres.length - 10} más` : ''}
               </div>
             )}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
