@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { voluntarioDisponibilidadApi } from '../../services/api';
+import AvisoDestacado from '../../components/AvisoDestacado';
 
 // "Mi calendario" del voluntario, implementado según el handoff de diseño
 // (referencia-Mi-Calendario.html / SPEC-Mi-Calendario.md): sistema azul marino +
@@ -397,7 +398,9 @@ export default function PanelVoluntario() {
   };
 
   return (
-    <div className="mc-shell">
+    <>
+      <AvisoDestacado />
+      <div className="mc-shell">
       <style>{CSS}</style>
 
       {/* ── Columna derecha (1fr): KPIs + calendario ──────────────────────── */}
@@ -628,6 +631,7 @@ export default function PanelVoluntario() {
         </div>
         <div className="mc-foot-note">Los cambios cierran 1 día antes de cada fecha.</div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

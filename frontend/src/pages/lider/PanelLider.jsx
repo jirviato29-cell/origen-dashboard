@@ -3,6 +3,7 @@
 // ministerio va en la topbar; aquí NO se repiten. Cada pantalla solo muestra su
 // descripción corta arriba del contenido, dentro del contenedor estándar.
 import useLiderPerfil from '../../hooks/useLiderPerfil';
+import AvisoDestacado from '../../components/AvisoDestacado';
 import MisVoluntarios from './MisVoluntarios';
 import PosicionesMinisterio from './PosicionesMinisterio';
 import ProgramarServicio from './ProgramarServicio';
@@ -26,6 +27,7 @@ function LiderShell({ sub, children }) {
   return (
     <div className="pl-root">
       <style>{CSS}</style>
+      <AvisoDestacado />
       <div className="pl-sub">{sub}</div>
       {estado === 'sin_ministerio' && (
         <div className="pl-warn">
