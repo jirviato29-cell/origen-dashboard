@@ -37,6 +37,7 @@ const ministeriosRouter          = require('./routes/ministerios');
 const camposPersonalizadosRouter = require('./routes/camposPersonalizados');
 const pushRouter                 = require('./routes/push');
 const miPerfilRouter             = require('./routes/miPerfil');
+const avisosRouter               = require('./routes/avisos');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -60,6 +61,11 @@ app.use('/api/push', pushRouter);
 // la pestaña Configuración. Mismo criterio que push: acepta cualquier rol y no
 // depende de req.campus, así que se monta antes del campusMiddleware.
 app.use('/api/mi-perfil', miPerfilRouter);
+
+// Avisos push masivos (solo stewardship). Verifica el rol del token y resuelve
+// los destinatarios en el backend; no depende de req.campus (el campus es un
+// filtro del body), por eso se monta antes del campusMiddleware.
+app.use('/api/avisos', avisosRouter);
 
 // A partir de aquí todas las peticiones resuelven req.campus
 app.use(campusMiddleware);
