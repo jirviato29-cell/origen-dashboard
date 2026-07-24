@@ -36,16 +36,15 @@ const card = {
   boxSizing: 'border-box',
 };
 
-function Fila({ etiqueta, valor, accent }) {
+function Fila({ etiqueta, valor }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: '#8A93A0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+      <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: '#5B6675' }}>
         {etiqueta}
       </span>
-      <span style={{ fontSize: 14.5, fontWeight: 700, color: valor ? '#1A2230' : '#A3ABB6', overflowWrap: 'anywhere' }}>
+      <span style={{ fontSize: 17, fontWeight: 600, color: valor ? '#1A2230' : '#7A8699', overflowWrap: 'anywhere' }}>
         {valor || '—'}
       </span>
-      <span style={{ height: 2, width: 22, borderRadius: 2, background: accent, marginTop: 2 }} />
     </div>
   );
 }
@@ -105,14 +104,16 @@ export default function Configuracion() {
           <span aria-hidden="true" style={{ color: tema.accent, display: 'inline-flex' }}>
             <I.users size={17} />
           </span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: tema.primary, letterSpacing: '-.01em' }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: tema.primary, letterSpacing: '-.01em' }}>
             Tu cuenta
           </span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 14, minWidth: 0 }}>
-          <Fila etiqueta="Nombre de acceso" valor={perfil.nombre} accent={tema.accent} />
-          <Fila etiqueta="Campus"           valor={campusTexto}   accent={tema.accent} />
-          <Fila etiqueta="Ministerio"       valor={perfil.ministerio} accent={tema.accent} />
+        {/* Una sola columna: cada dato en su renglón, sin que el nombre largo
+            choque con la columna de al lado en el teléfono. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+          <Fila etiqueta="Nombre de acceso" valor={perfil.nombre} />
+          <Fila etiqueta="Campus"           valor={campusTexto} />
+          <Fila etiqueta="Ministerio"       valor={perfil.ministerio} />
         </div>
       </div>
     </div>

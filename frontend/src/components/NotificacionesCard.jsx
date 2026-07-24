@@ -46,11 +46,13 @@ const card = {
   boxSizing: 'border-box',
 };
 
-// Base común de los botones (blindada contra .app button).
+// Base común de los botones (blindada contra .app button). Alto real mínimo de
+// 48px para tocar cómodo desde el teléfono; la tarjeta ya los separa 10px.
 const btnBase = {
   fontFamily: FONT,
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 700,
+  minHeight: 48,
   padding: '11px 14px',
   borderRadius: 11,
   border: '1px solid transparent',
@@ -61,6 +63,7 @@ const btnBase = {
   justifyContent: 'center',
   gap: 8,
   width: '100%',
+  boxSizing: 'border-box',
 };
 
 export default function NotificacionesCard() {
@@ -137,17 +140,17 @@ export default function NotificacionesCard() {
       <span aria-hidden="true" style={{ color: tema.accent, display: 'inline-flex' }}>
         <I.bell size={17} />
       </span>
-      <span style={{ fontSize: 14, fontWeight: 800, color: tema.primary, letterSpacing: '-.01em' }}>
+      <span style={{ fontSize: 15, fontWeight: 800, color: tema.primary, letterSpacing: '-.01em' }}>
         Notificaciones
       </span>
     </div>
   );
 
   const msgError = error && (
-    <div style={{ fontSize: 12.5, fontWeight: 600, color: '#D23B36', lineHeight: 1.4 }}>{error}</div>
+    <div style={{ fontSize: 15, fontWeight: 600, color: '#D23B36', lineHeight: 1.4 }}>{error}</div>
   );
   const msgAviso = aviso && !error && (
-    <div style={{ fontSize: 12.5, fontWeight: 600, color: GREEN, lineHeight: 1.4 }}>{aviso}</div>
+    <div style={{ fontSize: 15, fontWeight: 600, color: GREEN, lineHeight: 1.4 }}>{aviso}</div>
   );
 
   // 1) Navegador no compatible.
@@ -155,7 +158,7 @@ export default function NotificacionesCard() {
     return (
       <div style={card}>
         {titulo}
-        <div style={{ fontSize: 12.5, color: GRAY, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 15, color: GRAY, lineHeight: 1.45 }}>
           Este navegador no soporta notificaciones push.
         </div>
       </div>
@@ -167,7 +170,7 @@ export default function NotificacionesCard() {
     return (
       <div style={card}>
         {titulo}
-        <div style={{ fontSize: 12.5, color: GRAY, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 15, color: GRAY, lineHeight: 1.45 }}>
           Primero agrega Origen a tu pantalla de inicio para poder activar las
           notificaciones. Toca <strong>Compartir</strong> y luego{' '}
           <strong>«Agregar a inicio»</strong>.
@@ -181,7 +184,7 @@ export default function NotificacionesCard() {
     return (
       <div style={card}>
         {titulo}
-        <div style={{ fontSize: 12.5, color: GRAY, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 15, color: GRAY, lineHeight: 1.45 }}>
           Bloqueaste las notificaciones. Actívalas desde los ajustes del navegador
           para este sitio y vuelve a intentarlo.
         </div>
@@ -194,7 +197,7 @@ export default function NotificacionesCard() {
     return (
       <div style={card}>
         {titulo}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: GREEN }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: GREEN }}>
           <span aria-hidden="true">✓</span> Notificaciones activadas
         </div>
         <button
@@ -218,8 +221,8 @@ export default function NotificacionesCard() {
           style={{
             ...btnBase,
             background: '#fff',
-            color: '#D23B36',
-            border: '1px solid #F0C4C2',
+            color: GRAY,
+            border: '1px solid #CBD2DC',
             opacity: cargando ? 0.6 : 1,
           }}
         >
@@ -235,7 +238,7 @@ export default function NotificacionesCard() {
   return (
     <div style={card}>
       {titulo}
-      <div style={{ fontSize: 12.5, color: GRAY, lineHeight: 1.45 }}>
+      <div style={{ fontSize: 15, color: GRAY, lineHeight: 1.45 }}>
         Activa los avisos para enterarte cuando te programen o te escriban.
       </div>
       <button
