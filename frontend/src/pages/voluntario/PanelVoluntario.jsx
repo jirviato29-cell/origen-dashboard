@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { voluntarioDisponibilidadApi } from '../../services/api';
 import AvisoDestacado from '../../components/AvisoDestacado';
+import { I } from '../../components/Icons';
 
 // "Mi calendario" del voluntario, implementado según el handoff de diseño
 // (referencia-Mi-Calendario.html / SPEC-Mi-Calendario.md): sistema azul marino +
@@ -37,8 +38,11 @@ const CSS = `
   font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   letter-spacing:-.006em;color:var(--ink);width:100%;
   /* Panel izquierdo más angosto (pero ≥320px para que quepan sus 2 botones) y
-     el calendario con ~2.4× su ancho: celdas más anchas = más caracteres por línea. */
-  display:grid;grid-template-columns:minmax(320px,1fr) 2.4fr;gap:16px;align-items:start;
+     el calendario con ~2.4× su ancho. La lista "Donde colaboras" ocupa la
+     columna izquierda (2 filas); a la derecha van los contadores y, debajo, la
+     cuadrícula. En teléfono se apila: contadores → lista → cuadrícula. */
+  display:grid;grid-template-columns:minmax(320px,1fr) 2.4fr;
+  grid-template-areas:"list kpis" "list cal";gap:16px;align-items:start;
 }
 .mc-shell *{box-sizing:border-box;}
 .mc-shell>*{min-width:0;}
@@ -46,15 +50,15 @@ const CSS = `
 .mc-card{background:#fff;border:1px solid var(--gray-200);border-radius:var(--r-xl);box-shadow:var(--shadow-sm);}
 
 /* ===== mini-KPIs ===== */
-.mc-sumrow{display:flex;gap:10px;margin-bottom:16px;}
+.mc-sumrow{grid-area:kpis;display:flex;gap:10px;}
 .mc-sum{flex:1;background:#fff;border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:13px 15px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;}
 .mc-sum-dot{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .mc-sum-dot svg{width:17px;height:17px;}
 .mc-sum-n{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--navy-900);font-variant-numeric:tabular-nums;}
-.mc-sum-l{font-size:11.5px;color:var(--gray-500);font-weight:600;margin-top:3px;}
+.mc-sum-l{font-size:15px;color:var(--gray-600);font-weight:600;margin-top:3px;line-height:1.2;}
 
 /* ===== calendario ===== */
-.mc-cal-wrap{padding:20px 22px 22px;}
+.mc-cal-wrap{grid-area:cal;padding:20px 22px 22px;}
 .mc-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
 .mc-cal-title{display:flex;align-items:baseline;gap:10px;}
 .mc-cal-title .mc-m{font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--navy-900);}
@@ -106,54 +110,36 @@ const CSS = `
 .mc-lg .mc-sw{width:11px;height:11px;border-radius:4px;}
 .mc-lg .mc-rr{width:11px;height:11px;border-radius:3px;border:1.5px solid var(--gray-300);background:#fff;}
 
-/* ===== rail "Te toca servir" ===== */
-.mc-rail{order:-1;display:flex;flex-direction:column;position:sticky;top:0;}
+/* ===== "Donde colaboras" (lista de fechas por responder) ===== */
+/* Mismo patrón visual que MisPuestos para que el voluntario reconozca la forma. */
+.mc-rail{grid-area:list;display:flex;flex-direction:column;position:sticky;top:0;}
 .mc-rail-head{padding:20px 22px 0;}
 .mc-rail-head h3{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--navy-900);margin:0;}
-.mc-rail-head p{font-size:13px;color:var(--gray-500);margin:6px 0 0;}
 .mc-rail-list{padding:16px 18px 20px;display:flex;flex-direction:column;gap:12px;}
-.mc-slot{border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:15px 16px;transition:.12s;scroll-margin-top:12px;}
-.mc-slot.mc-pending{border-color:var(--amber-600);background:linear-gradient(180deg,var(--amber-50),#fff 60%);}
-/* Ya respondido: la fecha SE QUEDA en la lista con acento de color (mismo código
-   que el calendario). Verde = sí colaboro; rojo = no puedo. Solo desaparece al pasar. */
-.mc-slot.mc-confirmed{border-color:var(--green-600);background:var(--green-50);}
-.mc-slot.mc-rejected{border-color:var(--red-600);background:var(--red-50);}
-.mc-slot.mc-sel{box-shadow:0 0 0 2px rgba(255,107,43,.30);border-color:var(--orange-400);}
-.mc-slot-top{display:flex;gap:12px;align-items:flex-start;}
-.mc-date-chip{width:50px;flex-shrink:0;text-align:center;border-radius:11px;padding:7px 0 8px;background:var(--navy-900);color:#fff;}
-.mc-date-chip .mc-cd{font-size:20px;font-weight:800;letter-spacing:-.03em;line-height:1;}
-.mc-date-chip .mc-cw{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--navy-300);margin-top:3px;}
-.mc-slot-body{flex:1;min-width:0;}
-.mc-slot-name{font-size:15px;font-weight:700;color:var(--navy-900);line-height:1.25;}
-.mc-slot-meta{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap;}
-.mc-chip-role{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--gray-600);}
-.mc-chip-role .mc-rd{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.mc-tag{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--gray-100);color:var(--gray-500);}
-.mc-tag.mc-tag-warn{background:var(--amber-50);color:var(--amber-600);}
-.mc-slot-actions{display:flex;gap:9px;margin-top:14px;}
-.mc-shell .mc-act{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;padding:11px;border-radius:10px;border:1px solid var(--gray-200);background:#fff;color:var(--gray-700);cursor:pointer;transition:.12s;font-family:inherit;}
-.mc-shell .mc-act svg{width:15px;height:15px;}
-.mc-shell .mc-act.mc-si:hover,.mc-shell .mc-act.mc-si.mc-on{background:var(--green-500);border-color:var(--green-500);color:#fff;}
-.mc-shell .mc-act.mc-no:hover,.mc-shell .mc-act.mc-no.mc-on{background:var(--red-600);border-color:var(--red-600);color:#fff;}
-.mc-shell .mc-act:disabled{opacity:.6;cursor:not-allowed;}
-.mc-state-line{display:flex;align-items:center;gap:7px;margin-top:11px;font-size:12px;font-weight:600;}
-.mc-state-line.mc-si{color:var(--green-600);}
-.mc-state-line.mc-no{color:var(--red-600);}
-.mc-state-line.mc-closed{color:var(--gray-500);}
-.mc-state-line .mc-ic{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
-.mc-state-line.mc-si .mc-ic{background:var(--green-500);}
-.mc-state-line.mc-no .mc-ic{background:var(--red-600);}
-.mc-shell .mc-ch{margin-left:auto;font-size:11px;font-weight:600;color:var(--gray-400);cursor:pointer;background:transparent;border:0;padding:0;font-family:inherit;}
-.mc-shell .mc-ch:hover{color:var(--navy-700);}
-.mc-foot-note{padding:0 20px 18px;font-size:11.5px;color:var(--gray-400);text-align:center;}
 
-.mc-msg{padding:22px 10px;text-align:center;font-size:13px;color:var(--gray-500);}
-.mc-err{margin:0 18px 16px;padding:12px 14px;border-radius:12px;background:var(--red-50);border:1px solid #F3CBC9;color:var(--red-600);font-size:13px;font-weight:600;}
+.dc-card{border:1px solid var(--gray-200);border-radius:var(--r-lg);background:#fff;padding:14px 16px;display:flex;flex-direction:column;gap:8px;scroll-margin-top:12px;}
+.dc-row1{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
+.dc-fecha{font-size:15px;font-weight:500;color:var(--navy-900);white-space:nowrap;}
+.dc-tipo{font-size:15px;font-weight:500;color:var(--gray-600);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
+.dc-nombre{font-size:20px;font-weight:500;color:var(--navy-900);line-height:1.25;overflow-wrap:anywhere;}
+.dc-sep{border:none;border-top:.5px solid var(--gray-200);margin:4px 0 2px;}
+.dc-state-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.dc-state{display:inline-flex;align-items:center;gap:9px;font-size:17px;font-weight:700;}
+.dc-state-ic{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.dc-lock{display:inline-flex;align-items:center;gap:7px;font-size:15px;font-weight:700;color:var(--gray-600);}
+.dc-btns{display:flex;gap:10px;}
+.mc-shell .dc-btn{flex:1;min-width:0;min-height:48px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-family:inherit;}
+.mc-shell .dc-btn:disabled{opacity:.55;cursor:default;}
+.mc-shell .dc-cambiar{min-height:48px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;}
+.mc-foot-note{padding:0 20px 18px;font-size:15px;color:var(--gray-600);text-align:center;}
+
+.mc-msg{padding:22px 10px;text-align:center;font-size:15px;color:var(--gray-600);}
+.mc-err{margin:0 18px 16px;padding:12px 14px;border-radius:12px;background:var(--red-50);border:1px solid #F3CBC9;color:var(--red-600);font-size:15px;font-weight:600;}
 .mc-cal-err{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--red-50);border:1px solid #F3CBC9;color:var(--red-600);font-size:13px;font-weight:600;}
 
 @media(max-width:1120px){
-  .mc-shell{grid-template-columns:1fr;}
-  .mc-rail{position:static;order:0;}
+  .mc-shell{grid-template-columns:1fr;grid-template-areas:"kpis" "list" "cal";}
+  .mc-rail{position:static;}
 }
 `;
 
@@ -235,6 +221,10 @@ export default function PanelVoluntario() {
   const [recarga,  setRecarga]  = useState(0);
 
   const itemRefs = useRef({});
+
+  // Acento naranja/menta del campus (para hoy, selección y "Sí colaboro").
+  const accent = ((typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags') === 'gdl'
+    ? '#2DD4BF' : '#FF6B2B';
 
   useEffect(() => {
     let vivo = true;
@@ -403,24 +393,24 @@ export default function PanelVoluntario() {
       <div className="mc-shell">
       <style>{CSS}</style>
 
-      {/* ── Columna derecha (1fr): KPIs + calendario ──────────────────────── */}
-      <div>
-        <div className="mc-sumrow">
-          <div className="mc-sum">
-            <span className="mc-sum-dot" style={{ background: 'var(--green-50)', color: 'var(--green-600)' }}><IcCheck /></span>
-            <div><div className="mc-sum-n">{kpis.si}</div><div className="mc-sum-l">Sí colaboro</div></div>
-          </div>
-          <div className="mc-sum">
-            <span className="mc-sum-dot" style={{ background: 'var(--red-50)', color: 'var(--red-600)' }}><IcCross /></span>
-            <div><div className="mc-sum-n">{kpis.no}</div><div className="mc-sum-l">No puedo</div></div>
-          </div>
-          <div className="mc-sum">
-            <span className="mc-sum-dot" style={{ background: 'var(--amber-50)', color: 'var(--amber-600)' }}><IcClockCircle /></span>
-            <div><div className="mc-sum-n">{kpis.pend}</div><div className="mc-sum-l">Por responder</div></div>
-          </div>
+      {/* ── Contadores del mes (arriba en teléfono) ────────────────────────── */}
+      <div className="mc-sumrow">
+        <div className="mc-sum">
+          <span className="mc-sum-dot" style={{ background: 'var(--green-50)', color: 'var(--green-600)' }}><IcCheck /></span>
+          <div><div className="mc-sum-n">{kpis.si}</div><div className="mc-sum-l">Sí colaboro</div></div>
         </div>
+        <div className="mc-sum">
+          <span className="mc-sum-dot" style={{ background: 'var(--red-50)', color: 'var(--red-600)' }}><IcCross /></span>
+          <div><div className="mc-sum-n">{kpis.no}</div><div className="mc-sum-l">No puedo</div></div>
+        </div>
+        <div className="mc-sum">
+          <span className="mc-sum-dot" style={{ background: 'var(--amber-50)', color: 'var(--amber-600)' }}><IcClockCircle /></span>
+          <div><div className="mc-sum-n">{kpis.pend}</div><div className="mc-sum-l">Por responder</div></div>
+        </div>
+      </div>
 
-        <div className="mc-card mc-cal-wrap">
+      {/* ── Calendario del mes ─────────────────────────────────────────────── */}
+      <div className="mc-card mc-cal-wrap">
           <div className="mc-cal-head">
             <div className="mc-cal-title">
               <span className="mc-m">{MESES[Number(mes.slice(5, 7)) - 1]}</span>
@@ -532,13 +522,11 @@ export default function PanelVoluntario() {
 
           {error && <div className="mc-cal-err">{error}</div>}
         </div>
-      </div>
 
-      {/* ── Columna izquierda (410px, order:-1): Te toca servir ────────────── */}
+      {/* ── "Donde colaboras": fechas por responder (sube antes de la cuadrícula) ── */}
       <div className="mc-card mc-rail">
         <div className="mc-rail-head">
           <h3>Donde colaboras</h3>
-          <p>Estas son las fechas en las que te toca colaborar. Marca si puedes o no.</p>
         </div>
 
         <div className="mc-rail-list">
@@ -551,83 +539,83 @@ export default function PanelVoluntario() {
               const clave   = claveItem(item);
               const ocupado = enviando === clave;
               const dow     = dowDeISO(item.fecha);
-              const color   = colorDe(item);
-              const esSel   = sel === item.fecha;
               const reabierto = editando[clave];
-              // Estados del slot.
+              // Estados del slot (misma lógica de guardado que antes).
               const pendienteAbierto = item.puede_marcar && !item.bloqueado && (item.estado == null || reabierto);
               const respondido = item.puede_marcar && item.estado != null && !reabierto;
               const cerradoSinResp = item.puede_marcar && item.bloqueado && item.estado == null;
-
-              // Acento del ítem por estado (consistente con el calendario): ámbar
-              // pendiente · verde "sí colaboro" · rojo "no puedo". La fecha NO se va
-              // de la lista al responder: cambia de color y conserva "Cambiar".
-              const acento = pendienteAbierto ? 'mc-pending'
-                : (respondido && item.estado === 'disponible') ? 'mc-confirmed'
-                : (respondido && item.estado === 'no_disponible') ? 'mc-rejected'
-                : '';
+              const tipo = item.tipo === 'domingo' ? 'Domingo' : (item.tipo_evento || 'Evento');
 
               return (
                 <div
                   key={clave}
                   ref={el => { if (el) itemRefs.current[clave] = el; }}
-                  className={`mc-slot ${acento} ${esSel ? 'mc-sel' : ''}`}
+                  className="dc-card"
+                  style={sel === item.fecha ? { boxShadow: `0 0 0 2px ${accent}` } : undefined}
                 >
-                  <div className="mc-slot-top">
-                    <div className="mc-date-chip">
-                      <div className="mc-cd">{diaDeISO(item.fecha)}</div>
-                      <div className="mc-cw">{DOW_CORTO[dow]}</div>
-                    </div>
-
-                    <div className="mc-slot-body">
-                      <div className="mc-slot-name">{item.nombre}</div>
-                      <div className="mc-slot-meta">
-                        <span className="mc-chip-role">
-                          <span className="mc-rd" style={{ background: color }} />
-                          {item.tipo === 'domingo' ? 'Domingo' : (item.tipo_evento || 'Evento')}
-                        </span>
-                        {pendienteAbierto && item.estado == null && (
-                          <span className="mc-tag mc-tag-warn">{etiquetaCierre(item.fecha, hoyISO)}</span>
-                        )}
-                      </div>
-
-                      {/* Respondido: línea de estado + Cambiar */}
-                      {respondido && (
-                        <div className={`mc-state-line ${item.estado === 'disponible' ? 'mc-si' : 'mc-no'}`}>
-                          <span className="mc-ic">{item.estado === 'disponible' ? <IcCheck w={11} /> : <IcCross w={11} />}</span>
-                          {item.estado === 'disponible' ? 'Confirmado · Sí colaboro' : 'No puedo colaborar'}
-                          {!item.bloqueado && (
-                            <button className="mc-ch" onClick={() => setEditando(e => ({ ...e, [clave]: true }))}>Cambiar</button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Cerrado sin respuesta */}
-                      {cerradoSinResp && (
-                        <div className="mc-state-line mc-closed">🔒 Ya cerró · sin respuesta</div>
-                      )}
-                    </div>
+                  {/* fila 1: fecha + tipo de evento */}
+                  <div className="dc-row1">
+                    <span className="dc-fecha">{DOW_CORTO[dow]} {diaDeISO(item.fecha)}</span>
+                    <span className="dc-tipo">{tipo}</span>
                   </div>
 
-                  {/* Pendiente/abierto o reabierto con "Cambiar": botones */}
-                  {pendienteAbierto && (
-                    <div className="mc-slot-actions">
+                  {/* fila 2: nombre del evento */}
+                  <div className="dc-nombre">{item.nombre}</div>
+
+                  <hr className="dc-sep" />
+
+                  {/* fila 3: estado */}
+                  {pendienteAbierto ? (
+                    <div className="dc-btns">
                       <button
-                        className={`mc-act mc-si ${item.estado === 'disponible' ? 'mc-on' : ''}`}
-                        onClick={() => marcar(item, 'disponible')} disabled={ocupado}>
-                        <IcCheck w={15} />{ocupado ? '…' : 'Sí colaboro'}
+                        type="button" className="dc-btn" disabled={ocupado}
+                        onClick={() => marcar(item, 'disponible')}
+                        style={{ fontFamily: 'inherit', fontSize: 17, fontWeight: 700, background: accent, color: '#FFFFFF', border: `2px solid ${accent}` }}
+                      >
+                        <I.check size={18} /> {ocupado ? '…' : 'Sí colaboro'}
                       </button>
                       <button
-                        className={`mc-act mc-no ${item.estado === 'no_disponible' ? 'mc-on' : ''}`}
-                        onClick={() => marcar(item, 'no_disponible')} disabled={ocupado}>
-                        <IcCross w={15} />{ocupado ? '…' : 'No puedo'}
+                        type="button" className="dc-btn" disabled={ocupado}
+                        onClick={() => marcar(item, 'no_disponible')}
+                        style={{ fontFamily: 'inherit', fontSize: 17, fontWeight: 700, background: '#FFFFFF', color: 'var(--navy-900)', border: '2px solid var(--gray-300)' }}
+                      >
+                        <I.x size={18} /> {ocupado ? '…' : 'No puedo'}
                       </button>
                     </div>
-                  )}
+                  ) : respondido ? (
+                    <div className="dc-state-row">
+                      {item.estado === 'disponible' ? (
+                        <span className="dc-state" style={{ color: 'var(--green-600)' }}>
+                          <span className="dc-state-ic" style={{ background: 'var(--green-50)', color: 'var(--green-600)' }}><I.check size={16} /></span>
+                          Sí colaboro
+                        </span>
+                      ) : (
+                        <span className="dc-state" style={{ color: 'var(--gray-600)' }}>
+                          <span style={{ display: 'inline-flex', color: 'var(--gray-600)' }}><I.x size={22} /></span>
+                          No puedo
+                        </span>
+                      )}
+                      {!item.bloqueado && (
+                        <button
+                          type="button" className="dc-cambiar"
+                          onClick={() => setEditando(e => ({ ...e, [clave]: true }))}
+                          style={{ fontFamily: 'inherit', fontSize: 16, fontWeight: 600, padding: '12px 18px', background: '#fff', color: 'var(--navy-900)', border: '1px solid var(--gray-300)' }}
+                        >
+                          Cambiar
+                        </button>
+                      )}
+                    </div>
+                  ) : cerradoSinResp ? (
+                    <div className="dc-state-row">
+                      <span className="dc-state" style={{ color: 'var(--gray-600)' }}>Sin responder</span>
+                      <span className="dc-lock"><I.clock size={16} /> Ya cerró</span>
+                    </div>
+                  ) : null}
                 </div>
               );
             })
           )}
+          {error && <div className="mc-err" style={{ margin: '4px 0 0' }}>{error}</div>}
         </div>
         <div className="mc-foot-note">Los cambios cierran 1 día antes de cada fecha.</div>
       </div>
