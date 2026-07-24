@@ -18,6 +18,18 @@ export function fmtFecha(iso) {
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+// Fecha corta para la lista: sin el año cuando el aviso es del año en curso
+// ("24 jul"); el año solo aparece si es de otro año ("24 jul 2025").
+export function fmtFechaCorta(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const mismoAnio = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString('es-MX', mismoAnio
+    ? { day: 'numeric', month: 'short' }
+    : { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export function fmtFechaHora(iso) {
   if (!iso) return '';
   const d = new Date(iso);
