@@ -175,6 +175,23 @@ const fechaLarga = (iso) => {
 };
 const claveItem = (item) => `${item.fecha}-${item.evento_id ?? 'dom'}`;
 
+// Color base de un item (domingo → celeste; evento → su color) y mezcla a un
+// tinte pastel claro y OPACO. Se reutiliza para regresar el color por estado al
+// fondo de cada celda de la cuadrícula.
+const SKY = '#2C86C4';
+const COLOR_EVENTO_DEFAULT = '#FF6B2B';
+const colorDe = (item) => (item.tipo === 'domingo' ? SKY : (item.tipo_color || COLOR_EVENTO_DEFAULT));
+function tintePastel(hex, peso) {
+  if (typeof hex !== 'string') return '#EEEEEE';
+  let h = hex.trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  if (h.length !== 6 || /[^0-9a-f]/i.test(h)) return '#EEEEEE';
+  const n = parseInt(h, 16);
+  const R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255;
+  const mix = (v) => Math.round(255 - (255 - v) * peso);
+  return `rgb(${mix(R)},${mix(G)},${mix(B)})`;
+}
+
 export default function PanelVoluntario() {
   const [mes,      setMes]      = useState(mesDeHoy);
   const [data,     setData]     = useState(null);
@@ -400,6 +417,22 @@ export default function PanelVoluntario() {
                 const esDomingo = dowDeISO(c.fecha) === 0;
                 const esSel = sel === c.fecha;
 
+                // Color de FONDO por estado (regresa el color a la cuadrícula): el
+                // servicio representativo (domingo manda; si no, el 1er marcable)
+                // define verde/rojo/ámbar; sin servicio, tinte por tipo de evento.
+                const marcables = items.filter(m => m.puede_marcar);
+                const servicio = marcables.find(m => m.tipo === 'domingo') ?? marcables[0] ?? null;
+                let bg = null, bd = null;
+                if (servicio && servicio.estado === 'disponible') { bg = 'var(--green-50)'; bd = 'var(--green-100)'; }
+                else if (servicio && servicio.estado === 'no_disponible') { bg = 'var(--red-50)'; bd = '#F3CBC9'; }
+                else if (servicio && !servicio.bloqueado) { bg = 'var(--amber-50)'; bd = '#EFD9A6'; }
+                else {
+                  const domingo = items.find(m => m.tipo === 'domingo');
+                  const evento = items.find(m => m.tipo === 'evento');
+                  if (domingo) { bg = 'var(--sky-50)'; bd = '#CFE4F3'; }
+                  else if (evento) { bg = tintePastel(colorDe(evento), 0.13); bd = tintePastel(colorDe(evento), 0.30); }
+                }
+
                 // Marcadores por FORMA: un círculo por cada servicio que le toca
                 // marcar (relleno = sí · con equis = no · hueco = por responder).
                 // Los eventos informativos (sin servicio) no llevan marcador.
@@ -421,6 +454,7 @@ export default function PanelVoluntario() {
                     key={c.fecha}
                     className={clases.join(' ')}
                     style={{
+                      ...(bg ? { background: bg, borderColor: bd } : {}),
                       ...(esHoy ? { borderColor: accent, boxShadow: `inset 0 0 0 1px ${accent}` } : {}),
                       ...(esSel ? { boxShadow: `0 0 0 2px ${accent}` } : {}),
                     }}
