@@ -53,12 +53,19 @@ self.addEventListener('push', (event) => {
   const titulo = data.titulo || 'Origen';
   const cuerpo = data.cuerpo || '';
   const url    = data.url    || '/';
+  // icon = logo a color (grande). badge = silueta monocroma para la barra de
+  // estado en Android (se convierte usando SOLO el canal alfa). Deben ser
+  // archivos DISTINTOS: si el badge apunta al PNG opaco del icon, Android lo
+  // dibuja como un cuadro blanco sólido. Se leen del payload con respaldo local.
+  const icon  = data.icon  || '/pwa-192x192.png';
+  const badge = data.badge || '/badge.png';
 
   event.waitUntil(
     self.registration.showNotification(titulo, {
       body: cuerpo,
-      icon: '/pwa-192x192.png',
-      badge: '/pwa-192x192.png',
+      icon,
+      badge,
+      vibrate: [200, 100, 200],
       data: { url },
     })
   );
