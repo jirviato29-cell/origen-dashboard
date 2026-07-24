@@ -36,6 +36,7 @@ const tiposEventoRouter          = require('./routes/tiposEvento');
 const ministeriosRouter          = require('./routes/ministerios');
 const camposPersonalizadosRouter = require('./routes/camposPersonalizados');
 const pushRouter                 = require('./routes/push');
+const miPerfilRouter             = require('./routes/miPerfil');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -54,6 +55,11 @@ app.use('/api/campus', campusRouter);
 // (acepta cualquier rol autenticado). No depende de req.campus, por eso se
 // monta antes del campusMiddleware.
 app.use('/api/push', pushRouter);
+
+// Perfil de solo lectura del usuario del token (nombre, campus, ministerio) para
+// la pestaña Configuración. Mismo criterio que push: acepta cualquier rol y no
+// depende de req.campus, así que se monta antes del campusMiddleware.
+app.use('/api/mi-perfil', miPerfilRouter);
 
 // A partir de aquí todas las peticiones resuelven req.campus
 app.use(campusMiddleware);
