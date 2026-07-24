@@ -37,6 +37,7 @@ import { LiderVoluntarios, LiderPosiciones, LiderProgramar, LiderTablero } from 
 import PanelVoluntario from './pages/voluntario/PanelVoluntario';
 import MisPuestos from './pages/voluntario/MisPuestos';
 import LoginVoluntario from './pages/voluntario/LoginVoluntario';
+import Configuracion from './pages/Configuracion';
 import './index.css';
 
 // Protege una sección de rutas: redirige a / si no hay sesión,
@@ -136,6 +137,7 @@ function AppRoutes() {
         <Route path="posiciones"  element={<LiderPosiciones />} />
         <Route path="programar"   element={<LiderProgramar />} />
         <Route path="tablero"     element={<LiderTablero />} />
+        <Route path="configuracion" element={<Configuracion />} />
       </Route>
 
       {/* ── Voluntario ─────────────────────────────────────────────────── */}
@@ -147,8 +149,9 @@ function AppRoutes() {
         <ProtectedRoute routeRole="voluntario"><Layout /></ProtectedRoute>
       }>
         <Route index element={<Navigate to="/voluntario/calendario" replace />} />
-        <Route path="calendario" element={<PanelVoluntario />} />
-        <Route path="puestos"    element={<MisPuestos />} />
+        <Route path="calendario"    element={<PanelVoluntario />} />
+        <Route path="puestos"       element={<MisPuestos />} />
+        <Route path="configuracion" element={<Configuracion />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -79,12 +79,14 @@ const navByRole = {
       { to: '/lider_ministerio/posiciones',  label: 'Posiciones',         icon: I.pin },
       { to: '/lider_ministerio/programar',   label: 'Programar servicio', icon: I.calendar },
       { to: '/lider_ministerio/tablero',     label: 'Quién va dónde',     icon: I.dashboard },
+      { to: '/lider_ministerio/configuracion', label: 'Configuración',    icon: I.settings },
     ]},
   ],
   [ROLES.VOLUNTARIO]: [
     { group: 'Voluntario', items: [
-      { to: '/voluntario/calendario', label: 'Mi calendario', icon: I.calendar },
-      { to: '/voluntario/puestos',    label: 'Mis puestos',   icon: I.pin, badge: 'puestosNuevos' },
+      { to: '/voluntario/calendario',    label: 'Mi calendario', icon: I.calendar },
+      { to: '/voluntario/puestos',       label: 'Mis puestos',   icon: I.pin, badge: 'puestosNuevos' },
+      { to: '/voluntario/configuracion', label: 'Configuración', icon: I.settings },
     ]},
   ],
 };
