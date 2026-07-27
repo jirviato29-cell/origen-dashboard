@@ -94,11 +94,11 @@ const CSS = `
    palabras enteras (nunca a media palabra). word-break:keep-all +
    overflow-wrap:normal impiden cortar dentro de una palabra; usa los renglones
    que hagan falta (sin line-clamp que recorte). Una sola palabra ("Santuario")
-   cabe entera en un renglón a 9.5px. El alto de la celda crece y toda la fila
+   cabe entera en un renglón a 8.5px. El alto de la celda crece y toda la fila
    iguala, así que la 2ª palabra ("CNX") queda visible.
    Escritorio: se aprovecha la celda grande → nombre completo del evento a 12px y
    número a 16px (la palabra clave se oculta). */
-.mc-kw{font-size:9.5px;font-weight:700;line-height:1.1;text-align:center;letter-spacing:-.02em;width:100%;max-width:100%;display:block;white-space:normal;word-break:keep-all;overflow-wrap:normal;}
+.mc-kw{font-size:8.5px;font-weight:700;line-height:1.1;text-align:center;letter-spacing:-.02em;width:100%;max-width:100%;display:block;white-space:normal;word-break:keep-all;overflow-wrap:normal;}
 .mc-kw-full{display:none;}
 @media(min-width:640px){
   .mc-num{font-size:16px;}
@@ -336,17 +336,15 @@ export default function PanelVoluntario() {
       });
   }, [dias, hoyISO]);
 
-  // Índice de solo lectura: los días CON evento del mes visible (de hoy en
-  // adelante, igual que la cuadrícula), ordenados por fecha ascendente. Un
-  // renglón por item (domingo primero si coincide con un evento el mismo día).
+  // Índice de solo lectura: SOLO los eventos ESPECIALES del mes visible (de hoy
+  // en adelante, igual que la cuadrícula), ordenados por fecha ascendente. Se
+  // excluye el domingo genérico de servicio (tipo 'domingo'); un evento especial
+  // que caiga en domingo SÍ aparece (es un item aparte de tipo 'evento').
   const indiceEventos = useMemo(() => {
     if (!data) return [];
     return dias
-      .filter(d => d.fecha.slice(0, 7) === data.mes && (!hoyISO || d.fecha >= hoyISO))
-      .sort((a, b) => {
-        if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
-        return a.tipo === 'domingo' ? -1 : 1;
-      });
+      .filter(d => d.fecha.slice(0, 7) === data.mes && (!hoyISO || d.fecha >= hoyISO) && d.tipo !== 'domingo')
+      .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
   }, [dias, data, hoyISO]);
 
   // Al tocar un día (celda o índice) se abre el modal con su detalle y, si se
@@ -482,7 +480,9 @@ export default function PanelVoluntario() {
                 const tColor = conEvento ? (tipoColor[tipoNombre] || (evento && evento.tipo_color) || COLOR_EVENTO_DEFAULT) : null;
                 const tTexto = conEvento ? (tipoColorDark[tipoNombre] || tColor) : null;
                 const tBg = conEvento ? (tipoCellBg[tipoNombre] || tintePastel(tColor, 0.10)) : null;
-                const nombreEvento = evento ? sinHora(evento.nombre) : (conEvento ? 'Servicio dominical' : '');
+                // Domingo genérico (sin evento especial): en la CELDA solo "Servicio"
+                // (una palabra). El modal y la lista conservan "Servicio dominical".
+                const nombreEvento = evento ? sinHora(evento.nombre) : (conEvento ? 'Servicio' : '');
 
                 // Estado de TU respuesta (indicador de esquina), no por fondo.
                 const marcables = items.filter(m => m.puede_marcar);
@@ -532,7 +532,7 @@ export default function PanelVoluntario() {
           {data && !cargando && (
             <div className="mc-index">
               {indiceEventos.length === 0 ? (
-                <div className="mc-index-empty">No hay eventos este mes.</div>
+                <div className="mc-index-empty">No hay eventos especiales este mes.</div>
               ) : indiceEventos.map(d => (
                 <button
                   key={claveItem(d)}
