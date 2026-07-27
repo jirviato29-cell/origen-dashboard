@@ -3,6 +3,7 @@ import { voluntarioDisponibilidadApi } from '../../services/api';
 import AvisoDestacado from '../../components/AvisoDestacado';
 import Modal from '../../components/Modal';
 import { I } from '../../components/Icons';
+import CalendarioMes from '../../components/CalendarioMes';
 import { useTiposEvento } from '../../context/TiposEventoContext';
 
 const FONT_STACK = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
@@ -58,57 +59,12 @@ const CSS = `
 .mc-sum-n{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--navy-900);font-variant-numeric:tabular-nums;}
 .mc-sum-l{font-size:15px;color:var(--gray-600);font-weight:600;margin-top:3px;line-height:1.2;}
 
-/* ===== calendario ===== */
-.mc-cal-wrap{grid-area:cal;padding:20px 22px 22px;}
-.mc-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
-.mc-cal-title{display:flex;align-items:baseline;gap:10px;}
-.mc-cal-title .mc-m{font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--navy-900);}
-.mc-cal-title .mc-y{font-size:14px;font-weight:600;color:var(--gray-400);}
-.mc-cal-nav{display:flex;align-items:center;gap:8px;}
-.mc-shell .mc-cal-today{font-size:12px;font-weight:600;color:var(--navy-700);background:#fff;border:1px solid var(--gray-200);border-radius:8px;padding:7px 12px;cursor:pointer;}
-.mc-shell .mc-cal-today:hover{background:var(--gray-50);}
-.mc-shell .mc-cal-arrow{width:34px;height:34px;border-radius:9px;border:1px solid var(--gray-200);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--navy-700);cursor:pointer;}
-.mc-shell .mc-cal-arrow:hover{background:var(--gray-50);}
-
-.mc-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;}
-.mc-dow div{font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--gray-600);text-align:center;padding:4px 0;}
-/* Celda con evento: fondo del tipo · número arriba (color del tipo) · palabra
-   clave del tipo abajo. El estado de tu respuesta va en un indicador de esquina.
-   Siempre 7 columnas fijas. Sin aspect-ratio fijo: la celda crece con el
-   contenido (palabra de 2–3 renglones) y todas las celdas de la MISMA FILA se
-   estiran al mismo alto (grid rows + align-items:stretch). Padding lateral
-   mínimo para dar el mayor ancho posible a la palabra clave. */
-.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(58px,auto);align-items:stretch;gap:5px;}
-.mc-shell .mc-cell{min-height:58px;height:100%;border:1px solid var(--gray-100);border-radius:9px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:center;width:100%;font-family:inherit;}
-.mc-shell .mc-cell:hover{border-color:var(--gray-300);box-shadow:var(--shadow-sm);}
-.mc-shell .mc-cell.mc-out{background:var(--gray-50);border-color:transparent;cursor:default;}
-.mc-shell .mc-cell.mc-out:hover{box-shadow:none;}
-/* Día pasado: invisible (sin caja/fondo/sombra/color) pero conserva su lugar
-   en la cuadrícula. Solo el número, en gris muy tenue. No interactivo. */
-.mc-shell .mc-cell.mc-gone{background:transparent;border-color:transparent;box-shadow:none;cursor:default;}
-.mc-shell .mc-cell.mc-gone:hover{box-shadow:none;border-color:transparent;}
-.mc-num{font-size:15px;font-weight:500;color:var(--navy-800);line-height:1;font-variant-numeric:tabular-nums;flex:none;}
-.mc-shell .mc-cell.mc-out .mc-num{color:var(--gray-300);}
-
-/* Móvil: NOMBRE del evento COMPLETO (ej. "Mujeres CNX"), envuelto SOLO entre
-   palabras enteras (nunca a media palabra). word-break:keep-all +
-   overflow-wrap:normal impiden cortar dentro de una palabra; usa los renglones
-   que hagan falta (sin line-clamp que recorte). Una sola palabra ("Santuario")
-   cabe entera en un renglón a 8.5px. El alto de la celda crece y toda la fila
-   iguala, así que la 2ª palabra ("CNX") queda visible.
-   Escritorio: se aprovecha la celda grande → nombre completo del evento a 12px y
-   número a 16px (la palabra clave se oculta). */
-.mc-kw{font-size:8.5px;font-weight:700;line-height:1.1;text-align:center;letter-spacing:-.02em;width:100%;max-width:100%;display:block;white-space:normal;word-break:keep-all;overflow-wrap:normal;}
-.mc-kw-full{display:none;}
-@media(min-width:640px){
-  .mc-num{font-size:16px;}
-  .mc-kw{display:none;}
-  .mc-kw-full{display:-webkit-box;font-size:12px;font-weight:600;line-height:1.12;text-align:center;max-width:100%;padding:0 2px;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;}
-}
-
-/* Indicador del estado de TU respuesta, en la esquina: palomita · tacha · aro. */
-.mc-corner{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;}
-.mc-corner svg{width:9px;height:9px;}
+/* ===== calendario =====
+   La cuadrícula del mes (cabecera, días, celdas, palabra del evento, lista de
+   especiales y el indicador de esquina .cm-corner) vive ahora en el componente
+   compartido components/CalendarioMes.jsx (clases cm-*), reutilizado por este
+   panel y por el del líder. Aquí solo quedan los estilos propios del voluntario
+   (contadores, detalle/modal, mensajes). */
 
 /* Detalle del día seleccionado (reemplaza la leyenda de colores). */
 .mc-detail{margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);}
@@ -120,14 +76,6 @@ const CSS = `
 /* Cada evento del día seleccionado: nombre + su acción (marcar / cambiar). */
 .mc-detail-item{margin-top:14px;}
 
-/* Índice de solo lectura: los eventos del mes visible, para saber qué es cada
-   día sin tocarlo. Cada renglón es tocable (selecciona ese día). */
-.mc-index{margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);}
-.mc-index-empty{font-size:15px;color:var(--gray-600);}
-.mc-shell .mc-index-row{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 4px;background:transparent;border:none;border-bottom:.5px solid var(--gray-100);border-radius:6px;cursor:pointer;text-align:left;font-family:inherit;}
-.mc-shell .mc-index-row:last-child{border-bottom:none;}
-.mc-index-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.mc-index-txt{font-size:15px;color:var(--navy-900);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* ===== "Donde colaboras" (lista de fechas por responder) ===== */
 /* Mismo patrón visual que MisPuestos para que el voluntario reconozca la forma. */
@@ -377,44 +325,23 @@ export default function PanelVoluntario() {
     }
   }
 
-  // ── Celdas del grid (con días de meses vecinos como en la referencia) ────────
-  // Cada celda lleva su fecha ISO (incluidos los días 'out' de meses vecinos).
-  // Se agrupan en semanas de 7 y se DESCARTAN por completo las semanas totalmente
-  // pasadas (ninguna celda con fecha >= hoy): así no dejan franja vertical vacía.
-  // Como cada semana visible aporta exactamente 7 celdas, el grid de 7 columnas
-  // sigue alineado con el encabezado DOM..SÁB (solo desaparecen filas enteras).
-  const celdas = useMemo(() => {
-    if (!data) return [];
-    const [anio, nMes] = data.mes.split('-').map(Number);
-    const lead = data.diaSemanaPrimero;                     // 0 = domingo
-    const prevDias = new Date(Date.UTC(anio, nMes - 1, 0)).getUTCDate();
-    const pad = (n) => String(n).padStart(2, '0');
-    // Mes anterior / siguiente para las fechas ISO de los días 'out'.
-    const pm = nMes - 1 < 1 ? 12 : nMes - 1;
-    const py = nMes - 1 < 1 ? anio - 1 : anio;
-    const nm = nMes + 1 > 12 ? 1 : nMes + 1;
-    const ny = nMes + 1 > 12 ? anio + 1 : anio;
-
-    const cells = [];
-    for (let i = lead - 1; i >= 0; i--) {
-      const num = prevDias - i;
-      cells.push({ tipo: 'out', num, fecha: `${py}-${pad(pm)}-${pad(num)}` });
+  // Indicador de esquina de la celda = estado de TU respuesta (palomita · tacha ·
+  // aro). Lo consume CalendarioMes vía renderCorner; el resaltado por ministerio
+  // no aplica al voluntario (eso es del panel del líder).
+  const renderCornerEstado = (items) => {
+    const marcables = items.filter(m => m.puede_marcar);
+    const servicio = marcables.find(m => m.tipo === 'domingo') ?? marcables[0] ?? null;
+    let estadoMark = null;
+    if (servicio) {
+      if (servicio.estado === 'disponible') estadoMark = 'si';
+      else if (servicio.estado === 'no_disponible') estadoMark = 'no';
+      else if (!servicio.bloqueado) estadoMark = 'pend';
     }
-    for (let d = 1; d <= data.diasEnMes; d++) {
-      cells.push({ tipo: 'dia', num: d, fecha: `${data.mes}-${pad(d)}` });
-    }
-    const trail = (7 - (cells.length % 7)) % 7;
-    for (let d = 1; d <= trail; d++) {
-      cells.push({ tipo: 'out', num: d, fecha: `${ny}-${pad(nm)}-${pad(d)}` });
-    }
-
-    // Agrupar en semanas de 7 y quedarnos solo con las que tienen al menos un
-    // día de hoy en adelante. Sin `hoy` (fallback) se muestran todas.
-    const hoy = data.hoy || '';
-    const semanas = [];
-    for (let i = 0; i < cells.length; i += 7) semanas.push(cells.slice(i, i + 7));
-    return semanas.filter(sem => !hoy || sem.some(c => c.fecha >= hoy)).flat();
-  }, [data]);
+    if (estadoMark === 'si') return <span className="cm-corner" style={{ background: '#15915A', color: '#fff' }}><I.check size={9} /></span>;
+    if (estadoMark === 'no') return <span className="cm-corner" style={{ background: '#D23B36', color: '#fff' }}><I.x size={9} /></span>;
+    if (estadoMark === 'pend') return <span className="cm-corner" style={{ background: '#fff', border: `2px solid ${accent}` }} />;
+    return null;
+  };
 
   return (
     <>
@@ -438,118 +365,25 @@ export default function PanelVoluntario() {
         </div>
       </div>
 
-      {/* ── Calendario del mes ─────────────────────────────────────────────── */}
-      <div className="mc-card mc-cal-wrap">
-          <div className="mc-cal-head">
-            <div className="mc-cal-title">
-              <span className="mc-m">{MESES[Number(mes.slice(5, 7)) - 1]}</span>
-              <span className="mc-y">{mes.slice(0, 4)}</span>
-            </div>
-            <div className="mc-cal-nav">
-              <button className="mc-cal-today" onClick={irHoy}>Hoy</button>
-              <button className="mc-cal-arrow" onClick={() => irAMes(-1)} aria-label="Mes anterior"><IcChevron dir="l" /></button>
-              <button className="mc-cal-arrow" onClick={() => irAMes(1)} aria-label="Mes siguiente"><IcChevron dir="r" /></button>
-            </div>
-          </div>
-          <div className="mc-dow">{DOW_1.map((d, i) => <div key={i}>{d}</div>)}</div>
-
-          {cargando ? (
-            <div className="mc-msg">Cargando tu calendario…</div>
-          ) : !data ? (
-            <div className="mc-msg">Sin datos de este mes.</div>
-          ) : (
-            <div className="mc-grid">
-              {celdas.map((c, i) => {
-                if (c.tipo === 'out') {
-                  return <div key={`o${i}`} className="mc-cell mc-out"><span className="mc-num">{c.num}</span></div>;
-                }
-                // Día pasado: celda vacía que solo ocupa su lugar en la cuadrícula.
-                if (hoyISO && c.fecha < hoyISO) {
-                  return <div key={c.fecha} className="mc-cell mc-gone" aria-hidden="true" />;
-                }
-                const items = itemsDe(c.fecha);
-                const esHoy = c.fecha === hoyISO;
-                const esSel = sel === c.fecha;
-
-                // Tipo del día → color y fondo de la celda (de tipos_evento). El
-                // TEXTO de la celda es el NOMBRE del evento (mismo que la lista de
-                // abajo, d.nombre), no la palabra del tipo.
-                const tipoNombre = tipoNombreDe(items);
-                const evento = items.find(m => m.tipo === 'evento');
-                const conEvento = !!tipoNombre;
-                const tColor = conEvento ? (tipoColor[tipoNombre] || (evento && evento.tipo_color) || COLOR_EVENTO_DEFAULT) : null;
-                const tTexto = conEvento ? (tipoColorDark[tipoNombre] || tColor) : null;
-                const tBg = conEvento ? (tipoCellBg[tipoNombre] || tintePastel(tColor, 0.10)) : null;
-                // Domingo genérico (sin evento especial): en la CELDA solo "Servicio"
-                // (una palabra). El modal y la lista conservan "Servicio dominical".
-                const nombreEvento = evento ? sinHora(evento.nombre) : (conEvento ? 'Servicio' : '');
-
-                // Estado de TU respuesta (indicador de esquina), no por fondo.
-                const marcables = items.filter(m => m.puede_marcar);
-                const servicio = marcables.find(m => m.tipo === 'domingo') ?? marcables[0] ?? null;
-                let estadoMark = null;
-                if (servicio) {
-                  if (servicio.estado === 'disponible') estadoMark = 'si';
-                  else if (servicio.estado === 'no_disponible') estadoMark = 'no';
-                  else if (!servicio.bloqueado) estadoMark = 'pend';
-                }
-
-                const clases = ['mc-cell'];
-                if (esHoy) clases.push('mc-today');
-
-                return (
-                  <button
-                    key={c.fecha}
-                    className={clases.join(' ')}
-                    style={{
-                      ...(tBg ? { background: tBg, borderColor: tintePastel(tColor, 0.34) } : {}),
-                      ...(esHoy ? { borderColor: accent, boxShadow: `inset 0 0 0 1px ${accent}` } : {}),
-                      ...(esSel ? { boxShadow: `0 0 0 2px ${accent}` } : {}),
-                    }}
-                    onClick={() => tocarDia(c.fecha)}
-                    title={items.map(m => m.nombre).join(' · ')}
-                  >
-                    {estadoMark === 'si' && (
-                      <span className="mc-corner" style={{ background: '#15915A', color: '#fff' }}><I.check size={9} /></span>
-                    )}
-                    {estadoMark === 'no' && (
-                      <span className="mc-corner" style={{ background: '#D23B36', color: '#fff' }}><I.x size={9} /></span>
-                    )}
-                    {estadoMark === 'pend' && (
-                      <span className="mc-corner" style={{ background: '#fff', border: `2px solid ${accent}` }} />
-                    )}
-                    <span className="mc-num" style={{ color: conEvento ? tColor : '#9CB0CC' }}>{c.num}</span>
-                    {conEvento && <span className="mc-kw" style={{ color: tTexto }}>{nombreEvento}</span>}
-                    {conEvento && <span className="mc-kw-full" style={{ color: tTexto }}>{nombreEvento}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Índice de solo lectura: eventos del mes visible. Tocar un renglón
-              selecciona ese día (misma función que tocar la celda). */}
-          {data && !cargando && (
-            <div className="mc-index">
-              {indiceEventos.length === 0 ? (
-                <div className="mc-index-empty">No hay eventos especiales este mes.</div>
-              ) : indiceEventos.map(d => (
-                <button
-                  key={claveItem(d)}
-                  type="button"
-                  className="mc-index-row"
-                  style={sel === d.fecha ? { background: 'var(--gray-50)' } : undefined}
-                  onClick={() => tocarDia(d.fecha)}
-                >
-                  <span className="mc-index-dot" style={{ background: colorTipoDia(itemsDe(d.fecha)) }} />
-                  <span className="mc-index-txt">{DOW_CORTO[dowDeISO(d.fecha)]} {diaDeISO(d.fecha)} · {d.tipo === 'domingo' ? 'Servicio dominical' : d.nombre}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {error && <div className="mc-cal-err">{error}</div>}
-        </div>
+      {/* ── Calendario del mes (cuadrícula compartida CalendarioMes) ────────── */}
+      <div style={{ gridArea: 'cal', minWidth: 0 }}>
+        <CalendarioMes
+          mes={mes}
+          hoyISO={hoyISO}
+          onPrev={() => irAMes(-1)}
+          onNext={() => irAMes(1)}
+          onHoy={irHoy}
+          cargando={cargando || !data}
+          loadingText="Cargando tu calendario…"
+          itemsDe={itemsDe}
+          indice={indiceEventos}
+          sel={sel}
+          onTocarDia={tocarDia}
+          accent={accent}
+          renderCorner={renderCornerEstado}
+        />
+        {error && <div className="mc-cal-err" style={{ marginTop: 12 }}>{error}</div>}
+      </div>
 
       {/* ── Modal del día seleccionado: detalle + marcar (Sí colaboro / No puedo).
           Sale al tocar una celda o un renglón del índice. Reusa la MISMA función
