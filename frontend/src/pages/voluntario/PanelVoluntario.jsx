@@ -90,11 +90,12 @@ const CSS = `
 .mc-num{font-size:15px;font-weight:500;color:var(--navy-800);line-height:1;font-variant-numeric:tabular-nums;flex:none;}
 .mc-shell .mc-cell.mc-out .mc-num{color:var(--gray-300);}
 
-/* Móvil: nombre del tipo COMPLETO, envuelto SOLO entre palabras enteras (nunca
-   a media palabra). word-break:keep-all + overflow-wrap:normal impiden cortar
-   dentro de una palabra; usa los renglones que hagan falta (sin line-clamp que
-   recorte). Una sola palabra ("Santuario") cabe entera en un renglón a 9.5px.
-   El alto de la celda crece y toda la fila iguala.
+/* Móvil: NOMBRE del evento COMPLETO (ej. "Mujeres CNX"), envuelto SOLO entre
+   palabras enteras (nunca a media palabra). word-break:keep-all +
+   overflow-wrap:normal impiden cortar dentro de una palabra; usa los renglones
+   que hagan falta (sin line-clamp que recorte). Una sola palabra ("Santuario")
+   cabe entera en un renglón a 9.5px. El alto de la celda crece y toda la fila
+   iguala, así que la 2ª palabra ("CNX") queda visible.
    Escritorio: se aprovecha la celda grande → nombre completo del evento a 12px y
    número a 16px (la palabra clave se oculta). */
 .mc-kw{font-size:9.5px;font-weight:700;line-height:1.1;text-align:center;letter-spacing:-.02em;width:100%;max-width:100%;display:block;white-space:normal;word-break:keep-all;overflow-wrap:normal;}
@@ -240,13 +241,12 @@ export default function PanelVoluntario() {
     return null;
   };
 
-  // Palabra clave del tipo: primera palabra significativa del nombre del tipo
-  // ("Servicio dominical" → "Servicio", "Reunión de mujeres" → "Reunión").
-  const palabraClave = (nombre) => {
-    if (!nombre) return '';
-    const stop = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'y', 'a', 'en']);
-    const w = nombre.trim().split(/\s+/);
-    return w.find(x => !stop.has(x.toLowerCase())) || w[0] || '';
+  // Nombre del evento para la celda: quita un sufijo de hora al final
+  // ("Santuario 6:00 am" → "Santuario", "Reunión 18:00" → "Reunión"). Si al
+  // quitar la hora quedara vacío, conserva el nombre original.
+  const sinHora = (s) => {
+    const t = (s || '').replace(/\s+\d{1,2}:\d{2}\s*(?:[ap]\.?\s?m\.?|hrs?|h)?\.?$/i, '').trim();
+    return t || (s || '');
   };
 
   // Color sólido del tipo del día (para el punto del índice y del modal).
@@ -473,15 +473,16 @@ export default function PanelVoluntario() {
                 const esHoy = c.fecha === hoyISO;
                 const esSel = sel === c.fecha;
 
-                // Tipo del día → color, fondo y palabra clave (de tipos_evento).
+                // Tipo del día → color y fondo de la celda (de tipos_evento). El
+                // TEXTO de la celda es el NOMBRE del evento (mismo que la lista de
+                // abajo, d.nombre), no la palabra del tipo.
                 const tipoNombre = tipoNombreDe(items);
                 const evento = items.find(m => m.tipo === 'evento');
                 const conEvento = !!tipoNombre;
                 const tColor = conEvento ? (tipoColor[tipoNombre] || (evento && evento.tipo_color) || COLOR_EVENTO_DEFAULT) : null;
                 const tTexto = conEvento ? (tipoColorDark[tipoNombre] || tColor) : null;
                 const tBg = conEvento ? (tipoCellBg[tipoNombre] || tintePastel(tColor, 0.10)) : null;
-                const palabra = conEvento ? palabraClave(tipoNombre) : '';
-                const nombreCompleto = evento ? evento.nombre : (conEvento ? 'Servicio dominical' : '');
+                const nombreEvento = evento ? sinHora(evento.nombre) : (conEvento ? 'Servicio dominical' : '');
 
                 // Estado de TU respuesta (indicador de esquina), no por fondo.
                 const marcables = items.filter(m => m.puede_marcar);
@@ -518,8 +519,8 @@ export default function PanelVoluntario() {
                       <span className="mc-corner" style={{ background: '#fff', border: `2px solid ${accent}` }} />
                     )}
                     <span className="mc-num" style={{ color: conEvento ? tColor : '#9CB0CC' }}>{c.num}</span>
-                    {conEvento && <span className="mc-kw" style={{ color: tTexto }}>{palabra}</span>}
-                    {conEvento && <span className="mc-kw-full" style={{ color: tTexto }}>{nombreCompleto}</span>}
+                    {conEvento && <span className="mc-kw" style={{ color: tTexto }}>{nombreEvento}</span>}
+                    {conEvento && <span className="mc-kw-full" style={{ color: tTexto }}>{nombreEvento}</span>}
                   </button>
                 );
               })}
