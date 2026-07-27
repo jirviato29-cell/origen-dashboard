@@ -39,24 +39,41 @@ async function syncMinisteriosDeEvento(client, eventoId, ministerioIds, esParaVo
 }
 
 // GET /api/calendario?year=2026&en_punto_encuentro=true&para_voluntarios=true
+// Cada evento incluye sus ministerios asignados (mismo campus del evento) como
+// ministerio_ids (array de int) y ministerios (array {id,nombre,color}), para
+// que el modal pueda precargar el selector sin una llamada extra por evento.
 router.get('/', async (req, res) => {
   try {
     const { year, en_punto_encuentro, para_voluntarios } = req.query;
     const params = [req.campus];
-    const conditions = ['campus=$1'];
+    const conditions = ['ce.campus=$1'];
 
     if (year) {
       params.push(year);
-      conditions.push(`EXTRACT(YEAR FROM fecha)=$${params.length}`);
+      conditions.push(`EXTRACT(YEAR FROM ce.fecha)=$${params.length}`);
     }
     if (en_punto_encuentro === 'true') {
-      conditions.push(`en_punto_encuentro = true`);
+      conditions.push(`ce.en_punto_encuentro = true`);
     }
     if (para_voluntarios === 'true') {
-      conditions.push(`para_voluntarios = true`);
+      conditions.push(`ce.para_voluntarios = true`);
     }
 
-    const query = `SELECT * FROM calendario_eventos WHERE ${conditions.join(' AND ')} ORDER BY fecha ASC`;
+    const query = `
+      SELECT ce.*,
+             COALESCE(em.ministerio_ids, '{}')       AS ministerio_ids,
+             COALESCE(em.ministerios, '[]'::json)     AS ministerios
+        FROM calendario_eventos ce
+        LEFT JOIN LATERAL (
+          SELECT array_agg(mi.id ORDER BY mi.nombre)                                                       AS ministerio_ids,
+                 json_agg(json_build_object('id', mi.id, 'nombre', mi.nombre, 'color', mi.color)
+                          ORDER BY mi.nombre)                                                              AS ministerios
+            FROM evento_ministerios evm
+            JOIN ministerios mi ON mi.id = evm.ministerio_id AND mi.campus = ce.campus
+           WHERE evm.evento_id = ce.id
+        ) em ON true
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY ce.fecha ASC`;
     const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
