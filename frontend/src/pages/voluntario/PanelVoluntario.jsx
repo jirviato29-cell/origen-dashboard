@@ -78,8 +78,8 @@ const CSS = `
    contenido (palabra de 2–3 renglones) y todas las celdas de la MISMA FILA se
    estiran al mismo alto (grid rows + align-items:stretch). Padding lateral
    mínimo para dar el mayor ancho posible a la palabra clave. */
-.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(54px,auto);align-items:stretch;gap:5px;}
-.mc-shell .mc-cell{min-height:54px;height:100%;border:1px solid var(--gray-100);border-radius:9px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:center;width:100%;font-family:inherit;}
+.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(58px,auto);align-items:stretch;gap:5px;}
+.mc-shell .mc-cell{min-height:58px;height:100%;border:1px solid var(--gray-100);border-radius:9px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:center;width:100%;font-family:inherit;}
 .mc-shell .mc-cell:hover{border-color:var(--gray-300);box-shadow:var(--shadow-sm);}
 .mc-shell .mc-cell.mc-out{background:var(--gray-50);border-color:transparent;cursor:default;}
 .mc-shell .mc-cell.mc-out:hover{box-shadow:none;}
@@ -90,13 +90,14 @@ const CSS = `
 .mc-num{font-size:15px;font-weight:500;color:var(--navy-800);line-height:1;font-variant-numeric:tabular-nums;flex:none;}
 .mc-shell .mc-cell.mc-out .mc-num{color:var(--gray-300);}
 
-/* Móvil: palabra clave del tipo COMPLETA, hasta 3 renglones hacia abajo (sin
-   recortar con puntos suspensivos). Preferimos que quepa sin partir; si una
-   palabra larga no entra en el ancho, overflow-wrap la parte para que se vea
-   entera en lugar de desbordar. El alto de la celda crece y toda la fila iguala.
+/* Móvil: nombre del tipo COMPLETO, envuelto SOLO entre palabras enteras (nunca
+   a media palabra). word-break:keep-all + overflow-wrap:normal impiden cortar
+   dentro de una palabra; usa los renglones que hagan falta (sin line-clamp que
+   recorte). Una sola palabra ("Santuario") cabe entera en un renglón a 9.5px.
+   El alto de la celda crece y toda la fila iguala.
    Escritorio: se aprovecha la celda grande → nombre completo del evento a 12px y
    número a 16px (la palabra clave se oculta). */
-.mc-kw{font-size:9px;font-weight:700;line-height:1.05;text-align:center;letter-spacing:-.01em;width:100%;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow-wrap:anywhere;}
+.mc-kw{font-size:9.5px;font-weight:700;line-height:1.1;text-align:center;letter-spacing:-.02em;width:100%;max-width:100%;display:block;white-space:normal;word-break:keep-all;overflow-wrap:normal;}
 .mc-kw-full{display:none;}
 @media(min-width:640px){
   .mc-num{font-size:16px;}
