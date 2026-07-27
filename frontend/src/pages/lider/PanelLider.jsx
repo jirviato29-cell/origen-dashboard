@@ -8,6 +8,7 @@ import MisVoluntarios from './MisVoluntarios';
 import PosicionesMinisterio from './PosicionesMinisterio';
 import ProgramarServicio from './ProgramarServicio';
 import TableroServicio from './TableroServicio';
+import CalendarioLider from './CalendarioLider';
 
 const GRAY_500 = '#7A8699';
 const GRAY_200 = '#E2E6EC';
@@ -21,8 +22,10 @@ const CSS = `
 .pl-card{margin-top:16px;background:#fff;border:1px solid ${GRAY_200};border-radius:16px;padding:24px;}
 `;
 
-// Contenedor compartido por las tres pantallas del líder: descripción + tarjeta.
-function LiderShell({ sub, children }) {
+// Contenedor compartido por las pantallas del líder: descripción + tarjeta.
+// `bare`: para pantallas que ya traen su propia tarjeta (p. ej. el calendario),
+// no se envuelve en .pl-card para no anidar dos tarjetas.
+function LiderShell({ sub, children, bare = false }) {
   const { estado } = useLiderPerfil();
   return (
     <div className="pl-root">
@@ -34,7 +37,7 @@ function LiderShell({ sub, children }) {
           Sin ministerio asignado — pídele al administrador que te lo asigne.
         </div>
       )}
-      <div className="pl-card">{children}</div>
+      {bare ? <div style={{ marginTop: 16 }}>{children}</div> : <div className="pl-card">{children}</div>}
     </div>
   );
 }
@@ -67,6 +70,14 @@ export function LiderTablero() {
   return (
     <LiderShell sub="Ve cómo quedó armado el equipo por posición en cada fecha.">
       <TableroServicio />
+    </LiderShell>
+  );
+}
+
+export function LiderCalendario() {
+  return (
+    <LiderShell sub="Calendario del mes. Los eventos donde participa tu ministerio van resaltados." bare>
+      <CalendarioLider />
     </LiderShell>
   );
 }

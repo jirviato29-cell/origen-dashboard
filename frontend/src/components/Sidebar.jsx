@@ -81,6 +81,7 @@ const navByRole = {
       { to: '/lider_ministerio/posiciones',  label: 'Posiciones',         icon: I.pin },
       { to: '/lider_ministerio/programar',   label: 'Programar servicio', icon: I.calendar },
       { to: '/lider_ministerio/tablero',     label: 'Quién va dónde',     icon: I.dashboard },
+      { to: '/lider_ministerio/calendario',  label: 'Calendario',         icon: I.calendar },
       { to: '/avisos',                       label: 'Avisos',             icon: I.bell, badge: 'avisosNoLeidos' },
       { to: '/lider_ministerio/configuracion', label: 'Configuración',    icon: I.settings },
     ]},
