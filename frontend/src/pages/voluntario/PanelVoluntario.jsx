@@ -74,9 +74,10 @@ const CSS = `
 .mc-dow div{font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--gray-600);text-align:center;padding:4px 0;}
 /* Celda con evento: fondo del tipo · número arriba (color del tipo) · palabra
    clave del tipo abajo. El estado de tu respuesta va en un indicador de esquina.
-   Un poco más alta que ancha (~0.82) para que quepa la palabra. */
+   Un poco más alta que ancha (~0.92) para que número + palabra respiren. Padding
+   lateral mínimo para dar el mayor ancho posible a la palabra clave. */
 .mc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
-.mc-shell .mc-cell{aspect-ratio:.82;border:1px solid var(--gray-100);border-radius:9px;padding:5px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:center;width:100%;font-family:inherit;}
+.mc-shell .mc-cell{aspect-ratio:.92;border:1px solid var(--gray-100);border-radius:9px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:center;width:100%;font-family:inherit;}
 .mc-shell .mc-cell:hover{border-color:var(--gray-300);box-shadow:var(--shadow-sm);}
 .mc-shell .mc-cell.mc-out{background:var(--gray-50);border-color:transparent;cursor:default;}
 .mc-shell .mc-cell.mc-out:hover{box-shadow:none;}
@@ -87,10 +88,12 @@ const CSS = `
 .mc-num{font-size:15px;font-weight:500;color:var(--navy-800);line-height:1;font-variant-numeric:tabular-nums;flex:none;}
 .mc-shell .mc-cell.mc-out .mc-num{color:var(--gray-300);}
 
-/* Móvil: palabra clave del tipo (1–2 líneas, corte por palabra), 9px.
+/* Móvil: palabra clave del tipo en UNA sola línea, sin partir por letra, 9px.
+   Si no cabe entera se recorta con puntos suspensivos (el nombre completo se ve
+   en la lista de abajo); nunca desborda por los lados ni por debajo de la celda.
    Escritorio: se aprovecha la celda grande → nombre completo del evento a 12px y
    número a 16px (la palabra clave se oculta). */
-.mc-kw{font-size:9px;font-weight:700;line-height:1.05;text-align:center;letter-spacing:.01em;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;}
+.mc-kw{font-size:9px;font-weight:700;line-height:1.05;text-align:center;letter-spacing:-.01em;display:block;width:100%;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 .mc-kw-full{display:none;}
 @media(min-width:640px){
   .mc-num{font-size:16px;}
