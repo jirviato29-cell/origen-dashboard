@@ -12,7 +12,7 @@ import { liderPerfilApi } from '../services/api';
 //
 // estado: 'idle' (deshabilitado) · 'cargando' · 'ok' · 'sin_ministerio' · 'error'
 
-let perfilCache = { key: null, estado: 'cargando', nombre: null, promise: null };
+let perfilCache = { key: null, estado: 'cargando', nombre: null, ministerioId: null, promise: null };
 
 export default function useLiderPerfil(enabled = true) {
   const token = (typeof localStorage !== 'undefined' && localStorage.getItem('token')) || '';
@@ -25,14 +25,14 @@ export default function useLiderPerfil(enabled = true) {
 
     // Token nuevo → caché limpia.
     if (perfilCache.key !== token) {
-      perfilCache = { key: token, estado: 'cargando', nombre: null, promise: null };
+      perfilCache = { key: token, estado: 'cargando', nombre: null, ministerioId: null, promise: null };
     }
     // Ya resuelto: nada que hacer.
     if (perfilCache.estado !== 'cargando') return () => { vivo = false; };
 
     if (!perfilCache.promise) {
       perfilCache.promise = liderPerfilApi.get()
-        .then(({ data }) => { perfilCache.estado = 'ok'; perfilCache.nombre = data.ministerio_nombre || null; })
+        .then(({ data }) => { perfilCache.estado = 'ok'; perfilCache.nombre = data.ministerio_nombre || null; perfilCache.ministerioId = data.ministerio_id ?? null; })
         // 400 = contextoLider dice que el líder no tiene ministerio asignado.
         .catch(err => { perfilCache.estado = err.response?.status === 400 ? 'sin_ministerio' : 'error'; });
     }
@@ -40,6 +40,6 @@ export default function useLiderPerfil(enabled = true) {
     return () => { vivo = false; };
   }, [token, enabled]);
 
-  if (!enabled) return { estado: 'idle', nombre: null };
-  return { estado: perfilCache.estado, nombre: perfilCache.nombre };
+  if (!enabled) return { estado: 'idle', nombre: null, ministerioId: null };
+  return { estado: perfilCache.estado, nombre: perfilCache.nombre, ministerioId: perfilCache.ministerioId };
 }
