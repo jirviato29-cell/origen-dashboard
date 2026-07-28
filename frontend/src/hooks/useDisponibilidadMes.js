@@ -10,18 +10,22 @@ import { voluntarioDisponibilidadApi } from '../services/api';
 
 export const claveItem = (item) => `${item.fecha}-${item.evento_id ?? 'dom'}`;
 
-const mesDeHoy = () => {
+export const mesDeHoy = () => {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
 };
-const sumaMes = (mes, n) => {
+export const sumaMes = (mes, n) => {
   const [a, m] = mes.split('-').map(Number);
   const d = new Date(Date.UTC(a, m - 1 + n, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 };
 
-export default function useDisponibilidadMes() {
-  const [mes,      setMes]      = useState(mesDeHoy);
+// `mesInicial` (opcional, 'YYYY-MM'): el mes a cargar. Sin argumento arranca en
+// el mes actual (comportamiento previo, usado por el calendario del panel);
+// pasándolo se puede instanciar el hook para un mes concreto (p. ej. Invitaciones
+// muestra el mes actual y el siguiente con dos instancias) sin duplicar el fetch.
+export default function useDisponibilidadMes(mesInicial) {
+  const [mes,      setMes]      = useState(() => mesInicial || mesDeHoy());
   const [data,     setData]     = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error,    setError]    = useState('');
