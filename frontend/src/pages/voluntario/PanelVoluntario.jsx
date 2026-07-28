@@ -375,6 +375,13 @@ export default function PanelVoluntario() {
           accent={accent}
           renderCorner={renderCornerEstado}
           barColor={barColorEstado}
+          indexEmptyText="No hay otros eventos este mes."
+          legend={[
+            { color: '#1BA968', label: 'Sí colaboro' },
+            { color: '#D23B36', label: 'No puedo' },
+            { color: '#D69B18', label: 'Por responder' },
+            { color: '#2C86C4', label: 'Servicio dominical' },
+          ]}
         />
         {error && <div className="mc-cal-err" style={{ marginTop: 12 }}>{error}</div>}
       </div>
