@@ -50,33 +50,21 @@ const CSS = `
 .mc-shell>*{min-width:0;}
 
 /* ===== mini-KPIs ===== */
-.mc-sumrow{grid-area:kpis;display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
-.mc-sum{border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:12px 13px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0;background:#fff;}
-.mc-sum-dot{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
-.mc-sum-dot svg{width:19px;height:19px;}
-.mc-sum-n{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:var(--navy-900);}
-.mc-sum-l{font-size:13px;color:var(--gray-600);font-weight:700;margin-top:2px;line-height:1.2;}
-/* Color por estado — verde/rojo/ámbar SOLO para disponibilidad. Fondo tintado,
-   borde del color, ícono en círculo sólido (símbolo blanco) y número en color. */
-.mc-sum.mc-si{background:#E7F6EE;border-color:#C9EBD6;}
-.mc-sum.mc-si .mc-sum-dot{background:#1BA968;}
-.mc-sum.mc-si .mc-sum-n{color:#15915A;}
-.mc-sum.mc-no{background:#FCEBEA;border-color:#F6D3D2;}
-.mc-sum.mc-no .mc-sum-dot{background:#D23B36;}
-.mc-sum.mc-no .mc-sum-n{color:#D23B36;}
-.mc-sum.mc-pd{background:#FDF4E3;border-color:#F6E3B8;}
-.mc-sum.mc-pd .mc-sum-dot{background:#D69B18;}
-.mc-sum.mc-pd .mc-sum-n{color:#B4820F;}
-/* Contador en 0 → gris, para que el ojo vaya a lo que sí tiene pendientes. */
-.mc-sum.mc-zero{background:var(--gray-50);border-color:var(--gray-200);}
-.mc-sum.mc-zero .mc-sum-dot{background:var(--gray-300);}
-.mc-sum.mc-zero .mc-sum-n{color:var(--gray-400);}
-/* Escritorio: fila con ícono y número más grandes (como el spec). */
+/* Tarjetas de resumen sobre FONDO AZUL MARINO con el número en color (mismo
+   lenguaje que el banner de Invitaciones). Verde/rojo/ámbar solo para
+   disponibilidad. Etiqueta clara; en 0 el número se apaga para no competir. */
+.mc-sumrow{grid-area:kpis;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.mc-sum{background:#1A3354;border:1px solid #24406A;border-radius:14px;padding:14px 10px;text-align:center;min-width:0;}
+.mc-sum-n{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:#fff;}
+.mc-sum-l{font-size:12.5px;color:#9CB0CC;font-weight:600;margin-top:6px;line-height:1.2;}
+.mc-sum.mc-si .mc-sum-n{color:#5FD08D;}
+.mc-sum.mc-no .mc-sum-n{color:#F0756E;}
+.mc-sum.mc-pd .mc-sum-n{color:#F5C451;}
+.mc-sum.mc-zero .mc-sum-n{color:#5E7093;}
 @media(min-width:640px){
-  .mc-sum{flex-direction:row;align-items:center;gap:14px;padding:16px 18px;}
-  .mc-sum-dot{width:40px;height:40px;border-radius:12px;}
-  .mc-sum-dot svg{width:20px;height:20px;}
-  .mc-sum-n{font-size:30px;}
+  .mc-sum{padding:18px 14px;}
+  .mc-sum-n{font-size:32px;}
+  .mc-sum-l{font-size:13px;}
 }
 
 /* ===== calendario =====
@@ -92,18 +80,6 @@ const CSS = `
 `;
 
 // ── Iconos (inline, como la referencia) ───────────────────────────────────────
-const IcCheck = ({ w = 24 }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" width={w} height={w}>
-    <path d="M5 12.5l4 4 10-10" strokeLinecap="round" strokeLinejoin="round" /></svg>
-);
-const IcCross = ({ w = 24 }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" width={w} height={w}>
-    <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /></svg>
-);
-const IcClockCircle = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="8.5" /><path d="M12 8v4l2.5 1.5" strokeLinecap="round" /></svg>
-);
 const IcChevron = ({ dir }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17">
     <path d={dir === 'l' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -266,16 +242,13 @@ export default function PanelVoluntario() {
       {/* ── Contadores del mes (arriba en teléfono) ────────────────────────── */}
       <div className="mc-sumrow">
         <div className={`mc-sum mc-si${kpis.si === 0 ? ' mc-zero' : ''}`}>
-          <span className="mc-sum-dot"><IcCheck /></span>
-          <div><div className="mc-sum-n">{kpis.si}</div><div className="mc-sum-l">Sí colaboro</div></div>
+          <div className="mc-sum-n">{kpis.si}</div><div className="mc-sum-l">Sí colaboro</div>
         </div>
         <div className={`mc-sum mc-no${kpis.no === 0 ? ' mc-zero' : ''}`}>
-          <span className="mc-sum-dot"><IcCross /></span>
-          <div><div className="mc-sum-n">{kpis.no}</div><div className="mc-sum-l">No puedo</div></div>
+          <div className="mc-sum-n">{kpis.no}</div><div className="mc-sum-l">No puedo</div>
         </div>
         <div className={`mc-sum mc-pd${kpis.pend === 0 ? ' mc-zero' : ''}`}>
-          <span className="mc-sum-dot"><IcClockCircle /></span>
-          <div><div className="mc-sum-n">{kpis.pend}</div><div className="mc-sum-l">Por responder</div></div>
+          <div className="mc-sum-n">{kpis.pend}</div><div className="mc-sum-l">Por responder</div>
         </div>
       </div>
 
