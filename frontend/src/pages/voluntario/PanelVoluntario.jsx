@@ -51,11 +51,33 @@ const CSS = `
 
 /* ===== mini-KPIs ===== */
 .mc-sumrow{grid-area:kpis;display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
-.mc-sum{background:#fff;border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:12px 13px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0;}
-.mc-sum-dot{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.mc-sum-dot svg{width:17px;height:17px;}
-.mc-sum-n{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--navy-900);font-variant-numeric:tabular-nums;}
-.mc-sum-l{font-size:13.5px;color:var(--gray-600);font-weight:600;margin-top:2px;line-height:1.2;}
+.mc-sum{border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:12px 13px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0;background:#fff;}
+.mc-sum-dot{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+.mc-sum-dot svg{width:19px;height:19px;}
+.mc-sum-n{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:var(--navy-900);}
+.mc-sum-l{font-size:13px;color:var(--gray-600);font-weight:700;margin-top:2px;line-height:1.2;}
+/* Color por estado — verde/rojo/ámbar SOLO para disponibilidad. Fondo tintado,
+   borde del color, ícono en círculo sólido (símbolo blanco) y número en color. */
+.mc-sum.mc-si{background:#E7F6EE;border-color:#C9EBD6;}
+.mc-sum.mc-si .mc-sum-dot{background:#1BA968;}
+.mc-sum.mc-si .mc-sum-n{color:#15915A;}
+.mc-sum.mc-no{background:#FCEBEA;border-color:#F6D3D2;}
+.mc-sum.mc-no .mc-sum-dot{background:#D23B36;}
+.mc-sum.mc-no .mc-sum-n{color:#D23B36;}
+.mc-sum.mc-pd{background:#FDF4E3;border-color:#F6E3B8;}
+.mc-sum.mc-pd .mc-sum-dot{background:#D69B18;}
+.mc-sum.mc-pd .mc-sum-n{color:#B4820F;}
+/* Contador en 0 → gris, para que el ojo vaya a lo que sí tiene pendientes. */
+.mc-sum.mc-zero{background:var(--gray-50);border-color:var(--gray-200);}
+.mc-sum.mc-zero .mc-sum-dot{background:var(--gray-300);}
+.mc-sum.mc-zero .mc-sum-n{color:var(--gray-400);}
+/* Escritorio: fila con ícono y número más grandes (como el spec). */
+@media(min-width:640px){
+  .mc-sum{flex-direction:row;align-items:center;gap:14px;padding:16px 18px;}
+  .mc-sum-dot{width:40px;height:40px;border-radius:12px;}
+  .mc-sum-dot svg{width:20px;height:20px;}
+  .mc-sum-n{font-size:30px;}
+}
 
 /* ===== calendario =====
    La cuadrícula del mes (cabecera, días, celdas, palabra del evento, lista de
@@ -243,16 +265,16 @@ export default function PanelVoluntario() {
 
       {/* ── Contadores del mes (arriba en teléfono) ────────────────────────── */}
       <div className="mc-sumrow">
-        <div className="mc-sum">
-          <span className="mc-sum-dot" style={{ background: 'var(--green-50)', color: 'var(--green-600)' }}><IcCheck /></span>
+        <div className={`mc-sum mc-si${kpis.si === 0 ? ' mc-zero' : ''}`}>
+          <span className="mc-sum-dot"><IcCheck /></span>
           <div><div className="mc-sum-n">{kpis.si}</div><div className="mc-sum-l">Sí colaboro</div></div>
         </div>
-        <div className="mc-sum">
-          <span className="mc-sum-dot" style={{ background: 'var(--red-50)', color: 'var(--red-600)' }}><IcCross /></span>
+        <div className={`mc-sum mc-no${kpis.no === 0 ? ' mc-zero' : ''}`}>
+          <span className="mc-sum-dot"><IcCross /></span>
           <div><div className="mc-sum-n">{kpis.no}</div><div className="mc-sum-l">No puedo</div></div>
         </div>
-        <div className="mc-sum">
-          <span className="mc-sum-dot" style={{ background: 'var(--amber-50)', color: 'var(--amber-600)' }}><IcClockCircle /></span>
+        <div className={`mc-sum mc-pd${kpis.pend === 0 ? ' mc-zero' : ''}`}>
+          <span className="mc-sum-dot"><IcClockCircle /></span>
           <div><div className="mc-sum-n">{kpis.pend}</div><div className="mc-sum-l">Por responder</div></div>
         </div>
       </div>
