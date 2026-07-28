@@ -53,19 +53,14 @@ const CSS = `
 /* Tarjetas de resumen sobre FONDO AZUL MARINO con el número en color (mismo
    lenguaje que el banner de Invitaciones). Verde/rojo/ámbar solo para
    disponibilidad. Etiqueta clara; en 0 el número se apaga para no competir. */
-.mc-sumrow{grid-area:kpis;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.mc-sum{background:#1A3354;border:1px solid #24406A;border-radius:14px;padding:14px 10px;text-align:center;min-width:0;}
-.mc-sum-n{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:#fff;}
-.mc-sum-l{font-size:12.5px;color:#9CB0CC;font-weight:600;margin-top:6px;line-height:1.2;}
+.mc-sumrow{grid-area:kpis;display:flex;gap:10px;flex-wrap:wrap;}
+.mc-sum{flex:1 1 0;min-width:92px;max-width:150px;background:#1A3354;border-radius:14px;padding:12px 14px;text-align:center;}
+.mc-sum-n{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:#fff;}
+.mc-sum-l{font-size:12.5px;color:#9CB0CC;font-weight:600;margin-top:5px;line-height:1.2;}
 .mc-sum.mc-si .mc-sum-n{color:#5FD08D;}
 .mc-sum.mc-no .mc-sum-n{color:#F0756E;}
 .mc-sum.mc-pd .mc-sum-n{color:#F5C451;}
 .mc-sum.mc-zero .mc-sum-n{color:#5E7093;}
-@media(min-width:640px){
-  .mc-sum{padding:18px 14px;}
-  .mc-sum-n{font-size:32px;}
-  .mc-sum-l{font-size:13px;}
-}
 
 /* ===== calendario =====
    La cuadrícula del mes (cabecera, días, celdas, palabra del evento, lista de
