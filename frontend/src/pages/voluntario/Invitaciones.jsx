@@ -23,7 +23,7 @@ const CSS = `
 .invp-mes-y{font-size:14px;font-weight:500;color:#A7B0BD;}
 `;
 
-function MesInvitaciones({ mes, accent }) {
+function MesInvitaciones({ mes, campus }) {
   const {
     cargando, error, listado,
     marcar, enviando, editando, setEditando,
@@ -43,7 +43,7 @@ function MesInvitaciones({ mes, accent }) {
         enviando={enviando}
         editando={editando}
         setEditando={setEditando}
-        accent={accent}
+        campus={campus}
         cargando={cargando}
         error={error}
         emptyText="Sin invitaciones"
@@ -54,7 +54,6 @@ function MesInvitaciones({ mes, accent }) {
 
 export default function Invitaciones() {
   const campus = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
-  const accent = campus === 'gdl' ? '#2DD4BF' : '#FF6B2B';
 
   const mesActual = mesDeHoy();
   const mesSig = sumaMes(mesActual, 1);
@@ -64,8 +63,8 @@ export default function Invitaciones() {
       <style>{CSS}</style>
       <AvisoDestacado />
       <div className="invp-grid">
-        <MesInvitaciones mes={mesActual} accent={accent} />
-        <MesInvitaciones mes={mesSig} accent={accent} />
+        <MesInvitaciones mes={mesActual} campus={campus} />
+        <MesInvitaciones mes={mesSig} campus={campus} />
       </div>
     </div>
   );
