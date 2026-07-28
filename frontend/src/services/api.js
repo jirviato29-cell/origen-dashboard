@@ -285,6 +285,7 @@ export const misAvisosApi = {
   getAll:      ()   => http.get('/mis-avisos'),
   getUno:      (id) => http.get(`/mis-avisos/${id}`),
   marcarVisto: (id) => http.post(`/mis-avisos/${id}/visto`),
+  eliminar:    (id) => http.delete(`/mis-avisos/${id}`),
 };
 
 // ─── Usuarios ─────────────────────────────────────────────────────────────────

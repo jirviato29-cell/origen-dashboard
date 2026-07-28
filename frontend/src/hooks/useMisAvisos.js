@@ -49,6 +49,26 @@ export function marcarAvisoLeidoLocal(id) {
   notificar();
 }
 
+// Marca TODOS los no leídos como leídos en la caché local (optimista), para el
+// botón "Marcar todos como leídos"; el backend persiste cada lectura aparte.
+export function marcarTodosLeidosLocal() {
+  cache = {
+    ...cache,
+    avisos: cache.avisos.map((a) => (a.visto ? a : { ...a, visto: true })),
+  };
+  notificar();
+}
+
+// Quita un aviso de la caché local (optimista) al borrarlo de la bandeja; el
+// backend lo oculta por separado (borrado suave en avisos_ocultos).
+export function eliminarAvisoLocal(id) {
+  cache = {
+    ...cache,
+    avisos: cache.avisos.filter((a) => a.id !== id),
+  };
+  notificar();
+}
+
 export default function useMisAvisos(enabled = true) {
   const token = (typeof localStorage !== 'undefined' && localStorage.getItem('token')) || '';
   const [, forzar] = useState(0);
