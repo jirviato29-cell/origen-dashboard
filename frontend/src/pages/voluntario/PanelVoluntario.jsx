@@ -55,10 +55,20 @@ const CSS = `
 .mc-next-body{flex:1;min-width:0;position:relative;z-index:1;}
 .mc-next-eye{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#FF8A52;}
 .mc-next-t{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-top:4px;line-height:1.2;}
-.mc-next-m{font-size:12.5px;color:#9CB0CC;margin-top:5px;line-height:1.4;}
+.mc-next-m{font-size:12.5px;color:#9CB0CC;margin-top:5px;line-height:1.35;display:flex;flex-wrap:wrap;align-items:center;gap:7px;}
+.mc-next-m .sep{opacity:.42;}
 .mc-next-count{flex-shrink:0;text-align:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:10px 15px;position:relative;z-index:1;}
 .mc-next-count .n{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1;}
 .mc-next-count .l{font-size:11px;font-weight:700;color:#9CB0CC;margin-top:4px;}
+/* Teléfono angosto: más aire para el título; ícono y caja de días más compactos. */
+@media(max-width:479px){
+  .mc-next{gap:12px;padding:16px 16px;}
+  .mc-next-ic{width:44px;height:44px;border-radius:13px;}
+  .mc-next-ic svg{width:22px;height:22px;}
+  .mc-next-t{font-size:17px;}
+  .mc-next-count{padding:9px 12px;}
+  .mc-next-count .n{font-size:23px;}
+}
 
 /* ===== 2 · Resumen (tarjetas CON COLOR) + progreso (v3) ===== */
 .mc-summary{background:#fff;border:1px solid #E6E9EF;border-radius:18px;box-shadow:var(--shadow-sm);padding:16px 16px 18px;}
@@ -303,7 +313,9 @@ export default function PanelVoluntario() {
             <>
               <div className="mc-next-t">{fechaCorta(proxima.it.fecha)}</div>
               <div className="mc-next-m">
-                {(tipoNombreDe([proxima.it]) || 'Servicio dominical')} · Confirmaste que sí colaboras
+                <span>{tipoNombreDe([proxima.it]) || 'Servicio dominical'}</span>
+                <span className="sep">·</span>
+                <span>Confirmaste que sí colaboras</span>
               </div>
             </>
           ) : (
