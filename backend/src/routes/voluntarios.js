@@ -20,7 +20,11 @@ function requireAuth(req, res, next) {
 router.get('/', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT * FROM voluntarios WHERE campus=$1 ORDER BY nombre ASC',
+      `SELECT v.*, u.nombre AS registrado_por_nombre
+         FROM voluntarios v
+         LEFT JOIN usuarios u ON u.id = v.registrado_por
+        WHERE v.campus=$1
+        ORDER BY v.nombre ASC`,
       [req.campus]
     );
     res.json(rows);

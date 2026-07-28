@@ -22,6 +22,38 @@ const GRAY_300 = '#CBD2DC';
 const GRAY_200 = '#E2E6EC';
 const GRAY_100 = '#EEF1F5';
 
+// Tema por campus (mismo criterio isGdl que el resto de pantallas).
+const isGdl = localStorage.getItem('campus_activo') === 'gdl';
+
+// Badge compacto "registrado por <líder>". Solo se pinta si hay nombre; si es
+// null no renderiza NADA (sin texto alterno ni espacio reservado). El ícono es
+// la geometría de UserPlus (lucide) en línea, porque el proyecto no usa
+// lucide-react. Estilos inline por el bug de especificidad con `.app button`.
+function RegistradoPorBadge({ nombre }) {
+  if (!nombre) return null;
+  return (
+    <span style={{
+      fontSize: '11px',
+      fontWeight: 600,
+      padding: '2px 8px',
+      borderRadius: '999px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      whiteSpace: 'nowrap',
+      color:      isGdl ? '#2DD4BF' : '#FF6B2B',
+      background:  isGdl ? 'rgba(45,212,191,0.12)' : 'rgba(255,107,43,0.12)',
+    }}>
+      <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M19 8v6M22 11h-6" />
+      </svg>
+      {nombre}
+    </span>
+  );
+}
+
 const MESES_ES = [
   'enero','febrero','marzo','abril','mayo','junio',
   'julio','agosto','septiembre','octubre','noviembre','diciembre',
@@ -923,7 +955,10 @@ export default function VoluntariosPage() {
                         fontWeight: 700, fontSize: 12,
                       }}>{initials(v.nombre)}</div>
                       <div>
-                        <div style={{ fontWeight: 700, color: NAVY, fontSize: 14 }}>{v.nombre}</div>
+                        <div style={{ fontWeight: 700, color: NAVY, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {v.nombre}
+                          <RegistradoPorBadge nombre={v.registrado_por_nombre} />
+                        </div>
                         {age !== null && <div style={{ fontSize: 11, color: GRAY_500 }}>{age} años</div>}
                       </div>
                     </div>
@@ -1008,8 +1043,9 @@ export default function VoluntariosPage() {
                               {initials(v.nombre)}
                             </div>
                             <div>
-                              <div style={{ fontWeight: 700, color: NAVY, fontSize: 13.5, lineHeight: 1.3 }}>
+                              <div style={{ fontWeight: 700, color: NAVY, fontSize: 13.5, lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 6 }}>
                                 {v.nombre}
+                                <RegistradoPorBadge nombre={v.registrado_por_nombre} />
                               </div>
                               {age !== null && (
                                 <div style={{ fontSize: 11, color: GRAY_500, marginTop: 1 }}>
