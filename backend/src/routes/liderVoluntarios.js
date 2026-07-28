@@ -147,12 +147,13 @@ router.post('/', async (req, res) => {
     await client.query('BEGIN');
 
     // a) Ficha nueva en el directorio. ministerio2/3, correo y otra_area quedan
-    //    en null: este flujo solo captura lo mínimo.
+    //    en null: este flujo solo captura lo mínimo. registrado_por = quién dio
+    //    el alta, SIEMPRE resuelto del token en el servidor (nunca del body).
     const { rows: ficha } = await client.query(
-      `INSERT INTO voluntarios (nombre, whatsapp, cumpleanos, campus, ministerio1)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO voluntarios (nombre, whatsapp, cumpleanos, campus, ministerio1, registrado_por)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id`,
-      [nombre, whatsapp, cumpleanos, ctx.campus, ministerioNombre]
+      [nombre, whatsapp, cumpleanos, ctx.campus, ministerioNombre, req.authUsuario.id]
     );
     const fichaId = ficha[0].id;
 
