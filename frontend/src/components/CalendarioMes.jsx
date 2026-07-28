@@ -113,8 +113,8 @@ const CSS = `
 
 /* Celda: número arriba-izquierda + nombre del evento debajo; barra lateral de
    estado (opcional, vía barColor) e indicador de esquina (vía renderCorner). */
-.cm-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(64px,auto);align-items:stretch;gap:6px;}
-.cm-shell .cm-cell{min-height:64px;height:100%;border:1px solid var(--gray-100);border-radius:11px;padding:5px 5px 4px 9px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:left;width:100%;font-family:inherit;}
+.cm-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(72px,auto);align-items:stretch;gap:6px;}
+.cm-shell .cm-cell{min-height:72px;height:100%;border:1px solid var(--gray-100);border-radius:11px;padding:6px 4px 5px 6px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:3px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:left;width:100%;font-family:inherit;}
 .cm-shell .cm-cell:hover{border-color:var(--gray-300);box-shadow:var(--shadow-sm);}
 .cm-shell .cm-cell.cm-out{background:transparent;border-color:transparent;cursor:default;}
 .cm-shell .cm-cell.cm-out:hover{box-shadow:none;}
@@ -127,8 +127,9 @@ const CSS = `
 /* Barra lateral de estado (la aporta cada página vía barColor). */
 .cm-bar{position:absolute;left:0;top:7px;bottom:7px;width:5px;border-radius:0 4px 4px 0;}
 
-/* Nombre del evento: hasta 2 líneas, alineado a la izquierda; si no cabe, "…". */
-.cm-kw{font-size:9px;font-weight:700;line-height:1.1;text-align:left;letter-spacing:-.02em;width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
+/* Nombre del evento en móvil: UNA sola línea; si no cabe, corta con "…" (nunca
+   se parte en dos). En pantallas anchas se usa cm-kw-full a 2 líneas. */
+.cm-kw{font-size:8px;font-weight:800;line-height:1.1;text-align:left;letter-spacing:-.04em;width:100%;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cm-kw-full{display:none;}
 @media(min-width:640px){
   .cm-num{font-size:15px;}

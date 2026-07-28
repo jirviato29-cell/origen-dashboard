@@ -629,6 +629,23 @@ body {
   .topbar-btn-label { display: none; }
   .topbar .btn-primary { padding: 8px 10px !important; }
 
+  /* Voluntario en móvil: barra superior navy (como la referencia). Usa el mismo
+     color que el sidebar, así respeta el tema por campus (Ags navy / Gdl negro).
+     Solo afecta al rol voluntario y solo en teléfono. */
+  .app[data-role="voluntario"] .topbar {
+    background: var(--sidebar-bg);
+    border-bottom-color: transparent;
+  }
+  .app[data-role="voluntario"] .topbar .page-title { color: #fff; }
+  .app[data-role="voluntario"] .topbar .icon-btn {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.20);
+    color: #fff;
+  }
+  .app[data-role="voluntario"] .topbar .icon-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
   /* Contenido: padding lateral más ajustado */
   .page { padding: 16px 14px 24px; gap: 14px; }
 

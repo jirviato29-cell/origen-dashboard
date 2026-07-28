@@ -109,7 +109,7 @@ export default function Layout() {
   const campusActivo = localStorage.getItem('campus_activo') || 'ags';
 
   return (
-    <div className="app" data-campus={campusActivo} style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div className="app" data-campus={campusActivo} data-role={role} style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
       {/* ── Mobile backdrop ── */}
       {sidebarOpen && (
