@@ -6,6 +6,7 @@ import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
 import usePuestosNuevos from '../hooks/usePuestosNuevos';
 import useMisAvisos from '../hooks/useMisAvisos';
+import useInvitacionesPendientes from '../hooks/useInvitacionesPendientes';
 import { I } from './Icons';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ const navByRole = {
   [ROLES.VOLUNTARIO]: [
     { group: 'Voluntario', items: [
       { to: '/voluntario/calendario',    label: 'Mi calendario', icon: I.calendar },
-      { to: '/voluntario/invitaciones',  label: 'Invitaciones',  icon: I.hand },
+      { to: '/voluntario/invitaciones',  label: 'Invitaciones',  icon: I.hand, badge: 'invitacionesPendientes' },
       { to: '/voluntario/puestos',       label: 'Mis puestos',   icon: I.pin, badge: 'puestosNuevos' },
       { to: '/avisos',                   label: 'Avisos',        icon: I.bell, badge: 'avisosNoLeidos' },
       { to: '/voluntario/configuracion', label: 'Configuración', icon: I.settings },
@@ -171,6 +172,8 @@ export default function Sidebar({ onClose }) {
   // Badge de "Mis puestos": solo para el voluntario. Para los demás roles pasa
   // enabled=false, así el hook no hace ninguna llamada (gateado como useLiderPerfil).
   const { nuevos: puestosNuevos } = usePuestosNuevos(role === ROLES.VOLUNTARIO);
+  // Badge de "Invitaciones" (fechas por responder del mes actual y el siguiente).
+  const { nuevos: invitacionesPendientes } = useInvitacionesPendientes(role === ROLES.VOLUNTARIO);
   // Contador de avisos no leídos: solo para voluntario y líder (los que tienen la
   // entrada "Avisos"). Para los demás roles el hook no dispara ninguna llamada.
   const { noLeidos: avisosNoLeidos } = useMisAvisos(
@@ -266,6 +269,7 @@ export default function Sidebar({ onClose }) {
                   {(() => {
                     const count = item.badge === 'puestosNuevos' ? puestosNuevos
                       : item.badge === 'avisosNoLeidos' ? avisosNoLeidos
+                      : item.badge === 'invitacionesPendientes' ? invitacionesPendientes
                       : 0;
                     if (!count) return null;
                     return (

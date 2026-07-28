@@ -4,6 +4,7 @@ import ListaInvitaciones from '../../components/ListaInvitaciones';
 import { I } from '../../components/Icons';
 import { miPerfilApi } from '../../services/api';
 import useDisponibilidadMes, { mesDeHoy, sumaMes } from '../../hooks/useDisponibilidadMes';
+import { refrescarInvitaciones } from '../../hooks/useInvitacionesPendientes';
 
 // Pestaña "Invitaciones" del voluntario (sistema azul marino + naranja, pensada
 // para adultos mayores). Banner resumen navy con 3 contadores + dos columnas de
@@ -47,7 +48,9 @@ const CSS = `
 `;
 
 function MesCard({ mes, disp, ministerio }) {
-  const { listado, marcar, enviando, editando, setEditando, cargando, error, hoyISO } = disp;
+  const { listado, marcar: marcarBase, enviando, editando, setEditando, cargando, error, hoyISO } = disp;
+  // Tras responder, refresca el contador del badge del sidebar.
+  const marcar = (item, estado) => Promise.resolve(marcarBase(item, estado)).then(() => refrescarInvitaciones());
   const pend = listado.filter(esPendiente).length;
   const vacio = !cargando && listado.length === 0;
 
