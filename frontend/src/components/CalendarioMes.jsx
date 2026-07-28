@@ -242,25 +242,31 @@ export default function CalendarioMes({
               if (c.tipo === 'out') {
                 return <div key={`o${i}`} className="cm-cell cm-out"><span className="cm-num">{c.num}</span></div>;
               }
-              const items = itemsDe(c.fecha) || [];
               const esHoy = c.fecha === hoyISO;
               const esPasado = hoyISO && c.fecha < hoyISO;
+
+              // Días anteriores a hoy (dentro de la semana visible): en blanco,
+              // sin número ni evento. Solo se ve de hoy en adelante.
+              if (esPasado) {
+                return <div key={c.fecha} className="cm-cell cm-out" aria-hidden="true" />;
+              }
+
+              const items = itemsDe(c.fecha) || [];
               const esSel = sel === c.fecha;
 
               const tipoNombre = tipoNombreDe(items);
               const evento = items.find(m => m.tipo === 'evento');
               const conEvento = !!tipoNombre;
 
-              // Día sin evento: callado (pasado o vacío). Solo el número.
+              // Día sin evento (hoy o futuro): callado, solo el número.
               if (!conEvento) {
-                const cls = esHoy ? 'cm-cell cm-today' : (esPasado ? 'cm-cell cm-past' : 'cm-cell cm-empty');
-                const inter = esHoy || !esPasado;   // hoy y futuros son tocables
+                const cls = esHoy ? 'cm-cell cm-today' : 'cm-cell cm-empty';
                 return (
                   <button
                     key={c.fecha}
                     className={cls}
                     style={esHoy ? { borderColor: accent, boxShadow: `inset 0 0 0 1px ${accent}`, cursor: 'default' } : undefined}
-                    onClick={() => inter && onTocarDia && onTocarDia(c.fecha)}
+                    onClick={() => onTocarDia && onTocarDia(c.fecha)}
                   >
                     <span className="cm-num" style={esHoy ? { color: '#E0561B' } : undefined}>{c.num}</span>
                   </button>
