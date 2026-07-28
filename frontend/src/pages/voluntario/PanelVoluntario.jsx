@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { voluntarioDisponibilidadApi } from '../../services/api';
+import { useMemo, useState } from 'react';
 import AvisoDestacado from '../../components/AvisoDestacado';
 import Modal from '../../components/Modal';
 import { I } from '../../components/Icons';
 import CalendarioMes from '../../components/CalendarioMes';
 import { useTiposEvento } from '../../context/TiposEventoContext';
+import useDisponibilidadMes from '../../hooks/useDisponibilidadMes';
 
 const FONT_STACK = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 
@@ -49,8 +49,6 @@ const CSS = `
 .mc-shell *{box-sizing:border-box;}
 .mc-shell>*{min-width:0;}
 
-.mc-card{background:#fff;border:1px solid var(--gray-200);border-radius:var(--r-xl);box-shadow:var(--shadow-sm);}
-
 /* ===== mini-KPIs ===== */
 .mc-sumrow{grid-area:kpis;display:flex;gap:10px;}
 .mc-sum{flex:1;background:#fff;border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:13px 15px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;}
@@ -66,42 +64,8 @@ const CSS = `
    panel y por el del líder. Aquí solo quedan los estilos propios del voluntario
    (contadores, detalle/modal, mensajes). */
 
-/* Detalle del día seleccionado (reemplaza la leyenda de colores). */
-.mc-detail{margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);}
-.mc-detail-date{font-size:15px;font-weight:700;color:var(--navy-900);}
-.mc-detail-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;}
-.mc-detail-name{font-size:15px;color:var(--navy-900);font-weight:500;min-width:0;}
-.mc-detail-state{font-size:15px;font-weight:700;white-space:nowrap;flex-shrink:0;}
-.mc-detail-hint{font-size:15px;color:var(--gray-600);}
-/* Cada evento del día seleccionado: nombre + su acción (marcar / cambiar). */
-.mc-detail-item{margin-top:14px;}
-
-
-/* ===== "Donde colaboras" (lista de fechas por responder) ===== */
-/* Mismo patrón visual que MisPuestos para que el voluntario reconozca la forma. */
-.mc-rail{grid-area:list;display:flex;flex-direction:column;position:sticky;top:0;}
-.mc-rail-head{padding:20px 22px 0;}
-.mc-rail-head h3{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--navy-900);margin:0;}
-.mc-rail-list{padding:16px 18px 20px;display:flex;flex-direction:column;gap:12px;}
-
-.dc-card{border:1px solid var(--gray-200);border-radius:var(--r-lg);background:#fff;padding:14px 16px;display:flex;flex-direction:column;gap:8px;scroll-margin-top:12px;}
-.dc-row1{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
-.dc-fecha{font-size:15px;font-weight:500;color:var(--navy-900);white-space:nowrap;}
-.dc-tipo{font-size:15px;font-weight:500;color:var(--gray-600);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
-.dc-nombre{font-size:20px;font-weight:500;color:var(--navy-900);line-height:1.25;overflow-wrap:anywhere;}
-.dc-sep{border:none;border-top:.5px solid var(--gray-200);margin:4px 0 2px;}
-.dc-state-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-.dc-state{display:inline-flex;align-items:center;gap:9px;font-size:17px;font-weight:700;}
-.dc-state-ic{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
-.dc-lock{display:inline-flex;align-items:center;gap:7px;font-size:15px;font-weight:700;color:var(--gray-600);}
-.dc-btns{display:flex;gap:10px;}
-.mc-shell .dc-btn{flex:1;min-width:0;min-height:48px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-family:inherit;}
-.mc-shell .dc-btn:disabled{opacity:.55;cursor:default;}
-.mc-shell .dc-cambiar{min-height:48px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;}
-.mc-foot-note{padding:0 20px 18px;font-size:15px;color:var(--gray-600);text-align:center;}
-
-.mc-msg{padding:22px 10px;text-align:center;font-size:15px;color:var(--gray-600);}
-.mc-err{margin:0 18px 16px;padding:12px 14px;border-radius:12px;background:var(--red-50);border:1px solid #F3CBC9;color:var(--red-600);font-size:15px;font-weight:600;}
+/* Error del calendario (bajo la cuadrícula). El detalle del día y la lista de
+   invitaciones viven en el modal (inline) y en components/ListaInvitaciones.jsx. */
 .mc-cal-err{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--red-50);border:1px solid #F3CBC9;color:var(--red-600);font-size:15px;font-weight:600;}
 `;
 
@@ -123,16 +87,8 @@ const IcChevron = ({ dir }) => (
     <path d={dir === 'l' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} strokeLinecap="round" strokeLinejoin="round" /></svg>
 );
 
-// ── Helpers de fecha (aritmética en UTC para no correr de día por zona) ───────
-const mesDeHoy = () => {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
-};
-const sumaMes = (mes, n) => {
-  const [a, m] = mes.split('-').map(Number);
-  const d = new Date(Date.UTC(a, m - 1 + n, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-};
+// ── Helpers de fecha (aritmética en UTC para no correr de día por zona). La
+// navegación de mes (mesDeHoy/sumaMes) vive en el hook useDisponibilidadMes. ──
 const diaDeISO = (iso) => Number(iso.slice(8, 10));
 const dowDeISO = (iso) => {
   const [a, m, d] = iso.split('-').map(Number);
@@ -161,16 +117,14 @@ function tintePastel(hex, peso) {
 }
 
 export default function PanelVoluntario() {
-  const [mes,      setMes]      = useState(mesDeHoy);
-  const [data,     setData]     = useState(null);
-  const [cargando, setCargando] = useState(true);
-  const [error,    setError]    = useState('');
-  const [sel,      setSel]      = useState(null);   // fecha 'YYYY-MM-DD' seleccionada en el grid
-  const [enviando, setEnviando] = useState(null);   // clave del item que se envía
-  const [editando, setEditando] = useState({});     // claveItem -> true (reabrir botones tras "Cambiar")
-  const [recarga,  setRecarga]  = useState(0);
+  // Datos + guardado de disponibilidad (compartidos con la página Invitaciones).
+  const {
+    mes, data, cargando, error, dias, hoyISO,
+    enviando, editando, setEditando, marcar,
+    irAMes: dispIrAMes, irHoy: dispIrHoy,
+  } = useDisponibilidadMes();
 
-  const itemRefs = useRef({});
+  const [sel, setSel] = useState(null);   // fecha 'YYYY-MM-DD' seleccionada en el grid
 
   // Colores de tipo de evento definidos en Stewardship (mismo origen que "Mis
   // puestos"): color de texto/borde, fondo de celda y tono oscuro, por tipo.
@@ -205,39 +159,9 @@ export default function PanelVoluntario() {
     return tipoColor[nombre] || (evento && evento.tipo_color) || COLOR_EVENTO_DEFAULT;
   };
 
-  useEffect(() => {
-    let vivo = true;
-    (async () => {
-      try {
-        const { data: d } = await voluntarioDisponibilidadApi.getMes(mes);
-        if (vivo) { setData(d); setError(''); }
-      } catch (err) {
-        if (vivo) {
-          setError(err.response?.data?.error || 'No se pudo cargar tu calendario');
-          setData(null);
-        }
-      } finally {
-        if (vivo) setCargando(false);
-      }
-    })();
-    return () => { vivo = false; };
-  }, [mes, recarga]);
-
-  const irAMes = (n) => {
-    setCargando(true);
-    setMes(m => sumaMes(m, n));
-    setSel(null);
-    setEditando({});
-  };
-  const irHoy = () => {
-    setCargando(true);
-    setMes(mesDeHoy());
-    setSel(null);
-    setEditando({});
-  };
-
-  const dias  = data?.dias ?? [];
-  const hoyISO = data?.hoy ?? '';
+  // Navegación de mes: la del hook + limpiar la selección del grid.
+  const irAMes = (n) => { dispIrAMes(n); setSel(null); };
+  const irHoy  = () => { dispIrHoy(); setSel(null); };
 
   // Items por fecha (un domingo con evento tiene dos).
   const itemsPorFecha = useMemo(() => {
@@ -262,28 +186,6 @@ export default function PanelVoluntario() {
     return { si, no, pend };
   }, [dias]);
 
-  // ── Lista del rail: SOLO lo que el voluntario tiene que responder ────────────
-  // Filtro: domingos (siempre) + eventos donde puede_marcar (su ministerio sirve
-  // en ese evento de servicio). Los informativos y los eventos de otros
-  // ministerios NO entran a la lista (sí se ven en el calendario de la izquierda).
-  // Se mantiene el filtro de solo mostrar de hoy en adelante.
-  // Orden por prioridad de acción: 0 pendiente-abierto · 1 respondido · 2 cerrado.
-  const listado = useMemo(() => {
-    const prioridad = (d) => {
-      if (d.estado) return 1;
-      if (d.bloqueado) return 2;
-      return 0;
-    };
-    return [...dias]
-      .filter(d => (!hoyISO || d.fecha >= hoyISO) && (d.tipo === 'domingo' || d.puede_marcar))
-      .sort((a, b) => {
-        const pa = prioridad(a), pb = prioridad(b);
-        if (pa !== pb) return pa - pb;
-        if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
-        return a.tipo === 'domingo' ? -1 : 1;
-      });
-  }, [dias, hoyISO]);
-
   // Índice de solo lectura: SOLO los eventos ESPECIALES del mes visible (de hoy
   // en adelante, igual que la cuadrícula), ordenados por fecha ascendente. Se
   // excluye el domingo genérico de servicio (tipo 'domingo'); un evento especial
@@ -301,28 +203,6 @@ export default function PanelVoluntario() {
     const items = itemsDe(fecha);
     if (items.length === 0) return;
     setSel(fecha);
-  }
-
-  async function marcar(item, estado) {
-    const clave = claveItem(item);
-    setEnviando(clave);
-    setError('');
-    try {
-      await voluntarioDisponibilidadApi.marcar({
-        fecha: item.fecha, evento_id: item.evento_id, estado,
-      });
-      setData(d => ({
-        ...d,
-        dias: d.dias.map(x =>
-          x.fecha === item.fecha && x.evento_id === item.evento_id ? { ...x, estado } : x),
-      }));
-      setEditando(e => { const n = { ...e }; delete n[clave]; return n; });
-    } catch (err) {
-      setError(err.response?.data?.error || 'No se pudo guardar tu respuesta');
-      if (err.response?.status === 403) { setCargando(true); setRecarga(n => n + 1); }
-    } finally {
-      setEnviando(null);
-    }
   }
 
   // Indicador de esquina de la celda = estado de TU respuesta (palomita · tacha ·
@@ -461,107 +341,6 @@ export default function PanelVoluntario() {
         </Modal>
       )}
 
-      {/* ── "Donde colaboras": OCULTA en "Mi calendario". El código y sus estilos
-          NO se borran: se reutilizan en la pestaña de Invitaciones (paso posterior).
-          Por ahora solo NO se renderiza; marcar disponibilidad vive en el detalle
-          del día, arriba. ── */}
-      {false && (
-      <div className="mc-card mc-rail">
-        <div className="mc-rail-head">
-          <h3>Donde colaboras</h3>
-        </div>
-
-        <div className="mc-rail-list">
-          {cargando ? (
-            <div className="mc-msg">Cargando…</div>
-          ) : listado.length === 0 ? (
-            <div className="mc-msg">No tienes fechas por responder este mes.</div>
-          ) : (
-            listado.map(item => {
-              const clave   = claveItem(item);
-              const ocupado = enviando === clave;
-              const dow     = dowDeISO(item.fecha);
-              const reabierto = editando[clave];
-              // Estados del slot (misma lógica de guardado que antes).
-              const pendienteAbierto = item.puede_marcar && !item.bloqueado && (item.estado == null || reabierto);
-              const respondido = item.puede_marcar && item.estado != null && !reabierto;
-              const cerradoSinResp = item.puede_marcar && item.bloqueado && item.estado == null;
-              const tipo = item.tipo === 'domingo' ? 'Domingo' : (item.tipo_evento || 'Evento');
-
-              return (
-                <div
-                  key={clave}
-                  ref={el => { if (el) itemRefs.current[clave] = el; }}
-                  className="dc-card"
-                  style={sel === item.fecha ? { boxShadow: `0 0 0 2px ${accent}` } : undefined}
-                >
-                  {/* fila 1: fecha + tipo de evento */}
-                  <div className="dc-row1">
-                    <span className="dc-fecha">{DOW_CORTO[dow]} {diaDeISO(item.fecha)}</span>
-                    <span className="dc-tipo">{tipo}</span>
-                  </div>
-
-                  {/* fila 2: nombre del evento */}
-                  <div className="dc-nombre">{item.nombre}</div>
-
-                  <hr className="dc-sep" />
-
-                  {/* fila 3: estado */}
-                  {pendienteAbierto ? (
-                    <div className="dc-btns">
-                      <button
-                        type="button" className="dc-btn" disabled={ocupado}
-                        onClick={() => marcar(item, 'disponible')}
-                        style={{ fontFamily: 'inherit', fontSize: 17, fontWeight: 700, background: accent, color: '#FFFFFF', border: `2px solid ${accent}` }}
-                      >
-                        <I.check size={18} /> {ocupado ? '…' : 'Sí colaboro'}
-                      </button>
-                      <button
-                        type="button" className="dc-btn" disabled={ocupado}
-                        onClick={() => marcar(item, 'no_disponible')}
-                        style={{ fontFamily: 'inherit', fontSize: 17, fontWeight: 700, background: '#FFFFFF', color: 'var(--navy-900)', border: '2px solid var(--gray-300)' }}
-                      >
-                        <I.x size={18} /> {ocupado ? '…' : 'No puedo'}
-                      </button>
-                    </div>
-                  ) : respondido ? (
-                    <div className="dc-state-row">
-                      {item.estado === 'disponible' ? (
-                        <span className="dc-state" style={{ color: 'var(--green-600)' }}>
-                          <span className="dc-state-ic" style={{ background: 'var(--green-50)', color: 'var(--green-600)' }}><I.check size={16} /></span>
-                          Sí colaboro
-                        </span>
-                      ) : (
-                        <span className="dc-state" style={{ color: 'var(--gray-600)' }}>
-                          <span style={{ display: 'inline-flex', color: 'var(--gray-600)' }}><I.x size={22} /></span>
-                          No puedo
-                        </span>
-                      )}
-                      {!item.bloqueado && (
-                        <button
-                          type="button" className="dc-cambiar"
-                          onClick={() => setEditando(e => ({ ...e, [clave]: true }))}
-                          style={{ fontFamily: 'inherit', fontSize: 16, fontWeight: 600, padding: '12px 18px', background: '#fff', color: 'var(--navy-900)', border: '1px solid var(--gray-300)' }}
-                        >
-                          Cambiar
-                        </button>
-                      )}
-                    </div>
-                  ) : cerradoSinResp ? (
-                    <div className="dc-state-row">
-                      <span className="dc-state" style={{ color: 'var(--gray-600)' }}>Sin responder</span>
-                      <span className="dc-lock"><I.clock size={16} /> Ya cerró</span>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })
-          )}
-          {error && <div className="mc-err" style={{ margin: '4px 0 0' }}>{error}</div>}
-        </div>
-        <div className="mc-foot-note">Los cambios cierran 1 día antes de cada fecha.</div>
-      </div>
-      )}
       </div>
     </>
   );
