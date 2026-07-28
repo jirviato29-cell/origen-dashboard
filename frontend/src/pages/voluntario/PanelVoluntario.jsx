@@ -39,28 +39,53 @@ const CSS = `
   --r-sm:7px;--r-md:10px;--r-lg:14px;--r-xl:16px;
   --shadow-sm:0 1px 2px rgba(11,26,47,.06);
   font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
-  letter-spacing:-.006em;color:var(--ink);width:100%;max-width:820px;
-  /* "Mi calendario" es solo contadores + cuadrícula (la lista "Donde colaboras"
-     se moverá a otra pestaña). Una sola columna en todos los anchos: contadores
-     arriba, cuadrícula debajo. Ancho cómodo, sin espacio muerto. */
-  display:grid;grid-template-columns:1fr;grid-template-areas:"kpis" "cal";
-  gap:16px;align-items:start;
+  letter-spacing:-.006em;color:var(--ink);width:100%;max-width:900px;
+  /* v3: banner "Tu próxima colaboración" + resumen con progreso + calendario,
+     en una sola columna (de arriba a abajo). */
+  display:flex;flex-direction:column;gap:14px;align-items:stretch;
 }
 .mc-shell *{box-sizing:border-box;}
 .mc-shell>*{min-width:0;}
 
-/* ===== mini-KPIs ===== */
-/* Tarjetas de resumen sobre FONDO AZUL MARINO con el número en color (mismo
-   lenguaje que el banner de Invitaciones). Verde/rojo/ámbar solo para
-   disponibilidad. Etiqueta clara; en 0 el número se apaga para no competir. */
-.mc-sumrow{grid-area:kpis;display:flex;gap:10px;flex-wrap:wrap;}
-.mc-sum{flex:1 1 0;min-width:92px;max-width:150px;background:#1A3354;border-radius:14px;padding:12px 14px;text-align:center;}
-.mc-sum-n{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:#fff;}
-.mc-sum-l{font-size:12.5px;color:#9CB0CC;font-weight:600;margin-top:5px;line-height:1.2;}
-.mc-sum.mc-si .mc-sum-n{color:#5FD08D;}
-.mc-sum.mc-no .mc-sum-n{color:#F0756E;}
-.mc-sum.mc-pd .mc-sum-n{color:#F5C451;}
-.mc-sum.mc-zero .mc-sum-n{color:#5E7093;}
+/* ===== 1 · Banner "Tu próxima colaboración" (v3) ===== */
+.mc-next{background:linear-gradient(100deg,#112540,#0B1A2F);border-radius:18px;padding:18px 20px;color:#fff;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden;}
+.mc-next::after{content:"";position:absolute;right:-40px;top:-50px;width:220px;height:220px;border-radius:50%;border:1px solid rgba(255,255,255,.07);}
+.mc-next-ic{width:50px;height:50px;border-radius:15px;background:rgba(255,107,43,.18);color:#FF6B2B;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mc-next-ic svg{width:24px;height:24px;}
+.mc-next-body{flex:1;min-width:0;position:relative;z-index:1;}
+.mc-next-eye{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#FF8A52;}
+.mc-next-t{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-top:4px;line-height:1.2;}
+.mc-next-m{font-size:12.5px;color:#9CB0CC;margin-top:5px;line-height:1.4;}
+.mc-next-count{flex-shrink:0;text-align:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:10px 15px;position:relative;z-index:1;}
+.mc-next-count .n{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1;}
+.mc-next-count .l{font-size:11px;font-weight:700;color:#9CB0CC;margin-top:4px;}
+
+/* ===== 2 · Resumen (tarjetas CON COLOR) + progreso (v3) ===== */
+.mc-summary{background:#fff;border:1px solid #E6E9EF;border-radius:18px;box-shadow:var(--shadow-sm);padding:16px 16px 18px;}
+.mc-sums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.mc-sum{border:1px solid;border-radius:14px;padding:12px 11px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0;}
+.mc-sum .ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+.mc-sum .ic svg{width:19px;height:19px;}
+.mc-sum .n{font-size:26px;font-weight:800;letter-spacing:-.035em;line-height:1;font-variant-numeric:tabular-nums;}
+.mc-sum .l{font-size:12.5px;font-weight:700;color:#5A6473;margin-top:3px;line-height:1.15;}
+.mc-sum .done{font-size:13px;font-weight:800;color:#15915A;letter-spacing:-.02em;line-height:1.15;}
+.mc-sum.si{background:#E7F6EE;border-color:#C9EBD6;} .mc-sum.si .ic{background:#1BA968;} .mc-sum.si .n{color:#15915A;}
+.mc-sum.no{background:#FCEBEA;border-color:#F6D3D2;} .mc-sum.no .ic{background:#D23B36;} .mc-sum.no .n{color:#D23B36;}
+.mc-sum.pd{background:#FDF4E3;border-color:#F6E3B8;} .mc-sum.pd .ic{background:#D69B18;} .mc-sum.pd .n{color:#B4820F;}
+.mc-sum.zero{background:#F7F8FA;border-color:#E6E9EF;} .mc-sum.zero .ic{background:#CBD2DC;} .mc-sum.zero .n{color:#A7B0BD;}
+.mc-prog{margin-top:16px;padding-top:14px;border-top:1px solid #EFF2F6;}
+.mc-prog-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px;}
+.mc-prog-h .t{font-size:13px;font-weight:700;color:#112540;line-height:1.3;}
+.mc-prog-h .v{font-size:12.5px;font-weight:700;color:#15915A;flex-shrink:0;}
+.mc-bar{height:12px;border-radius:999px;background:#EFF2F6;overflow:hidden;display:flex;gap:2px;}
+.mc-bar>div{height:100%;}
+/* Escritorio: tarjetas en fila (ícono al lado del número), como el v3. */
+@media(min-width:640px){
+  .mc-sum{flex-direction:row;align-items:center;gap:14px;padding:15px 17px;}
+  .mc-sum .ic{width:42px;height:42px;}
+  .mc-sum .n{font-size:29px;}
+  .mc-sum .l{font-size:13px;}
+}
 
 /* ===== calendario =====
    La cuadrícula del mes (cabecera, días, celdas, palabra del evento, lista de
@@ -92,6 +117,13 @@ const fechaLarga = (iso) => {
   const [a, m, d] = iso.split('-').map(Number);
   return `${DIAS_LARGO[dowDeISO(iso)]} ${d} de ${MESES[m - 1].toLowerCase()} de ${a}`;
 };
+// Fecha corta (sin año) para el banner: "Domingo 9 de agosto".
+const fechaCorta = (iso) => {
+  const [, m, d] = iso.split('-').map(Number);
+  return `${DIAS_LARGO[dowDeISO(iso)]} ${d} de ${MESES[m - 1].toLowerCase()}`;
+};
+const aUTC = (iso) => { const [a, m, d] = iso.split('-').map(Number); return Date.UTC(a, m - 1, d); };
+const diffDias = (isoA, isoB) => Math.round((aUTC(isoB) - aUTC(isoA)) / 86400000);
 const claveItem = (item) => `${item.fecha}-${item.evento_id ?? 'dom'}`;
 
 // Color base de un item (domingo → celeste; evento → su color) y mezcla a un
@@ -179,6 +211,28 @@ export default function PanelVoluntario() {
     return { si, no, pend };
   }, [dias]);
 
+  // ── Banner "Tu próxima colaboración": la próxima fecha CONFIRMADA (sí colaboro)
+  // de hoy en adelante, con los días que faltan. Si no hay ninguna, se muestra un
+  // estado neutro. ────────────────────────────────────────────────────────────
+  const proxima = useMemo(() => {
+    const conf = dias
+      .filter(d => d.puede_marcar && d.estado === 'disponible' && (!hoyISO || d.fecha >= hoyISO))
+      .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+    if (conf.length === 0) return null;
+    const it = conf[0];
+    return { it, diasFaltan: hoyISO ? diffDias(hoyISO, it.fecha) : null };
+  }, [dias, hoyISO]);
+
+  // ── Progreso del mes: respondidas (sí+no) sobre el total marcable. ───────────
+  const progreso = useMemo(() => {
+    const total = kpis.si + kpis.no + kpis.pend;
+    const respondidas = kpis.si + kpis.no;
+    const pct = total > 0 ? Math.round((respondidas / total) * 100) : 100;
+    return { total, respondidas, pct };
+  }, [kpis]);
+
+  const mesNombre = data ? MESES[Number(data.mes.slice(5, 7)) - 1].toLowerCase() : '';
+
   // Índice de solo lectura: SOLO los eventos ESPECIALES del mes visible (de hoy
   // en adelante, igual que la cuadrícula), ordenados por fecha ascendente. Se
   // excluye el domingo genérico de servicio (tipo 'domingo'); un evento especial
@@ -234,21 +288,78 @@ export default function PanelVoluntario() {
       <div className="mc-shell">
       <style>{CSS}</style>
 
-      {/* ── Contadores del mes (arriba en teléfono) ────────────────────────── */}
-      <div className="mc-sumrow">
-        <div className={`mc-sum mc-si${kpis.si === 0 ? ' mc-zero' : ''}`}>
-          <div className="mc-sum-n">{kpis.si}</div><div className="mc-sum-l">Sí colaboro</div>
+      {/* ── 1 · Banner "Tu próxima colaboración" ──────────────────────────── */}
+      <div className="mc-next">
+        <span className="mc-next-ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
+            <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" />
+            <path d="M3.5 9.5h17M8 3v3M16 3v3" />
+            <path d="M9 14.5l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <div className="mc-next-body">
+          <div className="mc-next-eye">Tu próxima colaboración</div>
+          {proxima ? (
+            <>
+              <div className="mc-next-t">{fechaCorta(proxima.it.fecha)}</div>
+              <div className="mc-next-m">
+                {(tipoNombreDe([proxima.it]) || 'Servicio dominical')} · Confirmaste que sí colaboras
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mc-next-t">Sin fechas confirmadas</div>
+              <div className="mc-next-m">Cuando confirmes que colaboras, aparecerá aquí.</div>
+            </>
+          )}
         </div>
-        <div className={`mc-sum mc-no${kpis.no === 0 ? ' mc-zero' : ''}`}>
-          <div className="mc-sum-n">{kpis.no}</div><div className="mc-sum-l">No puedo</div>
-        </div>
-        <div className={`mc-sum mc-pd${kpis.pend === 0 ? ' mc-zero' : ''}`}>
-          <div className="mc-sum-n">{kpis.pend}</div><div className="mc-sum-l">Por responder</div>
-        </div>
+        {proxima && proxima.diasFaltan != null && (
+          <div className="mc-next-count">
+            <div className="n">{proxima.diasFaltan === 0 ? 'Hoy' : proxima.diasFaltan}</div>
+            <div className="l">
+              {proxima.diasFaltan === 0 ? 'es tu día' : (proxima.diasFaltan === 1 ? 'día falta' : 'días faltan')}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ── Calendario del mes (cuadrícula compartida CalendarioMes) ────────── */}
-      <div style={{ gridArea: 'cal', minWidth: 0 }}>
+      {/* ── 2 · Resumen con color + barra de progreso ─────────────────────── */}
+      <div className="mc-summary">
+        <div className="mc-sums">
+          <div className="mc-sum si">
+            <span className="ic"><I.check size={19} /></span>
+            <div><div className="n">{kpis.si}</div><div className="l">Sí colaboro</div></div>
+          </div>
+          <div className="mc-sum no">
+            <span className="ic"><I.x size={19} /></span>
+            <div><div className="n">{kpis.no}</div><div className="l">No puedo</div></div>
+          </div>
+          <div className={`mc-sum pd${kpis.pend === 0 ? ' zero' : ''}`}>
+            <span className="ic">{kpis.pend === 0 ? <I.check size={19} /> : <I.clock size={19} />}</span>
+            {kpis.pend === 0 ? (
+              <div><div className="done">¡Todo respondido!</div><div className="l">Sin fechas por responder</div></div>
+            ) : (
+              <div><div className="n">{kpis.pend}</div><div className="l">Por responder</div></div>
+            )}
+          </div>
+        </div>
+        {progreso.total > 0 && (
+          <div className="mc-prog">
+            <div className="mc-prog-h">
+              <span className="t">Respondiste {progreso.respondidas} de {progreso.total} fechas de {mesNombre}</span>
+              <span className="v">{progreso.pct}% al día</span>
+            </div>
+            <div className="mc-bar">
+              {kpis.si > 0   && <div style={{ width: `${(kpis.si / progreso.total) * 100}%`,   background: '#1BA968' }} />}
+              {kpis.no > 0   && <div style={{ width: `${(kpis.no / progreso.total) * 100}%`,   background: '#D23B36' }} />}
+              {kpis.pend > 0 && <div style={{ width: `${(kpis.pend / progreso.total) * 100}%`, background: '#D69B18' }} />}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 3 · Calendario del mes (cuadrícula compartida CalendarioMes) ────── */}
+      <div style={{ minWidth: 0 }}>
         <CalendarioMes
           mes={mes}
           hoyISO={hoyISO}
