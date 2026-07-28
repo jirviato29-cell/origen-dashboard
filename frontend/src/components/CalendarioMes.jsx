@@ -54,8 +54,10 @@ function tintePastel(hex, peso) {
 }
 
 // Celdas del grid (con días de meses vecinos) calculadas SOLO desde el mes y hoy.
-// Se descartan semanas completamente pasadas para no dejar franjas vacías.
-function construirCeldas(mes) {
+// Se ocultan las semanas COMPLETAMENTE pasadas: el calendario arranca en la
+// semana de hoy y solo enseña lo que viene (si el mes que se ve ya pasó entero,
+// se muestra completo para no dejarlo vacío).
+function construirCeldas(mes, hoyISO) {
   const [anio, nMes] = mes.split('-').map(Number);
   const primero  = new Date(Date.UTC(anio, nMes - 1, 1)).getUTCDay();  // 0 = domingo
   const diasEnMes = new Date(Date.UTC(anio, nMes, 0)).getUTCDate();
@@ -78,7 +80,14 @@ function construirCeldas(mes) {
   for (let d = 1; d <= trail; d++) {
     cells.push({ tipo: 'out', num: d, fecha: `${ny}-${pad(nm)}-${pad(d)}` });
   }
-  // v3: se muestra el mes COMPLETO (los días pasados quedan callados, no se ocultan).
+  // Oculta las semanas totalmente pasadas (solo de la semana de hoy en adelante).
+  // Si el mes que se ve no tiene ningún día de hoy en adelante (mes ya pasado por
+  // completo), se deja el mes entero para no mostrar una cuadrícula vacía.
+  if (hoyISO && cells.some(c => c.tipo === 'dia' && c.fecha >= hoyISO)) {
+    const semanas = [];
+    for (let i = 0; i < cells.length; i += 7) semanas.push(cells.slice(i, i + 7));
+    return semanas.filter(sem => sem.some(c => c.fecha >= hoyISO)).flat();
+  }
   return cells;
 }
 
@@ -127,7 +136,7 @@ const CSS = `
 .cm-shell .cm-cell.cm-past{background:var(--gray-50);border-color:transparent;cursor:default;}
 .cm-shell .cm-cell.cm-past:hover{box-shadow:none;border-color:transparent;}
 .cm-num{font-size:14px;font-weight:700;color:var(--navy-800);line-height:1;height:16px;display:flex;align-items:center;padding-right:4px;font-variant-numeric:tabular-nums;flex:none;}
-.cm-shell .cm-cell.cm-hasbadge .cm-num{padding-right:20px;}
+.cm-shell .cm-cell.cm-hasbadge .cm-num{padding-right:16px;}
 .cm-shell .cm-cell.cm-out .cm-num{color:var(--gray-300);font-weight:500;}
 .cm-shell .cm-cell.cm-empty .cm-num{color:var(--gray-400);font-weight:600;}
 .cm-shell .cm-cell.cm-past .cm-num{color:var(--gray-300);font-weight:600;}
@@ -135,9 +144,10 @@ const CSS = `
 /* Barra lateral de estado (la aporta cada página vía barColor). */
 .cm-bar{position:absolute;left:0;top:0;bottom:0;width:5px;}
 
-/* Nombre del evento en móvil: UNA sola línea; si no cabe, corta con "…" (nunca
-   se parte en dos). En pantallas anchas se usa cm-kw-full a 2 líneas. */
-.cm-kw{font-size:8px;font-weight:800;line-height:1.1;text-align:left;letter-spacing:-.04em;width:100%;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Nombre del evento en móvil: hasta 2 líneas para mostrar la palabra COMPLETA
+   (p. ej. "Santuario"), sin cortarla con "…". En pantallas anchas se usa
+   cm-kw-full, también a 2 líneas pero más grande. */
+.cm-kw{font-size:8.5px;font-weight:800;line-height:1.15;text-align:left;letter-spacing:-.03em;width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:break-word;word-break:break-word;}
 .cm-kw-full{display:none;}
 @media(min-width:640px){
   .cm-num{font-size:15px;}
@@ -145,9 +155,14 @@ const CSS = `
   .cm-kw-full{display:-webkit-box;font-size:11px;font-weight:700;line-height:1.12;text-align:left;width:100%;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;letter-spacing:-.02em;}
 }
 
-/* Indicador de esquina (lo provee cada página vía renderCorner). */
-.cm-corner{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.18);}
-.cm-corner svg{width:11px;height:11px;}
+/* Indicador de esquina (lo provee cada página vía renderCorner). En móvil va
+   pequeño para no encimarse con el número; en pantallas anchas crece. */
+.cm-corner{position:absolute;top:5px;right:4px;width:14px;height:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;box-shadow:0 1px 2px rgba(0,0,0,.18);}
+.cm-corner svg{width:8px;height:8px;}
+@media(min-width:640px){
+  .cm-corner{top:6px;right:6px;width:18px;height:18px;box-shadow:0 1px 3px rgba(0,0,0,.18);}
+  .cm-corner svg{width:11px;height:11px;}
+}
 
 /* Leyenda en pastillas (opcional, la aporta la página vía la prop legend). */
 .cm-legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;padding-top:15px;border-top:1px solid var(--gray-100);}
@@ -194,7 +209,7 @@ export default function CalendarioMes({
   accent = '#FF6B2B',        // color de acento por campus
 }) {
   const { tipoColor = {}, tipoColorDark = {}, tipoCellBg = {} } = useTiposEvento() || {};
-  const celdas = useMemo(() => (mes ? construirCeldas(mes) : []), [mes]);
+  const celdas = useMemo(() => (mes ? construirCeldas(mes, hoyISO) : []), [mes, hoyISO]);
 
   // Color del punto en la lista: por el tipo del item (evento o domingo).
   const colorDeItem = (item) => {
