@@ -91,49 +91,54 @@ const CSS = `
   --navy-900:#112540;--navy-800:#1A3354;--navy-700:#244169;--navy-300:#9CB0CC;
   --gray-600:#5A6472;--gray-400:#A7B0BD;--gray-300:#CBD2DC;--gray-200:#E2E6EC;
   --gray-100:#EEF1F5;--gray-50:#F6F7F9;
-  --shadow-sm:0 1px 2px rgba(11,26,47,.06);
+  --shadow-sm:0 1px 2px rgba(11,26,47,.05);
+  --shadow-md:0 4px 16px rgba(11,26,47,.06),0 1px 3px rgba(11,26,47,.04);
   font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   letter-spacing:-.006em;color:#16233A;width:100%;
 }
 .cm-shell *{box-sizing:border-box;}
-.cm-wrap{background:#fff;border:1px solid var(--gray-200);border-radius:16px;box-shadow:var(--shadow-sm);padding:20px 22px 22px;}
-.cm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
-.cm-title{display:flex;align-items:baseline;gap:10px;}
-.cm-title .cm-m{font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--navy-900);}
-.cm-title .cm-y{font-size:14px;font-weight:600;color:var(--gray-400);}
-.cm-nav{display:flex;align-items:center;gap:8px;}
-.cm-shell .cm-today{font-size:12px;font-weight:600;color:var(--navy-700);background:#fff;border:1px solid var(--gray-200);border-radius:8px;padding:7px 12px;cursor:pointer;font-family:inherit;}
+.cm-wrap{background:#fff;border:1px solid var(--gray-200);border-radius:18px;box-shadow:var(--shadow-md);padding:18px 18px 20px;}
+.cm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.cm-title{display:flex;align-items:baseline;gap:9px;}
+.cm-title .cm-m{font-size:21px;font-weight:800;letter-spacing:-.03em;color:var(--navy-900);}
+.cm-title .cm-y{font-size:14px;font-weight:700;color:var(--gray-400);}
+.cm-nav{display:flex;align-items:center;gap:7px;}
+.cm-shell .cm-today{font-size:12.5px;font-weight:700;color:var(--navy-700);background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:8px 13px;cursor:pointer;font-family:inherit;}
 .cm-shell .cm-today:hover{background:var(--gray-50);}
-.cm-shell .cm-arrow{width:34px;height:34px;border-radius:9px;border:1px solid var(--gray-200);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--navy-700);cursor:pointer;}
+.cm-shell .cm-arrow{width:38px;height:38px;border-radius:11px;border:1px solid var(--gray-200);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--navy-700);cursor:pointer;}
 .cm-shell .cm-arrow:hover{background:var(--gray-50);}
 
-.cm-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;}
-.cm-dow div{font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--gray-600);text-align:center;padding:4px 0;}
+.cm-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:7px;}
+.cm-dow div{font-size:12px;font-weight:800;letter-spacing:.02em;color:var(--gray-400);text-align:center;padding:2px 0;}
 
-.cm-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(58px,auto);align-items:stretch;gap:5px;}
-.cm-shell .cm-cell{min-height:58px;height:100%;border:1px solid var(--gray-100);border-radius:9px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:center;width:100%;font-family:inherit;}
+/* Celda: número arriba-izquierda + nombre del evento debajo; barra lateral de
+   estado (opcional, vía barColor) e indicador de esquina (vía renderCorner). */
+.cm-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(64px,auto);align-items:stretch;gap:6px;}
+.cm-shell .cm-cell{min-height:64px;height:100%;border:1px solid var(--gray-100);border-radius:11px;padding:5px 5px 4px 9px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;position:relative;background:#fff;transition:.12s;cursor:pointer;overflow:hidden;text-align:left;width:100%;font-family:inherit;}
 .cm-shell .cm-cell:hover{border-color:var(--gray-300);box-shadow:var(--shadow-sm);}
-.cm-shell .cm-cell.cm-out{background:var(--gray-50);border-color:transparent;cursor:default;}
+.cm-shell .cm-cell.cm-out{background:transparent;border-color:transparent;cursor:default;}
 .cm-shell .cm-cell.cm-out:hover{box-shadow:none;}
 .cm-shell .cm-cell.cm-gone{background:transparent;border-color:transparent;box-shadow:none;cursor:default;}
 .cm-shell .cm-cell.cm-gone:hover{box-shadow:none;border-color:transparent;}
-.cm-num{font-size:15px;font-weight:500;color:var(--navy-800);line-height:1;font-variant-numeric:tabular-nums;flex:none;}
-.cm-shell .cm-cell.cm-out .cm-num{color:var(--gray-300);}
+.cm-num{font-size:14px;font-weight:700;color:var(--navy-800);line-height:1;height:16px;display:flex;align-items:center;padding-right:16px;font-variant-numeric:tabular-nums;flex:none;}
+.cm-shell .cm-cell.cm-out .cm-num{color:var(--gray-300);font-weight:600;}
+.cm-shell .cm-cell.cm-gone .cm-num{color:var(--gray-300);font-weight:600;}
 
-/* Móvil: NOMBRE del evento completo, envuelto SOLO entre palabras enteras (nunca
-   a media palabra); domingo genérico muestra "Servicio". Escritorio: nombre
-   completo a 12px (2 líneas) y número a 16px. */
-.cm-kw{font-size:8.5px;font-weight:700;line-height:1.1;text-align:center;letter-spacing:-.02em;width:100%;max-width:100%;display:block;white-space:normal;word-break:keep-all;overflow-wrap:normal;}
+/* Barra lateral de estado (la aporta cada página vía barColor). */
+.cm-bar{position:absolute;left:0;top:7px;bottom:7px;width:5px;border-radius:0 4px 4px 0;}
+
+/* Nombre del evento: hasta 2 líneas, alineado a la izquierda; si no cabe, "…". */
+.cm-kw{font-size:9px;font-weight:700;line-height:1.1;text-align:left;letter-spacing:-.02em;width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
 .cm-kw-full{display:none;}
 @media(min-width:640px){
-  .cm-num{font-size:16px;}
+  .cm-num{font-size:15px;}
   .cm-kw{display:none;}
-  .cm-kw-full{display:-webkit-box;font-size:12px;font-weight:600;line-height:1.12;text-align:center;max-width:100%;padding:0 2px;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;}
+  .cm-kw-full{display:-webkit-box;font-size:11px;font-weight:700;line-height:1.12;text-align:left;width:100%;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;letter-spacing:-.02em;}
 }
 
 /* Indicador de esquina (lo provee cada página vía renderCorner). */
-.cm-corner{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;}
-.cm-corner svg{width:9px;height:9px;}
+.cm-corner{position:absolute;top:5px;right:5px;width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;box-shadow:0 1px 2px rgba(0,0,0,.12);}
+.cm-corner svg{width:10px;height:10px;}
 
 /* Lista (índice) de especiales del mes. Textos ≥15px. */
 .cm-index{margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);}
@@ -163,6 +168,7 @@ export default function CalendarioMes({
   cargando = false,
   loadingText = 'Cargando…',
   renderCorner,              // (items) => ReactNode | null
+  barColor,                  // (items) => color|null → barra lateral de estado
   destacarItem,              // (item) => bool  → resalta celda + fila
   destacadoBadge = null,     // texto de la etiqueta (p. ej. "Tu ministerio")
   indexEmptyText = 'No hay eventos especiales este mes.',
@@ -219,6 +225,7 @@ export default function CalendarioMes({
               const nombreEvento = evento ? sinHora(evento.nombre) : (conEvento ? 'Servicio' : '');
               const hot = !!(destacarItem && items.some(destacarItem));
               const corner = renderCorner ? renderCorner(items) : null;
+              const bar = barColor ? barColor(items) : null;
 
               const clases = ['cm-cell'];
               if (esHoy) clases.push('cm-today');
@@ -237,6 +244,7 @@ export default function CalendarioMes({
                   onClick={() => onTocarDia && onTocarDia(c.fecha)}
                   title={items.map(m => m.nombre).filter(Boolean).join(' · ')}
                 >
+                  {bar && <span className="cm-bar" style={{ background: bar }} />}
                   {corner}
                   <span className="cm-num" style={{ color: conEvento ? tColor : '#9CB0CC' }}>{c.num}</span>
                   {conEvento && <span className="cm-kw" style={{ color: tTexto }}>{nombreEvento}</span>}

@@ -50,12 +50,12 @@ const CSS = `
 .mc-shell>*{min-width:0;}
 
 /* ===== mini-KPIs ===== */
-.mc-sumrow{grid-area:kpis;display:flex;gap:10px;}
-.mc-sum{flex:1;background:#fff;border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:13px 15px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;}
-.mc-sum-dot{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mc-sumrow{grid-area:kpis;display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.mc-sum{background:#fff;border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:12px 13px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0;}
+.mc-sum-dot{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .mc-sum-dot svg{width:17px;height:17px;}
-.mc-sum-n{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--navy-900);font-variant-numeric:tabular-nums;}
-.mc-sum-l{font-size:15px;color:var(--gray-600);font-weight:600;margin-top:3px;line-height:1.2;}
+.mc-sum-n{font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--navy-900);font-variant-numeric:tabular-nums;}
+.mc-sum-l{font-size:13.5px;color:var(--gray-600);font-weight:600;margin-top:2px;line-height:1.2;}
 
 /* ===== calendario =====
    La cuadrícula del mes (cabecera, días, celdas, palabra del evento, lista de
@@ -223,6 +223,18 @@ export default function PanelVoluntario() {
     return null;
   };
 
+  // Barra lateral de la celda = mismo estado de TU respuesta que la esquina
+  // (verde sí · rojo no · ámbar pendiente). Solo en días donde puedes marcar.
+  const barColorEstado = (items) => {
+    const marcables = items.filter(m => m.puede_marcar);
+    const servicio = marcables.find(m => m.tipo === 'domingo') ?? marcables[0] ?? null;
+    if (!servicio) return null;
+    if (servicio.estado === 'disponible') return '#15915A';
+    if (servicio.estado === 'no_disponible') return '#D23B36';
+    if (!servicio.bloqueado) return '#E5A519';
+    return null;
+  };
+
   return (
     <>
       <AvisoDestacado />
@@ -261,6 +273,7 @@ export default function PanelVoluntario() {
           onTocarDia={tocarDia}
           accent={accent}
           renderCorner={renderCornerEstado}
+          barColor={barColorEstado}
         />
         {error && <div className="mc-cal-err" style={{ marginTop: 12 }}>{error}</div>}
       </div>
