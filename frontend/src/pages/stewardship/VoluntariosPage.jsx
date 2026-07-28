@@ -66,7 +66,6 @@ function LiderBadge({ visible }) {
       letterSpacing: '0.04em',
       padding: '2px 7px',
       borderRadius: '999px',
-      marginRight: '6px',
       display: 'inline-flex',
       alignItems: 'center',
       whiteSpace: 'nowrap',
