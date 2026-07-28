@@ -89,6 +89,7 @@ const navByRole = {
   [ROLES.VOLUNTARIO]: [
     { group: 'Voluntario', items: [
       { to: '/voluntario/calendario',    label: 'Mi calendario', icon: I.calendar },
+      { to: '/voluntario/invitaciones',  label: 'Invitaciones',  icon: I.hand },
       { to: '/voluntario/puestos',       label: 'Mis puestos',   icon: I.pin, badge: 'puestosNuevos' },
       { to: '/avisos',                   label: 'Avisos',        icon: I.bell, badge: 'avisosNoLeidos' },
       { to: '/voluntario/configuracion', label: 'Configuración', icon: I.settings },

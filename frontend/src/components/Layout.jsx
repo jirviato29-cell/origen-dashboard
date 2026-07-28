@@ -61,6 +61,7 @@ const ROUTE_INFO = {
   '/lider_ministerio/configuracion':    { section: 'Ministerio',         title: 'Configuración' },
   '/voluntario':                        { section: 'Voluntario',         title: 'Mi calendario' },
   '/voluntario/calendario':             { section: 'Voluntario',         title: 'Mi calendario' },
+  '/voluntario/invitaciones':           { section: 'Voluntario',         title: 'Invitaciones' },
   '/voluntario/puestos':                { section: 'Voluntario',         title: 'Mis puestos' },
   '/voluntario/configuracion':          { section: 'Voluntario',         title: 'Configuración' },
   '/avisos':                            { section: 'Avisos',             title: 'Avisos' },
