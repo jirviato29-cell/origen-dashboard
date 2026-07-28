@@ -26,6 +26,25 @@ function requireUsuario(req, res, next) {
 }
 router.use(requireUsuario);
 
+// La tabla avisos_ocultos guarda, POR usuario, los avisos que quitó de su
+// bandeja. Es un borrado SUAVE: el aviso no se elimina (otros lo siguen viendo),
+// solo se oculta para quien lo borró. Se asegura al cargar el router para no
+// depender de una migración manual en cada entorno.
+async function asegurarTablaOcultos() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS avisos_ocultos (
+        aviso_id   INTEGER   NOT NULL,
+        usuario_id INTEGER   NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        PRIMARY KEY (aviso_id, usuario_id)
+      )`);
+  } catch (err) {
+    console.error('[mis-avisos] no se pudo asegurar avisos_ocultos:', err);
+  }
+}
+asegurarTablaOcultos();
+
 // Resuelve campus, ministerio y rol del usuario del TOKEN desde la base (no del
 // body): son los datos con los que se decide qué avisos le corresponden.
 async function perfilDelUsuario(usuarioId) {
@@ -59,12 +78,18 @@ router.get('/', async (req, res) => {
               a.campus,
               a.ministerio_id,
               m.nombre AS ministerio_nombre,
+              u.nombre AS remitente,
               a.created_at,
               (av.usuario_id IS NOT NULL) AS visto
          FROM avisos a
          LEFT JOIN ministerios m   ON m.id = a.ministerio_id
+         LEFT JOIN usuarios u      ON u.id = a.creado_por
          LEFT JOIN avisos_vistos av ON av.aviso_id = a.id AND av.usuario_id = $1
         WHERE ${where}
+          AND NOT EXISTS (
+            SELECT 1 FROM avisos_ocultos ao
+             WHERE ao.aviso_id = a.id AND ao.usuario_id = $1
+          )
         ORDER BY a.created_at DESC
         LIMIT 50`,
       [req.authUsuario.id, ...params]
@@ -96,10 +121,12 @@ router.get('/:id', async (req, res) => {
               a.campus,
               a.ministerio_id,
               m.nombre AS ministerio_nombre,
+              u.nombre AS remitente,
               a.created_at,
               (av.usuario_id IS NOT NULL) AS visto
          FROM avisos a
          LEFT JOIN ministerios m   ON m.id = a.ministerio_id
+         LEFT JOIN usuarios u      ON u.id = a.creado_por
          LEFT JOIN avisos_vistos av ON av.aviso_id = a.id AND av.usuario_id = $1
         WHERE a.id = $2 AND ${where}`,
       [req.authUsuario.id, avisoId, ...params]
@@ -141,6 +168,40 @@ router.post('/:id/visto', async (req, res) => {
     return res.json({ ok: true });
   } catch (err) {
     console.error('[mis-avisos] POST /:id/visto:', err);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ── DELETE /api/mis-avisos/:id ────────────────────────────────────────────────
+// Quita el aviso de la bandeja del usuario del token (borrado SUAVE: se inserta
+// en avisos_ocultos, el aviso sigue existiendo para los demás). Primero verifica
+// que de verdad le corresponde (mismos filtros); si no, 404. Repetir el borrado
+// no falla gracias a ON CONFLICT DO NOTHING.
+router.delete('/:id', async (req, res) => {
+  const avisoId = Number(req.params.id);
+  if (!Number.isInteger(avisoId)) return res.status(400).json({ error: 'id inválido' });
+  try {
+    const usuarioId = req.authUsuario.id;
+    const perfil = await perfilDelUsuario(usuarioId);
+    if (!perfil) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // Verifica pertenencia con los MISMOS filtros antes de ocultar nada.
+    const { where, params } = filtroAvisosParaUsuario(perfil, 1);
+    const { rows } = await pool.query(
+      `SELECT 1 FROM avisos a WHERE a.id = $1 AND ${where}`,
+      [avisoId, ...params]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Aviso no encontrado' });
+
+    await pool.query(
+      `INSERT INTO avisos_ocultos (aviso_id, usuario_id)
+       VALUES ($1, $2)
+       ON CONFLICT (aviso_id, usuario_id) DO NOTHING`,
+      [avisoId, usuarioId]
+    );
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[mis-avisos] DELETE /:id:', err);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
