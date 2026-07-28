@@ -54,6 +54,28 @@ function RegistradoPorBadge({ nombre }) {
   );
 }
 
+// Badge "LIDER" que va ANTES del nombre cuando el voluntario tiene una cuenta de
+// líder de ministerio activa. Si no lo es, no renderiza nada. Estilos inline por
+// el bug de especificidad con `.app button`.
+function LiderBadge({ visible }) {
+  if (!visible) return null;
+  return (
+    <span style={{
+      fontSize: '10px',
+      fontWeight: 700,
+      letterSpacing: '0.04em',
+      padding: '2px 7px',
+      borderRadius: '999px',
+      marginRight: '6px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      whiteSpace: 'nowrap',
+      color: '#FFFFFF',
+      background: isGdl ? '#2DD4BF' : '#FF6B2B',
+    }}>LIDER</span>
+  );
+}
+
 const MESES_ES = [
   'enero','febrero','marzo','abril','mayo','junio',
   'julio','agosto','septiembre','octubre','noviembre','diciembre',
@@ -956,6 +978,7 @@ export default function VoluntariosPage() {
                       }}>{initials(v.nombre)}</div>
                       <div>
                         <div style={{ fontWeight: 700, color: NAVY, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <LiderBadge visible={v.es_lider} />
                           {v.nombre}
                           <RegistradoPorBadge nombre={v.registrado_por_nombre} />
                         </div>
@@ -1044,6 +1067,7 @@ export default function VoluntariosPage() {
                             </div>
                             <div>
                               <div style={{ fontWeight: 700, color: NAVY, fontSize: 13.5, lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <LiderBadge visible={v.es_lider} />
                                 {v.nombre}
                                 <RegistradoPorBadge nombre={v.registrado_por_nombre} />
                               </div>

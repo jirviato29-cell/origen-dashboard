@@ -20,9 +20,16 @@ function requireAuth(req, res, next) {
 router.get('/', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT v.*, u.nombre AS registrado_por_nombre
+      `SELECT v.*,
+              u.nombre  AS registrado_por_nombre,
+              (lu.id IS NOT NULL) AS es_lider,
+              lm.nombre AS lidera_ministerio
          FROM voluntarios v
-         LEFT JOIN usuarios u ON u.id = v.registrado_por
+         LEFT JOIN usuarios u  ON u.id = v.registrado_por
+         LEFT JOIN usuarios lu ON lu.voluntario_id = v.id
+                              AND lu.rol = 'lider_ministerio'
+                              AND lu.activo = true
+         LEFT JOIN ministerios lm ON lm.id = lu.ministerio_id
         WHERE v.campus=$1
         ORDER BY v.nombre ASC`,
       [req.campus]
