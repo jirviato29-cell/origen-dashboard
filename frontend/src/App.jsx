@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { esLiderMinisterio } from './lib/liderMinisterio';
 import { RegistrarModalProvider } from './context/RegistrarModalContext';
 import { OfrendasModalProvider } from './context/OfrendasModalContext';
 import { GastosModalProvider } from './context/GastosModalContext';
@@ -55,11 +56,29 @@ function ProtectedRoute({ routeRole, children }) {
 
 // Igual que ProtectedRoute pero para rutas COMPARTIDAS por varios roles (p. ej.
 // /avisos, accesible a voluntario y líder). Sin sesión → inicio; con un rol que
-// no está en la lista → su propio inicio.
+// no está en la lista → su propio inicio. Un líder de ministerio (por la regla
+// esLiderMinisterio, aunque su rol no sea 'lider_ministerio') también entra.
 function ProtectedRouteRoles({ roles, children }) {
-  const { role } = useAuth();
+  const { role, ministerioId, activo } = useAuth();
   if (!role) return <Navigate to="/" replace />;
-  if (!roles.includes(role)) return <Navigate to={`/${role}`} replace />;
+  const permitido = roles.includes(role)
+    || esLiderMinisterio({ rol: role, ministerio_id: ministerioId, activo });
+  if (!permitido) return <Navigate to={`/${role}`} replace />;
+  return children;
+}
+
+// Guard del PANEL DE LÍDER: acceso por la regla esLiderMinisterio (ministerio_id
+// + rol distinto de 'voluntario' + activo), desacoplada del rol. Se admite además
+// el rol canónico 'lider_ministerio' por compatibilidad de sesiones existentes
+// (cuyo token aún no trae ministerio_id) y para no crear un bucle de redirección
+// en su propia home. El voluntario queda excluido SIEMPRE. La frontera de
+// seguridad real es el backend.
+function ProtectedLider({ children }) {
+  const { role, ministerioId, activo } = useAuth();
+  if (!role) return <Navigate to="/" replace />;
+  const permitido = esLiderMinisterio({ rol: role, ministerio_id: ministerioId, activo })
+    || role === 'lider_ministerio';
+  if (!permitido) return <Navigate to={`/${role}`} replace />;
   return children;
 }
 
@@ -145,7 +164,7 @@ function AppRoutes() {
 
       {/* ── Líder de ministerio ────────────────────────────────────────── */}
       <Route path="/lider_ministerio" element={
-        <ProtectedRoute routeRole="lider_ministerio"><Layout /></ProtectedRoute>
+        <ProtectedLider><Layout /></ProtectedLider>
       }>
         <Route index element={<Navigate to="/lider_ministerio/voluntarios" replace />} />
         <Route path="voluntarios" element={<LiderVoluntarios />} />

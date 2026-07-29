@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
+import { esLiderMinisterio } from '../lib/liderMinisterio';
 import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
@@ -165,7 +166,10 @@ function NavAccordion({ item, onClose }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export default function Sidebar({ onClose }) {
-  const { role, userName, permisos, logout } = useAuth();
+  const { role, userName, permisos, logout, ministerioId, activo } = useAuth();
+  // Líder de ministerio por la regla (no por el rol). Puede tener un rol distinto
+  // (p. ej. punto_encuentro) y aun así ver la sección del panel de líder.
+  const esLider = esLiderMinisterio({ rol: role, ministerio_id: ministerioId, activo });
   const navigate = useNavigate();
   const { openModal } = useRegistrarModal();
   const { openModal: openOfrendasModal } = useOfrendasModal();
@@ -177,9 +181,13 @@ export default function Sidebar({ onClose }) {
   // Contador de avisos no leídos: solo para voluntario y líder (los que tienen la
   // entrada "Avisos"). Para los demás roles el hook no dispara ninguna llamada.
   const { noLeidos: avisosNoLeidos } = useMisAvisos(
-    role === ROLES.VOLUNTARIO || role === ROLES.LIDER_MINISTERIO
+    role === ROLES.VOLUNTARIO || role === ROLES.LIDER_MINISTERIO || esLider
   );
-  const sections = navByRole[role] || [];
+  // La sección del panel de líder se muestra a quien cumple la regla; si su rol
+  // NO es 'lider_ministerio' se AÑADE a su menú propio (no lo reemplaza).
+  const sections = (esLider && role !== ROLES.LIDER_MINISTERIO)
+    ? [...(navByRole[role] || []), ...navByRole[ROLES.LIDER_MINISTERIO]]
+    : (navByRole[role] || []);
   const campusActivo = localStorage.getItem('campus_activo') || 'ags';
   const logoSrc = campusActivo === 'gdl' ? '/assets/origen-mark-blanco.png' : '/assets/origen-logo-white.png';
 

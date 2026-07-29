@@ -17,15 +17,19 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 function loadStorage() {
   try {
+    const minRaw = localStorage.getItem('ministerio_id');
     return {
       token:        localStorage.getItem('token')    || null,
       role:         localStorage.getItem('role')     || null,
       userName:     localStorage.getItem('userName') || '',
       permisos:     JSON.parse(localStorage.getItem('permisos') || 'null'),
       accesoGlobal: localStorage.getItem('acceso_global') === 'true',
+      ministerioId: minRaw != null && minRaw !== '' ? Number(minRaw) : null,
+      // Ausente (sesión vieja) → se asume activo: estar logueado implica activo.
+      activo:       localStorage.getItem('activo') !== 'false',
     };
   } catch {
-    return { token: null, role: null, userName: '', permisos: null, accesoGlobal: false };
+    return { token: null, role: null, userName: '', permisos: null, accesoGlobal: false, ministerioId: null, activo: true };
   }
 }
 
@@ -36,6 +40,19 @@ export function AuthProvider({ children }) {
   const [userName,     setUserName]     = useState(init.userName);
   const [permisos,     setPermisos]     = useState(init.permisos);
   const [accesoGlobal, setAccesoGlobal] = useState(init.accesoGlobal);
+  const [ministerioId, setMinisterioId] = useState(init.ministerioId);
+  const [activo,       setActivo]       = useState(init.activo);
+
+  // Persiste ministerio_id / activo del usuario logueado (para esLiderMinisterio).
+  const guardarLiderInfo = (usuario) => {
+    const min = usuario?.ministerio_id ?? null;
+    const act = usuario?.activo !== false;
+    setMinisterioId(min);
+    setActivo(act);
+    if (min != null) localStorage.setItem('ministerio_id', String(min));
+    else             localStorage.removeItem('ministerio_id');
+    localStorage.setItem('activo', String(act));
+  };
 
   // Retorna { ok: true } o { ok: false, error: string }
   // NUNCA debe lanzar: un login fallido o una respuesta inesperada del
@@ -66,6 +83,7 @@ export function AuthProvider({ children }) {
       setUserName(nombre);
       setPermisos(p);
       setAccesoGlobal(accesoGlob);
+      guardarLiderInfo(usuario);
 
       localStorage.setItem('token',         t);
       localStorage.setItem('role',          rol);
@@ -112,6 +130,7 @@ export function AuthProvider({ children }) {
       setUserName(nombre);
       setPermisos(p);
       setAccesoGlobal(accesoGlob);
+      guardarLiderInfo(usuario);
 
       localStorage.setItem('token',         t);
       localStorage.setItem('role',          rol);
@@ -138,16 +157,20 @@ export function AuthProvider({ children }) {
     setUserName('');
     setPermisos(null);
     setAccesoGlobal(false);
+    setMinisterioId(null);
+    setActivo(true);
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('userName');
     localStorage.removeItem('permisos');
     localStorage.removeItem('acceso_global');
     localStorage.removeItem('campus_activo');
+    localStorage.removeItem('ministerio_id');
+    localStorage.removeItem('activo');
   };
 
   return (
-    <AuthContext.Provider value={{ role, userName, token, permisos, accesoGlobal, login, loginVoluntario, logout }}>
+    <AuthContext.Provider value={{ role, userName, token, permisos, accesoGlobal, ministerioId, activo, login, loginVoluntario, logout }}>
       {children}
     </AuthContext.Provider>
   );

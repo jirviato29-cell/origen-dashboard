@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
+import { esLiderMinisterio } from '../lib/liderMinisterio';
 import useLiderPerfil from '../hooks/useLiderPerfil';
 import usePuestosNuevos from '../hooks/usePuestosNuevos';
 import { puedeRegistrar } from '../permissions';
@@ -68,7 +69,10 @@ const ROUTE_INFO = {
 };
 
 export default function Layout() {
-  const { role, userName, permisos } = useAuth();
+  const { role, userName, permisos, ministerioId, activo } = useAuth();
+  // Líder por la regla (no por el rol), o el rol canónico como respaldo.
+  const esLider = esLiderMinisterio({ rol: role, ministerio_id: ministerioId, activo })
+    || role === ROLES.LIDER_MINISTERIO;
   const { openModal }                       = useRegistrarModal();
   const { openModal: openGastosModal }      = useGastosModal();
   const { openModal: openOfrendasModal }    = useOfrendasModal();
@@ -77,8 +81,8 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   // Perfil del líder para el badge de la topbar. Solo hace la llamada cuando el
-  // rol es lider_ministerio; para los demás roles queda 'idle' sin fetch.
-  const liderPerfil = useLiderPerfil(role === ROLES.LIDER_MINISTERIO);
+  // usuario es líder de ministerio (por la regla); para los demás queda 'idle'.
+  const liderPerfil = useLiderPerfil(esLider);
   // Puntito de la campanita: SOLO para el voluntario. Para los demás roles pasa
   // enabled=false, así el hook no dispara ninguna llamada (igual que useLiderPerfil).
   const { nuevos: puestosNuevos } = usePuestosNuevos(role === ROLES.VOLUNTARIO);
@@ -160,8 +164,8 @@ export default function Layout() {
 
           <div className="topbar-right">
 
-            {/* Líder de ministerio — nombre de su ministerio (solo para ese rol) */}
-            {role === ROLES.LIDER_MINISTERIO && liderPerfil.estado === 'ok' && liderPerfil.nombre && (
+            {/* Líder de ministerio — nombre de su ministerio (por la regla) */}
+            {esLider && liderPerfil.estado === 'ok' && liderPerfil.nombre && (
               <>
                 <style>{`
 .lmb{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:#FFF4EE;border:1px solid #FFE5D6;color:#112540;font-size:12.5px;font-weight:700;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

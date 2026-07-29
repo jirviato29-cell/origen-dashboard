@@ -37,7 +37,8 @@ router.get('/', requireAuth, async (req, res) => {
          FROM voluntarios v
          LEFT JOIN usuarios u  ON u.id = v.registrado_por
          LEFT JOIN usuarios lu ON lu.voluntario_id = v.id
-                              AND lu.rol = 'lider_ministerio'
+                              AND lu.ministerio_id IS NOT NULL
+                              AND lu.rol <> 'voluntario'
                               AND lu.activo = true
          LEFT JOIN ministerios lm ON lm.id = lu.ministerio_id
         WHERE v.campus=$1

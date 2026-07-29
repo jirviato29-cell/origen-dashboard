@@ -34,12 +34,17 @@ router.post('/login', async (req, res) => {
 
     const permisos = construirPermisos(usuario.rol, usuario.permisos_extra);
 
+    // ministerio_id y activo viajan en el token para que esLiderMinisterio pueda
+    // evaluarse del lado del servidor (guard del panel de líder). El login solo
+    // emite tokens para usuarios activos, así que activo es true aquí.
     const token = signSession({
       id:            usuario.id,
       nombre:        usuario.nombre,
       rol:           usuario.rol,
       campus:        usuario.campus        || 'ags',
       acceso_global: usuario.acceso_global || false,
+      ministerio_id: usuario.ministerio_id ?? null,
+      activo:        usuario.activo === true,
     });
 
     return res.json({
@@ -50,6 +55,8 @@ router.post('/login', async (req, res) => {
         rol:           usuario.rol,
         campus:        usuario.campus        || 'ags',
         acceso_global: usuario.acceso_global || false,
+        ministerio_id: usuario.ministerio_id ?? null,
+        activo:        usuario.activo === true,
       },
       permisos,
     });

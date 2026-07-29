@@ -3,6 +3,7 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const pool    = require('../db/pool');
 const { JWT_SECRET } = require('../lib/session');
+const { esLiderMinisterio } = require('../lib/liderMinisterio');
 
 const router = express.Router();
 
@@ -13,7 +14,9 @@ const router = express.Router();
 // filtra por usuarios.ministerio_id, que solo existe en las cuentas creadas
 // por este flujo. Una ficha sin cuenta es invisible aquí.
 
-const ROLES_PERMITIDOS = ['lider_ministerio', 'stewardship', 'administracion'];
+// Supervisores que siempre pueden operar sobre el panel de líder aunque no
+// tengan ministerio propio (su contexto se valida luego en contextoLider).
+const ROLES_ELEVADOS = ['stewardship', 'administracion'];
 
 function requireLider(req, res, next) {
   const auth  = req.headers.authorization || '';
@@ -21,7 +24,9 @@ function requireLider(req, res, next) {
   if (!token) return res.status(401).json({ error: 'No autorizado' });
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    if (!ROLES_PERMITIDOS.includes(payload.rol)) {
+    // Regla desacoplada del rol: es líder por ministerio_id (nunca 'voluntario'),
+    // más los roles supervisores. El voluntario queda excluido SIEMPRE.
+    if (!esLiderMinisterio(payload) && !ROLES_ELEVADOS.includes(payload.rol)) {
       return res.status(403).json({ error: 'Acceso denegado' });
     }
     req.authUsuario = payload;
