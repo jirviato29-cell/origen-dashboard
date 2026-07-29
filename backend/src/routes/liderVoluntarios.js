@@ -69,6 +69,24 @@ async function contextoLider(req, res) {
 // normaliza igual por si acaso: se quita cualquier caracter que no sea dígito.
 const soloDigitos = (v) => String(v ?? '').replace(/\D/g, '');
 
+// Normaliza ministerio_ids del body a enteros únicos (null si no viene).
+function normalizarMinisterioIds(valor) {
+  if (!Array.isArray(valor)) return null;
+  return [...new Set(valor.map(Number).filter(Number.isInteger))];
+}
+
+// Respaldo textual: nombres de los primeros 3 ids (en orden), [m1, m2, m3].
+async function nombresDeMinisterios(client, ids) {
+  const primeros = (ids || []).slice(0, 3);
+  if (primeros.length === 0) return [null, null, null];
+  const { rows } = await client.query(
+    'SELECT id, nombre FROM ministerios WHERE id = ANY($1::int[])',
+    [primeros]
+  );
+  const porId = new Map(rows.map(r => [r.id, r.nombre]));
+  return [0, 1, 2].map(i => (primeros[i] != null ? (porId.get(primeros[i]) || null) : null));
+}
+
 // GET /api/lider/voluntarios — los que dio de alta este ministerio.
 router.get('/', async (req, res) => {
   try {
@@ -144,16 +162,25 @@ router.post('/', async (req, res) => {
     const clave      = whatsapp.slice(-4);
     const claveHash  = await bcrypt.hash(clave, 10);
 
+    // Respaldo textual ministerio1/2/3: si el body trae ministerio_ids, se
+    // derivan de sus primeros 3; si no, se conserva el comportamiento previo
+    // (ministerio1 = el ministerio del líder).
+    const ministerioIds = normalizarMinisterioIds(req.body?.ministerio_ids);
+    let m1 = ministerioNombre, m2 = null, m3 = null;
+    if (ministerioIds && ministerioIds.length) {
+      [m1, m2, m3] = await nombresDeMinisterios(client, ministerioIds);
+    }
+
     await client.query('BEGIN');
 
-    // a) Ficha nueva en el directorio. ministerio2/3, correo y otra_area quedan
-    //    en null: este flujo solo captura lo mínimo. registrado_por = quién dio
-    //    el alta, SIEMPRE resuelto del token en el servidor (nunca del body).
+    // a) Ficha nueva en el directorio. correo y otra_area quedan en null: este
+    //    flujo solo captura lo mínimo. registrado_por = quién dio el alta,
+    //    SIEMPRE resuelto del token en el servidor (nunca del body).
     const { rows: ficha } = await client.query(
-      `INSERT INTO voluntarios (nombre, whatsapp, cumpleanos, campus, ministerio1, registrado_por)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO voluntarios (nombre, whatsapp, cumpleanos, campus, ministerio1, ministerio2, ministerio3, registrado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id`,
-      [nombre, whatsapp, cumpleanos, ctx.campus, ministerioNombre, req.authUsuario.id]
+      [nombre, whatsapp, cumpleanos, ctx.campus, m1, m2, m3, req.authUsuario.id]
     );
     const fichaId = ficha[0].id;
 
@@ -169,9 +196,6 @@ router.post('/', async (req, res) => {
     // c) Tabla puente voluntario_ministerios: una fila por ministerio_id del
     //    body (opcional). campus SIEMPRE del servidor (ctx.campus), nunca del
     //    body. Si no viene el array, no se inserta nada.
-    const ministerioIds = Array.isArray(req.body?.ministerio_ids)
-      ? [...new Set(req.body.ministerio_ids.map(Number).filter(Number.isInteger))]
-      : null;
     if (ministerioIds && ministerioIds.length) {
       await client.query(
         `INSERT INTO voluntario_ministerios (voluntario_id, ministerio_id, campus)
