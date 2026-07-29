@@ -54,24 +54,24 @@ function RegistradoPorBadge({ nombre }) {
   );
 }
 
-// Badge "LIDER" que va ANTES del nombre cuando el voluntario tiene una cuenta de
-// líder de ministerio activa. Si no lo es, no renderiza nada. Estilos inline por
-// el bug de especificidad con `.app button`.
-function LiderBadge({ visible }) {
-  if (!visible) return null;
+// Pill de la columna TIPO: "Líder" si el voluntario tiene cuenta de líder de
+// ministerio activa, "Voluntario" en cualquier otro caso. Colores FIJOS por rol
+// (no se tematizan por campus). Estilos inline por el bug de especificidad con
+// `.app button`.
+function TipoPill({ esLider }) {
+  const lider = esLider === true;
   return (
     <span style={{
-      fontSize: '10px',
-      fontWeight: 700,
-      letterSpacing: '0.04em',
-      padding: '2px 7px',
+      fontSize: '11px',
+      fontWeight: 600,
+      padding: '3px 10px',
       borderRadius: '999px',
       display: 'inline-flex',
       alignItems: 'center',
       whiteSpace: 'nowrap',
-      color: '#FFFFFF',
-      background: isGdl ? '#2DD4BF' : '#FF6B2B',
-    }}>LIDER</span>
+      color:      lider ? '#FF6B2B' : '#2563EB',
+      background:  lider ? 'rgba(255,107,43,0.12)' : 'rgba(37,99,235,0.12)',
+    }}>{lider ? 'Lider' : 'Voluntario'}</span>
   );
 }
 
@@ -977,7 +977,6 @@ export default function VoluntariosPage() {
                       }}>{initials(v.nombre)}</div>
                       <div>
                         <div style={{ fontWeight: 700, color: NAVY, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <LiderBadge visible={v.es_lider} />
                           {v.nombre}
                           <RegistradoPorBadge nombre={v.registrado_por_nombre} />
                         </div>
@@ -1001,8 +1000,8 @@ export default function VoluntariosPage() {
                         </div>
                       )}
                     </div>
-                    {mins.length > 0 && (
-                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                        <TipoPill esLider={v.es_lider} />
                         {mins.map((m, i) => (
                           <span key={i} style={{
                             fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 6, whiteSpace: 'nowrap',
@@ -1014,7 +1013,6 @@ export default function VoluntariosPage() {
                           </span>
                         ))}
                       </div>
-                    )}
                     {v.correo && <div style={{ fontSize: 12, color: GRAY_700, marginBottom: 8 }}>{v.correo}</div>}
                     {canWrite && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
@@ -1036,6 +1034,7 @@ export default function VoluntariosPage() {
               <thead>
                 <tr>
                   <th>Nombre</th>
+                  <th>Tipo</th>
                   <th>Cumpleaños</th>
                   <th>WhatsApp</th>
                   <th>Correo</th>
@@ -1066,7 +1065,6 @@ export default function VoluntariosPage() {
                             </div>
                             <div>
                               <div style={{ fontWeight: 700, color: NAVY, fontSize: 13.5, lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <LiderBadge visible={v.es_lider} />
                                 {v.nombre}
                                 <RegistradoPorBadge nombre={v.registrado_por_nombre} />
                               </div>
@@ -1077,6 +1075,11 @@ export default function VoluntariosPage() {
                               )}
                             </div>
                           </div>
+                        </td>
+
+                        {/* Tipo (líder / voluntario) — columna angosta */}
+                        <td style={{ width: '1%', whiteSpace: 'nowrap' }}>
+                          <TipoPill esLider={v.es_lider} />
                         </td>
 
                         {/* Cumpleaños + soon badge */}
