@@ -163,8 +163,32 @@ export const MINISTERIOS = [
 
 const EMPTY_FORM = {
   nombre: '', cumpleanos: '', whatsapp: '', correo: '',
-  ministerio1: '', ministerio2: '', ministerio3: '',
+  ministerio_ids: [],
 };
+
+// hex → rgba con alfa (para el tinte de los chips a 12%).
+function hexA(hex, a) {
+  let h = (hex || '#64748B').replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h, 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+// Chip de un ministerio en el directorio: tinte al 12% del color del propio
+// ministerio, texto en ese color y punto sólido. El color viene en el objeto.
+function MinisterioChip({ nombre, color }) {
+  const c = color || '#64748B';
+  return (
+    <span style={{
+      fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 6, whiteSpace: 'nowrap',
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: hexA(c, 0.12), color: c,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
+      {nombre}
+    </span>
+  );
+}
 
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: 10,
@@ -181,62 +205,59 @@ const sectionHeadStyle = {
   fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 2,
 };
 
-function optsFor(allMin, exclude1, exclude2) {
-  return allMin.filter(m => m !== exclude1 && m !== exclude2);
-}
-
-// ── Selector de área ──────────────────────────────────────────────────────
-function AreaSelect({ label, value, onChange, available, required }) {
-  return (
-    <div>
-      <label style={labelStyle}>{label}{required && ' *'}</label>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        style={{ ...inputStyle, background: 'white', cursor: 'pointer' }}
-        required={required}
-      >
-        <option value="">— elegir —</option>
-        {available.map(m => (
-          <option key={m} value={m}>{m}</option>
-        ))}
-        {value && !available.includes(value) && (
-          <option value={value}>{value}</option>
-        )}
-      </select>
-    </div>
-  );
-}
-
-// ── Bloque de ministerios ─────────────────────────────────────────────────
-function AreasBlock({ form, setForm, showHeader }) {
+// ── Selector múltiple de ministerios ──────────────────────────────────────
+// Chips clickeables con TODOS los ministerios del campus, sin límite de 3, sin
+// scroll ni dropdown: fluyen en varias líneas. La selección se guarda como
+// array de ids en form.ministerio_ids.
+function MinisteriosMultiSelect({ form, setForm, showHeader }) {
   const ctx = useMinisterios();
-  const lista = (ctx?.ministerios?.length > 0)
-    ? ctx.ministerios.map(m => m.nombre)
-    : MINISTERIOS;
-  const { ministerio1, ministerio2, ministerio3 } = form;
-  const opts1 = optsFor(lista, ministerio2, ministerio3);
-  const opts2 = optsFor(lista, ministerio1, ministerio3);
-  const opts3 = optsFor(lista, ministerio1, ministerio2);
+  const lista = ctx?.ministerios || [];
+  const seleccion = form.ministerio_ids || [];
+
+  const toggle = (id) => setForm(p => {
+    const ids = p.ministerio_ids || [];
+    return { ...p, ministerio_ids: ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id] };
+  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {showHeader && (
         <div style={{ paddingBottom: 4, borderBottom: '1px solid var(--border)' }}>
-          <div style={sectionHeadStyle}>Ministerios</div>
-          <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Elige en qué ministerio(s) sirves</div>
+          <div style={sectionHeadStyle}>Ministerios *</div>
+          <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Elige en qué ministerio(s) sirve</div>
         </div>
       )}
-      <AreaSelect label="Ministerio 1" value={ministerio1} onChange={v => setForm(p => ({ ...p, ministerio1: v }))} available={opts1} required />
-      <AreaSelect label="Ministerio 2" value={ministerio2} onChange={v => setForm(p => ({ ...p, ministerio2: v }))} available={opts2} />
-      <AreaSelect label="Ministerio 3" value={ministerio3} onChange={v => setForm(p => ({ ...p, ministerio3: v }))} available={opts3} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {lista.map(m => {
+          const sel = seleccion.includes(m.id);
+          const c = m.color || '#64748B';
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => toggle(m.id)}
+              style={{
+                fontSize: 13, fontWeight: 600, padding: '7px 12px', borderRadius: 999,
+                display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
+                border: `1.5px solid ${sel ? hexA(c, 0.35) : 'var(--border)'}`,
+                background: sel ? hexA(c, 0.12) : '#F3F5F8',
+                color: sel ? c : '#6B7480',
+                cursor: 'pointer',
+              }}
+            >
+              {sel && <span style={{ width: 8, height: 8, borderRadius: '50%', background: c, flexShrink: 0 }} />}
+              {m.nombre}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// ── Modal Editar — PRESERVED EXACTLY ─────────────────────────────────────
+// ── Modal Editar ──────────────────────────────────────────────────────────
 function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
-  const canSave = form.nombre.trim() && form.ministerio1;
+  const canSave = form.nombre.trim() && (form.ministerio_ids?.length > 0);
 
   return (
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -300,7 +321,7 @@ function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
             />
           </div>
 
-          <AreasBlock form={form} setForm={setForm} showHeader />
+          <MinisteriosMultiSelect form={form} setForm={setForm} showHeader />
         </div>
 
         {error && (
@@ -321,9 +342,9 @@ function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
   );
 }
 
-// ── Kiosco: formulario — PRESERVED EXACTLY ────────────────────────────────
+// ── Kiosco: formulario ──────────────────────────────────────────────────────
 function KioskForm({ form, setForm, onSave, onClose, saving, error }) {
-  const canSave = form.nombre.trim() && form.ministerio1;
+  const canSave = form.nombre.trim() && (form.ministerio_ids?.length > 0);
 
   return (
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -387,7 +408,7 @@ function KioskForm({ form, setForm, onSave, onClose, saving, error }) {
             />
           </div>
 
-          <AreasBlock form={form} setForm={setForm} showHeader />
+          <MinisteriosMultiSelect form={form} setForm={setForm} showHeader />
         </div>
 
         {error && (
@@ -478,28 +499,36 @@ export default function VoluntariosPage() {
   const openEdit = (v) => {
     setEditId(v.id);
     setForm({
-      nombre:      v.nombre      || '',
-      cumpleanos:  v.cumpleanos  ? v.cumpleanos.slice(0, 10) : '',
-      whatsapp:    v.whatsapp    || '',
-      correo:      v.correo      || '',
-      ministerio1: v.ministerio1 || '',
-      ministerio2: v.ministerio2 || '',
-      ministerio3: v.ministerio3 || '',
+      nombre:         v.nombre     || '',
+      cumpleanos:     v.cumpleanos ? v.cumpleanos.slice(0, 10) : '',
+      whatsapp:       v.whatsapp   || '',
+      correo:         v.correo     || '',
+      ministerio_ids: (v.ministerios || []).map(m => m.id),
     });
     setFormErr('');
     setModal(true);
   };
   const closeModal = () => setModal(false);
 
+  // Reconstruye el array `ministerios` (id, nombre, color) desde los ids
+  // seleccionados, para la actualización optimista: la respuesta de update/create
+  // no trae el array (solo lo calcula el GET).
+  const ministeriosDeIds = (ids) => (ministerios || [])
+    .filter(m => ids.includes(m.id))
+    .map(m => ({ id: m.id, nombre: m.nombre, color: m.color }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
   const handleSave = async () => {
-    if (!form.nombre.trim() || !form.ministerio1) {
-      setFormErr('Nombre y Ministerio 1 son obligatorios');
+    if (!form.nombre.trim() || !(form.ministerio_ids?.length > 0)) {
+      setFormErr('Selecciona al menos un ministerio');
       return;
     }
     setSaving(true); setFormErr('');
     try {
       const { data } = await voluntariosApi.update(editId, form);
-      setVoluntarios(prev => prev.map(v => v.id === editId ? data : v));
+      const ministeriosSel = ministeriosDeIds(form.ministerio_ids);
+      // Conserva los campos que solo calcula el GET (es_lider, registrado_por_nombre).
+      setVoluntarios(prev => prev.map(v => v.id === editId ? { ...v, ...data, ministerios: ministeriosSel } : v));
       closeModal();
     } catch (e) {
       setFormErr(e.response?.data?.error || 'Error al guardar');
@@ -519,14 +548,15 @@ export default function VoluntariosPage() {
   };
 
   const handleKioskSave = async () => {
-    if (!kioskForm.nombre.trim() || !kioskForm.ministerio1) {
-      setKioskError('Nombre y Ministerio 1 son obligatorios');
+    if (!kioskForm.nombre.trim() || !(kioskForm.ministerio_ids?.length > 0)) {
+      setKioskError('Selecciona al menos un ministerio');
       return;
     }
     setKioskSaving(true); setKioskError('');
     try {
       const { data } = await voluntariosApi.create(kioskForm);
-      setVoluntarios(prev => [...prev, data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      const nuevo = { ...data, ministerios: ministeriosDeIds(kioskForm.ministerio_ids) };
+      setVoluntarios(prev => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setKiosk(null);
       setToast('Voluntario registrado');
       setTimeout(() => setToast(''), 2500);
@@ -631,7 +661,7 @@ export default function VoluntariosPage() {
     .filter(v => {
       if (!search.trim()) return true;
       const q = search.trim().toLowerCase();
-      const texto = [v.nombre, v.whatsapp, v.ministerio1, v.ministerio2, v.ministerio3, v.correo]
+      const texto = [v.nombre, v.whatsapp, v.correo, ...(v.ministerios || []).map(m => m.nombre)]
         .filter(Boolean).join(' ').toLowerCase();
       return texto.includes(q);
     })
@@ -651,7 +681,6 @@ export default function VoluntariosPage() {
     });
 
   // Mapa nombre→color para los badges de la tabla
-  const colorMap = Object.fromEntries((ministerios || []).map(m => [m.nombre, m.color || '#64748B']));
 
   // ── KPI card style helpers ───────────────────────────────────────────────
   const kpiCard = {
@@ -965,7 +994,6 @@ export default function VoluntariosPage() {
                 const iso  = v.cumpleanos ? v.cumpleanos.slice(0, 10) : null;
                 const age  = iso ? calcAge(iso) : null;
                 const soon = iso ? isSoon(iso) : null;
-                const mins = [v.ministerio1, v.ministerio2, v.ministerio3].filter(Boolean);
                 return (
                   <div key={v.id} style={{ background: 'var(--surface)', border: `1px solid ${GRAY_200}`, borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -1002,15 +1030,8 @@ export default function VoluntariosPage() {
                     </div>
                     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
                         <TipoPill esLider={v.es_lider} />
-                        {mins.map((m, i) => (
-                          <span key={i} style={{
-                            fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 6, whiteSpace: 'nowrap',
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            background: i === 0 ? ORANGE_50 : NAVY_100, color: i === 0 ? ORANGE_600 : NAVY_700,
-                          }}>
-                            {colorMap[m] && <span style={{ width: 6, height: 6, borderRadius: '50%', background: colorMap[m], flexShrink: 0 }} />}
-                            {m}
-                          </span>
+                        {(v.ministerios || []).map(m => (
+                          <MinisterioChip key={m.id} nombre={m.nombre} color={m.color} />
                         ))}
                       </div>
                     {v.correo && <div style={{ fontSize: 12, color: GRAY_700, marginBottom: 8 }}>{v.correo}</div>}
@@ -1047,7 +1068,6 @@ export default function VoluntariosPage() {
                     const iso     = v.cumpleanos ? v.cumpleanos.slice(0, 10) : null;
                     const age     = iso ? calcAge(iso) : null;
                     const soon    = iso ? isSoon(iso) : null;
-                    const mins    = [v.ministerio1, v.ministerio2, v.ministerio3].filter(Boolean);
 
                     return (
                       <tr key={v.id}>
@@ -1132,16 +1152,8 @@ export default function VoluntariosPage() {
                         {/* Ministerios */}
                         <td>
                           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                            {mins.map((m, i) => (
-                              <span key={i} style={{
-                                fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 6,
-                                whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4,
-                                background: i === 0 ? ORANGE_50  : NAVY_100,
-                                color:      i === 0 ? ORANGE_600 : NAVY_700,
-                              }}>
-                                {colorMap[m] && <span style={{ width: 6, height: 6, borderRadius: '50%', background: colorMap[m], flexShrink: 0 }} />}
-                                {m}
-                              </span>
+                            {(v.ministerios || []).map(m => (
+                              <MinisterioChip key={m.id} nombre={m.nombre} color={m.color} />
                             ))}
                           </div>
                         </td>
