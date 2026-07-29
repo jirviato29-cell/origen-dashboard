@@ -1027,6 +1027,15 @@ export default function VoluntariosPage() {
                           <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12, color: GRAY_700 }}>{v.whatsapp}</span>
                         </div>
                       )}
+                      {/* Acceso: apodo (línea 1) + clave (línea 2) */}
+                      <div style={{ marginTop: 3 }}>
+                        <div style={{ fontSize: 13, color: 'var(--ink)' }}>{v.apodo || '—'}</div>
+                        {v.clave && (
+                          <div style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.05em', color: '#667085' }}>
+                            {v.clave}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
                         <TipoPill esLider={v.es_lider} />
@@ -1056,6 +1065,7 @@ export default function VoluntariosPage() {
                 <tr>
                   <th>Nombre</th>
                   <th>Tipo</th>
+                  <th>Acceso</th>
                   <th>Cumpleaños</th>
                   <th>WhatsApp</th>
                   <th>Correo</th>
@@ -1100,6 +1110,16 @@ export default function VoluntariosPage() {
                         {/* Tipo (líder / voluntario) — columna angosta */}
                         <td style={{ width: '1%', whiteSpace: 'nowrap' }}>
                           <TipoPill esLider={v.es_lider} />
+                        </td>
+
+                        {/* Acceso: apodo (línea 1) + clave (línea 2) */}
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: 13, color: 'var(--ink)' }}>{v.apodo || '—'}</div>
+                          {v.clave && (
+                            <div style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.05em', color: '#667085' }}>
+                              {v.clave}
+                            </div>
+                          )}
                         </td>
 
                         {/* Cumpleaños + soon badge */}

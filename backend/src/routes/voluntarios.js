@@ -24,6 +24,10 @@ router.get('/', requireAuth, async (req, res) => {
               u.nombre  AS registrado_por_nombre,
               (lu.id IS NOT NULL) AS es_lider,
               lm.nombre AS lidera_ministerio,
+              -- Cuenta de acceso ligada a la ficha (sin filtrar por rol): apodo
+              -- de login y clave = últimos 4 dígitos del whatsapp (null si no hay).
+              cu.apodo AS apodo,
+              right(regexp_replace(v.whatsapp, '\\D', '', 'g'), 4) AS clave,
               -- ministerios reales desde la tabla puente (ya no de ministerio1/2/3),
               -- filtrados por el campus del request.
               COALESCE((
@@ -41,6 +45,7 @@ router.get('/', requireAuth, async (req, res) => {
                               AND lu.rol <> 'voluntario'
                               AND lu.activo = true
          LEFT JOIN ministerios lm ON lm.id = lu.ministerio_id
+         LEFT JOIN usuarios cu ON cu.voluntario_id = v.id
         WHERE v.campus=$1
         ORDER BY v.nombre ASC`,
       [req.campus]
