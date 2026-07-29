@@ -459,7 +459,7 @@ export default function StewardshipDashboard() {
         const iso = v.cumpleanos.slice(0, 10);
         const d = new Date(iso + 'T00:00:00');
         if (isNaN(d)) return null;
-        return { nombre: v.nombre, ministerio1: v.ministerio1, day: d.getDate(), month: d.getMonth() };
+        return { nombre: v.nombre, ministerio: v.ministerios?.[0]?.nombre || null, day: d.getDate(), month: d.getMonth() };
       })
       .filter(e => e && e.month === mesActual)
       .sort((a, b) => a.day - b.day);
@@ -799,7 +799,7 @@ export default function StewardshipDashboard() {
                               <rect x="3" y="10" width="18" height="11" rx="2"/><path d="M3 10h18"/><path d="M8 10V7"/><path d="M12 10V7"/><path d="M16 10V7"/><circle cx="8" cy="6" r="1"/><circle cx="12" cy="6" r="1"/><circle cx="16" cy="6" r="1"/>
                             </svg>
                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {p.day} de {MESES_ES[p.month]}{p.ministerio1 ? ` · ${p.ministerio1}` : ''}
+                              {p.day} de {MESES_ES[p.month]}{p.ministerio ? ` · ${p.ministerio}` : ''}
                             </span>
                           </div>
                         </div>

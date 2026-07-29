@@ -622,7 +622,7 @@ export default function VoluntariosPage() {
 
   // Ministerios distintos
   const ministeriosSet = new Set(
-    voluntarios.flatMap(v => [v.ministerio1, v.ministerio2, v.ministerio3].filter(Boolean))
+    voluntarios.flatMap(v => (v.ministerios || []).map(m => m.id))
   );
   const ministeriosCount = ministeriosSet.size;
 
