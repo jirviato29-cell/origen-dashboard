@@ -25,10 +25,12 @@ router.get('/', async (req, res) => {
         [campus]
       ),
       // Líderes de ministerio del campus (puede haber 0, 1 o varios por ministerio).
+      // Regla desacoplada del rol (misma que esLiderMinisterio): tiene ministerio,
+      // su rol NO es 'voluntario' y está activo. El voluntario se excluye SIEMPRE.
       pool.query(
         `SELECT id, nombre, activo, ministerio_id
            FROM usuarios
-          WHERE rol = 'lider_ministerio' AND campus = $1 AND ministerio_id IS NOT NULL
+          WHERE ministerio_id IS NOT NULL AND rol <> 'voluntario' AND activo = true AND campus = $1
           ORDER BY nombre`,
         [campus]
       ),
