@@ -166,6 +166,21 @@ router.post('/', async (req, res) => {
       [nombre, apodo, claveHash, ctx.campus, fichaId, ctx.ministerioId]
     );
 
+    // c) Tabla puente voluntario_ministerios: una fila por ministerio_id del
+    //    body (opcional). campus SIEMPRE del servidor (ctx.campus), nunca del
+    //    body. Si no viene el array, no se inserta nada.
+    const ministerioIds = Array.isArray(req.body?.ministerio_ids)
+      ? [...new Set(req.body.ministerio_ids.map(Number).filter(Number.isInteger))]
+      : null;
+    if (ministerioIds && ministerioIds.length) {
+      await client.query(
+        `INSERT INTO voluntario_ministerios (voluntario_id, ministerio_id, campus)
+         SELECT $1, mid, $2 FROM unnest($3::int[]) AS mid
+         ON CONFLICT (voluntario_id, ministerio_id) DO NOTHING`,
+        [fichaId, ctx.campus, ministerioIds]
+      );
+    }
+
     await client.query('COMMIT');
 
     // La clave viaja en claro solo aquí, para que el líder se la pase.
