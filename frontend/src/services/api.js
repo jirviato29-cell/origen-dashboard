@@ -195,6 +195,10 @@ const realVoluntariosApi = {
   create:  (data)     => http.post('/voluntarios', data),
   update:  (id, data) => http.put(`/voluntarios/${id}`, data),
   remove:  (id)       => http.delete(`/voluntarios/${id}`),
+  // Detección de duplicados por WhatsApp (últimos 10 dígitos) en el campus.
+  buscarPorWhatsapp:  (whatsapp)          => http.get('/voluntarios/buscar-por-whatsapp', { params: { whatsapp } }),
+  // Agrega ministerios a una ficha existente sin crear un duplicado.
+  agregarMinisterios: (id, ministerio_ids) => http.post(`/voluntarios/${id}/ministerios`, { ministerio_ids }),
 };
 
 // ─── Voluntarios del líder (alta desde el panel del líder) ────────────────────

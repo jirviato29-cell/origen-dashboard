@@ -342,9 +342,64 @@ function VoluntarioModal({ form, setForm, onSave, onClose, saving, error }) {
   );
 }
 
+// ── Estilos de botón, inline a propósito ─────────────────────────────────────
+// index.css:106 tiene `.app button { color: inherit }`, que por especificidad le
+// gana a las clases y les roba color/peso/fuente. Inline es lo único que una
+// regla global no puede pisar (regla 2.5). Fuente/tamaño explícitos siempre.
+const BTN_FUENTE = {
+  fontFamily: '"DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+  fontSize: 14,
+  fontWeight: 700,
+};
+const btnPrimario = (habilitado) => ({
+  ...BTN_FUENTE,
+  backgroundColor: '#112540',
+  color: '#FFFFFF',
+  borderColor: 'transparent',
+  opacity: habilitado ? 1 : 0.45,
+});
+const btnGhost = (habilitado) => ({
+  ...BTN_FUENTE,
+  backgroundColor: '#FFFFFF',
+  color: '#3D4654',
+  borderColor: '#E2E6EC',
+  opacity: habilitado ? 1 : 0.45,
+});
+
+// Solo dígitos, para decidir cuándo disparar la búsqueda por WhatsApp.
+const soloDigitos = (v) => String(v || '').replace(/\D/g, '');
+
 // ── Kiosco: formulario ──────────────────────────────────────────────────────
-function KioskForm({ form, setForm, onSave, onClose, saving, error }) {
-  const canSave = form.nombre.trim() && (form.ministerio_ids?.length > 0);
+// Detecta duplicados por WhatsApp: al salir del campo o cuando hay 10+ dígitos
+// consulta el backend; si la persona ya existe, el formulario deja de crear un
+// registro nuevo y ofrece agregarle el ministerio seleccionado a su ficha.
+function KioskForm({ form, setForm, onSave, onClose, saving, error, duplicado, setDuplicado }) {
+  const esDup = Boolean(duplicado);
+  // En modo duplicado el nombre ya no es obligatorio (viene del registro existente);
+  // solo hace falta elegir al menos un ministerio.
+  const canSave = (form.ministerio_ids?.length > 0) && (esDup || form.nombre.trim());
+
+  // Consulta al backend por el WhatsApp actual y actualiza el estado `duplicado`.
+  const buscarDuplicado = useCallback(async () => {
+    if (soloDigitos(form.whatsapp).length < 10) { setDuplicado(null); return; }
+    try {
+      const { data } = await voluntariosApi.buscarPorWhatsapp(form.whatsapp);
+      setDuplicado(data?.existe ? data.voluntario : null);
+    } catch { /* silencioso: es solo un aviso, no bloquea el alta */ }
+  }, [form.whatsapp, setDuplicado]);
+
+  // Debounce: no dispara en cada tecla. Si baja de 10 dígitos, limpia el aviso.
+  useEffect(() => {
+    if (soloDigitos(form.whatsapp).length < 10) { setDuplicado(null); return; }
+    const t = setTimeout(() => { buscarDuplicado(); }, 450);
+    return () => clearTimeout(t);
+  }, [form.whatsapp, buscarDuplicado, setDuplicado]);
+
+  // Valores mostrados en modo duplicado: los del registro existente (readOnly).
+  const nombreVal = esDup ? (duplicado.nombre || '') : form.nombre;
+  const cumpleVal = esDup ? (duplicado.cumpleanos ? duplicado.cumpleanos.slice(0, 10) : '') : form.cumpleanos;
+  const correoVal = esDup ? (duplicado.correo || '') : form.correo;
+  const roStyle = esDup ? { ...inputStyle, background: '#F3F5F8', color: '#6B7480', cursor: 'not-allowed' } : inputStyle;
 
   return (
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -366,9 +421,10 @@ function KioskForm({ form, setForm, onSave, onClose, saving, error }) {
             <input
               type="text"
               placeholder="Nombre Apellido"
-              value={form.nombre}
+              value={nombreVal}
               onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))}
-              style={inputStyle}
+              style={roStyle}
+              readOnly={esDup}
               autoFocus
             />
           </div>
@@ -378,9 +434,10 @@ function KioskForm({ form, setForm, onSave, onClose, saving, error }) {
               <label style={labelStyle}>Cumpleaños</label>
               <input
                 type="date"
-                value={form.cumpleanos}
+                value={cumpleVal}
                 onChange={e => setForm(p => ({ ...p, cumpleanos: e.target.value }))}
-                style={inputStyle}
+                style={roStyle}
+                readOnly={esDup}
               />
             </div>
             <div>
@@ -390,6 +447,7 @@ function KioskForm({ form, setForm, onSave, onClose, saving, error }) {
                 placeholder="+52 449 000 0000"
                 value={form.whatsapp}
                 onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))}
+                onBlur={buscarDuplicado}
                 style={inputStyle}
               />
             </div>
@@ -402,14 +460,45 @@ function KioskForm({ form, setForm, onSave, onClose, saving, error }) {
             <input
               type="email"
               placeholder="ejemplo@correo.com"
-              value={form.correo}
+              value={correoVal}
               onChange={e => setForm(p => ({ ...p, correo: e.target.value }))}
-              style={inputStyle}
+              style={roStyle}
+              readOnly={esDup}
             />
           </div>
 
           <MinisteriosMultiSelect form={form} setForm={setForm} showHeader />
         </div>
+
+        {/* Aviso de duplicado: la persona ya existe en el campus. */}
+        {esDup && (
+          <div style={{
+            marginTop: 12, padding: '13px 15px', borderRadius: 12,
+            background: '#FFF7ED', border: '1.5px solid #FDBA74',
+          }}>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: '#9A3412', marginBottom: 6 }}>
+              Esta persona ya está registrada
+            </div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#7C2D12' }}>
+              {duplicado.nombre}
+            </div>
+            {duplicado.registrado_por_nombre && (
+              <div style={{ fontSize: 12.5, color: '#9A3412', marginTop: 2 }}>
+                Registrado por: {duplicado.registrado_por_nombre}
+              </div>
+            )}
+            {(duplicado.ministerios || []).length > 0 && (
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
+                {duplicado.ministerios.map(m => (
+                  <MinisterioChip key={m.id} nombre={m.nombre} color={m.color} />
+                ))}
+              </div>
+            )}
+            <div style={{ fontSize: 12.5, color: '#9A3412', marginTop: 9, lineHeight: 1.4 }}>
+              Selecciona tu ministerio y se agregará a su registro. No se creará un duplicado.
+            </div>
+          </div>
+        )}
 
         {error && (
           <p style={{ fontSize: 13, color: 'var(--danger)', margin: '8px 0 0' }}>{error}</p>
@@ -420,6 +509,7 @@ function KioskForm({ form, setForm, onSave, onClose, saving, error }) {
             className="btn btn-ghost"
             onClick={onClose}
             disabled={saving}
+            style={btnGhost(!saving)}
           >
             Cancelar
           </button>
@@ -427,10 +517,10 @@ function KioskForm({ form, setForm, onSave, onClose, saving, error }) {
             className="btn btn-primary anf-save-btn"
             onClick={onSave}
             disabled={!canSave || saving}
-            style={{ opacity: (!canSave || saving) ? 0.45 : 1, flex: 1, marginTop: 0 }}
+            style={{ ...btnPrimario(canSave && !saving), flex: 1, marginTop: 0 }}
           >
             <I.check size={16} />
-            {saving ? 'Guardando…' : 'Guardar'}
+            {saving ? 'Guardando…' : (esDup ? 'Agregar mi ministerio' : 'Guardar')}
           </button>
         </div>
       </div>
@@ -464,6 +554,7 @@ export default function VoluntariosPage() {
   const [kioskForm,   setKioskForm]   = useState(EMPTY_FORM);
   const [kioskSaving, setKioskSaving] = useState(false);
   const [kioskError,  setKioskError]  = useState('');
+  const [kioskDup,    setKioskDup]    = useState(null);
   const [toast,       setToast]       = useState('');
 
   const [search, setSearch] = useState('');
@@ -548,18 +639,31 @@ export default function VoluntariosPage() {
   };
 
   const handleKioskSave = async () => {
-    if (!kioskForm.nombre.trim() || !(kioskForm.ministerio_ids?.length > 0)) {
+    // En modo duplicado el nombre no es obligatorio; siempre se exige ministerio.
+    if (!(kioskForm.ministerio_ids?.length > 0) || (!kioskDup && !kioskForm.nombre.trim())) {
       setKioskError('Selecciona al menos un ministerio');
       return;
     }
     setKioskSaving(true); setKioskError('');
     try {
-      const { data } = await voluntariosApi.create(kioskForm);
-      const nuevo = { ...data, ministerios: ministeriosDeIds(kioskForm.ministerio_ids) };
-      setVoluntarios(prev => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      // Caso 1: ya detectamos duplicado → solo agregamos ministerios a su ficha.
+      if (kioskDup) {
+        await voluntariosApi.agregarMinisterios(kioskDup.id, kioskForm.ministerio_ids);
+        setToast(`Ministerio agregado a ${kioskDup.nombre}`);
+      } else {
+        const { data } = await voluntariosApi.create(kioskForm);
+        // Caso 2: el backend detectó el duplicado en el POST (carrera / no lo
+        // vimos a tiempo) → mismo mensaje de "ministerio agregado".
+        if (data?.duplicado) {
+          setToast(`Ministerio agregado a ${data.nombre}`);
+        } else {
+          setToast('Voluntario registrado');
+        }
+      }
       setKiosk(null);
-      setToast('Voluntario registrado');
+      setKioskDup(null);
       setTimeout(() => setToast(''), 2500);
+      await fetchVoluntarios();
     } catch (e) {
       setKioskError(e.response?.data?.error || 'Error al guardar');
     } finally {
@@ -567,7 +671,7 @@ export default function VoluntariosPage() {
     }
   };
 
-  const openKiosk = () => { setKioskForm(EMPTY_FORM); setKioskError(''); setKiosk('form'); };
+  const openKiosk = () => { setKioskForm(EMPTY_FORM); setKioskError(''); setKioskDup(null); setKiosk('form'); };
 
   // ── Handlers gestión ministerios ─────────────────────────────────────────
   const handleCrearMin = async () => {
@@ -706,7 +810,16 @@ export default function VoluntariosPage() {
   return (
     <>
       {kiosk === 'form' && (
-        <KioskForm form={kioskForm} setForm={setKioskForm} onSave={handleKioskSave} onClose={() => setKiosk(null)} saving={kioskSaving} error={kioskError} />
+        <KioskForm
+          form={kioskForm}
+          setForm={setKioskForm}
+          onSave={handleKioskSave}
+          onClose={() => { setKiosk(null); setKioskDup(null); }}
+          saving={kioskSaving}
+          error={kioskError}
+          duplicado={kioskDup}
+          setDuplicado={setKioskDup}
+        />
       )}
 
       {toast && (
