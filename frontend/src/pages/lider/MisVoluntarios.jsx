@@ -18,6 +18,8 @@ const DANGER = '#D23B36';
 const DANGER_BORDE = '#F3CBC9';
 const GREEN_50 = '#ECFDF5';
 const GREEN_700 = '#047857';
+const GRAY_BORDE = '#E5E7EB';   // borde de botón inactivo (pedido explícito)
+const READONLY_BG = '#F9FAFB';  // fondo de los campos en modo solo lectura
 
 const CSS = `
 .mv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
@@ -109,6 +111,34 @@ const estiloQuitar = (activo, hover) => ({
     : APAGADO),
 });
 
+// Botón Sí/No de la pregunta inicial: activo naranja sólido con texto blanco,
+// inactivo blanco con borde gris. Todo inline: .app button pisa las clases.
+const estiloToggle = (activo) => ({
+  ...FUENTE_BTN,
+  padding: '8px 20px',
+  borderRadius: 9,
+  borderWidth: 1,
+  borderStyle: 'solid',
+  borderColor: activo ? ORANGE_500 : GRAY_BORDE,
+  backgroundColor: activo ? ORANGE_500 : '#fff',
+  color: activo ? '#fff' : NAVY_900,
+  cursor: 'pointer',
+});
+
+// Chip de ministerio: usa el color del ministerio en el borde y el punto.
+const estiloChip = (color) => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '4px 10px',
+  borderRadius: 999,
+  border: `1px solid ${color || GRAY_200}`,
+  background: '#fff',
+  fontSize: 12,
+  fontWeight: 600,
+  color: NAVY_900,
+});
+
 const inicial = (n) => (n || '?').trim().charAt(0).toUpperCase();
 
 function fechaCorta(d) {
@@ -138,6 +168,13 @@ export default function MisVoluntarios() {
   const [hoverGuardar, setHoverGuardar] = useState(false);
   const [hoverAgregar, setHoverAgregar] = useState(false);
   const [hoverQuitar,  setHoverQuitar]  = useState(null);
+  // Flujo "ya sirve en otro ministerio": null = aún no elige; false = alta
+  // normal; true = buscar a la persona por su WhatsApp.
+  const [yaSirve,   setYaSirve]   = useState(null);
+  const [buscando,  setBuscando]  = useState(false);
+  const [resultado, setResultado] = useState(null); // respuesta de buscar-por-whatsapp
+  const [agregando, setAgregando] = useState(false);
+  const [hoverAgregarMin, setHoverAgregarMin] = useState(false);
 
   // Carga inicial. Se cancela si el componente se desmonta antes de responder.
   useEffect(() => {
@@ -172,6 +209,70 @@ export default function MisVoluntarios() {
       const { data } = await liderVoluntariosApi.getAll();
       setLista(Array.isArray(data) ? data : []);
     } catch { /* la lista previa se queda tal cual */ }
+  }
+
+  // Cierra el formulario y deja el flujo en su estado inicial (sin elección).
+  function cerrarYreset() {
+    setAbierto(false);
+    setForm(VACIO);
+    setYaSirve(null);
+    setResultado(null);
+    setError('');
+  }
+
+  // Busca a la persona por su WhatsApp (flujo "ya sirve en otro ministerio").
+  // Solo dispara con 10+ dígitos; con menos, limpia el resultado.
+  async function buscar(wa) {
+    const digits = String(wa || '').replace(/\D/g, '');
+    if (digits.length < 10) { setResultado(null); return; }
+    setBuscando(true);
+    setError('');
+    try {
+      const { data } = await liderVoluntariosApi.buscarPorWhatsapp(digits);
+      setResultado(data);
+    } catch (err) {
+      setResultado(null);
+      setError(err.response?.data?.error || 'No se pudo buscar ese WhatsApp');
+    } finally {
+      setBuscando(false);
+    }
+  }
+
+  // Debounce: al teclear el WhatsApp en el flujo "sí", busca 450ms después de
+  // la última tecla (o de inmediato en el onBlur del input).
+  useEffect(() => {
+    if (yaSirve !== true) return;
+    const digits = form.whatsapp.replace(/\D/g, '');
+    if (digits.length < 10) { setResultado(null); return; }
+    const t = setTimeout(() => { buscar(form.whatsapp); }, 450);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.whatsapp, yaSirve]);
+
+  // Agrega a mi ministerio a una persona que YA existe. Reutiliza el POST de
+  // creación del líder: el backend detecta el duplicado por WhatsApp y SOLO
+  // suma el ministerio (no crea cuenta nueva, no regenera clave, no toca el
+  // apodo). Mandamos nombre/apodo de la ficha existente solo para pasar la
+  // validación del endpoint; el camino duplicado los ignora.
+  async function agregarAMiMinisterio() {
+    const v = resultado?.voluntario;
+    if (!v || agregando) return;
+    setAgregando(true);
+    setError('');
+    try {
+      await liderVoluntariosApi.create({
+        nombre:   v.nombre,
+        apodo:    v.apodo || v.nombre,
+        whatsapp: v.whatsapp,
+      });
+      setFlash({ mensaje: `${v.nombre} agregado a tu ministerio.` });
+      cerrarYreset();
+      await recargar();
+    } catch (err) {
+      setError(err.response?.data?.error || 'No se pudo agregar a tu ministerio');
+    } finally {
+      setAgregando(false);
+    }
   }
 
   async function guardar() {
@@ -240,7 +341,7 @@ export default function MisVoluntarios() {
             style={estiloPrimario(true, hoverAgregar)}
             onMouseEnter={() => setHoverAgregar(true)}
             onMouseLeave={() => setHoverAgregar(false)}
-            onClick={() => { setAbierto(true); setError(''); }}
+            onClick={() => { setAbierto(true); setError(''); setYaSirve(null); setResultado(null); setForm(VACIO); }}
           >
             + Agregar voluntario
           </button>
@@ -267,50 +368,201 @@ export default function MisVoluntarios() {
       {abierto && (
         <div className="mv-form">
           <p className="mv-form-t">Nuevo voluntario</p>
-          <div className="mv-grid">
-            <div>
-              <label className="mv-label" htmlFor="mv-nombre">Nombre completo</label>
-              <input id="mv-nombre" className="mv-input" type="text" value={form.nombre}
-                onChange={set('nombre')} placeholder="Juan Pérez" />
-            </div>
-            <div>
-              <label className="mv-label" htmlFor="mv-wa">
-                WhatsApp <span className="mv-hint">(de aquí sale su clave)</span>
-              </label>
-              <input id="mv-wa" className="mv-input" type="tel" inputMode="numeric" value={form.whatsapp}
-                onChange={set('whatsapp')} placeholder="4491234567" />
-            </div>
-            <div>
-              <label className="mv-label" htmlFor="mv-cumple">
-                Cumpleaños <span className="mv-hint">(opcional)</span>
-              </label>
-              <input id="mv-cumple" className="mv-input" type="date" value={form.cumpleanos}
-                onChange={set('cumpleanos')} />
-            </div>
-            <div>
-              <label className="mv-label" htmlFor="mv-apodo">
-                Nombre de acceso <span className="mv-hint">(con esto entra)</span>
-              </label>
-              <input id="mv-apodo" className="mv-input" type="text" value={form.apodo}
-                onChange={set('apodo')} placeholder="juanito" />
+
+          {/* Pregunta inicial: decide qué campos se muestran. */}
+          <div style={{ marginBottom: yaSirve === null ? 4 : 16 }}>
+            <label className="mv-label">¿Ya sirve en otro ministerio?</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button"
+                style={estiloToggle(yaSirve === true)}
+                onClick={() => { setYaSirve(true); setResultado(null); setError(''); }}>
+                Sí
+              </button>
+              <button type="button"
+                style={estiloToggle(yaSirve === false)}
+                onClick={() => { setYaSirve(false); setResultado(null); setError(''); }}>
+                No
+              </button>
             </div>
           </div>
-          <div className="mv-form-actions">
-            <button
-              className="mv-btn"
-              style={estiloPrimario(guardarActivo, hoverGuardar)}
-              onMouseEnter={() => setHoverGuardar(true)}
-              onMouseLeave={() => setHoverGuardar(false)}
-              onClick={guardar}
-              disabled={!listo || guardando}
-            >
-              {guardando ? 'Guardando…' : 'Guardar voluntario'}
-            </button>
-            <button className="mv-btn mv-btn-ghost"
-              onClick={() => { setAbierto(false); setForm(VACIO); setError(''); }}>
-              Cancelar
-            </button>
-          </div>
+
+          {/* ── NO → formulario completo actual, sin cambios ── */}
+          {yaSirve === false && (
+            <>
+              <div className="mv-grid">
+                <div>
+                  <label className="mv-label" htmlFor="mv-nombre">Nombre completo</label>
+                  <input id="mv-nombre" className="mv-input" type="text" value={form.nombre}
+                    onChange={set('nombre')} placeholder="Juan Pérez" />
+                </div>
+                <div>
+                  <label className="mv-label" htmlFor="mv-wa">
+                    WhatsApp <span className="mv-hint">(de aquí sale su clave)</span>
+                  </label>
+                  <input id="mv-wa" className="mv-input" type="tel" inputMode="numeric" value={form.whatsapp}
+                    onChange={set('whatsapp')} placeholder="4491234567" />
+                </div>
+                <div>
+                  <label className="mv-label" htmlFor="mv-cumple">
+                    Cumpleaños <span className="mv-hint">(opcional)</span>
+                  </label>
+                  <input id="mv-cumple" className="mv-input" type="date" value={form.cumpleanos}
+                    onChange={set('cumpleanos')} />
+                </div>
+                <div>
+                  <label className="mv-label" htmlFor="mv-apodo">
+                    Nombre de acceso <span className="mv-hint">(con esto entra)</span>
+                  </label>
+                  <input id="mv-apodo" className="mv-input" type="text" value={form.apodo}
+                    onChange={set('apodo')} placeholder="juanito" />
+                </div>
+              </div>
+              <div className="mv-form-actions">
+                <button
+                  className="mv-btn"
+                  style={estiloPrimario(guardarActivo, hoverGuardar)}
+                  onMouseEnter={() => setHoverGuardar(true)}
+                  onMouseLeave={() => setHoverGuardar(false)}
+                  onClick={guardar}
+                  disabled={!listo || guardando}
+                >
+                  {guardando ? 'Guardando…' : 'Guardar voluntario'}
+                </button>
+                <button className="mv-btn mv-btn-ghost" onClick={cerrarYreset}>
+                  Cancelar
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── SÍ → solo WhatsApp + búsqueda de la persona ── */}
+          {yaSirve === true && (
+            <>
+              <div>
+                <label className="mv-label" htmlFor="mv-wa-busca">WhatsApp de la persona</label>
+                <input id="mv-wa-busca" className="mv-input" type="tel" inputMode="numeric"
+                  value={form.whatsapp} onChange={set('whatsapp')}
+                  onBlur={() => buscar(form.whatsapp)} placeholder="4491234567" autoFocus />
+              </div>
+
+              {buscando && (
+                <div style={{ fontSize: 12.5, color: GRAY_500, marginTop: 10 }}>Buscando…</div>
+              )}
+
+              {/* No existe: ofrecer registrarlo como nuevo (conserva el whatsapp). */}
+              {!buscando && resultado && !resultado.existe && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 12.5, color: GRAY_500 }}>
+                    No encontramos a nadie con ese WhatsApp. Regístralo como nuevo.
+                  </div>
+                  <button type="button"
+                    className="mv-btn"
+                    style={{ ...estiloPrimario(true, false), marginTop: 10 }}
+                    onClick={() => { setYaSirve(false); setResultado(null); }}>
+                    Registrar como nuevo
+                  </button>
+                </div>
+              )}
+
+              {/* Existe y NO está en mi ministerio: datos solo lectura + agregar. */}
+              {!buscando && resultado?.existe && resultado.voluntario && !resultado.voluntario.ya_en_mi_ministerio && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="mv-grid">
+                    <div>
+                      <label className="mv-label">Nombre completo</label>
+                      <input className="mv-input" readOnly style={{ backgroundColor: READONLY_BG, color: GRAY_500 }}
+                        value={resultado.voluntario.nombre || ''} />
+                    </div>
+                    <div>
+                      <label className="mv-label">Cumpleaños</label>
+                      <input className="mv-input" readOnly style={{ backgroundColor: READONLY_BG, color: GRAY_500 }}
+                        value={fechaCorta(resultado.voluntario.cumpleanos) || '—'} />
+                    </div>
+                    <div>
+                      <label className="mv-label">Nombre de acceso</label>
+                      <input className="mv-input" readOnly style={{ backgroundColor: READONLY_BG, color: GRAY_500 }}
+                        value={resultado.voluntario.apodo || '—'} />
+                    </div>
+                    <div>
+                      <label className="mv-label">Clave de ingreso</label>
+                      <input className="mv-input" readOnly style={{ backgroundColor: READONLY_BG, color: GRAY_500 }}
+                        value={resultado.voluntario.clave || '—'} />
+                    </div>
+                  </div>
+
+                  {resultado.voluntario.ministerios?.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                      {resultado.voluntario.ministerios.map((m) => (
+                        <span key={m.id} style={estiloChip(m.color)}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color || GRAY_500 }} />
+                          {m.nombre}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{
+                    marginTop: 12, padding: '10px 12px', borderRadius: 10,
+                    background: ORANGE_50, border: '1px solid #FFD9C7',
+                    fontSize: 13, fontWeight: 700, color: ORANGE_600,
+                  }}>
+                    También es voluntario en este ministerio
+                  </div>
+
+                  <div className="mv-form-actions">
+                    <button
+                      className="mv-btn"
+                      style={estiloPrimario(!agregando, hoverAgregarMin)}
+                      onMouseEnter={() => setHoverAgregarMin(true)}
+                      onMouseLeave={() => setHoverAgregarMin(false)}
+                      onClick={agregarAMiMinisterio}
+                      disabled={agregando}
+                    >
+                      {agregando ? 'Agregando…' : 'Agregar a mi ministerio'}
+                    </button>
+                    <button className="mv-btn mv-btn-ghost" onClick={cerrarYreset}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Existe y YA está en mi ministerio: aviso + guardar deshabilitado. */}
+              {!buscando && resultado?.existe && resultado.voluntario?.ya_en_mi_ministerio && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: NAVY_900 }}>
+                    {resultado.voluntario.nombre} ya está en tu equipo.
+                  </div>
+                  <div className="mv-form-actions">
+                    <button className="mv-btn" style={estiloPrimario(false, false)} disabled>
+                      Agregar a mi ministerio
+                    </button>
+                    <button className="mv-btn mv-btn-ghost" onClick={cerrarYreset}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Aún sin resultado accionable: solo cancelar. */}
+              {!(resultado?.existe) && (
+                <div className="mv-form-actions">
+                  <button className="mv-btn mv-btn-ghost" onClick={cerrarYreset}>
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Aún sin elegir Sí/No: solo cancelar. */}
+          {yaSirve === null && (
+            <div className="mv-form-actions">
+              <button className="mv-btn mv-btn-ghost" onClick={cerrarYreset}>
+                Cancelar
+              </button>
+            </div>
+          )}
         </div>
       )}
 
