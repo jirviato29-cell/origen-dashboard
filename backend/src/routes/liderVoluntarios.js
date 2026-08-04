@@ -133,6 +133,59 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/lider/voluntarios/buscar-por-whatsapp?whatsapp=XXXXXXXXXX
+// Para el flujo "ya sirve en otro ministerio": el líder teclea el WhatsApp y, si
+// ya existe la ficha en SU campus, le mostramos quién es (solo lectura) y si ya
+// está o no en su ministerio. Va ANTES de cualquier ruta '/:algo' para que
+// Express no lo confunda con un id. El campus y el ministerio salen del ctx,
+// nunca del cliente; no se expone clave_hash ni nada de otros campus.
+router.get('/buscar-por-whatsapp', async (req, res) => {
+  try {
+    const ctx = await contextoLider(req, res);
+    if (!ctx) return;
+
+    const whats10 = normalizarWhats(req.query.whatsapp);
+    if (!whats10) return res.json({ existe: false });
+
+    // buscarPorWhatsapp ya acota por campus y trae la lista de ministerios.
+    const ficha = await buscarPorWhatsapp(pool, ctx.campus, whats10);
+    if (!ficha) return res.json({ existe: false });
+
+    // Nombre de acceso (apodo) de la cuenta ligada a la ficha, si la tiene.
+    const { rows: cuenta } = await pool.query(
+      'SELECT apodo FROM usuarios WHERE voluntario_id = $1 LIMIT 1',
+      [ficha.id]
+    );
+    const apodo = cuenta[0]?.apodo || null;
+
+    // Clave = últimos 4 dígitos del whatsapp de la ficha (no se genera nada).
+    const clave = soloDigitos(ficha.whatsapp).slice(-4) || null;
+
+    // ¿ya sirve en MI ministerio? (fila en la puente con el ministerio del líder)
+    const { rows: yaMin } = await pool.query(
+      'SELECT 1 FROM voluntario_ministerios WHERE voluntario_id = $1 AND ministerio_id = $2 LIMIT 1',
+      [ficha.id, ctx.ministerioId]
+    );
+
+    return res.json({
+      existe: true,
+      voluntario: {
+        id:          ficha.id,
+        nombre:      ficha.nombre,
+        cumpleanos:  ficha.cumpleanos,
+        whatsapp:    ficha.whatsapp,
+        apodo,
+        clave,
+        ministerios: ficha.ministerios || [],
+        ya_en_mi_ministerio: yaMin.length > 0,
+      },
+    });
+  } catch (err) {
+    console.error('[lider/voluntarios] GET buscar-por-whatsapp:', err);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // POST /api/lider/voluntarios — crea ficha + cuenta de acceso.
 router.post('/', async (req, res) => {
   const nombre = typeof req.body?.nombre === 'string' ? req.body.nombre.trim() : '';
