@@ -4,6 +4,14 @@ const jwt     = require('jsonwebtoken');
 const pool    = require('../db/pool');
 const { JWT_SECRET } = require('../lib/session');
 const { esLiderMinisterio } = require('../lib/liderMinisterio');
+// Deduplicación por WhatsApp: MISMOS helpers que usa routes/voluntarios.js.
+const {
+  normalizarWhats,
+  normalizarMinisterioIds,
+  nombresDeMinisterios,
+  buscarPorWhatsapp,
+  agregarMinisterios,
+} = require('../utils/voluntarios');
 
 const router = express.Router();
 
@@ -74,22 +82,25 @@ async function contextoLider(req, res) {
 // normaliza igual por si acaso: se quita cualquier caracter que no sea dígito.
 const soloDigitos = (v) => String(v ?? '').replace(/\D/g, '');
 
-// Normaliza ministerio_ids del body a enteros únicos (null si no viene).
-function normalizarMinisterioIds(valor) {
-  if (!Array.isArray(valor)) return null;
-  return [...new Set(valor.map(Number).filter(Number.isInteger))];
-}
-
-// Respaldo textual: nombres de los primeros 3 ids (en orden), [m1, m2, m3].
-async function nombresDeMinisterios(client, ids) {
-  const primeros = (ids || []).slice(0, 3);
-  if (primeros.length === 0) return [null, null, null];
-  const { rows } = await client.query(
-    'SELECT id, nombre FROM ministerios WHERE id = ANY($1::int[])',
-    [primeros]
+// Convierte un alta que ya existe (mismo WhatsApp en el campus) en "agrega mi
+// ministerio al registro existente": NO crea ficha ni cuenta nueva, NO regenera
+// credenciales; solo suma el ministerio de ESTE líder a la ficha que ya está.
+// Corre dentro de una transacción abierta por el llamador (no hace COMMIT).
+// Devuelve el cuerpo { duplicado:true, ... } o null si no hay coincidencia.
+async function fusionarConMiMinisterio(client, ctx, whatsapp) {
+  const existente = await buscarPorWhatsapp(client, ctx.campus, whatsapp);
+  if (!existente) return null;
+  const { agregados } = await agregarMinisterios(
+    client, existente.id, ctx.campus, [ctx.ministerioId]
   );
-  const porId = new Map(rows.map(r => [r.id, r.nombre]));
-  return [0, 1, 2].map(i => (primeros[i] != null ? (porId.get(primeros[i]) || null) : null));
+  return {
+    duplicado: true,
+    voluntario_id: existente.id,
+    nombre: existente.nombre,
+    // Si el ON CONFLICT no insertó nada, el ministerio del líder ya estaba.
+    ya_estaba_en_mi_ministerio: !agregados.includes(ctx.ministerioId),
+    registrado_por_nombre: existente.registrado_por_nombre || null,
+  };
 }
 
 // GET /api/lider/voluntarios — los que dio de alta este ministerio.
@@ -144,6 +155,23 @@ router.post('/', async (req, res) => {
     const ctx = await contextoLider(req, res);
     if (!ctx) return;
 
+    // Identidad anti-duplicados: últimos 10 dígitos del WhatsApp en el campus
+    // (null si no llega a 10 dígitos, para NO deduplicar con datos incompletos).
+    const whats10 = normalizarWhats(req.body?.whatsapp);
+
+    // Blindaje 1 (proactivo): si ya existe una ficha con ese WhatsApp en el
+    // campus, NO se crea otra ni se regenera su acceso; solo se agrega el
+    // ministerio de ESTE líder al registro existente y se responde duplicado.
+    if (whats10) {
+      await client.query('BEGIN');
+      const dup = await fusionarConMiMinisterio(client, ctx, whats10);
+      if (dup) {
+        await client.query('COMMIT');
+        return res.status(200).json(dup);
+      }
+      await client.query('ROLLBACK');
+    }
+
     // Los apodos pueden repetirse entre ministerios, pero no dentro del mismo:
     // ahí el líder no sabría a quién le está dando cuál clave.
     const { rows: repetido } = await client.query(
@@ -181,13 +209,31 @@ router.post('/', async (req, res) => {
     // a) Ficha nueva en el directorio. correo y otra_area quedan en null: este
     //    flujo solo captura lo mínimo. registrado_por = quién dio el alta,
     //    SIEMPRE resuelto del token en el servidor (nunca del body).
-    const { rows: ficha } = await client.query(
-      `INSERT INTO voluntarios (nombre, whatsapp, cumpleanos, campus, ministerio1, ministerio2, ministerio3, registrado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id`,
-      [nombre, whatsapp, cumpleanos, ctx.campus, m1, m2, m3, req.authUsuario.id]
-    );
-    const fichaId = ficha[0].id;
+    let fichaId;
+    try {
+      const { rows: ficha } = await client.query(
+        `INSERT INTO voluntarios (nombre, whatsapp, cumpleanos, campus, ministerio1, ministerio2, ministerio3, registrado_por)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id`,
+        [nombre, whatsapp, cumpleanos, ctx.campus, m1, m2, m3, req.authUsuario.id]
+      );
+      fichaId = ficha[0].id;
+    } catch (err) {
+      // Blindaje 2 (carrera): dos altas simultáneas del mismo WhatsApp. El índice
+      // único uq_voluntario_whatsapp_campus dispara 23505; en vez de 500, tratamos
+      // el alta como duplicado y agregamos el ministerio del líder al que ganó.
+      if (err.code === '23505' && whats10) {
+        await client.query('ROLLBACK');
+        await client.query('BEGIN');
+        const dup = await fusionarConMiMinisterio(client, ctx, whats10);
+        if (dup) {
+          await client.query('COMMIT');
+          return res.status(200).json(dup);
+        }
+        await client.query('ROLLBACK');
+      }
+      throw err;
+    }
 
     // b) Cuenta de acceso ligada a la ficha.
     const { rows: cuenta } = await client.query(

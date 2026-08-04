@@ -164,6 +164,16 @@ export default function MisVoluntarios() {
 
   const guardarActivo = Boolean(listo) && !guardando;
 
+  // Recarga la lista desde el servidor. Se usa tras cada alta (nueva o
+  // duplicada) para reflejar el estado real sin adivinar la forma de la
+  // respuesta. Si falla, se conserva la lista previa: el alta ya quedó guardada.
+  async function recargar() {
+    try {
+      const { data } = await liderVoluntariosApi.getAll();
+      setLista(Array.isArray(data) ? data : []);
+    } catch { /* la lista previa se queda tal cual */ }
+  }
+
   async function guardar() {
     if (!listo || guardando) return;
     setGuardando(true);
@@ -175,10 +185,21 @@ export default function MisVoluntarios() {
         apodo:      form.apodo.trim(),
         cumpleanos: form.cumpleanos || null,
       });
-      setLista(l => [...l, data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-      setFlash({ nombre: data.nombre, clave: data.clave });
+      if (data?.duplicado) {
+        // Ya existía esa persona en el campus: el backend agregó MI ministerio a
+        // su ficha, sin crear cuenta nueva ni regenerar su clave.
+        setFlash({
+          mensaje: data.ya_estaba_en_mi_ministerio
+            ? `${data.nombre} ya está en tu equipo.`
+            : `${data.nombre} ya estaba registrado. Lo agregamos a tu ministerio.`,
+        });
+      } else {
+        // Alta nueva: se muestra su clave para que el líder se la pase.
+        setFlash({ nombre: data.nombre, clave: data.clave });
+      }
       setForm(VACIO);
       setAbierto(false);
+      await recargar();
     } catch (err) {
       // 400/409 traen el motivo del backend; se muestra sin tumbar la pantalla.
       setError(err.response?.data?.error || 'No se pudo agregar al voluntario');
@@ -228,9 +249,15 @@ export default function MisVoluntarios() {
 
       {flash && (
         <div className="mv-flash">
-          <span className="mv-flash-txt">Clave de {flash.nombre}:</span>
-          <span className="mv-flash-clave">{flash.clave}</span>
-          <span className="mv-flash-txt">— pásasela</span>
+          {flash.clave ? (
+            <>
+              <span className="mv-flash-txt">Clave de {flash.nombre}:</span>
+              <span className="mv-flash-clave">{flash.clave}</span>
+              <span className="mv-flash-txt">— pásasela</span>
+            </>
+          ) : (
+            <span className="mv-flash-txt">{flash.mensaje}</span>
+          )}
           <button className="mv-flash-x" onClick={() => setFlash(null)} aria-label="Cerrar">✕</button>
         </div>
       )}
