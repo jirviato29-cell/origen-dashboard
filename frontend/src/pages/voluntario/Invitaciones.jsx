@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { temaCampus } from '../../theme/campusTema';
 import AvisoDestacado from '../../components/AvisoDestacado';
 import ListaInvitaciones from '../../components/ListaInvitaciones';
 import { I } from '../../components/Icons';
@@ -86,7 +87,8 @@ function MesCard({ mes, disp, ministerio }) {
 
 export default function Invitaciones() {
   const campus = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
-  const accent = campus === 'gdl' ? '#2DD4BF' : '#FF8A52';
+  // ags conserva su naranja claro histórico (#FF8A52); gdl/mid salen del tema.
+  const accent = campus === 'ags' ? '#FF8A52' : temaCampus(campus).accent;
 
   const mesA = mesDeHoy();
   const mesB = sumaMes(mesA, 1);

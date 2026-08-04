@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { temaCampus as temaCampusCentral } from '../theme/campusTema';
 import NotificacionesCard from '../components/NotificacionesCard';
 import { I } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
@@ -15,12 +16,11 @@ import { miPerfilApi } from '../services/api';
 
 const FONT = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 
-const CAMPUS_LABEL = { ags: 'Aguascalientes', gdl: 'Guadalajara' };
+const CAMPUS_LABEL = { ags: 'Aguascalientes', gdl: 'Guadalajara', mid: 'Mérida' };
 
+// Delegación al tema central (misma firma temaCampus(campus)).
 function temaCampus(campus) {
-  return campus === 'gdl'
-    ? { primary: '#0A0A0A', accent: '#2DD4BF' }
-    : { primary: '#112540', accent: '#FF6B2B' };
+  return temaCampusCentral(campus);
 }
 
 const card = {

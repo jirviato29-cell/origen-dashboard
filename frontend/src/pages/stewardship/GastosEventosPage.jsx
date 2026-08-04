@@ -2,16 +2,21 @@ import { useState, useEffect } from 'react';
 import { calendarioApi, participantesApi, abonosApi, gastosEventosApi, comprobanteApi } from '../../services/api';
 import { fmtFechaShort, toISODate } from '../../utils/fecha';
 import { I } from '../../components/Icons';
+import { temaCampus } from '../../theme/campusTema';
 
-// ── Campus theming (mismo criterio isGdl que el resto de pantallas) ──────────
-const isGdl  = localStorage.getItem('campus_activo') === 'gdl';
-const ACCENT = isGdl ? '#2DD4BF' : '#112540';   // MINT gdl / NAVY ags
+// ── Campus theming (fuente central) ──────────────────────────────────────────
+const CAMPUS_ACTIVO = localStorage.getItem('campus_activo') || 'ags';
+const TEMA = temaCampus(CAMPUS_ACTIVO);
+// Color fuerte del campus: ags usa su navy (primary); gdl/mid su acento. ags/gdl
+// quedan idénticos a los valores previos (#112540 / #2DD4BF).
+const ACCENT = CAMPUS_ACTIVO === 'ags' ? TEMA.primary : TEMA.accent;
 
-// Botón "Ver gastos" — sólido con buen contraste en ambos campus
-const VER_BG     = isGdl ? '#2DD4BF' : '#112540';   // mint gdl / navy ags
-const VER_FG     = isGdl ? '#0F172A' : '#FFFFFF';   // texto navy oscuro sobre mint / blanco sobre navy
-const VER_BORDER = isGdl ? '#22B8A6' : '#24406B';   // borde sutil un tono más oscuro que el fondo
-const VER_HOVER  = isGdl ? '#26BFAE' : '#1B3358';   // hover: mint más apagado / navy más claro
+// Botón "Ver gastos" — sólido con buen contraste en cada campus. Texto, borde y
+// hover son matices propios de esta pantalla; ags/gdl idénticos, mid añadido.
+const VER_BG     = ACCENT;
+const VER_FG     = { ags: '#FFFFFF', gdl: '#0F172A', mid: '#1A1512' }[CAMPUS_ACTIVO] || '#FFFFFF';
+const VER_BORDER = { ags: '#24406B', gdl: '#22B8A6', mid: '#A9835F' }[CAMPUS_ACTIVO] || '#24406B';
+const VER_HOVER  = { ags: '#1B3358', gdl: '#26BFAE', mid: '#B38E6A' }[CAMPUS_ACTIVO] || '#1B3358';
 
 const NAVY_700 = '#244169';
 const GRAY_700 = '#3D4654';

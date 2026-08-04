@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { temaCampus } from '../theme/campusTema';
 import useMisAvisos from '../hooks/useMisAvisos';
 import { I } from './Icons';
 
@@ -14,13 +15,21 @@ import { I } from './Icons';
 
 const FONT = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 
-// Paletas exactas por campus (mismo criterio que avisosTema.temaCampus).
+// Paleta por campus. card/accent/btnText salen del tema central; titulo/texto/
+// meta son matices de texto propios de esta tarjeta (ags/gdl idénticos a antes,
+// mid añadido).
 function colores() {
   const campus = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
-  const isGdl = campus === 'gdl';
-  return isGdl
-    ? { card: '#0A0A0A', accent: '#2DD4BF', titulo: '#FFFFFF', texto: '#B9C4C2', meta: '#7E8B89', btnText: '#0A0A0A' }
-    : { card: '#112540', accent: '#FF6B2B', titulo: '#FFFFFF', texto: '#C2CEDC', meta: '#8A9BB0', btnText: '#FFFFFF' };
+  const t = temaCampus(campus);
+  const TEXTO = {
+    ags: { texto: '#C2CEDC', meta: '#8A9BB0' },
+    gdl: { texto: '#B9C4C2', meta: '#7E8B89' },
+    mid: { texto: '#CDBFB3', meta: '#9A8C7E' },
+  }[campus] || { texto: '#C2CEDC', meta: '#8A9BB0' };
+  return {
+    card: t.primary, accent: t.accent, titulo: '#FFFFFF',
+    texto: TEXTO.texto, meta: TEXTO.meta, btnText: t.accentInk,
+  };
 }
 
 // Fecha relativa corta: "Hoy 7:40 p.m." · "Ayer" · "23 jul".

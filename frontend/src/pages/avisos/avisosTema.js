@@ -1,14 +1,17 @@
 // Utilidades compartidas por la vista de avisos del destinatario (lista y
-// detalle). Theming por campus y formato de fecha, en un solo lugar.
+// detalle). El theming por campus ahora vive en el tema central
+// (src/theme/campusTema.js); aquí solo se re-exporta con la MISMA firma (sin
+// argumentos, leyendo campus_activo) para no romper los imports existentes.
+
+import { temaCampus as temaCampusCentral } from '../../theme/campusTema';
 
 export const FONT = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 
-// Ags: navy #112540 / naranja #FF6B2B. Gdl: negro #0A0A0A / menta #2DD4BF.
+// Re-export: mantiene la firma sin argumentos (lee campus_activo de localStorage)
+// y delega los colores al tema central. Devuelve el objeto de tema del campus.
 export function temaCampus() {
   const campus = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
-  return campus === 'gdl'
-    ? { primary: '#0A0A0A', accent: '#2DD4BF', accentInk: '#0A0A0A' }
-    : { primary: '#112540', accent: '#FF6B2B', accentInk: '#FFFFFF' };
+  return temaCampusCentral(campus);
 }
 
 export function fmtFecha(iso) {

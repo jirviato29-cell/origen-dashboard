@@ -80,6 +80,17 @@
 .app[data-campus="gdl"] .nav-item.active::before { background: #2DD4BF !important; }
 .app[data-campus="gdl"] .avatar { background: #2DD4BF; }   /* MINT de GdlScreens */
 
+/* ─── Tema Campus Mérida — SOLO sidebar ───────────────────────────────────── */
+/* Mismo criterio que Gdl: sidebar oscuro + acento arena #C29E7C. */
+.app[data-campus="mid"] {
+  --sidebar-bg: #1A1512;   /* café muy oscuro de Campus Mérida */
+}
+.app[data-campus="mid"] .nav-item.active { background: rgba(194,158,124,.15); color: #fff !important; }
+.app[data-campus="mid"] .nav-item.active .nav-icon,
+.app[data-campus="mid"] .nav-item.active svg { color: #C29E7C !important; }
+.app[data-campus="mid"] .nav-item.active::before { background: #C29E7C !important; }
+.app[data-campus="mid"] .avatar { background: #C29E7C; }   /* ARENA de Mérida */
+
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 
 *, *::before, *::after { box-sizing: border-box; }

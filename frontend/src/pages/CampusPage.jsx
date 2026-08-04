@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { CAMPUS_TEMA } from '../theme/campusTema';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-const CAMPUS_META = {
-  ags: { dot: '#3E6399', label: 'Aguascalientes' },
-  gdl: { dot: '#888',    label: 'Matriz · Guadalajara' },
-};
+// dot + label salen del tema central (ya no hardcodeados). El punto usa el
+// acento del campus; el label, la etiqueta del tema.
+const CAMPUS_META = CAMPUS_TEMA;
 
 const CSS = `
 .ocp-root{background:#0B1A2F;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;overflow:hidden;position:relative;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;}
@@ -47,6 +47,9 @@ function CampusTile({ campus }) {
   if (campus.id === 'gdl') {
     return <div className="ocp-tile ocp-tile-gdl"><img src="/assets/origen-mark.png" alt="Campus Guadalajara" /></div>;
   }
+  // 'mid' (Mérida): el asset /logo-origen-mid.png aún NO existe en public/, así
+  // que se deja caer al fallback genérico (logo_url de la BD o inicial) para no
+  // mostrar una imagen rota. Al subir el logo, añadir aquí su caso propio.
   return (
     <div className="ocp-tile" style={{ background: '#244169' }}>
       {campus.logo_url
@@ -67,6 +70,7 @@ export default function CampusPage() {
       .catch(() => setCampusList([
         { id: 'ags', nombre: 'Campus Ags' },
         { id: 'gdl', nombre: 'Campus Gdl' },
+        { id: 'mid', nombre: 'Campus Mérida' },
       ]))
       .finally(() => setLoading(false));
   }, []);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { temaCampus } from '../../theme/campusTema';
 import { voluntariosApi, ministeriosApi } from '../../services/api';
 import { useMinisterios } from '../../context/MinisteriosContext';
 import { fmtFecha } from '../../utils/fecha';
@@ -22,8 +23,9 @@ const GRAY_300 = '#CBD2DC';
 const GRAY_200 = '#E2E6EC';
 const GRAY_100 = '#EEF1F5';
 
-// Tema por campus (mismo criterio isGdl que el resto de pantallas).
-const isGdl = localStorage.getItem('campus_activo') === 'gdl';
+// Tema por campus (fuente central). El acento sale de temaCampus; el fondo es el
+// mismo acento al 12% (hex + alpha 1F ≈ 0.12), idéntico al rgba previo.
+const CAMPUS_TEMA_ACTIVO = temaCampus(localStorage.getItem('campus_activo') || 'ags');
 
 // Badge compacto "registrado por <líder>". Solo se pinta si hay nombre; si es
 // null no renderiza NADA (sin texto alterno ni espacio reservado). El ícono es
@@ -41,8 +43,8 @@ function RegistradoPorBadge({ nombre }) {
       alignItems: 'center',
       gap: '4px',
       whiteSpace: 'nowrap',
-      color:      isGdl ? '#2DD4BF' : '#FF6B2B',
-      background:  isGdl ? 'rgba(45,212,191,0.12)' : 'rgba(255,107,43,0.12)',
+      color:      CAMPUS_TEMA_ACTIVO.accent,
+      background:  `${CAMPUS_TEMA_ACTIVO.accent}1F`,
     }}>
       <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { temaCampus as temaCampusCentral } from '../../theme/campusTema';
 import { avisosApi } from '../../services/api';
 import { useMinisterios } from '../../context/MinisteriosContext';
 import Modal from '../../components/Modal';
@@ -15,11 +16,10 @@ const FONT = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 const MAX_TITULO  = 60;
 const MAX_MENSAJE = 2000;
 
+// Re-export local (misma firma sin argumentos) delegando al tema central.
 function temaCampus() {
   const campus = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
-  return campus === 'gdl'
-    ? { primary: '#0A0A0A', accent: '#2DD4BF', accentInk: '#0A0A0A' }
-    : { primary: '#112540', accent: '#FF6B2B', accentInk: '#FFFFFF' };
+  return temaCampusCentral(campus);
 }
 
 const TIPO_LABEL = {
@@ -261,6 +261,7 @@ export default function Avisos() {
               <select value={campus} onChange={(e) => setCampus(e.target.value)} style={fieldStyle}>
                 <option value="ags">Aguascalientes</option>
                 <option value="gdl">Guadalajara</option>
+                <option value="mid">Mérida</option>
                 <option value="todos">Todos los campus</option>
               </select>
             </div>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { temaCampus } from '../../theme/campusTema';
 import AvisoDestacado from '../../components/AvisoDestacado';
 import Modal from '../../components/Modal';
 import { I } from '../../components/Icons';
@@ -165,9 +166,8 @@ export default function PanelVoluntario() {
   // puestos"): color de texto/borde, fondo de celda y tono oscuro, por tipo.
   const { tipoColor = {}, tipoCellBg = {}, tipoColorDark = {} } = useTiposEvento() || {};
 
-  // Acento naranja/menta del campus (para hoy, selección y "Sí colaboro").
-  const accent = ((typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags') === 'gdl'
-    ? '#2DD4BF' : '#FF6B2B';
+  // Acento del campus (para hoy, selección y "Sí colaboro") desde el tema central.
+  const accent = temaCampus((typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags').accent;
 
   // Nombre del TIPO del día para color/fondo/palabra: el evento manda; un domingo
   // genérico se trata como "Servicio dominical" (tipo que existe en tipos_evento).

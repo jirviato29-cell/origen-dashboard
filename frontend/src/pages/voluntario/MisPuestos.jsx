@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { temaCampus } from '../../theme/campusTema';
 import { voluntarioPuestosApi } from '../../services/api';
 import { useTiposEvento } from '../../context/TiposEventoContext';
 import { marcarPuestosVistos, invalidarPuestosNuevos } from '../../hooks/usePuestosNuevos';
@@ -27,10 +28,10 @@ const GRAY_50    = '#F6F7F9';
 // Pila de fuente que se aplica INLINE en los botones de respuesta.
 const FONT = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 
-// Acento naranja/menta del campus para el botón "Sí colaboro".
+// Acento del campus para el botón "Sí colaboro" (tema central).
 function accentCampus() {
   const campus = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
-  return campus === 'gdl' ? '#2DD4BF' : '#FF6B2B';
+  return temaCampus(campus).accent;
 }
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',

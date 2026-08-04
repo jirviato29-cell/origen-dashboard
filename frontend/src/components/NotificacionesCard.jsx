@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { temaCampus as temaCampusCentral } from '../theme/campusTema';
 import {
   estadoNotificaciones,
   activarNotificaciones,
@@ -25,12 +26,10 @@ const FONT = '"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 const GREEN = '#15915A';
 const GRAY  = '#5A6472';
 
-// Paleta por campus. Ags: navy + naranja. Gdl: negro + menta.
+// Paleta por campus (tema central), misma firma sin argumentos.
 function temaCampus() {
   const campus = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
-  return campus === 'gdl'
-    ? { primary: '#0A0A0A', accent: '#2DD4BF', accentInk: '#0A0A0A' }
-    : { primary: '#112540', accent: '#FF6B2B', accentInk: '#FFFFFF' };
+  return temaCampusCentral(campus);
 }
 
 const card = {

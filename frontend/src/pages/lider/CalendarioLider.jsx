@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { temaCampus } from '../../theme/campusTema';
 import { calendarioApi } from '../../services/api';
 import Modal from '../../components/Modal';
 import CalendarioMes from '../../components/CalendarioMes';
@@ -58,7 +59,7 @@ export default function CalendarioLider() {
 
   // Campus solo para el theming (el backend ya filtra por el campus del token).
   const campus = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
-  const accent = campus === 'gdl' ? '#2DD4BF' : '#FF6B2B';
+  const accent = temaCampus(campus).accent;
 
   useEffect(() => {
     let vivo = true;
