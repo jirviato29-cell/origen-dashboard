@@ -5,6 +5,13 @@ import { I } from '../components/Icons';
 import RolesGdlScreen from './RolesGdlScreen';
 import ClaveGdlScreen from './ClaveGdlScreen';
 
+// Campus que usan el flujo de login "oscuro" (pantalla de roles + pantalla de
+// clave). Antes era solo 'gdl'; ahora también Mérida ('mid'). Cada pantalla se
+// pinta con SU tema (se les pasa `campus`), no con el menta de Gdl.
+// NOTA: los componentes se siguen llamando *GdlScreen aunque ya sirven a 2
+// campus; no se renombran ahora para no tocar imports/rutas.
+const CAMPUS_LOGIN_ROLES = ['gdl', 'mid'];
+
 // ── Design tokens (del CSS de la referencia) ───────────────────────────────
 const NAVY_950 = '#0B1A2F';
 const NAVY_900 = '#112540';
@@ -195,11 +202,11 @@ export default function LoginPage() {
     else { setError(result.error); inputRef.current?.focus(); }
   };
 
-  if (!selected && campusActivo === 'gdl') {
-    return <RolesGdlScreen roles={ROLES_LIST} onSelect={setSelected} />;
+  if (!selected && CAMPUS_LOGIN_ROLES.includes(campusActivo)) {
+    return <RolesGdlScreen roles={ROLES_LIST} onSelect={setSelected} campus={campusActivo} />;
   }
 
-  if (selected && campusActivo === 'gdl') {
+  if (selected && CAMPUS_LOGIN_ROLES.includes(campusActivo)) {
     return (
       <ClaveGdlScreen
         roleId={selected.id}
@@ -209,6 +216,7 @@ export default function LoginPage() {
         onBack={handleBack}
         error={error}
         loading={loading}
+        campus={campusActivo}
       />
     );
   }
