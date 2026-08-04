@@ -5,8 +5,16 @@
 // usen EXACTAMENTE los mismos filtros de campus, ministerio y tipo de
 // destinatario, sin duplicar la regla en dos lugares.
 
-const CAMPUS_VALIDOS = ['ags', 'gdl', 'todos'];
+const { campusValidos } = require('./campusValidos');
+
 const TIPOS_VALIDOS   = ['lideres', 'voluntarios', 'todos'];
+
+// Campus válidos para un aviso: la MISMA lista dinámica de campus (tabla campus)
+// más 'todos' (aviso para todos los campus). Es función, no constante, porque la
+// lista de campus se resuelve al vuelo desde el caché.
+function campusValidosAviso() {
+  return [...campusValidos(), 'todos'];
+}
 
 // tipo_destinatario → roles de usuarios que reciben.
 function rolesDeTipo(tipo) {
@@ -66,7 +74,7 @@ function filtroAvisosParaUsuario({ campus, ministerioId, rol }, startIndex = 0) 
 }
 
 module.exports = {
-  CAMPUS_VALIDOS,
+  campusValidosAviso,
   TIPOS_VALIDOS,
   rolesDeTipo,
   filtroSuscripciones,

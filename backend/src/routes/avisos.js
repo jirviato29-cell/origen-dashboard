@@ -4,7 +4,7 @@ const webpush = require('web-push');
 const pool    = require('../db/pool');
 const { JWT_SECRET } = require('../lib/session');
 const {
-  CAMPUS_VALIDOS,
+  campusValidosAviso,
   TIPOS_VALIDOS,
   filtroSuscripciones,
 } = require('../lib/avisosDestinatarios');
@@ -72,7 +72,7 @@ router.get('/destinatarios', async (req, res) => {
     const tipo   = String(req.query.tipo_destinatario || '');
     const ministerioId = req.query.ministerio_id ? Number(req.query.ministerio_id) : null;
 
-    if (!CAMPUS_VALIDOS.includes(campus)) return res.status(400).json({ error: 'Campus inválido' });
+    if (!campusValidosAviso().includes(campus)) return res.status(400).json({ error: 'Campus inválido' });
     if (!TIPOS_VALIDOS.includes(tipo))    return res.status(400).json({ error: 'Tipo de destinatario inválido' });
     if (ministerioId !== null && !Number.isInteger(ministerioId)) {
       return res.status(400).json({ error: 'ministerio_id inválido' });
@@ -118,7 +118,7 @@ router.post('/', async (req, res) => {
     if (!mensaje) return res.status(400).json({ error: 'El mensaje es obligatorio' });
     if (titulo.length  > MAX_TITULO)  return res.status(400).json({ error: `El título no puede pasar de ${MAX_TITULO} caracteres` });
     if (mensaje.length > MAX_MENSAJE) return res.status(400).json({ error: `El mensaje no puede pasar de ${MAX_MENSAJE} caracteres` });
-    if (!CAMPUS_VALIDOS.includes(campus)) return res.status(400).json({ error: 'Campus inválido' });
+    if (!campusValidosAviso().includes(campus)) return res.status(400).json({ error: 'Campus inválido' });
     if (!TIPOS_VALIDOS.includes(tipo))    return res.status(400).json({ error: 'Tipo de destinatario inválido' });
     if (ministerioId !== null && !Number.isInteger(ministerioId)) {
       return res.status(400).json({ error: 'ministerio_id inválido' });
