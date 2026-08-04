@@ -15,7 +15,7 @@ const CSS = `
 .ocp-brand{width:220px;height:auto;margin:0 auto 30px;display:block;}
 .ocp-eyebrow{font-size:16px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#9CB0CC;margin:0 0 12px;}
 .ocp-title{font-size:30px;font-weight:800;letter-spacing:-.03em;color:#fff;margin:0 0 32px;}
-.ocp-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.ocp-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:18px;}
 .ocp-card{border:1px solid rgba(255,255,255,.10);border-radius:20px;padding:34px 26px 26px;background:rgba(255,255,255,.03);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:18px;position:relative;overflow:hidden;font-family:inherit;text-align:center;transition:border-color .18s,background .18s,transform .18s,box-shadow .18s;}
 .ocp-card:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.06);transform:translateY(-4px);box-shadow:0 18px 44px rgba(0,0,0,.4);}
 .ocp-accent{position:absolute;left:0;right:0;bottom:0;height:3px;background:#FF6B2B;transform:scaleX(0);transform-origin:left;transition:transform .2s;}
@@ -25,6 +25,8 @@ const CSS = `
 .ocp-tile-ags img{width:100%;height:100%;object-fit:cover;border-radius:22px;display:block;}
 .ocp-tile-gdl{background:#111111;}
 .ocp-tile-gdl img{width:60px;height:auto;display:block;}
+.ocp-tile-mid{background:#C29D7A;}
+.ocp-tile-mid img{width:100%;height:100%;object-fit:cover;border-radius:22px;display:block;}
 .ocp-name{font-size:18px;font-weight:800;letter-spacing:-.02em;color:#fff;margin:0 0 6px;}
 .ocp-meta{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12.5px;color:#9CB0CC;margin:0;}
 .ocp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block;}
@@ -33,7 +35,7 @@ const CSS = `
 .ocp-glow-bl{position:absolute;bottom:-220px;left:-160px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(48,81,129,.4),transparent 70%);pointer-events:none;}
 .ocp-loading{color:#9CB0CC;font-size:14px;}
 @media(max-width:560px){
-  .ocp-grid{gap:10px;}
+  .ocp-grid{grid-template-columns:1fr;gap:10px;}
   .ocp-card{padding:20px 12px;}
   .ocp-tile{width:64px;height:64px;min-width:64px;min-height:64px;max-width:64px;max-height:64px;}
   .ocp-tile-gdl img{width:40px;}
@@ -47,9 +49,9 @@ function CampusTile({ campus }) {
   if (campus.id === 'gdl') {
     return <div className="ocp-tile ocp-tile-gdl"><img src="/assets/origen-mark.png" alt="Campus Guadalajara" /></div>;
   }
-  // 'mid' (Mérida): el asset /logo-origen-mid.png aún NO existe en public/, así
-  // que se deja caer al fallback genérico (logo_url de la BD o inicial) para no
-  // mostrar una imagen rota. Al subir el logo, añadir aquí su caso propio.
+  if (campus.id === 'mid') {
+    return <div className="ocp-tile ocp-tile-mid"><img src="/assets/logo-origen-mid.png" alt="Campus Mérida" /></div>;
+  }
   return (
     <div className="ocp-tile" style={{ background: '#244169' }}>
       {campus.logo_url
