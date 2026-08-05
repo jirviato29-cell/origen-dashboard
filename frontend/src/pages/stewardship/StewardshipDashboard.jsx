@@ -397,7 +397,7 @@ export default function StewardshipDashboard() {
 
   const isMobile = useIsMobile(640);
   const isTablet = useIsMobile(1100);
-  const statCols = isMobile ? '1fr' : isTablet ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)';
+  const statCols = isMobile ? '1fr' : isTablet ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)';
 
   const year   = new Date().getFullYear();
   const hoy    = new Date();
@@ -578,12 +578,14 @@ export default function StewardshipDashboard() {
   const vAsistencia = loading ? D_VAL : totalAsist    !== null ? String(totalAsist)              : D_VAL;
   const vOfrenda    = loading ? D_VAL : totalOfrenda  !== null ? <FmtMoney amount={totalOfrenda}/> : D_VAL;
   const vParticip   = loading ? D_VAL : participacion !== null ? `${participacion}%`             : D_VAL;
-  const vNuevos     = loading ? D_VAL : nuevos        !== null ? String(nuevos)                  : D_VAL;
   const vSaldo      = loading ? D_VAL : <FmtMoney amount={saldoCaja} signed />;
   const vPorPagar   = loading ? D_VAL : <FmtMoney amount={porPagarTotal} />;
   const subAsist    = !loading && ultimaFecha ? fmtDate(ultimaFecha) : D_VAL;
+  // "Nuevos visitantes" ya no es tarjeta aparte: su dato va aquí, en el desglose
+  // de la tarjeta de Asistencia (así la fila de KPIs no queda tan apretada).
   const extraAsist  = !loading && ultimoServicio
     ? `Ad ${ultimoServicio.adultos ?? 0} · Vol ${ultimoServicio.voluntarios ?? 0} · Niños ${ultimoServicio.ninos ?? 0} · Bbs ${ultimoServicio.bebes ?? 0}`
+      + (nuevos !== null ? ` · Nuevos ${nuevos}` : '')
     : undefined;
   const mesLabel = hoy.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
 
@@ -599,7 +601,6 @@ export default function StewardshipDashboard() {
         <StatCard label="Asistencia"        value={vAsistencia} sub={subAsist}          extra={extraAsist} trend={trendAsist}    icon={I.users} />
         <StatCard label="Ofrendas"          value={vOfrenda}    sub="del último servicio"                     trend={trendOfrenda}  icon={I.coin} />
         <StatCard label="Participación"     value={vParticip}   sub="del último servicio"                     trend={trendParticip} icon={I.coin} />
-        <StatCard label="Nuevos visitantes" value={vNuevos}     sub="visitantes nuevos"                        icon={I.users} />
         <StatCard label="Saldo en caja"     value={vSaldo}      sub={`efectivo · acumulado ${year}`} feature
           valColor={loading ? D_GREEN_400 : saldoCaja >= 0 ? D_GREEN_400 : D_RED_600}
           icon={I.cash} />
