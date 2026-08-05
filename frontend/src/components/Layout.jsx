@@ -3,7 +3,6 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { esLiderMinisterio } from '../lib/liderMinisterio';
 import useLiderPerfil from '../hooks/useLiderPerfil';
-import usePuestosNuevos from '../hooks/usePuestosNuevos';
 import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
 import { useGastosModal } from '../context/GastosModalContext';
@@ -85,7 +84,6 @@ export default function Layout() {
   const liderPerfil = useLiderPerfil(esLider);
   // Puntito de la campanita: SOLO para el voluntario. Para los demás roles pasa
   // enabled=false, así el hook no dispara ninguna llamada (igual que useLiderPerfil).
-  const { nuevos: puestosNuevos } = usePuestosNuevos(role === ROLES.VOLUNTARIO);
 
   if (!role) return <Navigate to="/" replace />;
 
@@ -206,15 +204,6 @@ export default function Layout() {
               </button>
             )}
 
-            <button className="icon-btn" aria-label="Notificaciones" style={{ position: 'relative' }}>
-              <I.bell size={17} />
-              {role === ROLES.VOLUNTARIO && puestosNuevos > 0 && (
-                <span style={{
-                  position: 'absolute', top: 6, right: 6, width: 8, height: 8,
-                  borderRadius: '50%', background: '#FF6B2B', border: '2px solid #fff',
-                }} />
-              )}
-            </button>
           </div>
         </header>
 
