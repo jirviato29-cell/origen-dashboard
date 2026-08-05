@@ -623,12 +623,6 @@ export default function StewardshipDashboard() {
         <StatCard label="Gastos por pagar"  value={vPorPagar}   sub="pendiente de pago"
           valColor={D_RED_600} icon={I.clock} />
       </div>
-      {/* Aclara qué comparan las flechas de las 3 primeras tarjetas. */}
-      <div style={{ marginTop: 9, fontSize: 11.5, color: D_GRAY_500 }}>
-        <span style={{ color: D_GREEN_600, fontWeight: 700 }}>▲</span>
-        <span style={{ color: D_RED_600, fontWeight: 700 }}>▼</span>
-        {' '}comparado con el promedio histórico
-      </div>
       </div>
 
       {/* ── Two-column body ──────────────────────────────────────────────── */}
