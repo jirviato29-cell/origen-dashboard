@@ -549,27 +549,27 @@ export default function StewardshipDashboard() {
     .sort((a, b) => toDateISO(a.fecha).localeCompare(toDateISO(b.fecha)))
     .slice(0, 5);
 
-  // ── Tendencias: último vs penúltimo servicio ──────────────────────────────
-  const asistSorted         = [...asistencia].sort((a, b) => toDateISO(a.fecha).localeCompare(toDateISO(b.fecha)));
-  const penultimoServicio   = asistSorted.length >= 2 ? asistSorted[asistSorted.length - 2] : null;
-  const totalAsistAnterior  = penultimoServicio
-    ? (penultimoServicio.adultos||0)+(penultimoServicio.voluntarios||0)+(penultimoServicio.ninos||0)+(penultimoServicio.bebes||0)
+  // ── Tendencias: último servicio vs PROMEDIO HISTÓRICO ──────────────────────
+  // Los porcentajes comparan el último dato contra el promedio histórico (los
+  // mismos promedios que se muestran abajo), NO contra el servicio anterior.
+  // Asistencia y ofrendas: cambio relativo vs su promedio. Participación (que ya
+  // es %): diferencia en puntos vs la participación promedio histórica.
+  const participVals = ofrendas
+    .map(o => o.participacion)
+    .filter(p => p !== null && p !== undefined && !Number.isNaN(Number(p)))
+    .map(Number);
+  const avgParticip = participVals.length
+    ? participVals.reduce((s, p) => s + p, 0) / participVals.length
     : null;
-  const penultimaFechaISO     = penultimoServicio ? toDateISO(penultimoServicio.fecha) : null;
-  const penultimaOfrenda      = penultimaFechaISO ? (ofrendas.find(o => toDateISO(o.fecha) === penultimaFechaISO) ?? null) : null;
-  const totalOfrendaAnterior  = penultimaOfrenda
-    ? (Number(penultimaOfrenda.efectivo)||0)+(Number(penultimaOfrenda.terminal)||0)+(Number(penultimaOfrenda.transferencia)||0)
-    : null;
-  const participacionAnterior = penultimaOfrenda?.participacion ?? null;
 
-  const trendAsist   = totalAsist !== null && totalAsistAnterior !== null && totalAsistAnterior > 0
-    ? { up: totalAsist >= totalAsistAnterior, label: `${Math.abs(Math.round((totalAsist - totalAsistAnterior) / totalAsistAnterior * 100))}%` }
+  const trendAsist   = totalAsist !== null && promAsist > 0
+    ? { up: totalAsist >= promAsist, label: `${Math.abs(Math.round((totalAsist - promAsist) / promAsist * 100))}%` }
     : null;
-  const trendOfrenda = totalOfrenda !== null && totalOfrendaAnterior !== null && totalOfrendaAnterior > 0
-    ? { up: totalOfrenda >= totalOfrendaAnterior, label: `${Math.abs(Math.round((totalOfrenda - totalOfrendaAnterior) / totalOfrendaAnterior * 100))}%` }
+  const trendOfrenda = totalOfrenda !== null && promOfrMes > 0
+    ? { up: totalOfrenda >= promOfrMes, label: `${Math.abs(Math.round((totalOfrenda - promOfrMes) / promOfrMes * 100))}%` }
     : null;
-  const trendParticip = participacion !== null && participacionAnterior !== null
-    ? { up: participacion >= participacionAnterior, label: `${Math.round(Math.abs(participacion - participacionAnterior) * 10) / 10}%` }
+  const trendParticip = participacion !== null && avgParticip !== null
+    ? { up: participacion >= avgParticip, label: `${Math.round(Math.abs(participacion - avgParticip) * 10) / 10}%` }
     : null;
 
   // ── Stat card values ───────────────────────────────────────────────────────
