@@ -1,65 +1,132 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { CAMPUS_TEMA } from '../theme/campusTema';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-// dot + label salen del tema central (ya no hardcodeados). El punto usa el
-// acento del campus; el label, la etiqueta del tema.
-const CAMPUS_META = CAMPUS_TEMA;
+// Pantalla de ENTRADA "Elige tu campus" (v2). Cada tarjeta ES su campus: usa el
+// gradiente, el halo y el acento de esa identidad, para que el usuario aprenda
+// el color desde la entrada. Implementa el HTML de referencia
+// (referencia-Selector-Campus-v2.html / SPEC-Selector-Campus-v2.md).
+//
+// Los tokens de color de la TARJETA van locales aquí (no en campusTema) porque
+// esta pantalla trae un segundo tono de gradiente (bg2) y un menta propio para
+// Gdl (#2FD3B8) que son exclusivos de este diseño de entrada.
+//
+// Logos: se usan los ORIGINALES de marca del repo (a sangre, object-fit:cover),
+// no las reconstrucciones degradadas de la referencia. Gdl = logo-origen.jpeg
+// (cuadro negro oficial); el wordmark del encabezado = origen-mark-blanco.png.
+const CARD = {
+  ags: { cls: 'ecs-ags', name: 'Aguascalientes', tag: 'Campus', loc: 'Aguascalientes, Ags.',
+         logo: '/assets/logo-origen-ags.jpeg', alt: 'Origen Aguascalientes' },
+  gdl: { cls: 'ecs-gdl', name: 'Guadalajara',    tag: 'Matriz', loc: 'Guadalajara, Jal.',
+         logo: '/assets/logo-origen.jpeg',       alt: 'Origen Guadalajara' },
+  mid: { cls: 'ecs-mer', name: 'Mérida',         tag: 'Campus', loc: 'Mérida, Yuc.',
+         logo: '/assets/logo-origen-mid.png',    alt: 'Origen Mérida' },
+};
+
+const Arrow = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 const CSS = `
-.ocp-root{background:#0B1A2F;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;overflow:hidden;position:relative;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;}
-.ocp-wrap{max-width:680px;width:100%;text-align:center;position:relative;z-index:1;}
-.ocp-brand{width:220px;height:auto;margin:0 auto 30px;display:block;}
-.ocp-eyebrow{font-size:16px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#9CB0CC;margin:0 0 12px;}
-.ocp-title{font-size:30px;font-weight:800;letter-spacing:-.03em;color:#fff;margin:0 0 32px;}
-.ocp-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:18px;}
-.ocp-card{border:1px solid rgba(255,255,255,.10);border-radius:20px;padding:34px 26px 26px;background:rgba(255,255,255,.03);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:18px;position:relative;overflow:hidden;font-family:inherit;text-align:center;transition:border-color .18s,background .18s,transform .18s,box-shadow .18s;}
-.ocp-card:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.06);transform:translateY(-4px);box-shadow:0 18px 44px rgba(0,0,0,.4);}
-.ocp-accent{position:absolute;left:0;right:0;bottom:0;height:3px;background:#FF6B2B;transform:scaleX(0);transform-origin:left;transition:transform .2s;}
-.ocp-card:hover .ocp-accent{transform:scaleX(1);}
-.ocp-tile{width:96px;height:96px;min-width:96px;min-height:96px;max-width:96px;max-height:96px;border-radius:22px;flex-shrink:0;flex-grow:0;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.35);}
-.ocp-tile-ags{background:#C1644A;}
-.ocp-tile-ags img{width:100%;height:100%;object-fit:cover;border-radius:22px;display:block;}
-.ocp-tile-gdl{background:#111111;}
-.ocp-tile-gdl img{width:60px;height:auto;display:block;}
-.ocp-tile-mid{background:#C29D7A;}
-.ocp-tile-mid img{width:100%;height:100%;object-fit:cover;border-radius:22px;display:block;}
-.ocp-name{font-size:18px;font-weight:800;letter-spacing:-.02em;color:#fff;margin:0 0 6px;}
-.ocp-meta{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12.5px;color:#9CB0CC;margin:0;}
-.ocp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block;}
-.ocp-foot{margin:30px 0 0;font-size:11.5px;color:#9CB0CC;opacity:.7;}
-.ocp-glow-tr{position:absolute;top:-180px;right:-140px;width:540px;height:540px;border-radius:50%;background:radial-gradient(circle,rgba(255,107,43,.16),transparent 68%);pointer-events:none;}
-.ocp-glow-bl{position:absolute;bottom:-220px;left:-160px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(48,81,129,.4),transparent 70%);pointer-events:none;}
-.ocp-loading{color:#9CB0CC;font-size:14px;}
-@media(max-width:560px){
-  .ocp-grid{grid-template-columns:1fr;gap:10px;}
-  .ocp-card{padding:20px 12px;}
-  .ocp-tile{width:64px;height:64px;min-width:64px;min-height:64px;max-width:64px;max-height:64px;}
-  .ocp-tile-gdl img{width:40px;}
-}
+.ecs-root{
+  --ags-bg:#0B1A2F; --ags-2:#153252; --ags-ac:#FF6B2B;
+  --gdl-bg:#0A0A0A; --gdl-2:#1C1C1F; --gdl-ac:#2FD3B8;
+  --mer-bg:#062A31; --mer-2:#0F4B56; --mer-ac:#FF9A5E;
+  min-height:100vh;background:#07090F;color:#fff;-webkit-font-smoothing:antialiased;
+  letter-spacing:-.006em;display:flex;align-items:center;justify-content:center;
+  padding:48px 24px;position:relative;overflow:hidden;
+  font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;}
+/* fondo neutro con los halos de los 3 campus */
+.ecs-root::before{content:"";position:absolute;top:-10%;left:8%;width:520px;height:520px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,107,43,.10),transparent 66%);pointer-events:none;}
+.ecs-root::after{content:"";position:absolute;bottom:-14%;right:6%;width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle,rgba(47,211,184,.09),transparent 68%);pointer-events:none;}
+.ecs-glow3{position:absolute;bottom:-6%;left:38%;width:460px;height:460px;border-radius:50%;
+  background:radial-gradient(circle,rgba(42,157,166,.11),transparent 68%);pointer-events:none;}
+
+.ecs-wrap{width:100%;max-width:1000px;position:relative;z-index:1;}
+
+/* cabecera */
+.ecs-head{text-align:center;margin-bottom:30px;}
+.ecs-head img{width:186px;height:auto;}
+.ecs-eye{margin-top:16px;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#7E8CA3;}
+.ecs-h1{font-size:30px;font-weight:800;letter-spacing:-.035em;margin:12px 0 0;}
+.ecs-sub{font-size:14.5px;color:#8E9AAF;margin:9px 0 0;}
+
+/* tarjetas */
+.ecs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.ecs-card{
+  position:relative;overflow:hidden;cursor:pointer;text-align:left;width:100%;
+  border-radius:22px;padding:26px 24px 22px;
+  border:1px solid rgba(255,255,255,.09);
+  transition:transform .2s cubic-bezier(.3,.7,.3,1),box-shadow .2s,border-color .2s;
+  display:flex;flex-direction:column;gap:20px;font-family:inherit;}
+.ecs-card:hover{transform:translateY(-6px);border-color:rgba(255,255,255,.2);}
+/* cada tarjeta ES su campus */
+.ecs-ags{background:linear-gradient(165deg,var(--ags-2),var(--ags-bg) 62%);}
+.ecs-ags:hover{box-shadow:0 22px 54px rgba(255,107,43,.22);}
+.ecs-gdl{background:linear-gradient(165deg,var(--gdl-2),var(--gdl-bg) 62%);}
+.ecs-gdl:hover{box-shadow:0 22px 54px rgba(47,211,184,.18);}
+.ecs-mer{background:linear-gradient(165deg,var(--mer-2),var(--mer-bg) 62%);}
+.ecs-mer:hover{box-shadow:0 22px 54px rgba(255,154,94,.2);}
+/* halo del acento dentro de la tarjeta */
+.ecs-halo{position:absolute;top:-70px;right:-60px;width:230px;height:230px;border-radius:50%;pointer-events:none;transition:opacity .2s;opacity:.75;}
+.ecs-ags .ecs-halo{background:radial-gradient(circle,rgba(255,107,43,.20),transparent 68%);}
+.ecs-gdl .ecs-halo{background:radial-gradient(circle,rgba(47,211,184,.16),transparent 68%);}
+.ecs-mer .ecs-halo{background:radial-gradient(circle,rgba(255,154,94,.20),transparent 68%);}
+.ecs-card:hover .ecs-halo{opacity:1;}
+/* barra de acento inferior */
+.ecs-card::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;transform:scaleX(0);
+  transform-origin:left;transition:transform .24s;}
+.ecs-ags::after{background:var(--ags-ac);}
+.ecs-gdl::after{background:var(--gdl-ac);}
+.ecs-mer::after{background:var(--mer-ac);}
+.ecs-card:hover::after{transform:scaleX(1);}
+
+.ecs-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:relative;z-index:1;}
+.ecs-mark{width:88px;height:88px;border-radius:22px;overflow:hidden;flex-shrink:0;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 18px rgba(0,0,0,.35);}
+.ecs-mark img{width:100%;height:100%;object-fit:cover;display:block;}
+.ecs-tag{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  padding:5px 10px;border-radius:7px;flex-shrink:0;}
+.ecs-ags .ecs-tag{background:rgba(255,107,43,.16);color:#FFA470;}
+.ecs-gdl .ecs-tag{background:rgba(47,211,184,.15);color:#6FE3CE;}
+.ecs-mer .ecs-tag{background:rgba(255,154,94,.16);color:#FFB183;}
+
+.ecs-body{position:relative;z-index:1;}
+.ecs-name{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1.1;display:block;}
+.ecs-loc{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-top:8px;}
+.ecs-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.ecs-ags .ecs-loc{color:#9FB3CE;} .ecs-ags .ecs-dot{background:var(--ags-ac);}
+.ecs-gdl .ecs-loc{color:#A3A3A8;} .ecs-gdl .ecs-dot{background:var(--gdl-ac);}
+.ecs-mer .ecs-loc{color:#8FC2C8;} .ecs-mer .ecs-dot{background:var(--mer-ac);}
+
+.ecs-enter{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding-top:16px;border-top:1px solid rgba(255,255,255,.1);position:relative;z-index:1;
+  font-size:13.5px;font-weight:800;color:#fff;}
+.ecs-arrow{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);transition:.2s;flex-shrink:0;}
+.ecs-arrow svg{width:16px;height:16px;}
+.ecs-ags:hover .ecs-arrow{background:var(--ags-ac);border-color:var(--ags-ac);color:#231005;}
+.ecs-gdl:hover .ecs-arrow{background:var(--gdl-ac);border-color:var(--gdl-ac);color:#04211C;}
+.ecs-mer:hover .ecs-arrow{background:var(--mer-ac);border-color:var(--mer-ac);color:#2A1408;}
+
+.ecs-foot{text-align:center;margin-top:26px;font-size:12.5px;color:#66718A;}
+.ecs-loading{text-align:center;color:#8E9AAF;font-size:14px;}
+
+@media(max-width:880px){.ecs-grid{grid-template-columns:1fr;}.ecs-h1{font-size:26px;}}
 `;
 
-function CampusTile({ campus }) {
-  if (campus.id === 'ags') {
-    return <div className="ocp-tile ocp-tile-ags"><img src="/assets/logo-origen-ags.jpeg" alt="Campus Aguascalientes" /></div>;
-  }
-  if (campus.id === 'gdl') {
-    return <div className="ocp-tile ocp-tile-gdl"><img src="/assets/origen-mark.png" alt="Campus Guadalajara" /></div>;
-  }
-  if (campus.id === 'mid') {
-    // Logo oficial "origen Mérida" (cuadro completo, igual que Ags).
-    return <div className="ocp-tile ocp-tile-mid"><img src="/assets/logo-origen-mid.png" alt="Campus Mérida" /></div>;
-  }
-  return (
-    <div className="ocp-tile" style={{ background: '#244169' }}>
-      {campus.logo_url
-        ? <img src={campus.logo_url} alt={campus.nombre} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
-        : <span style={{ fontSize:36, fontWeight:800, color:'#fff', lineHeight:1 }}>{campus.nombre?.charAt(0).toUpperCase() ?? '?'}</span>}
-    </div>
-  );
+// Tarjeta de un campus no reconocido (por si el API devuelve uno nuevo): estilo
+// neutro navy, sin gradiente de identidad propia.
+function fallbackCard(campus) {
+  return { cls: 'ecs-ags', name: campus.nombre || campus.id, tag: 'Campus',
+           loc: campus.nombre || '', logo: campus.logo_url || '/assets/origen-mark.png',
+           alt: campus.nombre || 'Campus' };
 }
 
 export default function CampusPage() {
@@ -71,9 +138,7 @@ export default function CampusPage() {
     axios.get(`${API_URL}/campus`)
       .then(r => setCampusList(r.data.filter(c => c.activo !== false)))
       .catch(() => setCampusList([
-        { id: 'ags', nombre: 'Campus Ags' },
-        { id: 'gdl', nombre: 'Campus Gdl' },
-        { id: 'mid', nombre: 'Campus Mérida' },
+        { id: 'ags' }, { id: 'gdl' }, { id: 'mid' },
       ]))
       .finally(() => setLoading(false));
   }, []);
@@ -84,36 +149,45 @@ export default function CampusPage() {
   };
 
   return (
-    <div className="ocp-root">
+    <div className="ecs-root">
       <style>{CSS}</style>
-      <div className="ocp-glow-tr" />
-      <div className="ocp-glow-bl" />
-      <div className="ocp-wrap">
-        <img src="/assets/origen-mark.png" alt="Origen" className="ocp-brand" />
-        <p className="ocp-eyebrow">Origen Dashboard</p>
+      <div className="ecs-glow3" />
+      <div className="ecs-wrap">
+        <div className="ecs-head">
+          <img src="/assets/origen-mark-blanco.png" alt="Origen" />
+          <div className="ecs-eye">Origen Dashboard</div>
+          <h1 className="ecs-h1">Elige tu campus</h1>
+          <p className="ecs-sub">Cada campus tiene su propio tablero y sus propios equipos.</p>
+        </div>
+
         {loading ? (
-          <p className="ocp-loading">Cargando…</p>
+          <p className="ecs-loading">Cargando…</p>
         ) : (
-          <div className="ocp-grid">
+          <div className="ecs-grid">
             {campusList.map((campus) => {
-              const meta = CAMPUS_META[campus.id];
+              const c = CARD[campus.id] || fallbackCard(campus);
               return (
-                <button key={campus.id} className="ocp-card" onClick={() => handleSelect(campus.id)}>
-                  <div className="ocp-accent" />
-                  <CampusTile campus={campus} />
-                  <div>
-                    <p className="ocp-name">{campus.nombre}</p>
-                    <p className="ocp-meta">
-                      <span className="ocp-dot" style={{ background: meta?.dot ?? '#888' }} />
-                      {meta?.label ?? campus.nombre}
-                    </p>
-                  </div>
+                <button key={campus.id} type="button" className={`ecs-card ${c.cls}`} onClick={() => handleSelect(campus.id)}>
+                  <span className="ecs-halo" />
+                  <span className="ecs-top">
+                    <span className="ecs-mark"><img src={c.logo} alt={c.alt} /></span>
+                    <span className="ecs-tag">{c.tag}</span>
+                  </span>
+                  <span className="ecs-body">
+                    <span className="ecs-name">{c.name}</span>
+                    <span className="ecs-loc"><span className="ecs-dot" />{c.loc}</span>
+                  </span>
+                  <span className="ecs-enter">
+                    Entrar al tablero
+                    <span className="ecs-arrow">{Arrow}</span>
+                  </span>
                 </button>
               );
             })}
           </div>
         )}
-        <p className="ocp-foot">Elige tu campus · Dashboard interno · Origen</p>
+
+        <div className="ecs-foot">Dashboard interno · Origen</div>
       </div>
     </div>
   );
