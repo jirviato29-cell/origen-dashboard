@@ -198,7 +198,7 @@ export default function Sidebar({ onClose }) {
   };
   const logoSrc = LOGO_CAMPUS[campusActivo] || '/assets/origen-mark-blanco.png';
   // Los lockups con ciudad (Ags/Mérida) un poco más anchos para que se lea la ciudad.
-  const logoWidth = campusActivo === 'gdl' ? '140px' : '162px';
+  const logoWidth = campusActivo === 'gdl' ? '112px' : '130px';
 
   const handleLogout = () => {
     logout();

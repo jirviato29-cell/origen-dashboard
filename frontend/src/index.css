@@ -143,9 +143,9 @@ body {
 }
 .sidebar-brand {
   display: flex; align-items: center; justify-content: flex-start;
-  padding: 6px 10px 22px;
+  padding: 4px 10px 14px;
   border-bottom: 1px solid rgba(255,255,255,0.10);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   position: relative;
 }
 .brand-img {
