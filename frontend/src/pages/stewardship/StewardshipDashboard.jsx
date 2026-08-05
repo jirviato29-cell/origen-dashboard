@@ -574,15 +574,24 @@ export default function StewardshipDashboard() {
 
   // ── Stat card values ───────────────────────────────────────────────────────
   const D_VAL     = '—';
-  const vAsistencia = loading ? D_VAL : totalAsist    !== null ? String(totalAsist)              : D_VAL;
+  const vAsistencia = loading ? D_VAL : totalAsist !== null ? (
+    <span>
+      {totalAsist}
+      {nuevos !== null && (
+        <span style={{ fontSize: 15, fontWeight: 700, color: D_GREEN_600, letterSpacing: '-0.01em', marginLeft: 5 }}>
+          /{nuevos} nuevos
+        </span>
+      )}
+    </span>
+  ) : D_VAL;
   const vOfrenda    = loading ? D_VAL : totalOfrenda  !== null ? <FmtMoney amount={totalOfrenda}/> : D_VAL;
   const vParticip   = loading ? D_VAL : participacion !== null ? `${participacion}%`             : D_VAL;
   const vSaldo      = loading ? D_VAL : <FmtMoney amount={saldoCaja} signed />;
   const vPorPagar   = loading ? D_VAL : <FmtMoney amount={porPagarTotal} />;
   const subAsist    = !loading && ultimaFecha ? fmtDate(ultimaFecha) : D_VAL;
   // Desglose de asistencia en chips que se acomodan solos (antes era texto con
-  // puntitos y se veía apretado). "Nuevos visitantes" ya no es tarjeta aparte:
-  // va aquí como chip verde para que resalte.
+  // puntitos y se veía apretado). Los "nuevos" van junto al número grande (119
+  // /N nuevos), no aquí.
   const chipBase = { fontSize: 10.5, fontWeight: 700, borderRadius: 6, padding: '2px 7px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' };
   const extraAsist  = !loading && ultimoServicio ? (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
@@ -594,9 +603,6 @@ export default function StewardshipDashboard() {
       ].map(([k, v]) => (
         <span key={k} style={{ ...chipBase, background: D_GRAY_100, color: D_GRAY_700 }}>{k} {v}</span>
       ))}
-      {nuevos !== null && (
-        <span style={{ ...chipBase, background: '#E6F5EC', color: D_GREEN_600 }}>Nuevos {nuevos}</span>
-      )}
     </div>
   ) : undefined;
   const mesLabel = hoy.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
