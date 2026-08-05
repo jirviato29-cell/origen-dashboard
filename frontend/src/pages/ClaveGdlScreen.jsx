@@ -55,7 +55,8 @@ export default function ClaveGdlScreen({ roleId, clave, setClave, onSubmit, onBa
       <div className="ocl-glow-bl" />
       <div className="ocl-wrap">
         <div className="ocl-brand">
-          <img src="/assets/origen-mark-blanco.png" alt="Origen" />
+          {/* Mérida usa su lockup "origen Mérida"; el resto, la marca genérica. */}
+          <img src={campus === 'mid' ? '/assets/origen-merida-white.png' : '/assets/origen-mark-blanco.png'} alt={campus === 'mid' ? 'Origen Mérida' : 'Origen'} />
           <div className="ocl-tag">Dashboard interno · Campus {p.nombre}</div>
         </div>
         <div className="ocl-panel">
