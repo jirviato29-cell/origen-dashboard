@@ -110,7 +110,7 @@ export default function RolesMeridaScreen({ roles = [], onSelect }) {
       <div className="omr-glow-bl" />
       <div className="omr-wrap">
         <div className="omr-brand">
-          <img src="/assets/origen-mark-blanco.png" alt="Origen Mérida" />
+          <img src="/assets/origen-merida-white.png" alt="Origen Mérida" />
           <div className="omr-tag">Dashboard interno · Campus Mérida</div>
         </div>
         <div className="omr-panel">
