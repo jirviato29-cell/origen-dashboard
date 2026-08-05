@@ -152,7 +152,19 @@ function ComboChart({ data }) {
           tickLine={false}
           width={32}
         />
-        <YAxis yAxisId="asist" orientation="right" hide />
+        {/* Eje derecho para la LÍNEA de asistencia (personas), en el naranja de
+            la línea. Antes iba oculto y la línea "flotaba" arriba sin referencia;
+            ahora tiene su propia escala 0→máx (con holgura) y etiquetas. */}
+        <YAxis
+          yAxisId="asist"
+          orientation="right"
+          domain={[0, (max) => Math.ceil((max + 15) / 25) * 25]}
+          allowDecimals={false}
+          tick={{ fontSize: 10, fill: D_LINE_ASIST, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
+          axisLine={false}
+          tickLine={false}
+          width={30}
+        />
         <Tooltip content={<ComboTooltip />} />
 
         <Bar yAxisId="ofrenda" dataKey="ofrenda" name="Ofrendas" radius={[4, 4, 0, 0]} maxBarSize={38}>
