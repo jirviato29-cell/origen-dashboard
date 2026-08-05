@@ -608,21 +608,39 @@ export default function StewardshipDashboard() {
   const cardTitleStyle = { fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', color: D_NAVY_900, margin: 0 };
   const seeAllStyle = { fontSize: 12.5, fontWeight: 600, color: D_ORANGE, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', background: 'none', border: 0 };
 
+  // Tarjetas KPI definidas una sola vez para reusarlas en los dos layouts
+  // (móvil/tablet en una rejilla pareja; escritorio con el mismo reparto
+  // 1.62fr/1fr del cuerpo, para que "Saldo en caja" y "Gastos por pagar" queden
+  // alineados sobre la tarjeta "Composición de asistencia").
+  const cardAsistencia = <StatCard label="Asistencia"    value={vAsistencia} sub={subAsist}            extra={extraAsist}    trend={trendAsist}    icon={I.users} />;
+  const cardOfrenda    = <StatCard label="Ofrendas"      value={vOfrenda}    sub="del último servicio" extra={extraOfrenda}  trend={trendOfrenda}  icon={I.coin} />;
+  const cardParticip   = <StatCard label="Participación" value={vParticip}   sub="del último servicio" extra={extraParticip} trend={trendParticip} icon={I.coin} />;
+  const cardSaldo      = <StatCard label="Saldo en caja" value={vSaldo}      sub={`efectivo · acumulado ${year}`} feature
+    valColor={loading ? D_GREEN_400 : saldoCaja >= 0 ? D_GREEN_400 : D_RED_600} icon={I.cash} />;
+  const cardPorPagar   = <StatCard label="Gastos por pagar" value={vPorPagar} sub="pendiente de pago" valColor={D_RED_600} icon={I.clock} />;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
       {/* ── Stat cards ──────────────────────────────────────────────────── */}
       <div>
-      <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 10 }}>
-        <StatCard label="Asistencia"        value={vAsistencia} sub={subAsist}          extra={extraAsist} trend={trendAsist}    icon={I.users} />
-        <StatCard label="Ofrendas"          value={vOfrenda}    sub="del último servicio" extra={extraOfrenda} trend={trendOfrenda}  icon={I.coin} />
-        <StatCard label="Participación"     value={vParticip}   sub="del último servicio" extra={extraParticip} trend={trendParticip} icon={I.coin} />
-        <StatCard label="Saldo en caja"     value={vSaldo}      sub={`efectivo · acumulado ${year}`} feature
-          valColor={loading ? D_GREEN_400 : saldoCaja >= 0 ? D_GREEN_400 : D_RED_600}
-          icon={I.cash} />
-        <StatCard label="Gastos por pagar"  value={vPorPagar}   sub="pendiente de pago"
-          valColor={D_RED_600} icon={I.clock} />
-      </div>
+        {isMobile || isTablet ? (
+          <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 10 }}>
+            {cardAsistencia}{cardOfrenda}{cardParticip}{cardSaldo}{cardPorPagar}
+          </div>
+        ) : (
+          // Escritorio: mismo reparto 1.62fr/1fr que el cuerpo → los 3 primeros
+          // KPIs sobre la gráfica y los 2 últimos (Saldo, Gastos) sobre la
+          // tarjeta "Composición de asistencia".
+          <div style={{ display: 'grid', gridTemplateColumns: '1.62fr 1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {cardAsistencia}{cardOfrenda}{cardParticip}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+              {cardSaldo}{cardPorPagar}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Two-column body ──────────────────────────────────────────────── */}
