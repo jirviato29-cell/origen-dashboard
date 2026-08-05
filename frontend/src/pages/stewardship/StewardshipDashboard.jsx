@@ -624,6 +624,22 @@ export default function StewardshipDashboard() {
       ))}
     </div>
   ) : undefined;
+  // Desglose de participación por CANTIDAD (número de sobres, de transacciones
+  // con tarjeta y de transferencias) del último servicio — no montos.
+  const extraParticip = !loading && ultimaOfrenda ? (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5, marginTop: 8 }}>
+      {[
+        ['Sobres',    Number(ultimaOfrenda.ofrendas_sobres) || 0],
+        ['Tarjeta',   Number(ultimaOfrenda.ofrendas_terminal) || 0],
+        ['Transfer.', Number(ultimaOfrenda.ofrendas_transferencia) || 0],
+      ].map(([k, v]) => (
+        <div key={k} style={{ background: D_GRAY_100, borderRadius: 7, padding: '5px 3px', textAlign: 'center' }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: D_NAVY_900, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+          <div style={{ fontSize: 9, fontWeight: 600, color: D_GRAY_500, marginTop: 2 }}>{k}</div>
+        </div>
+      ))}
+    </div>
+  ) : undefined;
   const mesLabel = hoy.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
 
   const cardStyle = { background: '#fff', border: `1px solid ${D_GRAY_200}`, borderRadius: 16, padding: '22px 24px', boxShadow: '0 1px 2px rgba(11,26,47,.06)' };
@@ -638,7 +654,7 @@ export default function StewardshipDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 14 }}>
         <StatCard label="Asistencia"        value={vAsistencia} sub={subAsist}          extra={extraAsist} trend={trendAsist}    icon={I.users} />
         <StatCard label="Ofrendas"          value={vOfrenda}    sub="del último servicio" extra={extraOfrenda} trend={trendOfrenda}  icon={I.coin} />
-        <StatCard label="Participación"     value={vParticip}   sub="del último servicio"                     trend={trendParticip} icon={I.coin} />
+        <StatCard label="Participación"     value={vParticip}   sub="del último servicio" extra={extraParticip} trend={trendParticip} icon={I.coin} />
         <StatCard label="Saldo en caja"     value={vSaldo}      sub={`efectivo · acumulado ${year}`} feature
           valColor={loading ? D_GREEN_400 : saldoCaja >= 0 ? D_GREEN_400 : D_RED_600}
           icon={I.cash} />
