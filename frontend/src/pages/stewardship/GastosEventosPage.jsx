@@ -14,9 +14,9 @@ const ACCENT = CAMPUS_ACTIVO === 'ags' ? TEMA.primary : TEMA.accent;
 // Botón "Ver gastos" — sólido con buen contraste en cada campus. Texto, borde y
 // hover son matices propios de esta pantalla; ags/gdl idénticos, mid añadido.
 const VER_BG     = ACCENT;
-const VER_FG     = { ags: '#FFFFFF', gdl: '#0F172A', mid: '#1A1512' }[CAMPUS_ACTIVO] || '#FFFFFF';
-const VER_BORDER = { ags: '#24406B', gdl: '#22B8A6', mid: '#A9835F' }[CAMPUS_ACTIVO] || '#24406B';
-const VER_HOVER  = { ags: '#1B3358', gdl: '#26BFAE', mid: '#B38E6A' }[CAMPUS_ACTIVO] || '#1B3358';
+const VER_FG     = { ags: '#FFFFFF', gdl: '#0F172A', mid: '#062A31' }[CAMPUS_ACTIVO] || '#FFFFFF';
+const VER_BORDER = { ags: '#24406B', gdl: '#22B8A6', mid: '#F2854A' }[CAMPUS_ACTIVO] || '#24406B';
+const VER_HOVER  = { ags: '#1B3358', gdl: '#26BFAE', mid: '#F2854A' }[CAMPUS_ACTIVO] || '#1B3358';
 
 const NAVY_700 = '#244169';
 const GRAY_700 = '#3D4654';
