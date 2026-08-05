@@ -552,8 +552,7 @@ export default function StewardshipDashboard() {
   // ── Tendencias: último servicio vs PROMEDIO HISTÓRICO ──────────────────────
   // Los porcentajes comparan el último dato contra el promedio histórico (los
   // mismos promedios que se muestran abajo), NO contra el servicio anterior.
-  // Asistencia y ofrendas: cambio relativo vs su promedio. Participación (que ya
-  // es %): diferencia en puntos vs la participación promedio histórica.
+  // Los tres son cambio RELATIVO vs su promedio: (último − promedio) / promedio.
   const participVals = ofrendas
     .map(o => o.participacion)
     .filter(p => p !== null && p !== undefined && !Number.isNaN(Number(p)))
@@ -568,8 +567,8 @@ export default function StewardshipDashboard() {
   const trendOfrenda = totalOfrenda !== null && promOfrMes > 0
     ? { up: totalOfrenda >= promOfrMes, label: `${Math.abs(Math.round((totalOfrenda - promOfrMes) / promOfrMes * 100))}%` }
     : null;
-  const trendParticip = participacion !== null && avgParticip !== null
-    ? { up: participacion >= avgParticip, label: `${Math.round(Math.abs(participacion - avgParticip) * 10) / 10}%` }
+  const trendParticip = participacion !== null && avgParticip !== null && avgParticip > 0
+    ? { up: participacion >= avgParticip, label: `${Math.abs(Math.round((participacion - avgParticip) / avgParticip * 100))}%` }
     : null;
 
   // ── Stat card values ───────────────────────────────────────────────────────
@@ -619,6 +618,7 @@ export default function StewardshipDashboard() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
 
       {/* ── Stat cards ──────────────────────────────────────────────────── */}
+      <div>
       <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 14 }}>
         <StatCard label="Asistencia"        value={vAsistencia} sub={subAsist}          extra={extraAsist} trend={trendAsist}    icon={I.users} />
         <StatCard label="Ofrendas"          value={vOfrenda}    sub="del último servicio"                     trend={trendOfrenda}  icon={I.coin} />
@@ -628,6 +628,13 @@ export default function StewardshipDashboard() {
           icon={I.cash} />
         <StatCard label="Gastos por pagar"  value={vPorPagar}   sub="pendiente de pago"
           valColor={D_RED_600} icon={I.clock} />
+      </div>
+      {/* Aclara qué comparan las flechas de las 3 primeras tarjetas. */}
+      <div style={{ marginTop: 9, fontSize: 11.5, color: D_GRAY_500 }}>
+        <span style={{ color: D_GREEN_600, fontWeight: 700 }}>▲</span>
+        <span style={{ color: D_RED_600, fontWeight: 700 }}>▼</span>
+        {' '}comparado con el promedio histórico
+      </div>
       </div>
 
       {/* ── Two-column body ──────────────────────────────────────────────── */}
