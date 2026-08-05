@@ -347,10 +347,9 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
             marginTop: 11, paddingTop: 10,
             borderTop: `1px solid ${feature ? 'rgba(255,255,255,.10)' : D_GRAY_100}`,
             fontSize: 11, color: feature ? D_NAVY_300 : D_GRAY_500,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6,
           }}>
             <span>{sub}</span>
-            {extra && <span>{extra}</span>}
+            {extra}
           </div>
         </>
       )}
@@ -581,12 +580,25 @@ export default function StewardshipDashboard() {
   const vSaldo      = loading ? D_VAL : <FmtMoney amount={saldoCaja} signed />;
   const vPorPagar   = loading ? D_VAL : <FmtMoney amount={porPagarTotal} />;
   const subAsist    = !loading && ultimaFecha ? fmtDate(ultimaFecha) : D_VAL;
-  // "Nuevos visitantes" ya no es tarjeta aparte: su dato va aquí, en el desglose
-  // de la tarjeta de Asistencia (así la fila de KPIs no queda tan apretada).
-  const extraAsist  = !loading && ultimoServicio
-    ? `Ad ${ultimoServicio.adultos ?? 0} · Vol ${ultimoServicio.voluntarios ?? 0} · Niños ${ultimoServicio.ninos ?? 0} · Bbs ${ultimoServicio.bebes ?? 0}`
-      + (nuevos !== null ? ` · Nuevos ${nuevos}` : '')
-    : undefined;
+  // Desglose de asistencia en chips que se acomodan solos (antes era texto con
+  // puntitos y se veía apretado). "Nuevos visitantes" ya no es tarjeta aparte:
+  // va aquí como chip verde para que resalte.
+  const chipBase = { fontSize: 10.5, fontWeight: 700, borderRadius: 6, padding: '2px 7px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' };
+  const extraAsist  = !loading && ultimoServicio ? (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
+      {[
+        ['Ad', ultimoServicio.adultos ?? 0],
+        ['Vol', ultimoServicio.voluntarios ?? 0],
+        ['Niños', ultimoServicio.ninos ?? 0],
+        ['Bbs', ultimoServicio.bebes ?? 0],
+      ].map(([k, v]) => (
+        <span key={k} style={{ ...chipBase, background: D_GRAY_100, color: D_GRAY_700 }}>{k} {v}</span>
+      ))}
+      {nuevos !== null && (
+        <span style={{ ...chipBase, background: '#E6F5EC', color: D_GREEN_600 }}>Nuevos {nuevos}</span>
+      )}
+    </div>
+  ) : undefined;
   const mesLabel = hoy.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
 
   const cardStyle = { background: '#fff', border: `1px solid ${D_GRAY_200}`, borderRadius: 16, padding: '22px 24px', boxShadow: '0 1px 2px rgba(11,26,47,.06)' };
