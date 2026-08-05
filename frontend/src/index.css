@@ -81,15 +81,16 @@
 .app[data-campus="gdl"] .avatar { background: #2DD4BF; }   /* MINT de GdlScreens */
 
 /* ─── Tema Campus Mérida — SOLO sidebar ───────────────────────────────────── */
-/* Mismo criterio que Gdl: sidebar oscuro + acento arena #C29E7C. */
+/* Mismo criterio que Gdl: sidebar oscuro + acento. Mérida = turquesa profundo
+   #062A31 + coral #FF9A5E (el coral resalta sobre el turquesa del sidebar). */
 .app[data-campus="mid"] {
-  --sidebar-bg: #1A1512;   /* café muy oscuro de Campus Mérida */
+  --sidebar-bg: #062A31;   /* turquesa profundo de Campus Mérida */
 }
-.app[data-campus="mid"] .nav-item.active { background: rgba(194,158,124,.15); color: #fff !important; }
+.app[data-campus="mid"] .nav-item.active { background: rgba(255,154,94,.15); color: #fff !important; }
 .app[data-campus="mid"] .nav-item.active .nav-icon,
-.app[data-campus="mid"] .nav-item.active svg { color: #C29E7C !important; }
-.app[data-campus="mid"] .nav-item.active::before { background: #C29E7C !important; }
-.app[data-campus="mid"] .avatar { background: #C29E7C; }   /* ARENA de Mérida */
+.app[data-campus="mid"] .nav-item.active svg { color: #FF9A5E !important; }
+.app[data-campus="mid"] .nav-item.active::before { background: #FF9A5E !important; }
+.app[data-campus="mid"] .avatar { background: #FF9A5E; }   /* CORAL de Mérida */
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 

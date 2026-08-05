@@ -18,12 +18,15 @@ const EXTRA = {
     glow:        'rgba(45,212,191,.12)', // glow superior = acento al 12%
   },
   mid: {
-    panel:       '#241E1A',            // café un tono sobre el fondo #1A1512
-    accentSoft:  '#F5EFE8',            // lavado claro de la arena
-    accentHover: '#A9835F',            // arena más oscura para hovers
-    btnHover:    '#A9835F',
-    btnInk:      '#1A1512',            // tinta oscura sobre la arena
-    glow:        'rgba(194,158,124,.12)',
+    // Identidad turquesa caribe + coral (opción 3 del SPEC). El fondo (#062A31)
+    // y el acento (coral #FF9A5E) salen del tema central; aquí van los matices
+    // del panel/botón oscuros de la pantalla de clave.
+    panel:       '#0A3A43',            // panel turquesa un tono sobre el fondo
+    accentSoft:  '#0F4B56',            // (sin uso directo en mid: usa RolesMeridaScreen)
+    accentHover: '#F2854A',            // coral más oscuro para hovers
+    btnHover:    '#F2854A',            // hover del botón "Entrar" (pantalla de clave)
+    btnInk:      '#062A31',            // tinta oscura sobre el coral
+    glow:        'rgba(255,138,82,.13)', // glow coral (arriba-derecha), igual que opción 3
   },
 };
 
@@ -36,8 +39,8 @@ export function paletaLogin(campus) {
   const t = temaCampus(campus);
   const e = EXTRA[campus] || EXTRA.gdl;
   return {
-    accent:      t.accent,       // MINT en gdl / arena en mid — del tema central
-    bg:          t.primary,      // #0A0A0A gdl / #1A1512 mid
+    accent:      t.accent,       // MINT en gdl / coral en mid — del tema central
+    bg:          t.primary,      // #0A0A0A gdl / #062A31 mid
     accentInk:   t.accentInk,
     panel:       e.panel,
     accentSoft:  e.accentSoft,

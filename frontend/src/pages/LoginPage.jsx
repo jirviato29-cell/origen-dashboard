@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { I } from '../components/Icons';
 import RolesGdlScreen from './RolesGdlScreen';
+import RolesMeridaScreen from './RolesMeridaScreen';
 import ClaveGdlScreen from './ClaveGdlScreen';
 
 // Campus que usan el flujo de login "oscuro" (pantalla de roles + pantalla de
@@ -203,7 +204,10 @@ export default function LoginPage() {
   };
 
   if (!selected && CAMPUS_LOGIN_ROLES.includes(campusActivo)) {
-    return <RolesGdlScreen roles={ROLES_LIST} onSelect={setSelected} campus={campusActivo} />;
+    // Mérida usa su propia pantalla (opción 3 turquesa, tarjetas oscuras); Gdl
+    // sigue con la compartida (tarjetas blancas).
+    const RolesScreen = campusActivo === 'mid' ? RolesMeridaScreen : RolesGdlScreen;
+    return <RolesScreen roles={ROLES_LIST} onSelect={setSelected} campus={campusActivo} />;
   }
 
   if (selected && CAMPUS_LOGIN_ROLES.includes(campusActivo)) {
