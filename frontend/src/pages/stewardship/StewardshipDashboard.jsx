@@ -714,7 +714,7 @@ export default function StewardshipDashboard() {
                 {[
                   { l: 'Asistencia promedio', v: asistencia.length ? `${promAsist} personas` : '—', sub: 'por domingo · Promedio H.', green: false },
                   { l: 'Ofrenda promedio',    v: asistencia.length ? `$${fmt(promOfrMes)}` : '—',   sub: 'por domingo · Promedio H.', green: true },
-                  { l: 'Participación promedio', v: avgParticip !== null ? `${Math.round(avgParticip * 10) / 10}%` : '—', sub: avgGivers !== null ? `${avgGivers} personas dan ofrenda · Promedio H.` : 'Promedio H.', green: false },
+                  { l: 'Participación promedio', v: avgParticip !== null ? `${Math.round(avgParticip * 10) / 10}%` : '—', sub: avgGivers !== null ? `${avgGivers} ofrendas · Promedio H.` : 'Promedio H.', green: false },
                   { l: 'Mayor asistencia',    v: mejorDomHistLabel, sub: mejorDomHist ? `${mejorDomHist.total} personas` : '', green: false },
                   { l: 'Nuevos por semana',   v: asistencia.length === 0 ? '—' : `▲ ${avgChange} p/sem`, sub: 'Promedio H.', green: true },
                 ].map(({ l, v, green, sub }) => (
