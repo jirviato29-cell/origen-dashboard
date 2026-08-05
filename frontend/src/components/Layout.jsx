@@ -124,6 +124,7 @@ export default function Layout() {
 
       {/* ── Sidebar ── */}
       <div className={`
+        sidebar-shell
         fixed inset-y-0 left-0 z-30 flex-shrink-0 w-60
         transition-transform duration-300 ease-in-out
         lg:relative lg:translate-x-0

@@ -142,11 +142,13 @@ body {
   transition: width .22s cubic-bezier(.4,0,.2,1);
 }
 /* Sin barra de scroll visible en el sidebar (se ve fea sobre el fondo oscuro);
-   sigue haciendo scroll con la rueda/trackpad. */
-.sidebar,
-.sidebar nav { scrollbar-width: none; -ms-overflow-style: none; }
-.sidebar::-webkit-scrollbar,
-.sidebar nav::-webkit-scrollbar { width: 0; height: 0; }
+   sigue haciendo scroll con la rueda/trackpad. Cubrimos TODO el subárbol del
+   sidebar (el contenedor .sidebar-shell, el aside .sidebar y cualquier hijo con
+   scroll, como el <nav>) para que no importe cuál elemento haga scroll. */
+.sidebar-shell, .sidebar-shell *,
+.sidebar, .sidebar * { scrollbar-width: none; -ms-overflow-style: none; }
+.sidebar-shell::-webkit-scrollbar, .sidebar-shell *::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar, .sidebar *::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .sidebar-brand {
   display: flex; align-items: center; justify-content: flex-start;
   padding: 4px 10px 14px;
