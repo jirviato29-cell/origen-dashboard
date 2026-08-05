@@ -55,14 +55,14 @@ const navByRole = {
       { to: '/stewardship', label: 'Dashboard', icon: I.dashboard, end: true },
       {
         accordion: true,
-        label: 'Ofrendas y Diezmos',
+        label: 'Finanzas',
         icon: I.coin,
-        defaultOpen: true,
+        defaultOpen: false,   // arranca CERRADO; las subpestañas salen al hacer click
         children: [
           { to: '/stewardship/ingresos',             label: 'Ingresos',             icon: I.arrowBarDown },
           { to: '/stewardship/gastos',               label: 'Gastos pagados',       icon: I.arrowBarUp },
           { to: '/stewardship/gastos-por-pagar',     label: 'Gastos por pagar',     icon: I.clock },
-          { to: '/stewardship/balance',              label: 'Finanzas',             icon: I.scale },
+          { to: '/stewardship/balance',              label: 'Balance',              icon: I.scale },
           { to: '/stewardship/ofrendas-especiales',  label: 'Ofrendas especiales',  icon: I.coin },
         ],
       },
