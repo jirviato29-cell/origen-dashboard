@@ -25,8 +25,8 @@ const CSS = `
 .ocp-tile-ags img{width:100%;height:100%;object-fit:cover;border-radius:22px;display:block;}
 .ocp-tile-gdl{background:#111111;}
 .ocp-tile-gdl img{width:60px;height:auto;display:block;}
-.ocp-tile-mid{background:#062A31;}
-.ocp-tile-mid img{width:60px;height:auto;display:block;}
+.ocp-tile-mid{background:#C29D7A;}
+.ocp-tile-mid img{width:100%;height:100%;object-fit:cover;border-radius:22px;display:block;}
 .ocp-name{font-size:18px;font-weight:800;letter-spacing:-.02em;color:#fff;margin:0 0 6px;}
 .ocp-meta{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12.5px;color:#9CB0CC;margin:0;}
 .ocp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block;}
@@ -38,7 +38,7 @@ const CSS = `
   .ocp-grid{grid-template-columns:1fr;gap:10px;}
   .ocp-card{padding:20px 12px;}
   .ocp-tile{width:64px;height:64px;min-width:64px;min-height:64px;max-width:64px;max-height:64px;}
-  .ocp-tile-gdl img,.ocp-tile-mid img{width:40px;}
+  .ocp-tile-gdl img{width:40px;}
 }
 `;
 
@@ -50,9 +50,8 @@ function CampusTile({ campus }) {
     return <div className="ocp-tile ocp-tile-gdl"><img src="/assets/origen-mark.png" alt="Campus Guadalajara" /></div>;
   }
   if (campus.id === 'mid') {
-    // Marca blanca sobre turquesa profundo (identidad Mérida). No se usa
-    // logo-origen-mid.png porque trae el fondo arena horneado y chocaría.
-    return <div className="ocp-tile ocp-tile-mid"><img src="/assets/origen-mark-blanco.png" alt="Campus Mérida" /></div>;
+    // Logo oficial "origen Mérida" (cuadro completo, igual que Ags).
+    return <div className="ocp-tile ocp-tile-mid"><img src="/assets/logo-origen-mid.png" alt="Campus Mérida" /></div>;
   }
   return (
     <div className="ocp-tile" style={{ background: '#244169' }}>
