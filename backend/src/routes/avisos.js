@@ -216,10 +216,21 @@ router.post('/', async (req, res) => {
 });
 
 // ── GET /api/avisos ───────────────────────────────────────────────────────────
-// Historial: últimos 30 avisos, más recientes primero, con el nombre del
-// ministerio (si aplica) y el conteo de LEÍDOS (personas que abrieron el aviso).
+// Historial: últimos 30 avisos DEL CAMPUS ACTIVO (más recientes primero), con el
+// nombre del ministerio (si aplica) y el conteo de LEÍDOS.
+//
+// Se filtra por el campus activo (header X-Campus, que el front manda en cada
+// petición). Antes NO se filtraba y el historial mezclaba los campus: los avisos
+// de Aguascalientes aparecían también en Guadalajara y Mérida. Se incluyen los
+// avisos enviados a 'todos' los campus, porque también aplican a este campus
+// (mismo criterio que la lectura del destinatario, filtroAvisosParaUsuario).
 router.get('/', async (req, res) => {
   try {
+    const campusHdr = String(req.headers['x-campus'] || '').trim();
+    const campusOk  = campusHdr && campusHdr !== 'todos' && campusValidosAviso().includes(campusHdr);
+    const filtro    = campusOk ? `WHERE (a.campus = $1 OR a.campus = 'todos')` : '';
+    const params    = campusOk ? [campusHdr] : [];
+
     const { rows } = await pool.query(
       `SELECT a.id,
               a.titulo,
@@ -234,8 +245,10 @@ router.get('/', async (req, res) => {
               (SELECT COUNT(*)::int FROM avisos_vistos av WHERE av.aviso_id = a.id) AS total_leidos
          FROM avisos a
          LEFT JOIN ministerios m ON m.id = a.ministerio_id
+        ${filtro}
         ORDER BY a.created_at DESC
-        LIMIT 30`
+        LIMIT 30`,
+      params
     );
     return res.json(rows);
   } catch (err) {

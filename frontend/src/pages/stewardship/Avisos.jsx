@@ -27,7 +27,10 @@ const TIPO_LABEL = {
   voluntarios: 'Voluntarios',
   todos:       'Líderes y voluntarios',
 };
-const CAMPUS_LABEL = { ags: 'Ags', gdl: 'Gdl', todos: 'Todos los campus' };
+const CAMPUS_LABEL = { ags: 'Ags', gdl: 'Gdl', mid: 'Mérida', todos: 'Todos los campus' };
+
+// Campus activo (para prellenar el formulario con el campus donde estás parado).
+const CAMPUS_ACTIVO = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
 
 const card = {
   fontFamily: FONT,
@@ -81,7 +84,7 @@ export default function Avisos() {
 
   const [titulo, setTitulo]   = useState('');
   const [mensaje, setMensaje] = useState('');
-  const [campus, setCampus]   = useState('ags');
+  const [campus, setCampus]   = useState(CAMPUS_ACTIVO);
   const [ministerioId, setMinisterioId] = useState('');       // '' = todos
   const [tipo, setTipo]       = useState('todos');
 
