@@ -284,7 +284,7 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
       background: feature ? D_NAVY_900 : '#fff',
       border: `1px solid ${feature ? D_NAVY_900 : D_GRAY_200}`,
       borderRadius: 14,
-      padding: '18px 18px 16px',
+      padding: '14px 16px 12px',
       boxShadow: '0 1px 2px rgba(11,26,47,.06)',
       transition: '.15s',
     }}>
@@ -318,7 +318,7 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
         </>
       ) : (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: feature ? D_NAVY_300 : D_GRAY_500 }}>{label}</span>
               {trend && (
@@ -350,7 +350,7 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
             {value}
           </div>
           <div style={{
-            marginTop: 11, paddingTop: 10,
+            marginTop: 9, paddingTop: 9,
             borderTop: `1px solid ${feature ? 'rgba(255,255,255,.10)' : D_GRAY_100}`,
             fontSize: 11, color: feature ? D_NAVY_300 : D_GRAY_500,
           }}>
@@ -604,12 +604,12 @@ export default function StewardshipDashboard() {
     </div>
   ) : undefined;
 
-  const cardStyle = { background: '#fff', border: `1px solid ${D_GRAY_200}`, borderRadius: 16, padding: '22px 24px', boxShadow: '0 1px 2px rgba(11,26,47,.06)' };
+  const cardStyle = { background: '#fff', border: `1px solid ${D_GRAY_200}`, borderRadius: 16, padding: '18px 20px', boxShadow: '0 1px 2px rgba(11,26,47,.06)' };
   const cardTitleStyle = { fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', color: D_NAVY_900, margin: 0 };
   const seeAllStyle = { fontSize: 12.5, fontWeight: 600, color: D_ORANGE, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', background: 'none', border: 0 };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* ── Stat cards ──────────────────────────────────────────────────── */}
       <div>
@@ -626,10 +626,10 @@ export default function StewardshipDashboard() {
       </div>
 
       {/* ── Two-column body ──────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.62fr 1fr', gap: 18, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.62fr 1fr', gap: 14, alignItems: 'start' }}>
 
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* Combo chart */}
           <div style={cardStyle}>
@@ -692,7 +692,7 @@ export default function StewardshipDashboard() {
         </div>
 
         {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* Donut — solo en escritorio */}
           {!isMobile && (
