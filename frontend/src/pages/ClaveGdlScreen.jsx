@@ -1,30 +1,30 @@
 import { useMemo } from 'react';
 import { paletaLogin } from '../theme/loginCampus';
 
-// Gris neutro de tags/copyright/volver, igual en todos los campus. El acento y
-// los fondos oscuros salen del tema del campus vía paletaLogin().
-const INK_300 = '#9A9A9A';
+// Todos los colores (acento, fondos oscuros, textos tenues) salen del tema del
+// campus vía paletaLogin(). Mismo lenguaje visual que RolesScreen.
 
 const ROLE_ICON = {
   pastor: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 21.5 7.1 18.2l.9-5.5-4-3.9L9.5 8z" strokeLinejoin="round" /></svg>,
   stewardship: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 7a2 2 0 0 1 2-2h13l3 4v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M3 9h18" /></svg>,
+  lider_ministerio: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" strokeLinejoin="round" /><circle cx="12" cy="12" r="2.6" /></svg>,
   anfitriones: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="9" cy="9" r="3.2" /><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5" strokeLinecap="round" /><circle cx="17" cy="10" r="2.5" /></svg>,
   punto_encuentro: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z" /><circle cx="12" cy="9" r="2.5" /></svg>,
 };
-const ROLE_NAME = { pastor:'Pastor', stewardship:'Stewardship', anfitriones:'Anfitriones', punto_encuentro:'Punto de Encuentro' };
+const ROLE_NAME = { pastor:'Pastor', stewardship:'Stewardship', lider_ministerio:'Líder de Ministerio', anfitriones:'Anfitriones', punto_encuentro:'Punto de Encuentro' };
 const BackIcon = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 
 // CSS parametrizado por la paleta del campus (p). Para 'gdl' idéntico al previo.
 const cssFor = (p) => `
 .ocl-root{background:${p.bg};min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;position:relative;overflow:hidden;color:#fff;font-family:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;letter-spacing:-.006em;}
 .ocl-glow-tr{position:absolute;top:-180px;right:-140px;width:540px;height:540px;border-radius:50%;background:radial-gradient(circle,${p.glow},transparent 68%);pointer-events:none;}
-.ocl-glow-bl{position:absolute;bottom:-220px;left:-160px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.05),transparent 70%);pointer-events:none;}
+.ocl-glow-bl{position:absolute;bottom:-220px;left:-160px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,${p.glowBl},transparent 70%);pointer-events:none;}
 .ocl-wrap{width:100%;max-width:460px;position:relative;z-index:1;}
 .ocl-brand{text-align:center;margin-bottom:30px;}
-.ocl-brand img{width:172px;height:auto;display:block;margin:0 auto;}
-.ocl-tag{margin-top:14px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:${INK_300};}
+.ocl-brand img{width:150px;height:auto;display:block;margin:0 auto;}
+.ocl-tag{margin-top:12px;font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:${p.textSub};}
 .ocl-panel{background:${p.panel};border:1px solid rgba(255,255,255,.07);border-radius:22px;padding:26px 28px 28px;box-shadow:0 30px 80px rgba(0,0,0,.6);}
-.ocl-back{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:${INK_300};background:none;border:0;cursor:pointer;padding:0;margin-bottom:18px;font-family:inherit;}
+.ocl-back{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:${p.textSub};background:none;border:0;cursor:pointer;padding:0;margin-bottom:18px;font-family:inherit;}
 .ocl-back:hover{color:#fff;}
 .ocl-back svg{width:15px;height:15px;}
 .ocl-role-row{display:flex;align-items:center;gap:13px;margin-bottom:22px;}
@@ -40,7 +40,7 @@ const cssFor = (p) => `
 .ocl-btn:hover{background:${p.btnHover};}
 .ocl-btn:disabled{opacity:.6;cursor:default;}
 .ocl-error{color:#FF6B6B;font-size:12.5px;margin:-8px 0 14px;}
-.ocl-copyright{text-align:center;margin-top:24px;font-size:11.5px;color:${INK_300};opacity:.7;}
+.ocl-copyright{text-align:center;margin-top:24px;font-size:11px;color:${p.textFaint};}
 `;
 
 // NOTA: el componente conserva el nombre *GdlScreen aunque ahora también lo usa
