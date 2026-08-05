@@ -29,9 +29,6 @@ const TIPO_LABEL = {
 };
 const CAMPUS_LABEL = { ags: 'Ags', gdl: 'Gdl', mid: 'Mérida', todos: 'Todos los campus' };
 
-// Campus activo (para prellenar el formulario con el campus donde estás parado).
-const CAMPUS_ACTIVO = (typeof localStorage !== 'undefined' && localStorage.getItem('campus_activo')) || 'ags';
-
 const card = {
   fontFamily: FONT,
   border: '1px solid #E2E6EC',
@@ -84,7 +81,8 @@ export default function Avisos() {
 
   const [titulo, setTitulo]   = useState('');
   const [mensaje, setMensaje] = useState('');
-  const [campus, setCampus]   = useState(CAMPUS_ACTIVO);
+  // El campus del aviso lo pone el backend (el campus activo). Los 3 campus son
+  // independientes: cada quien solo manda al suyo, por eso ya no se elige aquí.
   const [ministerioId, setMinisterioId] = useState('');       // '' = todos
   const [tipo, setTipo]       = useState('todos');
 
@@ -158,7 +156,6 @@ export default function Avisos() {
     setCalculando(true);
     try {
       const { data } = await avisosApi.destinatarios({
-        campus,
         tipo_destinatario: tipo,
         ...(ministerioId ? { ministerio_id: ministerioId } : {}),
       });
@@ -178,7 +175,6 @@ export default function Avisos() {
       const { data } = await avisosApi.enviar({
         titulo: titulo.trim(),
         mensaje: mensaje.trim(),
-        campus,
         ministerio_id: ministerioId ? Number(ministerioId) : null,
         tipo_destinatario: tipo,
       });
@@ -259,15 +255,6 @@ export default function Avisos() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Campus</label>
-              <select value={campus} onChange={(e) => setCampus(e.target.value)} style={fieldStyle}>
-                <option value="ags">Aguascalientes</option>
-                <option value="gdl">Guadalajara</option>
-                <option value="mid">Mérida</option>
-                <option value="todos">Todos los campus</option>
-              </select>
-            </div>
             <div>
               <label style={labelStyle}>Ministerio</label>
               <select value={ministerioId} onChange={(e) => setMinisterioId(e.target.value)} style={fieldStyle}>

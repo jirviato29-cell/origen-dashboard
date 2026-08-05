@@ -4,10 +4,10 @@ const webpush = require('web-push');
 const pool    = require('../db/pool');
 const { JWT_SECRET } = require('../lib/session');
 const {
-  campusValidosAviso,
   TIPOS_VALIDOS,
   filtroSuscripciones,
 } = require('../lib/avisosDestinatarios');
+const { campusValidos } = require('../lib/campusValidos');
 
 const router = express.Router();
 
@@ -41,6 +41,22 @@ function requireStewardship(req, res, next) {
 }
 router.use(requireStewardship);
 
+// Campus del stewardship. Los 3 campus son INDEPENDIENTES: cada quien manda y ve
+// SOLO los avisos de su campus. El campus NUNCA se toma del body/query (no se
+// puede elegir otro campus); se resuelve del contexto del usuario, igual que
+// campusMiddleware: con acceso_global opera en el campus activo (header
+// X-Campus, validado); el resto, siempre en su propio campus del token.
+function campusDelUsuario(req) {
+  const p = req.authUsuario || {};
+  const reales = campusValidos();
+  const propio = p.campus || reales[0] || 'ags';
+  if (p.acceso_global) {
+    const h = req.headers['x-campus'];
+    return (h && reales.includes(h)) ? h : propio;
+  }
+  return propio;
+}
+
 // ── Constantes de validación ──────────────────────────────────────────────────
 // El título sigue corto (cabe en la notificación). El texto ahora puede ser
 // largo: NO viaja completo en el push, sino que se lee dentro de la app.
@@ -68,11 +84,10 @@ function adelantoTexto(texto, max = ADELANTO_MAX) {
 // notificaciones activas llegaría el aviso con los filtros dados.
 router.get('/destinatarios', async (req, res) => {
   try {
-    const campus = String(req.query.campus || '');
+    const campus = campusDelUsuario(req);   // del contexto, no del query
     const tipo   = String(req.query.tipo_destinatario || '');
     const ministerioId = req.query.ministerio_id ? Number(req.query.ministerio_id) : null;
 
-    if (!campusValidosAviso().includes(campus)) return res.status(400).json({ error: 'Campus inválido' });
     if (!TIPOS_VALIDOS.includes(tipo))    return res.status(400).json({ error: 'Tipo de destinatario inválido' });
     if (ministerioId !== null && !Number.isInteger(ministerioId)) {
       return res.status(400).json({ error: 'ministerio_id inválido' });
@@ -109,7 +124,7 @@ router.post('/', async (req, res) => {
   try {
     const titulo  = typeof req.body?.titulo  === 'string' ? req.body.titulo.trim()  : '';
     const mensaje = typeof req.body?.mensaje === 'string' ? req.body.mensaje.trim() : '';
-    const campus  = req.body?.campus;
+    const campus  = campusDelUsuario(req);   // del contexto, no del body: solo su campus
     const tipo    = req.body?.tipo_destinatario;
     const ministerioId = req.body?.ministerio_id == null ? null : Number(req.body.ministerio_id);
 
@@ -118,7 +133,6 @@ router.post('/', async (req, res) => {
     if (!mensaje) return res.status(400).json({ error: 'El mensaje es obligatorio' });
     if (titulo.length  > MAX_TITULO)  return res.status(400).json({ error: `El título no puede pasar de ${MAX_TITULO} caracteres` });
     if (mensaje.length > MAX_MENSAJE) return res.status(400).json({ error: `El mensaje no puede pasar de ${MAX_MENSAJE} caracteres` });
-    if (!campusValidosAviso().includes(campus)) return res.status(400).json({ error: 'Campus inválido' });
     if (!TIPOS_VALIDOS.includes(tipo))    return res.status(400).json({ error: 'Tipo de destinatario inválido' });
     if (ministerioId !== null && !Number.isInteger(ministerioId)) {
       return res.status(400).json({ error: 'ministerio_id inválido' });
@@ -226,10 +240,11 @@ router.post('/', async (req, res) => {
 // (mismo criterio que la lectura del destinatario, filtroAvisosParaUsuario).
 router.get('/', async (req, res) => {
   try {
-    const campusHdr = String(req.headers['x-campus'] || '').trim();
-    const campusOk  = campusHdr && campusHdr !== 'todos' && campusValidosAviso().includes(campusHdr);
-    const filtro    = campusOk ? `WHERE (a.campus = $1 OR a.campus = 'todos')` : '';
-    const params    = campusOk ? [campusHdr] : [];
+    const campus = campusDelUsuario(req);   // del contexto, no del header crudo
+    // Incluye los avisos históricos enviados a 'todos' (antes existía esa opción);
+    // los envíos nuevos ya son siempre de un solo campus.
+    const filtro = `WHERE (a.campus = $1 OR a.campus = 'todos')`;
+    const params = [campus];
 
     const { rows } = await pool.query(
       `SELECT a.id,
