@@ -11,9 +11,7 @@ import { useIsMobile } from '../../utils/useIsMobile';
 
 
 // ── Design tokens — paleta AGS, ambos campus ──────────────────────────────────
-const D_NAVY_950  = '#0B1A2F';
 const D_NAVY_900  = '#112540';
-const D_NAVY_800  = '#1A3354';
 const D_NAVY_600  = '#305181';
 const D_NAVY_300  = '#9CB0CC';
 const D_NAVY_100  = '#DCE4EF';
@@ -517,10 +515,12 @@ export default function StewardshipDashboard() {
   const avgChange   = asistencia.length > 0 ? Math.round(totalNuevos / asistencia.length) : 0;
 
   // ── Próximos eventos ───────────────────────────────────────────────────────
+  // Solo los próximos 4 (los que caben en la columna derecha). El filtro por
+  // fecha hace que los que ya pasaron desaparezcan solos.
   const proximosEventos = [...calendario]
     .filter(e => toDateISO(e.fecha) >= hoyStr)
     .sort((a, b) => toDateISO(a.fecha).localeCompare(toDateISO(b.fecha)))
-    .slice(0, 5);
+    .slice(0, 4);
 
   // ── Tendencias: último servicio vs PROMEDIO HISTÓRICO ──────────────────────
   // Los porcentajes comparan el último dato contra el promedio histórico (los
@@ -623,7 +623,6 @@ export default function StewardshipDashboard() {
       ))}
     </div>
   ) : undefined;
-  const mesLabel = hoy.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
 
   const cardStyle = { background: '#fff', border: `1px solid ${D_GRAY_200}`, borderRadius: 16, padding: '22px 24px', boxShadow: '0 1px 2px rgba(11,26,47,.06)' };
   const cardTitleStyle = { fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', color: D_NAVY_900, margin: 0 };
@@ -716,7 +715,27 @@ export default function StewardshipDashboard() {
             </div>
           )}
 
-          {/* Próximos eventos */}
+        </div>
+
+        {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+          {/* Donut — solo en escritorio */}
+          {!isMobile && (
+            <div style={cardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
+                <h3 style={cardTitleStyle}>Composición de asistencia</h3>
+              </div>
+              <DonutChart
+                adultos={asistencia.reduce((s, a) => s + (a.adultos     || 0), 0)}
+                voluntarios={asistencia.reduce((s, a) => s + (a.voluntarios || 0), 0)}
+                ninos={asistencia.reduce((s, a) => s + (a.ninos       || 0), 0)}
+                bebes={asistencia.reduce((s, a) => s + (a.bebes       || 0), 0)}
+              />
+            </div>
+          )}
+
+          {/* Próximos eventos (movido aquí, máx. 4) */}
           {proximosEventos.length > 0 && (
             <div style={cardStyle}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12 }}>
@@ -735,31 +754,31 @@ export default function StewardshipDashboard() {
                 const borderColor = isPE ? D_ORANGE : D_NAVY_600;
                 return (
                   <div key={e.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 16,
-                    padding: '14px 16px', borderRadius: 10,
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px', borderRadius: 10,
                     border: `1px solid ${D_GRAY_200}`,
                     borderLeft: `3px solid ${borderColor}`,
                     background: '#fff', marginBottom: 10, position: 'relative',
                     transition: '.13s',
                   }}>
                     {/* Date box */}
-                    <div style={{ width: 54, flexShrink: 0, textAlign: 'center' }}>
-                      <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-0.03em', color: D_NAVY_900, lineHeight: 1 }}>{dayNum ?? '?'}</div>
+                    <div style={{ width: 44, flexShrink: 0, textAlign: 'center' }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em', color: D_NAVY_900, lineHeight: 1 }}>{dayNum ?? '?'}</div>
                       <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: D_GRAY_500, marginTop: 3 }}>{monthAbb ?? ''}</div>
                     </div>
                     {/* Body */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: D_NAVY_900, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: D_NAVY_900, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {e.nombre}
                         {isPE && (
-                          <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: '#FFF4EE', color: '#E0561B', border: '1px solid #FFE5D6' }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#FFF4EE', color: '#E0561B', border: '1px solid #FFE5D6' }}>
                             Pto. Encuentro
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {e.tipo && (
-                          <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 6, background: D_NAVY_100, color: '#244169' }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: D_NAVY_100, color: '#244169' }}>
                             {e.tipo}
                           </span>
                         )}
@@ -768,35 +787,9 @@ export default function StewardshipDashboard() {
                         )}
                       </div>
                     </div>
-                    {/* Registered count (right) */}
-                    {count !== null && (
-                      <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                        <div style={{ fontSize: 19, fontWeight: 800, color: count === 0 ? D_GRAY_200 : D_NAVY_900, letterSpacing: '-0.03em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
-                        <div style={{ fontSize: 10.5, color: D_GRAY_500, fontWeight: 600, marginTop: 3 }}>registrados</div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
-            </div>
-          )}
-        </div>
-
-        {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-
-          {/* Donut — solo en escritorio */}
-          {!isMobile && (
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
-                <h3 style={cardTitleStyle}>Composición de asistencia</h3>
-              </div>
-              <DonutChart
-                adultos={asistencia.reduce((s, a) => s + (a.adultos     || 0), 0)}
-                voluntarios={asistencia.reduce((s, a) => s + (a.voluntarios || 0), 0)}
-                ninos={asistencia.reduce((s, a) => s + (a.ninos       || 0), 0)}
-                bebes={asistencia.reduce((s, a) => s + (a.bebes       || 0), 0)}
-              />
             </div>
           )}
 
