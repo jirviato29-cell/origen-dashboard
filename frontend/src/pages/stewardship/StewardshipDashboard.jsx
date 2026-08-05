@@ -284,7 +284,7 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
       background: feature ? D_NAVY_900 : '#fff',
       border: `1px solid ${feature ? D_NAVY_900 : D_GRAY_200}`,
       borderRadius: 14,
-      padding: '12px 15px 10px',
+      padding: '11px 14px 9px',
       boxShadow: '0 1px 2px rgba(11,26,47,.06)',
       transition: '.15s',
     }}>
@@ -318,7 +318,7 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
         </>
       ) : (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: feature ? D_NAVY_300 : D_GRAY_500 }}>{label}</span>
               {trend && (
@@ -350,7 +350,7 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
             {value}
           </div>
           <div style={{
-            marginTop: 8, paddingTop: 8,
+            marginTop: 7, paddingTop: 7,
             borderTop: `1px solid ${feature ? 'rgba(255,255,255,.10)' : D_GRAY_100}`,
             fontSize: 11, color: feature ? D_NAVY_300 : D_GRAY_500,
           }}>
@@ -557,14 +557,14 @@ export default function StewardshipDashboard() {
   // Desglose en 4 columnas parejas (Ad · Vol · Niños · Bbs). Cada celda apila el
   // número arriba y la etiqueta abajo, así "Niños" cabe sin cortarse.
   const extraAsist  = !loading && ultimoServicio ? (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5, marginTop: 8 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5, marginTop: 6 }}>
       {[
         ['Ad', ultimoServicio.adultos ?? 0],
         ['Vol', ultimoServicio.voluntarios ?? 0],
         ['Niños', ultimoServicio.ninos ?? 0],
         ['Bbs', ultimoServicio.bebes ?? 0],
       ].map(([k, v]) => (
-        <div key={k} style={{ background: D_GRAY_100, borderRadius: 7, padding: '5px 2px', textAlign: 'center' }}>
+        <div key={k} style={{ background: D_GRAY_100, borderRadius: 7, padding: '4px 2px', textAlign: 'center' }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: D_NAVY_900, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
           <div style={{ fontSize: 9, fontWeight: 600, color: D_GRAY_500, marginTop: 2 }}>{k}</div>
         </div>
@@ -574,13 +574,13 @@ export default function StewardshipDashboard() {
   // Desglose de la ofrenda del último servicio por método de pago (efectivo /
   // terminal / transferencia), en 3 columnas parejas.
   const extraOfrenda = !loading && ultimaOfrenda ? (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5, marginTop: 8 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5, marginTop: 6 }}>
       {[
         ['Efectivo',   Number(ultimaOfrenda.efectivo) || 0],
         ['Terminal',   Number(ultimaOfrenda.terminal) || 0],
         ['Transfer.',  Number(ultimaOfrenda.transferencia) || 0],
       ].map(([k, v]) => (
-        <div key={k} style={{ background: D_GRAY_100, borderRadius: 7, padding: '5px 3px', textAlign: 'center' }}>
+        <div key={k} style={{ background: D_GRAY_100, borderRadius: 7, padding: '4px 3px', textAlign: 'center' }}>
           <div style={{ fontSize: 12.5, fontWeight: 800, color: D_NAVY_900, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}><FmtMoney amount={v} /></div>
           <div style={{ fontSize: 9, fontWeight: 600, color: D_GRAY_500, marginTop: 3 }}>{k}</div>
         </div>
@@ -590,13 +590,13 @@ export default function StewardshipDashboard() {
   // Desglose de participación por CANTIDAD (número de sobres, de transacciones
   // con tarjeta y de transferencias) del último servicio — no montos.
   const extraParticip = !loading && ultimaOfrenda ? (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5, marginTop: 8 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5, marginTop: 6 }}>
       {[
         ['Sobres',    Number(ultimaOfrenda.ofrendas_sobres) || 0],
         ['Tarjeta',   Number(ultimaOfrenda.ofrendas_terminal) || 0],
         ['Transfer.', Number(ultimaOfrenda.ofrendas_transferencia) || 0],
       ].map(([k, v]) => (
-        <div key={k} style={{ background: D_GRAY_100, borderRadius: 7, padding: '5px 3px', textAlign: 'center' }}>
+        <div key={k} style={{ background: D_GRAY_100, borderRadius: 7, padding: '4px 3px', textAlign: 'center' }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: D_NAVY_900, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
           <div style={{ fontSize: 9, fontWeight: 600, color: D_GRAY_500, marginTop: 2 }}>{k}</div>
         </div>

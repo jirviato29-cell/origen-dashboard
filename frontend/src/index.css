@@ -136,11 +136,17 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 22px 14px;
+  padding: 16px 14px;
   gap: 4px;
   overflow-y: auto;
   transition: width .22s cubic-bezier(.4,0,.2,1);
 }
+/* Sin barra de scroll visible en el sidebar (se ve fea sobre el fondo oscuro);
+   sigue haciendo scroll con la rueda/trackpad. */
+.sidebar,
+.sidebar nav { scrollbar-width: none; -ms-overflow-style: none; }
+.sidebar::-webkit-scrollbar,
+.sidebar nav::-webkit-scrollbar { width: 0; height: 0; }
 .sidebar-brand {
   display: flex; align-items: center; justify-content: flex-start;
   padding: 4px 10px 14px;
