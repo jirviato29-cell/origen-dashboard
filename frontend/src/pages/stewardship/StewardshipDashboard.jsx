@@ -627,7 +627,8 @@ export default function StewardshipDashboard() {
           rejilla de 5 columnas: 5 tarjetas iguales arriba; abajo la gráfica ocupa
           3 columnas y el lado derecho 2. Así todas las tarjetas miden lo mismo y
           "Saldo en caja"/"Gastos por pagar" quedan exactamente sobre "Composición
-          de asistencia" (mismos tracks de columna → alineación perfecta). */}
+          de asistencia" (mismos tracks de columna → alineación perfecta). Nota:
+          en tablet/móvil las tarjetas se apilan y no aplica el span. */}
       <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 10 }}>
         {cardAsistencia}{cardOfrenda}{cardParticip}{cardSaldo}{cardPorPagar}
       </div>
