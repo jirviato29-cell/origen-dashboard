@@ -609,11 +609,11 @@ export default function StewardshipDashboard() {
   const seeAllStyle = { fontSize: 12.5, fontWeight: 600, color: D_ORANGE, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', background: 'none', border: 0 };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
       {/* ── Stat cards ──────────────────────────────────────────────────── */}
       <div>
-      <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 10 }}>
         <StatCard label="Asistencia"        value={vAsistencia} sub={subAsist}          extra={extraAsist} trend={trendAsist}    icon={I.users} />
         <StatCard label="Ofrendas"          value={vOfrenda}    sub="del último servicio" extra={extraOfrenda} trend={trendOfrenda}  icon={I.coin} />
         <StatCard label="Participación"     value={vParticip}   sub="del último servicio" extra={extraParticip} trend={trendParticip} icon={I.coin} />
@@ -626,10 +626,10 @@ export default function StewardshipDashboard() {
       </div>
 
       {/* ── Two-column body ──────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.62fr 1fr', gap: 12, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.62fr 1fr', gap: 10, alignItems: 'start' }}>
 
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
           {/* Combo chart */}
           <div style={cardStyle}>
@@ -692,7 +692,7 @@ export default function StewardshipDashboard() {
         </div>
 
         {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
           {/* Donut — solo en escritorio */}
           {!isMobile && (
