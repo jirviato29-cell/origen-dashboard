@@ -553,10 +553,11 @@ export default function StewardshipDashboard() {
   // Los porcentajes comparan el último dato contra el promedio histórico (los
   // mismos promedios que se muestran abajo), NO contra el servicio anterior.
   // Los tres son cambio RELATIVO vs su promedio: (último − promedio) / promedio.
+  // Solo servicios CON dato: se excluyen los de participación 0 (servicios donde
+  // no se pudo calcular y quedaron en 0), que si no jalan el promedio hacia abajo.
   const participVals = ofrendas
-    .map(o => o.participacion)
-    .filter(p => p !== null && p !== undefined && !Number.isNaN(Number(p)))
-    .map(Number);
+    .map(o => Number(o.participacion))
+    .filter(p => !Number.isNaN(p) && p > 0);
   const avgParticip = participVals.length
     ? participVals.reduce((s, p) => s + p, 0) / participVals.length
     : null;
