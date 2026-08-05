@@ -2,16 +2,13 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, ROLES } from '../context/AuthContext';
 import { I } from '../components/Icons';
-import RolesGdlScreen from './RolesGdlScreen';
-import RolesMeridaScreen from './RolesMeridaScreen';
+import RolesScreen from './RolesScreen';
 import ClaveGdlScreen from './ClaveGdlScreen';
 
-// Campus que usan el flujo de login "oscuro" (pantalla de roles + pantalla de
-// clave). Antes era solo 'gdl'; ahora también Mérida ('mid'). Cada pantalla se
-// pinta con SU tema (se les pasa `campus`), no con el menta de Gdl.
-// NOTA: los componentes se siguen llamando *GdlScreen aunque ya sirven a 2
-// campus; no se renombran ahora para no tocar imports/rutas.
-const CAMPUS_LOGIN_ROLES = ['gdl', 'mid'];
+// Los 3 campus usan el MISMO flujo de login "oscuro" (selector de rol +
+// pantalla de clave), cada uno con SU color (se les pasa `campus`). El selector
+// de rol es RolesScreen (unificado); la clave sigue en ClaveGdlScreen.
+const CAMPUS_LOGIN_ROLES = ['ags', 'gdl', 'mid'];
 
 // ── Design tokens (del CSS de la referencia) ───────────────────────────────
 const NAVY_950 = '#0B1A2F';
@@ -204,9 +201,6 @@ export default function LoginPage() {
   };
 
   if (!selected && CAMPUS_LOGIN_ROLES.includes(campusActivo)) {
-    // Mérida usa su propia pantalla (opción 3 turquesa, tarjetas oscuras); Gdl
-    // sigue con la compartida (tarjetas blancas).
-    const RolesScreen = campusActivo === 'mid' ? RolesMeridaScreen : RolesGdlScreen;
     return <RolesScreen roles={ROLES_LIST} onSelect={setSelected} campus={campusActivo} />;
   }
 
