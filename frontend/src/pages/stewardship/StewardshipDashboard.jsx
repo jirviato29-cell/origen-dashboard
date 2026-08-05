@@ -109,7 +109,7 @@ function ComboTooltip({ active, payload, label }) {
 
 // ── ComboChart ────────────────────────────────────────────────────────────────
 
-function ComboChart({ data }) {
+function ComboChart({ data, fill = false }) {
   const lineDot = useMemo(() => makeLineDot(data.length), [data.length]);
 
   if (!data || data.length === 0) {
@@ -123,7 +123,7 @@ function ComboChart({ data }) {
   const fmtYLeft = v => v === 0 ? '0' : `${(v / 1000).toFixed(0)}k`;
 
   return (
-    <ResponsiveContainer width="100%" height={240}>
+    <ResponsiveContainer width="100%" height={fill ? '100%' : 240}>
       <ComposedChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
         <CartesianGrid
           vertical={false}
@@ -634,13 +634,16 @@ export default function StewardshipDashboard() {
       </div>
 
       {/* ── Two-column body ──────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'repeat(5, 1fr)', gap: 10, alignItems: 'start' }}>
+      {/* En escritorio las 2 columnas se estiran a la misma altura (stretch) y la
+          gráfica crece para llenar la de la izquierda, así el fondo de la tarjeta
+          de la gráfica queda al mismo nivel que el de "Próximos eventos". */}
+      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'repeat(5, 1fr)', gap: 10, alignItems: isTablet ? 'start' : 'stretch' }}>
 
         {/* ── LEFT COLUMN (gráfica) — 3 de 5 columnas ─────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, gridColumn: isTablet ? undefined : 'span 3', minWidth: 0 }}>
 
           {/* Combo chart */}
-          <div style={cardStyle}>
+          <div style={isTablet ? cardStyle : { ...cardStyle, display: 'flex', flexDirection: 'column', flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12 }}>
               <h3 style={cardTitleStyle}>Asistencia y ofrendas</h3>
               <button style={seeAllStyle} onClick={() => navigate(`${base}/asistencia`)}>
@@ -660,7 +663,15 @@ export default function StewardshipDashboard() {
               </span>
             </div>
 
-            <ComboChart data={chartData} />
+            {isTablet ? (
+              <ComboChart data={chartData} />
+            ) : (
+              // Escritorio: la gráfica llena el espacio disponible para que la
+              // tarjeta crezca hasta alinear su fondo con "Próximos eventos".
+              <div style={{ flex: 1, minHeight: 240 }}>
+                <ComboChart data={chartData} fill />
+              </div>
+            )}
 
             {/* Footer stats */}
             {chartData.length > 0 && (
