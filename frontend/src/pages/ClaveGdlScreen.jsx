@@ -12,6 +12,8 @@ const ROLE_ICON = {
   punto_encuentro: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z" /><circle cx="12" cy="9" r="2.5" /></svg>,
 };
 const ROLE_NAME = { pastor:'Pastor', stewardship:'Stewardship', lider_ministerio:'Líder de Ministerio', anfitriones:'Anfitriones', punto_encuentro:'Punto de Encuentro' };
+// Lockup "origen <Campus>" por campus (mismos assets que RolesScreen).
+const LOGO = { ags: '/assets/origen-ags-white.png', mid: '/assets/origen-merida-white.png' };
 const BackIcon = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 
 // CSS parametrizado por la paleta del campus (p). Para 'gdl' idéntico al previo.
@@ -55,8 +57,8 @@ export default function ClaveGdlScreen({ roleId, clave, setClave, onSubmit, onBa
       <div className="ocl-glow-bl" />
       <div className="ocl-wrap">
         <div className="ocl-brand">
-          {/* Mérida usa su lockup "origen Mérida"; el resto, la marca genérica. */}
-          <img src={campus === 'mid' ? '/assets/origen-merida-white.png' : '/assets/origen-mark-blanco.png'} alt={campus === 'mid' ? 'Origen Mérida' : 'Origen'} />
+          {/* Cada campus con su lockup "origen <Campus>"; Gdl usa la marca a secas. */}
+          <img src={LOGO[campus] || '/assets/origen-mark-blanco.png'} alt={`Origen ${p.nombre}`} />
           <div className="ocl-tag">Dashboard interno · Campus {p.nombre}</div>
         </div>
         <div className="ocl-panel">

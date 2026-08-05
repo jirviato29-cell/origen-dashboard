@@ -34,8 +34,13 @@ const ROLE_META = {
   anfitriones:      { name: 'Anfitriones',         desc: 'Asistencia',          icon: IconHosts, coral: true },
 };
 
-// Logo del encabezado: Mérida usa su lockup "origen Mérida"; el resto la marca.
-const LOGO = { mid: '/assets/origen-merida-white.png' };
+// Logo del encabezado: cada campus usa su lockup "origen <Campus>" (blanco sobre
+// transparente); si no hay, cae en la marca genérica. Gdl no tiene variante de
+// ciudad, así que usa la marca "origen" a secas.
+const LOGO = {
+  ags: '/assets/origen-ags-white.png',
+  mid: '/assets/origen-merida-white.png',
+};
 
 // CSS parametrizado por la paleta del campus (p). Tarjetas centradas (ícono
 // arriba, nombre y descripción debajo, todo centrado).
