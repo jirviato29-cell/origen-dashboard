@@ -59,7 +59,7 @@ export default function ClaveGdlScreen({ roleId, clave, setClave, onSubmit, onBa
         <div className="ocl-brand">
           {/* Cada campus con su lockup "origen <Campus>"; Gdl usa la marca a secas.
               Los lockups con ciudad se muestran más grandes (ver RolesScreen). */}
-          <img src={LOGO[campus] || '/assets/origen-mark-blanco.png'} alt={`Origen ${p.nombre}`} style={LOGO[campus] ? { width: 190 } : undefined} />
+          <img src={LOGO[campus] || '/assets/origen-mark-blanco.png'} alt={`Origen ${p.nombre}`} style={LOGO[campus] ? { width: 220 } : undefined} />
           <div className="ocl-tag">Dashboard interno · Campus {p.nombre}</div>
         </div>
         <div className="ocl-panel">
