@@ -592,16 +592,20 @@ export default function StewardshipDashboard() {
   // Desglose de asistencia en chips que se acomodan solos (antes era texto con
   // puntitos y se veía apretado). Los "nuevos" van junto al número grande (119
   // /N nuevos), no aquí.
-  const chipBase = { fontSize: 10.5, fontWeight: 700, borderRadius: 6, padding: '2px 7px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' };
+  // Desglose en 4 columnas parejas (Ad · Vol · Niños · Bbs). Cada celda apila el
+  // número arriba y la etiqueta abajo, así "Niños" cabe sin cortarse.
   const extraAsist  = !loading && ultimoServicio ? (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5, marginTop: 8 }}>
       {[
         ['Ad', ultimoServicio.adultos ?? 0],
         ['Vol', ultimoServicio.voluntarios ?? 0],
         ['Niños', ultimoServicio.ninos ?? 0],
         ['Bbs', ultimoServicio.bebes ?? 0],
       ].map(([k, v]) => (
-        <span key={k} style={{ ...chipBase, background: D_GRAY_100, color: D_GRAY_700 }}>{k} {v}</span>
+        <div key={k} style={{ background: D_GRAY_100, borderRadius: 7, padding: '5px 2px', textAlign: 'center' }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: D_NAVY_900, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+          <div style={{ fontSize: 9, fontWeight: 600, color: D_GRAY_500, marginTop: 2 }}>{k}</div>
+        </div>
       ))}
     </div>
   ) : undefined;
