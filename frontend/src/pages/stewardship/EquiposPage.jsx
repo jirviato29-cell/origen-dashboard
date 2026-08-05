@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { equiposApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { puedeRegistrar } from '../../permissions';
+import GestorMinisterios from '../../components/GestorMinisterios';
 
 // "Líderes y equipos" (stewardship): vista global de SOLO LECTURA. Una tarjeta
 // por ministerio del campus con su(s) líder(es) y sus voluntarios CON CUENTA.
@@ -65,24 +68,29 @@ const CSS = `
 `;
 
 export default function EquiposPage() {
+  const { permisos } = useAuth();
+  const canWrite = puedeRegistrar(permisos, 'voluntarios');
+
   const [ministerios, setMinisterios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    let vivo = true;
-    (async () => {
-      try {
-        const { data } = await equiposApi.getAll();
-        if (vivo) { setMinisterios(Array.isArray(data.ministerios) ? data.ministerios : []); setError(''); }
-      } catch (err) {
-        if (vivo) { setError(err.response?.data?.error || 'No se pudieron cargar los equipos'); setMinisterios([]); }
-      } finally {
-        if (vivo) setCargando(false);
-      }
-    })();
-    return () => { vivo = false; };
+  // Carga (re)utilizable: la usa el efecto inicial y también el gestor de
+  // ministerios tras crear/editar/borrar, para que la vista se actualice.
+  const cargar = useCallback(async () => {
+    try {
+      const { data } = await equiposApi.getAll();
+      setMinisterios(Array.isArray(data.ministerios) ? data.ministerios : []);
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.error || 'No se pudieron cargar los equipos');
+      setMinisterios([]);
+    } finally {
+      setCargando(false);
+    }
   }, []);
+
+  useEffect(() => { (async () => { await cargar(); })(); }, [cargar]);
 
   const resumen = useMemo(() => {
     const conLider = ministerios.filter(m => m.lideres.length > 0).length;
@@ -98,9 +106,17 @@ export default function EquiposPage() {
         <h2 className="eq-h2">Líderes y equipos</h2>
         <div className="eq-h2-note">
           Cómo está organizado cada ministerio del campus: su líder y sus voluntarios con cuenta.
-          Solo lectura — los líderes se asignan en <Link to="/stewardship/configuracion">Configuración</Link>.
+          Los líderes se asignan en <Link to="/stewardship/configuracion">Configuración</Link>.
         </div>
       </div>
+
+      {/* Gestor de ministerios (crear/editar/borrar) — espejo del Directorio de
+          voluntarios para que no quede escondido. Solo con permiso de escritura. */}
+      {canWrite && (
+        <div style={{ marginBottom: 18 }}>
+          <GestorMinisterios onChange={cargar} />
+        </div>
+      )}
 
       {!cargando && !error && ministerios.length > 0 && (
         <div className="eq-summary">
@@ -117,7 +133,11 @@ export default function EquiposPage() {
       ) : ministerios.length === 0 && !error ? (
         <div className="eq-empty">
           <div className="eq-empty-t">Aún no hay ministerios en este campus</div>
-          <div className="eq-empty-s">Créalos en Configuración para empezar a armar los equipos.</div>
+          <div className="eq-empty-s">
+            {canWrite
+              ? 'Créalos arriba en «Ministerios del campus» para empezar a armar los equipos.'
+              : 'Créalos en Configuración para empezar a armar los equipos.'}
+          </div>
         </div>
       ) : (
         <div className="eq-grid">
