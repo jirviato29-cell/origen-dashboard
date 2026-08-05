@@ -103,7 +103,10 @@ export default function RolesScreen({ roles = [], onSelect, campus = 'ags' }) {
       <div className="rs-glow-bl" />
       <div className="rs-wrap">
         <div className="rs-brand">
-          <img src={logo} alt={`Origen ${p.nombre}`} />
+          {/* Los lockups con ciudad ("origen Mérida/Aguascalientes") se muestran
+              más grandes: la palabra "origen" es más pequeña que en la marca sola
+              por el subtítulo de ciudad, así que se compensa con más ancho. */}
+          <img src={logo} alt={`Origen ${p.nombre}`} style={LOGO[campus] ? { width: 190 } : undefined} />
           <div className="rs-tag">Dashboard interno · Campus {p.nombre}</div>
         </div>
         <div className="rs-panel">
