@@ -5,7 +5,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
-import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi, voluntariosApi, visitantesApi, campusApi } from '../../services/api';
+import { asistenciaApi, ofrendasApi, gastosApi, calendarioApi, participantesApi, visitantesApi, campusApi } from '../../services/api';
 import { I } from '../../components/Icons';
 import { useIsMobile } from '../../utils/useIsMobile';
 
@@ -26,7 +26,6 @@ const D_GREEN_400 = '#3DD68C';
 const D_RED_600   = '#D23B36';
 const D_CYAN      = '#00B4D8';
 const D_LINE_ASIST      = D_ORANGE;
-const D_ORANGE_600      = '#E0561B';
 const D_ORANGE_BORDER   = '#FFE5D6';
 const DONUT_ADULTOS     = D_NAVY_900;
 const DONUT_VOLUNTARIOS = D_NAVY_600;
@@ -36,7 +35,6 @@ const FEAT_IC_BG        = 'rgba(255,107,43,.16)';
 const FEAT_IC_BORDER    = 'rgba(255,107,43,.3)';
 const FEAT_IC_COLOR     = '#FF8A52';
 
-const MESES_ES    = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const MESES_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -388,7 +386,6 @@ export default function StewardshipDashboard() {
   const [gastosPorPagar, setGastosPorPagar] = useState([]);
   const [calendario,     setCalendario]     = useState([]);
   const [participantes,  setParticipantes]  = useState([]);
-  const [voluntarios,    setVoluntarios]    = useState([]);
   const [visitantes,     setVisitantes]     = useState([]);
   const [saldoInicial,   setSaldoInicial]   = useState(0);
   const [loading,        setLoading]        = useState(true);
@@ -397,14 +394,13 @@ export default function StewardshipDashboard() {
     let cancelled = false;
     (async () => {
       try {
-        const [ra, ro, rg, rgp, rc, rp, rv, rvt, rcampus] = await Promise.all([
+        const [ra, ro, rg, rgp, rc, rp, rvt, rcampus] = await Promise.all([
           asistenciaApi.getAll({ year, limit: 200 }),
           ofrendasApi.getAll({ year }),
           gastosApi.getAll({ year, pagado: 'true' }),
           gastosApi.getAll({ year, pagado: 'false' }),
           calendarioApi.getAll({ year }),
           participantesApi.getAll(),
-          voluntariosApi.getAll(),
           visitantesApi.getAll(),
           campusApi.getAll(),
         ]);
@@ -415,7 +411,6 @@ export default function StewardshipDashboard() {
           setGastosPorPagar(rgp.data || []);
           setCalendario(rc.data      || []);
           setParticipantes(rp.data   || []);
-          setVoluntarios(rv.data     || []);
           setVisitantes(rvt.data     || []);
           const activo = localStorage.getItem('campus_activo') || 'ags';
           const cd     = (rcampus.data || []).find(c => c.id === activo);
@@ -426,21 +421,6 @@ export default function StewardshipDashboard() {
     })();
     return () => { cancelled = true; };
   }, [year]);
-
-  // ── Cumpleaños de este mes ─────────────────────────────────────────────────
-  const bdayThisMonth = useMemo(() => {
-    const mesActual = hoy.getMonth();
-    return voluntarios
-      .filter(v => v.cumpleanos)
-      .map(v => {
-        const iso = v.cumpleanos.slice(0, 10);
-        const d = new Date(iso + 'T00:00:00');
-        if (isNaN(d)) return null;
-        return { nombre: v.nombre, ministerio: v.ministerios?.[0]?.nombre || null, day: d.getDate(), month: d.getMonth() };
-      })
-      .filter(e => e && e.month === mesActual)
-      .sort((a, b) => a.day - b.day);
-  }, [voluntarios, hoy]);
 
   // ── Último servicio ────────────────────────────────────────────────────────
   const ultimoServicio = [...asistencia].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))[0] ?? null;
@@ -515,12 +495,12 @@ export default function StewardshipDashboard() {
   const avgChange   = asistencia.length > 0 ? Math.round(totalNuevos / asistencia.length) : 0;
 
   // ── Próximos eventos ───────────────────────────────────────────────────────
-  // Solo los próximos 4 (los que caben en la columna derecha). El filtro por
-  // fecha hace que los que ya pasaron desaparezcan solos.
+  // Solo los próximos 3 (para que la columna derecha quede al mismo nivel que la
+  // gráfica). El filtro por fecha hace que los que ya pasaron desaparezcan solos.
   const proximosEventos = [...calendario]
     .filter(e => toDateISO(e.fecha) >= hoyStr)
     .sort((a, b) => toDateISO(a.fecha).localeCompare(toDateISO(b.fecha)))
-    .slice(0, 4);
+    .slice(0, 3);
 
   // ── Tendencias: último servicio vs PROMEDIO HISTÓRICO ──────────────────────
   // Los porcentajes comparan el último dato contra el promedio histórico (los
@@ -792,76 +772,6 @@ export default function StewardshipDashboard() {
               })}
             </div>
           )}
-
-          {/* Cumpleaños de este mes */}
-          <div style={cardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-              <h3 style={cardTitleStyle}>Cumpleaños de este mes</h3>
-              {bdayThisMonth.length > 0 && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#244169', background: D_NAVY_100, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
-                  {MESES_ES[hoy.getMonth()].charAt(0).toUpperCase() + MESES_ES[hoy.getMonth()].slice(1)} · {bdayThisMonth.length}
-                </span>
-              )}
-            </div>
-            {loading ? (
-              <div style={{ color: D_GRAY_500, fontSize: 13, padding: '14px 0' }}>Cargando…</div>
-            ) : bdayThisMonth.length === 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '14px 0' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: D_GRAY_100, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D_GRAY_500 }}>
-                  <I.users size={20} />
-                </div>
-                <div style={{ fontSize: 13, color: D_GRAY_500 }}>Nadie cumple años este mes</div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {(() => {
-                  const todayDay = hoy.getDate();
-                  const proxIdx  = bdayThisMonth.findIndex(p => p.day > todayDay);
-                  return bdayThisMonth.map((p, i) => {
-                    const isHoy    = p.day === todayDay;
-                    const isProx   = !isHoy && i === proxIdx;
-                    const initials = (p.nombre || '').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
-                    const diasFaltan = p.day - todayDay;
-                    return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{
-                          width: 36, height: 36, borderRadius: '50%',
-                          background: (isHoy || isProx) ? D_ORANGE : D_NAVY_600,
-                          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 12, fontWeight: 700, flexShrink: 0,
-                        }}>
-                          {initials}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: D_NAVY_900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {p.nombre}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: D_GRAY_500, marginTop: 1 }}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                              <rect x="3" y="10" width="18" height="11" rx="2"/><path d="M3 10h18"/><path d="M8 10V7"/><path d="M12 10V7"/><path d="M16 10V7"/><circle cx="8" cy="6" r="1"/><circle cx="12" cy="6" r="1"/><circle cx="16" cy="6" r="1"/>
-                            </svg>
-                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {p.day} de {MESES_ES[p.month]}{p.ministerio ? ` · ${p.ministerio}` : ''}
-                            </span>
-                          </div>
-                        </div>
-                        {isHoy && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: D_ORANGE_600, background: D_ORANGE_50, borderRadius: 20, padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            ¡Hoy!
-                          </span>
-                        )}
-                        {isProx && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#244169', background: D_NAVY_100, borderRadius: 20, padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            en {diasFaltan} días
-                          </span>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
-          </div>
 
         </div>
       </div>
