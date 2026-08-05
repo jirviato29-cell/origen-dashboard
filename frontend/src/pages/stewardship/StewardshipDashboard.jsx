@@ -623,31 +623,20 @@ export default function StewardshipDashboard() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
       {/* ── Stat cards ──────────────────────────────────────────────────── */}
-      <div>
-        {isMobile || isTablet ? (
-          <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 10 }}>
-            {cardAsistencia}{cardOfrenda}{cardParticip}{cardSaldo}{cardPorPagar}
-          </div>
-        ) : (
-          // Escritorio: mismo reparto 1.62fr/1fr que el cuerpo → los 3 primeros
-          // KPIs sobre la gráfica y los 2 últimos (Saldo, Gastos) sobre la
-          // tarjeta "Composición de asistencia".
-          <div style={{ display: 'grid', gridTemplateColumns: '1.62fr 1fr', gap: 10 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-              {cardAsistencia}{cardOfrenda}{cardParticip}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-              {cardSaldo}{cardPorPagar}
-            </div>
-          </div>
-        )}
+      {/* En escritorio, la fila de KPIs y el cuerpo de abajo comparten la MISMA
+          rejilla de 5 columnas: 5 tarjetas iguales arriba; abajo la gráfica ocupa
+          3 columnas y el lado derecho 2. Así todas las tarjetas miden lo mismo y
+          "Saldo en caja"/"Gastos por pagar" quedan exactamente sobre "Composición
+          de asistencia" (mismos tracks de columna → alineación perfecta). */}
+      <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 10 }}>
+        {cardAsistencia}{cardOfrenda}{cardParticip}{cardSaldo}{cardPorPagar}
       </div>
 
       {/* ── Two-column body ──────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.62fr 1fr', gap: 10, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'repeat(5, 1fr)', gap: 10, alignItems: 'start' }}>
 
-        {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* ── LEFT COLUMN (gráfica) — 3 de 5 columnas ─────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, gridColumn: isTablet ? undefined : 'span 3', minWidth: 0 }}>
 
           {/* Combo chart */}
           <div style={cardStyle}>
@@ -709,8 +698,8 @@ export default function StewardshipDashboard() {
 
         </div>
 
-        {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* ── RIGHT COLUMN ── 2 de 5 columnas (bajo Saldo/Gastos) ─────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, gridColumn: isTablet ? undefined : 'span 2', minWidth: 0 }}>
 
           {/* Donut — solo en escritorio */}
           {!isMobile && (
