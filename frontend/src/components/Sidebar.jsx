@@ -189,7 +189,16 @@ export default function Sidebar({ onClose }) {
     ? [...(navByRole[role] || []), ...navByRole[ROLES.LIDER_MINISTERIO]]
     : (navByRole[role] || []);
   const campusActivo = localStorage.getItem('campus_activo') || 'ags';
-  const logoSrc = campusActivo === 'gdl' ? '/assets/origen-mark-blanco.png' : '/assets/origen-logo-white.png';
+  // Logo del sidebar por campus (mismos lockups que el login). Gdl no tiene
+  // variante de ciudad, usa la marca "origen" a secas.
+  const LOGO_CAMPUS = {
+    ags: '/assets/origen-ags-white.png',
+    gdl: '/assets/origen-mark-blanco.png',
+    mid: '/assets/origen-merida-white.png',
+  };
+  const logoSrc = LOGO_CAMPUS[campusActivo] || '/assets/origen-mark-blanco.png';
+  // Los lockups con ciudad (Ags/Mérida) un poco más anchos para que se lea la ciudad.
+  const logoWidth = campusActivo === 'gdl' ? '140px' : '162px';
 
   const handleLogout = () => {
     logout();
@@ -204,7 +213,7 @@ export default function Sidebar({ onClose }) {
         <img
           src={logoSrc}
           alt="Origen"
-          style={{ width: '140px', height: 'auto' }}
+          style={{ width: logoWidth, height: 'auto' }}
         />
 
         {onClose && (
