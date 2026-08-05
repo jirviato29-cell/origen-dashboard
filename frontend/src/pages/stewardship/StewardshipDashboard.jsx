@@ -23,11 +23,9 @@ const D_GRAY_700  = '#3D4654';
 const D_GRAY_500  = '#7A8699';
 const D_GRAY_200  = '#E2E6EC';
 const D_GRAY_100  = '#EEF1F5';
-const D_GRAY_50   = '#F6F7F9';
 const D_GREEN_600 = '#15915A';
 const D_GREEN_400 = '#3DD68C';
 const D_RED_600   = '#D23B36';
-const D_AMBER_600 = '#C98A14';
 const D_CYAN      = '#00B4D8';
 const D_LINE_ASIST      = D_ORANGE;
 const D_ORANGE_600      = '#E0561B';
@@ -369,35 +367,6 @@ function StatCard({ label, value, sub, extra, trend, feature = false, icon: Icon
   );
 }
 
-// ── QuickMiniBtn — icon bg navy-900 (first 2: orange) ────────────────────────
-
-function QuickMiniBtn({ icon: Icon, label, onClick, accent = false }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
-        padding: '13px 6px', borderRadius: 10,
-        border: `1px solid ${hovered ? D_NAVY_600 : D_GRAY_200}`,
-        background: hovered ? D_GRAY_50 : '#fff',
-        cursor: 'pointer', transition: '.13s', width: '100%',
-      }}
-    >
-      <div style={{
-        width: 34, height: 34, borderRadius: 9,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: accent ? D_ORANGE : D_NAVY_900,
-        color: '#fff', flexShrink: 0,
-      }}>
-        <Icon size={17} />
-      </div>
-      <span style={{ fontSize: 11, fontWeight: 600, color: D_NAVY_900, textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
-    </button>
-  );
-}
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
@@ -412,7 +381,6 @@ export default function StewardshipDashboard() {
 
   const year   = new Date().getFullYear();
   const hoy    = new Date();
-  const mes    = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
   const hoyStr = hoy.toISOString().slice(0, 10);
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -502,15 +470,8 @@ export default function StewardshipDashboard() {
     .reduce((s, g) => s + (Number(g.monto) || 0), 0);
   const saldoCaja         = saldoInicial + totalEfectivoCaja - totalGastosCaja;
 
-  // ── Resumen del mes ────────────────────────────────────────────────────────
-  const ingresosMes   = ofrendas
-    .filter(o => toDateISO(o.fecha)?.startsWith(mes))
-    .reduce((s, o) => s + (Number(o.efectivo) || 0) + (Number(o.terminal) || 0) + (Number(o.transferencia) || 0), 0);
-  const egresosMes    = gastos
-    .filter(g => toDateISO(g.fecha)?.startsWith(mes))
-    .reduce((s, g) => s + (Number(g.monto) || 0), 0);
+  // ── Gastos por pagar (para la tarjeta KPI "Gastos por pagar") ──────────────
   const porPagarTotal = gastosPorPagar.reduce((s, g) => s + (Number(g.monto) || 0), 0);
-  const balanceMes    = ingresosMes - egresosMes;
 
   // ── Chart data — últimos 8 domingos ───────────────────────────────────────
   const chartData = useMemo(() => {
@@ -907,59 +868,6 @@ export default function StewardshipDashboard() {
                 })()}
               </div>
             )}
-          </div>
-
-          {/* Resumen del mes */}
-          <div style={cardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
-              <div>
-                <h3 style={cardTitleStyle}>Resumen del mes</h3>
-              </div>
-              <button style={seeAllStyle} onClick={() => navigate(`${base}/balance`)}>
-                Ver <I.chevR size={13} />
-              </button>
-            </div>
-
-            {[
-              { label: 'Ingresos',  dot: D_GREEN_600, amt: loading ? '—' : `+ $${fmt(ingresosMes)}`,   cls: 'pos' },
-              { label: 'Egresos',   dot: D_RED_600,   amt: loading ? '—' : `− $${fmt(egresosMes)}`,    cls: 'neg' },
-              { label: 'Por pagar', dot: D_AMBER_600, amt: loading ? '—' : `− $${fmt(porPagarTotal)}`, cls: 'neg' },
-            ].map(({ label, dot, amt, cls }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: `1px solid ${D_GRAY_100}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, color: D_GRAY_700, fontWeight: 500 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: dot }} />
-                  {label}
-                </div>
-                <span style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: cls === 'pos' ? D_GREEN_600 : D_RED_600 }}>
-                  {amt}
-                </span>
-              </div>
-            ))}
-
-            {/* Balance row — dark navy */}
-            <div style={{ marginTop: 14, background: D_NAVY_900, borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 11.5, color: D_NAVY_300, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                Balance neto
-              </span>
-              <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', color: loading ? D_NAVY_300 : balanceMes >= 0 ? D_GREEN_400 : '#FF8A52', fontVariantNumeric: 'tabular-nums' }}>
-                {loading ? '—' : `${balanceMes >= 0 ? '+' : '−'} $${fmt(Math.abs(balanceMes))}`}
-              </span>
-            </div>
-          </div>
-
-          {/* Acceso rápido */}
-          <div style={cardStyle}>
-            <div style={{ marginBottom: 14 }}>
-              <h3 style={cardTitleStyle}>Acceso rápido</h3>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 9 }}>
-              <QuickMiniBtn icon={I.arrowBarDown} label="Ingresos"       accent onClick={() => navigate(`${base}/ingresos`)} />
-              <QuickMiniBtn icon={I.receipt}      label="Gastos"         accent onClick={() => navigate(`${base}/gastos`)} />
-              <QuickMiniBtn icon={I.scale}        label="Finanzas"       onClick={() => navigate(`${base}/balance`)} />
-              <QuickMiniBtn icon={I.users}        label="Asistencia"     onClick={() => navigate(`${base}/asistencia`)} />
-              <QuickMiniBtn icon={I.pin}          label="Pto. Encuentro" onClick={() => navigate(`${base}/punto-encuentro`)} />
-              <QuickMiniBtn icon={I.calendar}     label="Calendario"     onClick={() => navigate(`${base}/calendario`)} />
-            </div>
           </div>
 
         </div>
