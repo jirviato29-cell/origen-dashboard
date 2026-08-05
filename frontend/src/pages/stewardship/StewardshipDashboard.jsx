@@ -397,7 +397,7 @@ export default function StewardshipDashboard() {
 
   const isMobile = useIsMobile(640);
   const isTablet = useIsMobile(1100);
-  const statCols = isMobile ? '1fr' : isTablet ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)';
+  const statCols = isMobile ? '1fr' : isTablet ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)';
 
   const year   = new Date().getFullYear();
   const hoy    = new Date();
@@ -580,6 +580,7 @@ export default function StewardshipDashboard() {
   const vParticip   = loading ? D_VAL : participacion !== null ? `${participacion}%`             : D_VAL;
   const vNuevos     = loading ? D_VAL : nuevos        !== null ? String(nuevos)                  : D_VAL;
   const vSaldo      = loading ? D_VAL : <FmtMoney amount={saldoCaja} signed />;
+  const vPorPagar   = loading ? D_VAL : <FmtMoney amount={porPagarTotal} />;
   const subAsist    = !loading && ultimaFecha ? fmtDate(ultimaFecha) : D_VAL;
   const extraAsist  = !loading && ultimoServicio
     ? `Ad ${ultimoServicio.adultos ?? 0} · Vol ${ultimoServicio.voluntarios ?? 0} · Niños ${ultimoServicio.ninos ?? 0} · Bbs ${ultimoServicio.bebes ?? 0}`
@@ -602,6 +603,8 @@ export default function StewardshipDashboard() {
         <StatCard label="Saldo en caja"     value={vSaldo}      sub={`efectivo · acumulado ${year}`} feature
           valColor={loading ? D_GREEN_400 : saldoCaja >= 0 ? D_GREEN_400 : D_RED_600}
           icon={I.cash} />
+        <StatCard label="Gastos por pagar"  value={vPorPagar}   sub="pendiente de pago"
+          valColor={D_RED_600} icon={I.clock} />
       </div>
 
       {/* ── Two-column body ──────────────────────────────────────────────── */}
