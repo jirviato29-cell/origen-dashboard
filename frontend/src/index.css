@@ -160,11 +160,11 @@ body {
 }
 .nav-section-label {
   font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase;
-  color: rgba(255,255,255,0.40); padding: 16px 10px 6px; font-weight: 600;
+  color: rgba(255,255,255,0.40); padding: 8px 10px 6px; font-weight: 600;
 }
 .nav-item {
   display: flex; align-items: center; gap: 11px;
-  padding: 9px 10px; border-radius: 8px;
+  padding: 7px 10px; border-radius: 8px;
   color: #9CB0CC; font-size: 13.5px; font-weight: 500;
   background: transparent; border: 0; width: 100%; text-align: left; cursor: pointer;
   transition: background .12s, color .12s;
