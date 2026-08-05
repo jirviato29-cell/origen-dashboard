@@ -52,9 +52,11 @@ const CSS = `
 
 /* cabecera */
 .ecs-head{text-align:center;margin-bottom:30px;}
-.ecs-head img{width:186px;height:auto;}
+.ecs-head img{width:186px;height:auto;display:block;margin:0 auto;}
 .ecs-eye{margin-top:16px;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#7E8CA3;}
-.ecs-h1{font-size:30px;font-weight:800;letter-spacing:-.035em;margin:12px 0 0;}
+/* Título + subtítulo: van ABAJO, después de las tarjetas (no en el encabezado). */
+.ecs-below{text-align:center;margin-top:30px;}
+.ecs-h1{font-size:30px;font-weight:800;letter-spacing:-.035em;margin:0;}
 .ecs-sub{font-size:14.5px;color:#8E9AAF;margin:9px 0 0;}
 
 /* tarjetas */
@@ -115,7 +117,7 @@ const CSS = `
 .ecs-gdl:hover .ecs-arrow{background:var(--gdl-ac);border-color:var(--gdl-ac);color:#04211C;}
 .ecs-mer:hover .ecs-arrow{background:var(--mer-ac);border-color:var(--mer-ac);color:#2A1408;}
 
-.ecs-foot{text-align:center;margin-top:26px;font-size:12.5px;color:#66718A;}
+.ecs-foot{text-align:center;margin-top:16px;font-size:12.5px;color:#66718A;}
 .ecs-loading{text-align:center;color:#8E9AAF;font-size:14px;}
 
 @media(max-width:880px){.ecs-grid{grid-template-columns:1fr;}.ecs-h1{font-size:26px;}}
@@ -156,8 +158,6 @@ export default function CampusPage() {
         <div className="ecs-head">
           <img src="/assets/origen-mark-blanco.png" alt="Origen" />
           <div className="ecs-eye">Origen Dashboard</div>
-          <h1 className="ecs-h1">Elige tu campus</h1>
-          <p className="ecs-sub">Cada campus tiene su propio tablero y sus propios equipos.</p>
         </div>
 
         {loading ? (
@@ -186,6 +186,11 @@ export default function CampusPage() {
             })}
           </div>
         )}
+
+        <div className="ecs-below">
+          <h1 className="ecs-h1">Elige tu campus</h1>
+          <p className="ecs-sub">Cada campus tiene su propio tablero y sus propios equipos.</p>
+        </div>
 
         <div className="ecs-foot">Dashboard interno · Origen</div>
       </div>
