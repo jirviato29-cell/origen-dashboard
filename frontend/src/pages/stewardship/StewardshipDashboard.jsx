@@ -724,9 +724,9 @@ export default function StewardshipDashboard() {
             {chartData.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? '12px 8px' : 0, justifyItems: isMobile ? 'start' : undefined, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D_GRAY_100}` }}>
                 {[
-                  { l: 'Asistencia promedio', v: asistencia.length ? `${promAsist} personas` : '—', sub: 'por domingo · promedio', green: false },
-                  { l: 'Ofrenda promedio',    v: asistencia.length ? `$${fmt(promOfrMes)}` : '—',   sub: 'por domingo · promedio', green: true },
-                  { l: 'Participación promedio', v: avgParticip !== null ? `${Math.round(avgParticip * 10) / 10}%` : '—', sub: avgGivers !== null ? `${avgGivers} ofrendas · promedio` : 'promedio', green: false },
+                  { l: 'Asistencia',    v: asistencia.length ? `${promAsist} personas` : '—', sub: 'por domingo · promedio', green: false },
+                  { l: 'Ofrenda',       v: asistencia.length ? `$${fmt(promOfrMes)}` : '—',   sub: 'por domingo · promedio', green: true },
+                  { l: 'Participación', v: avgParticip !== null ? `${Math.round(avgParticip * 10) / 10}%` : '—', sub: avgGivers !== null ? `${avgGivers} ofrendas · promedio` : 'promedio', green: false },
                   { l: 'Mayor asistencia',    v: mejorDomHistLabel, sub: mejorDomHist ? `${mejorDomHist.total} personas` : '', green: false },
                   { l: 'Nuevos por semana',   v: asistencia.length === 0 ? '—' : `▲ ${avgChange} p/sem`, sub: 'promedio', green: true },
                 ].map(({ l, v, green, sub }) => (
