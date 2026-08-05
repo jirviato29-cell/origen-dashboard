@@ -562,6 +562,15 @@ export default function StewardshipDashboard() {
     ? participVals.reduce((s, p) => s + p, 0) / participVals.length
     : null;
 
+  // Promedio de PERSONAS que dan ofrenda por servicio: número de aportaciones
+  // (sobres + tarjeta + transferencias), promediado sobre los servicios con dato.
+  const giversVals = ofrendas
+    .map(o => (Number(o.ofrendas_sobres) || 0) + (Number(o.ofrendas_terminal) || 0) + (Number(o.ofrendas_transferencia) || 0))
+    .filter(n => n > 0);
+  const avgGivers = giversVals.length
+    ? Math.round(giversVals.reduce((s, n) => s + n, 0) / giversVals.length)
+    : null;
+
   const trendAsist   = totalAsist !== null && promAsist > 0
     ? { up: totalAsist >= promAsist, label: `${Math.abs(Math.round((totalAsist - promAsist) / promAsist * 100))}%` }
     : null;
@@ -701,10 +710,11 @@ export default function StewardshipDashboard() {
 
             {/* Footer stats */}
             {chartData.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px 8px' : 0, justifyItems: isMobile ? 'start' : undefined, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D_GRAY_100}` }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? '12px 8px' : 0, justifyItems: isMobile ? 'start' : undefined, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D_GRAY_100}` }}>
                 {[
                   { l: 'Asistencia promedio', v: asistencia.length ? `${promAsist} personas` : '—', sub: 'por domingo · promedio histórico', green: false },
                   { l: 'Ofrenda promedio',    v: asistencia.length ? `$${fmt(promOfrMes)}` : '—',   sub: 'por domingo · promedio histórico', green: true },
+                  { l: 'Participación promedio', v: avgParticip !== null ? `${Math.round(avgParticip * 10) / 10}%` : '—', sub: avgGivers !== null ? `≈ ${avgGivers} dan ofrenda · prom. histórico` : 'promedio histórico', green: false },
                   { l: 'Mayor asistencia',    v: mejorDomHistLabel, sub: mejorDomHist ? `${mejorDomHist.total} personas` : '', green: false },
                   { l: 'Nuevos por semana',   v: asistencia.length === 0 ? '—' : `▲ ${avgChange} p/sem`, sub: 'promedio histórico', green: true },
                 ].map(({ l, v, green, sub }) => (
