@@ -316,7 +316,7 @@ export default function GastosPage() {
               dashed={spark2.length < 2} />
           </div>
           <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <span>{countMesTodo} {countMesTodo === 1 ? 'gasto registrado' : 'gastos registrados'} (pagados y por pagar)</span>
+            <span>{countMesTodo} {countMesTodo === 1 ? 'gasto registrado' : 'gastos registrados'}</span>
             {porPagarMesTotal > 0 && (
               <span>Por pagar: <b style={{ color: 'var(--danger)' }}>${fmtNum(porPagarMesTotal)}</b></span>
             )}
