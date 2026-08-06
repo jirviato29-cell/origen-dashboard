@@ -273,11 +273,11 @@ export default function IngresosPage() {
   const participacionUltimo = (uSobres > 0 && uDenom > 0)
     ? Math.round(uSobres / uDenom * 100) : null;
 
-  let totalSobresAnio = 0, totalDenomAnio = 0;
+  let totalSobresAnio = 0, totalDenomAnio = 0, domingosParticip = 0;
   ofrendas.filter(d => Number(d.ofrendas ?? 0) > 0).forEach(d => {
     const a   = asistByFecha[toISODate(d.fecha)];
     const den = (a?.adultos ?? 0) + (a?.voluntarios ?? 0);
-    if (den > 0) { totalSobresAnio += Number(d.ofrendas); totalDenomAnio += den; }
+    if (den > 0) { totalSobresAnio += Number(d.ofrendas); totalDenomAnio += den; domingosParticip += 1; }
   });
   const promedioParticipacion = totalDenomAnio > 0
     ? Math.round(totalSobresAnio / totalDenomAnio * 100) : null;
@@ -439,9 +439,14 @@ export default function IngresosPage() {
         <div className="card" style={{ padding: '16px 18px' }}>
           <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start', gap: isMobile ? 8 : 0 }}>
             <div>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: isMobile ? 3 : 10 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: isMobile ? 3 : 4 }}>
                 Promedio de participación
               </div>
+              {!isMobile && domingosParticip > 0 && (
+                <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 6 }}>
+                  {domingosParticip} domingos
+                </div>
+              )}
               {isMobile && (
                 <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
                   Total ofrendas del año: <b style={{ color: 'var(--black)' }}>{totalOfrendasAnio}</b>
