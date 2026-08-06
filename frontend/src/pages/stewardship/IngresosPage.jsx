@@ -418,14 +418,12 @@ export default function IngresosPage() {
                 <span>Efectivo <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.efectivo))}</b></span>
                 <span style={{ color: 'var(--border)' }}>·</span>
                 <span>Terminal <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.terminal))}</b></span>
-                <span style={{ color: 'var(--border)' }}>·</span>
-                <span>Sobres <b style={{ color: 'var(--black)' }}>{Number(ultimoDomingo.ofrendas ?? 0)}</b></span>
               </div>
               {participacionUltimo !== null && (
                 <div style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   <span>Participación <b style={{ color: 'var(--black)' }}>{participacionUltimo}%</b></span>
                   <span style={{ color: 'var(--border)' }}>·</span>
-                  <span><b style={{ color: 'var(--black)' }}>{uSobres}/{uDenom}</b> ofrendas</span>
+                  <span><b style={{ color: 'var(--black)' }}>{uSobres}</b> de <b style={{ color: 'var(--black)' }}>{uDenom}</b> asistentes</span>
                 </div>
               )}
             </div>
