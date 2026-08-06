@@ -99,25 +99,6 @@ const navByRole = {
   ],
 };
 
-const roleLabel = {
-  [ROLES.ADMINISTRACION]:  'Administración',
-  [ROLES.PASTOR]:          'Pastor Principal',
-  [ROLES.ANFITRIONES]:     'Anfitriones',
-  [ROLES.PUNTO_ENCUENTRO]: 'Punto de Encuentro',
-  [ROLES.STEWARDSHIP]:     'Stewardship',
-  [ROLES.LIDER_MINISTERIO]: 'Líder de Ministerio',
-  [ROLES.VOLUNTARIO]:       'Voluntario',
-};
-
-const roleInitials = {
-  [ROLES.ADMINISTRACION]:  'AD',
-  [ROLES.PASTOR]:          'DM',
-  [ROLES.ANFITRIONES]:     'MR',
-  [ROLES.PUNTO_ENCUENTRO]: 'PE',
-  [ROLES.STEWARDSHIP]:     'SW',
-  [ROLES.LIDER_MINISTERIO]: 'LM',
-  [ROLES.VOLUNTARIO]:       'VO',
-};
 
 // ─── Accordion nav item ────────────────────────────────────────────────────────
 
@@ -166,7 +147,7 @@ function NavAccordion({ item, onClose }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export default function Sidebar({ onClose }) {
-  const { role, userName, permisos, logout, ministerioId, activo } = useAuth();
+  const { role, permisos, logout, ministerioId, activo } = useAuth();
   // Líder de ministerio por la regla (no por el rol). Puede tener un rol distinto
   // (p. ej. punto_encuentro) y aun así ver la sección del panel de líder.
   const esLider = esLiderMinisterio({ rol: role, ministerio_id: ministerioId, activo });
@@ -305,26 +286,16 @@ export default function Sidebar({ onClose }) {
         ))}
       </nav>
 
-      {/* Footer – nombre real + rol + logout */}
+      {/* Footer – solo botón de salir (con flecha, para que se entienda) */}
       <div className="sidebar-footer">
-        <div className="avatar">
-          {userName ? userName.charAt(0).toUpperCase() : (roleInitials[role] ?? '?')}
-        </div>
-        <div className="user-meta" style={{ flex: 1, minWidth: 0 }}>
-          <div className="user-name">{userName || roleLabel[role]}</div>
-          <div className="user-role">{roleLabel[role]}</div>
-        </div>
         <button
           onClick={handleLogout}
+          className="nav-item"
           title="Cerrar sesión"
-          style={{
-            background: 'transparent', border: 0,
-            color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', flexShrink: 0,
-          }}
           aria-label="Cerrar sesión"
         >
-          <I.back size={16} />
+          <span className="nav-icon"><I.back size={18} /></span>
+          <span className="nav-label">Salir</span>
         </button>
       </div>
     </aside>
