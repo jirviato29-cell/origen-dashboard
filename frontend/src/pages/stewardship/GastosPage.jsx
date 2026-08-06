@@ -403,7 +403,7 @@ export default function GastosPage() {
             <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--muted)', fontSize: 13 }}>
               Sin gastos en {year}.
             </div>
-          ) : resumenMeses.map((r, idx) => {
+          ) : [...resumenMeses].reverse().map((r, idx) => {
             const activo = mesSeleccionado === r.mes;
             const isLast = idx === resumenMeses.length - 1;
             const catEntries = Object.entries(r.cats);
