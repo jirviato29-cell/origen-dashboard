@@ -155,9 +155,6 @@ export default function BienvenidaCasaPage() {
         }} />
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: ORANGE_500, marginBottom: 8 }}>
-              Registro de visitantes · Origen Aguascalientes
-            </div>
             <h2 style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-.03em', lineHeight: 1.15 }}>
               Bienvenida a Casa
             </h2>
