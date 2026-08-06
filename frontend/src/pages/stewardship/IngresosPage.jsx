@@ -632,7 +632,7 @@ export default function IngresosPage() {
               Sin registros de ofrendas para {year}.
             </div>
           )}
-          {resumenMeses.map((r, idx) => {
+          {[...resumenMeses].reverse().map((r, idx) => {
             const activo = mesSeleccionado === r.mes;
             const totM   = r.efectivo + r.terminal + r.transfer;
             const pctEfM = totM > 0 ? Math.round(r.efectivo / totM * 100) : 0;
