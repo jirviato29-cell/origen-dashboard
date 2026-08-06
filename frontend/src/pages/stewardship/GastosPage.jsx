@@ -315,11 +315,12 @@ export default function GastosPage() {
             <Sparkline values={spark2.length >= 2 ? spark2 : null} color="var(--danger)"
               dashed={spark2.length < 2} />
           </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <span>Pagado: <b style={{ color: 'var(--black)' }}>${fmtNum(totalMes)}</b></span>
-            {porPagarMesTotal > 0 && (
-              <span>Falta por pagar: <b style={{ color: 'var(--danger)' }}>${fmtNum(porPagarMesTotal)}</b></span>
-            )}
+          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)' }}>
+            {countMesTodo === 0
+              ? <span>Sin gastos este mes</span>
+              : porPagarMesTotal > 0
+                ? <span>Falta por pagar: <b style={{ color: 'var(--danger)' }}>${fmtNum(porPagarMesTotal)}</b></span>
+                : <span>Todo pagado</span>}
           </div>
         </div>
 
