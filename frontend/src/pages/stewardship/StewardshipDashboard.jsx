@@ -262,6 +262,43 @@ function DonutChart({ adultos = 0, voluntarios = 0, ninos = 0, bebes = 0 }) {
   );
 }
 
+// ── Composición de asistencia con toggle Año / Mes ───────────────────────────
+// Muestra el donut sumando toda la asistencia del AÑO o solo la del MES en curso.
+function ComposicionCard({ asistencia, hoy, cardStyle, cardTitleStyle }) {
+  const [vista, setVista] = useState('anio'); // 'anio' | 'mes'
+  const mesPrefix = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  const fuente = vista === 'mes'
+    ? asistencia.filter(a => (toDateISO(a.fecha) || '').startsWith(mesPrefix))
+    : asistencia;
+  const sum = (k) => fuente.reduce((s, a) => s + (a[k] || 0), 0);
+
+  return (
+    <div style={cardStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
+        <h3 style={cardTitleStyle}>Composición de asistencia</h3>
+        <div style={{ display: 'flex', gap: 5 }}>
+          {[['anio', 'Año'], ['mes', 'Mes']].map(([id, txt]) => (
+            <button
+              key={id}
+              onClick={() => setVista(id)}
+              style={{
+                fontSize: 11.5, fontWeight: 700, padding: '4px 11px', borderRadius: 8, cursor: 'pointer',
+                border: `1px solid ${vista === id ? D_NAVY_900 : D_GRAY_200}`,
+                background: vista === id ? D_NAVY_900 : '#fff',
+                color: vista === id ? '#fff' : D_GRAY_500,
+                transition: '.12s',
+              }}
+            >
+              {txt}
+            </button>
+          ))}
+        </div>
+      </div>
+      <DonutChart adultos={sum('adultos')} voluntarios={sum('voluntarios')} ninos={sum('ninos')} bebes={sum('bebes')} />
+    </div>
+  );
+}
+
 // ── FmtMoney — parte entera grande, centavos superíndice pequeño ─────────────
 
 function FmtMoney({ amount, signed = false }) {
@@ -695,17 +732,7 @@ export default function StewardshipDashboard() {
 
           {/* Composición de asistencia — solo en móvil */}
           {isMobile && (
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
-                <h3 style={cardTitleStyle}>Composición de asistencia</h3>
-              </div>
-              <DonutChart
-                adultos={asistencia.reduce((s, a) => s + (a.adultos     || 0), 0)}
-                voluntarios={asistencia.reduce((s, a) => s + (a.voluntarios || 0), 0)}
-                ninos={asistencia.reduce((s, a) => s + (a.ninos       || 0), 0)}
-                bebes={asistencia.reduce((s, a) => s + (a.bebes       || 0), 0)}
-              />
-            </div>
+            <ComposicionCard asistencia={asistencia} hoy={hoy} cardStyle={cardStyle} cardTitleStyle={cardTitleStyle} />
           )}
 
         </div>
@@ -713,19 +740,9 @@ export default function StewardshipDashboard() {
         {/* ── RIGHT COLUMN ── 2 de 5 columnas (bajo Saldo/Gastos) ─────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, gridColumn: isTablet ? undefined : 'span 2', minWidth: 0 }}>
 
-          {/* Donut — solo en escritorio */}
+          {/* Composición — solo en escritorio */}
           {!isMobile && (
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
-                <h3 style={cardTitleStyle}>Composición de asistencia</h3>
-              </div>
-              <DonutChart
-                adultos={asistencia.reduce((s, a) => s + (a.adultos     || 0), 0)}
-                voluntarios={asistencia.reduce((s, a) => s + (a.voluntarios || 0), 0)}
-                ninos={asistencia.reduce((s, a) => s + (a.ninos       || 0), 0)}
-                bebes={asistencia.reduce((s, a) => s + (a.bebes       || 0), 0)}
-              />
-            </div>
+            <ComposicionCard asistencia={asistencia} hoy={hoy} cardStyle={cardStyle} cardTitleStyle={cardTitleStyle} />
           )}
 
           {/* Próximos eventos (movido aquí, máx. 4) */}
