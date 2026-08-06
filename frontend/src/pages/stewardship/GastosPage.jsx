@@ -274,9 +274,6 @@ export default function GastosPage() {
             <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span>{fmtFecha(ultimoGasto.fecha)}</span>
               <span style={{ color: 'var(--border)' }}>·</span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
-                {ultimoGasto.concepto}
-              </span>
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
