@@ -201,14 +201,15 @@ function LineChart({ data, slim = false }) {
 }
 
 // ── Gráfica de participación por mes (% de asistentes que dieron ofrenda) ──────
+// De BARRAS, para que no se confunda con la gráfica de línea de ingresos.
 function ParticipChart({ data, slim = false, color = '#305181' }) {
   const [hovered, setHovered] = useState(null);
   const pad = { left: 50, right: 20, top: 24, bottom: 50 };
 
-  if (!data || data.length < 2) {
+  if (!data || data.length === 0) {
     return (
       <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
-        Sin suficientes datos para mostrar la gráfica
+        Sin datos de participación para mostrar
       </div>
     );
   }
@@ -220,12 +221,15 @@ function ParticipChart({ data, slim = false, color = '#305181' }) {
   const yMax   = Math.ceil(maxVal / yStep) * yStep || yStep;
   const yTicks = Array.from({ length: Math.floor(yMax / yStep) + 1 }, (_, i) => i * yStep);
 
-  const toX = i => pad.left + (i / (data.length - 1)) * chartW;
-  const toY = v => pad.top + chartH - (v / yMax) * chartH;
-  const pts = data.map((d, i) => ({ x: toX(i), y: toY(d.pct), d }));
-
-  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const areaPath = `${linePath} L${pts[pts.length - 1].x.toFixed(1)},${(pad.top + chartH).toFixed(1)} L${pad.left},${(pad.top + chartH).toFixed(1)} Z`;
+  const baseY = pad.top + chartH;
+  const toY   = v => baseY - (v / yMax) * chartH;
+  const bandW = chartW / data.length;
+  const barW  = Math.min(bandW * 0.5, 46);
+  const bars  = data.map((d, i) => {
+    const cx = pad.left + bandW * (i + 0.5);
+    const y  = toY(d.pct);
+    return { cx, y, h: Math.max(baseY - y, 1), d };
+  });
 
   return (
     <div style={{ position: 'relative' }}>
@@ -236,28 +240,25 @@ function ParticipChart({ data, slim = false, color = '#305181' }) {
             <text x={pad.left - 10} y={toY(v) + 4} textAnchor="end" fontSize={10} fill="var(--muted)" fontFamily="var(--font-mono)">{v}%</text>
           </g>
         ))}
-        <line x1={pad.left} x2={VW - pad.right} y1={pad.top + chartH} y2={pad.top + chartH} stroke="var(--border)" strokeWidth={1} />
-        {pts.map((p, i) => (
-          <text key={i} x={p.x} y={pad.top + chartH + 16} textAnchor="middle" fontSize={10} fill="var(--muted)">{slim ? p.d.label.slice(0, 3) : p.d.label}</text>
-        ))}
-        <path d={areaPath} fill={color} opacity={0.10} />
-        <path d={linePath} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-        {hovered !== null && (
-          <line x1={pts[hovered].x} x2={pts[hovered].x} y1={pad.top} y2={pad.top + chartH} stroke={color} strokeWidth={1} strokeDasharray="4 3" opacity={0.4} />
-        )}
-        {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={hovered === i ? 6.5 : 4} fill={hovered === i ? color : 'white'} stroke={color} strokeWidth={2} style={{ cursor: 'pointer' }} onMouseEnter={() => setHovered(i)} />
+        {bars.map((b, i) => (
+          <g key={i} onMouseEnter={() => setHovered(i)} style={{ cursor: 'pointer' }}>
+            <rect x={b.cx - bandW / 2} y={pad.top} width={bandW} height={chartH} fill="transparent" />
+            <rect x={b.cx - barW / 2} y={b.y} width={barW} height={b.h} rx={5}
+              fill={color} opacity={hovered === null || hovered === i ? 1 : 0.4} />
+            <text x={b.cx} y={b.y - 7} textAnchor="middle" fontSize={11} fontWeight={700} fill={color}>{b.d.pct}%</text>
+            <text x={b.cx} y={baseY + 16} textAnchor="middle" fontSize={10} fill="var(--muted)">{slim ? b.d.label.slice(0, 3) : b.d.label}</text>
+          </g>
         ))}
       </svg>
       {hovered !== null && (() => {
-        const p = pts[hovered];
-        const lPct = (p.x / VW) * 100, tPct = (p.y / VH) * 100;
+        const b = bars[hovered];
+        const lPct = (b.cx / VW) * 100, tPct = (b.y / VH) * 100;
         const tx = lPct > 72 ? '-92%' : lPct < 20 ? '8%' : '-50%';
-        const ty = tPct < 30 ? '14%' : '-115%';
+        const ty = tPct < 30 ? '14%' : '-120%';
         return (
           <div style={{ position: 'absolute', left: `${lPct}%`, top: `${tPct}%`, transform: `translate(${tx}, ${ty})`, pointerEvents: 'none', background: 'var(--black)', color: 'white', borderRadius: 10, padding: '8px 12px', fontSize: 12.5, boxShadow: '0 6px 24px rgba(0,0,0,0.28)', whiteSpace: 'nowrap', zIndex: 20 }}>
-            <div style={{ fontWeight: 700, marginBottom: 2 }}>{p.d.label}</div>
-            <div>Participación <b>{p.d.pct}%</b></div>
+            <div style={{ fontWeight: 700, marginBottom: 2 }}>{b.d.label}</div>
+            <div>Participación <b>{b.d.pct}%</b></div>
           </div>
         );
       })()}
