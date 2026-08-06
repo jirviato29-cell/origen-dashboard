@@ -220,7 +220,6 @@ export default function GastosPorPagarPage() {
   const { permisos } = useAuth();
   const canWrite = puedeRegistrar(permisos, 'gastos');
   const isMobile = useIsMobile();
-  const isTablet = useIsMobile(1100);
 
   const [pendientes, setPendientes] = useState([]);
   const [pagadosMes, setPagadosMes] = useState([]);
@@ -354,18 +353,6 @@ export default function GastosPorPagarPage() {
   const totalGdl           = pagadosGdl.reduce((s, g) => s + Number(g.monto), 0);
   const totalDonacion      = pagadosDonacion.reduce((s, g) => s + Number(g.monto), 0);
 
-  // Aging groups (only non-empty)
-  const agingGroups = [
-    { st: 'vencido',    label: 'Vencido',                  color: RED },
-    { st: 'porvencer',  label: 'Por vencer · 0–7 días',    color: AMBER },
-    { st: 'programado', label: 'Programado · 8–30 días',   color: NAVY_300 },
-    { st: 'sin-fecha',  label: 'Sin fecha de vencimiento', color: 'var(--border-strong)' },
-  ].map(g => ({
-    ...g,
-    total: classified.filter(c => c._status === g.st).reduce((s, c) => s + Number(c.monto), 0),
-    count: classified.filter(c => c._status === g.st).length,
-  })).filter(g => g.count > 0);
-
   // Donut segments by categoria
   const catMap = {};
   pendientes.forEach(g => {
@@ -426,38 +413,7 @@ export default function GastosPorPagarPage() {
       </div>
 
       {/* ── Analítica: Antigüedad + Dona ──────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.4fr 1fr', gap: 14, alignItems: 'stretch' }}>
-
-        {/* Antigüedad de saldos */}
-        <div className="card">
-          <div className="card-head">
-            <div>
-              <h3 className="card-title">Antigüedad de saldos</h3>
-              <div className="card-sub">Distribución de lo pendiente · {fmt(totalPendiente)}</div>
-            </div>
-          </div>
-          {totalPendiente === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '28px 0 12px' }}>Sin gastos pendientes.</p>
-          ) : (
-            <>
-              <div style={{ display: 'flex', height: 14, borderRadius: 999, overflow: 'hidden', gap: 2, background: 'var(--surface-3)', marginTop: 18 }}>
-                {agingGroups.map(g => (
-                  <div key={g.st} style={{ width: `${(g.total / totalPendiente * 100).toFixed(1)}%`, background: g.color, height: '100%' }} />
-                ))}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginTop: 16 }}>
-                {agingGroups.map(g => (
-                  <div key={g.st} style={{ display: 'grid', gridTemplateColumns: '12px 1fr auto auto', gap: 10, alignItems: 'center' }}>
-                    <span style={{ width: 12, height: 12, borderRadius: 3, background: g.color, display: 'block' }} />
-                    <span style={{ fontSize: 12.5, color: 'var(--ink-2)', fontWeight: 500 }}>{g.label}</span>
-                    <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{g.count} {g.count === 1 ? 'gasto' : 'gastos'}</span>
-                    <span style={{ fontSize: 13, color: NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums', minWidth: 72, textAlign: 'right' }}>{fmt(g.total)}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14, alignItems: 'stretch' }}>
 
         {/* Pendiente por categoría */}
         <div className="card">
