@@ -413,12 +413,21 @@ export default function IngresosPage() {
             </div>
           </div>
           {!isMobile && ultimoDomingo && (
-            <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <span>Efectivo <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.efectivo))}</b></span>
-              <span style={{ color: 'var(--border)' }}>·</span>
-              <span>Terminal <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.terminal))}</b></span>
-              <span style={{ color: 'var(--border)' }}>·</span>
-              <span>Sobres <b style={{ color: 'var(--black)' }}>{Number(ultimoDomingo.ofrendas ?? 0)}</b></span>
+            <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <span>Efectivo <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.efectivo))}</b></span>
+                <span style={{ color: 'var(--border)' }}>·</span>
+                <span>Terminal <b style={{ color: 'var(--black)' }}>{fmt(Number(ultimoDomingo.terminal))}</b></span>
+                <span style={{ color: 'var(--border)' }}>·</span>
+                <span>Sobres <b style={{ color: 'var(--black)' }}>{Number(ultimoDomingo.ofrendas ?? 0)}</b></span>
+              </div>
+              {participacionUltimo !== null && (
+                <div style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <span>Participación <b style={{ color: 'var(--black)' }}>{participacionUltimo}%</b></span>
+                  <span style={{ color: 'var(--border)' }}>·</span>
+                  <span><b style={{ color: 'var(--black)' }}>{uSobres}/{uDenom}</b> ofrendas</span>
+                </div>
+              )}
             </div>
           )}
           {!isMobile && !ultimoDomingo && (
