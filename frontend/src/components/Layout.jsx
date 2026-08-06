@@ -5,7 +5,6 @@ import { esLiderMinisterio } from '../lib/liderMinisterio';
 import useLiderPerfil from '../hooks/useLiderPerfil';
 import { puedeRegistrar } from '../permissions';
 import { useRegistrarModal } from '../context/RegistrarModalContext';
-import { useGastosModal } from '../context/GastosModalContext';
 import { useOfrendasModal } from '../context/OfrendasModalContext';
 import { useAsistenciaStewModal } from '../context/AsistenciaStewModalContext';
 import { useCalendarioModal } from '../context/CalendarioModalContext';
@@ -73,7 +72,6 @@ export default function Layout() {
   const esLider = esLiderMinisterio({ rol: role, ministerio_id: ministerioId, activo })
     || role === ROLES.LIDER_MINISTERIO;
   const { openModal }                       = useRegistrarModal();
-  const { openModal: openGastosModal }      = useGastosModal();
   const { openModal: openOfrendasModal }    = useOfrendasModal();
   const { openModal: openAsistenciaModal } = useAsistenciaStewModal();
   const { openModal: openCalendarioModal } = useCalendarioModal();
@@ -94,7 +92,6 @@ export default function Layout() {
     || (path.startsWith('/avisos/') ? { section: 'Avisos', title: 'Aviso' } : { section: '', title: '' });
 
   const isStewardship    = role === ROLES.STEWARDSHIP;
-  const isGastosPorPagar = path.endsWith('/gastos-por-pagar');
   const isGastos         = path.endsWith('/gastos');
   const isIngresos       = path.endsWith('/ingresos');
   const isAsistencia     = path.endsWith('/asistencia');
@@ -184,12 +181,6 @@ export default function Layout() {
               </button>
             )}
 
-            {/* Stewardship — Registrar gasto por pagar */}
-            {isStewardship && isGastosPorPagar && (
-              <button className="btn btn-primary" onClick={() => openGastosModal(false)}>
-                <I.plus size={15} /><span className="topbar-btn-label"> Registrar gasto</span>
-              </button>
-            )}
 
             {/* Asistencia — solo si tiene permiso de registrar en asistencia (stewardship: true) */}
             {isAsistencia && canRegAsistencia && (
