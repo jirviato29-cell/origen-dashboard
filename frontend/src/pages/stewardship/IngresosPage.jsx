@@ -200,6 +200,71 @@ function LineChart({ data, slim = false }) {
   );
 }
 
+// ── Gráfica de participación por mes (% de asistentes que dieron ofrenda) ──────
+function ParticipChart({ data, slim = false, color = '#305181' }) {
+  const [hovered, setHovered] = useState(null);
+  const pad = { left: 50, right: 20, top: 24, bottom: 50 };
+
+  if (!data || data.length < 2) {
+    return (
+      <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
+        Sin suficientes datos para mostrar la gráfica
+      </div>
+    );
+  }
+
+  const chartW = VW - pad.left - pad.right;
+  const chartH = VH - pad.top - pad.bottom;
+  const maxVal = Math.max(...data.map(d => d.pct), 10);
+  const yStep  = 5;
+  const yMax   = Math.ceil(maxVal / yStep) * yStep || yStep;
+  const yTicks = Array.from({ length: Math.floor(yMax / yStep) + 1 }, (_, i) => i * yStep);
+
+  const toX = i => pad.left + (i / (data.length - 1)) * chartW;
+  const toY = v => pad.top + chartH - (v / yMax) * chartH;
+  const pts = data.map((d, i) => ({ x: toX(i), y: toY(d.pct), d }));
+
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const areaPath = `${linePath} L${pts[pts.length - 1].x.toFixed(1)},${(pad.top + chartH).toFixed(1)} L${pad.left},${(pad.top + chartH).toFixed(1)} Z`;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }} onMouseLeave={() => setHovered(null)}>
+        {yTicks.map(v => (
+          <g key={v}>
+            <line x1={pad.left} x2={VW - pad.right} y1={toY(v)} y2={toY(v)} stroke="var(--border)" strokeWidth={v === 0 ? 1.2 : 0.7} strokeDasharray={v === 0 ? '' : '3 4'} />
+            <text x={pad.left - 10} y={toY(v) + 4} textAnchor="end" fontSize={10} fill="var(--muted)" fontFamily="var(--font-mono)">{v}%</text>
+          </g>
+        ))}
+        <line x1={pad.left} x2={VW - pad.right} y1={pad.top + chartH} y2={pad.top + chartH} stroke="var(--border)" strokeWidth={1} />
+        {pts.map((p, i) => (
+          <text key={i} x={p.x} y={pad.top + chartH + 16} textAnchor="middle" fontSize={10} fill="var(--muted)">{slim ? p.d.label.slice(0, 3) : p.d.label}</text>
+        ))}
+        <path d={areaPath} fill={color} opacity={0.10} />
+        <path d={linePath} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+        {hovered !== null && (
+          <line x1={pts[hovered].x} x2={pts[hovered].x} y1={pad.top} y2={pad.top + chartH} stroke={color} strokeWidth={1} strokeDasharray="4 3" opacity={0.4} />
+        )}
+        {pts.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={hovered === i ? 6.5 : 4} fill={hovered === i ? color : 'white'} stroke={color} strokeWidth={2} style={{ cursor: 'pointer' }} onMouseEnter={() => setHovered(i)} />
+        ))}
+      </svg>
+      {hovered !== null && (() => {
+        const p = pts[hovered];
+        const lPct = (p.x / VW) * 100, tPct = (p.y / VH) * 100;
+        const tx = lPct > 72 ? '-92%' : lPct < 20 ? '8%' : '-50%';
+        const ty = tPct < 30 ? '14%' : '-115%';
+        return (
+          <div style={{ position: 'absolute', left: `${lPct}%`, top: `${tPct}%`, transform: `translate(${tx}, ${ty})`, pointerEvents: 'none', background: 'var(--black)', color: 'white', borderRadius: 10, padding: '8px 12px', fontSize: 12.5, boxShadow: '0 6px 24px rgba(0,0,0,0.28)', whiteSpace: 'nowrap', zIndex: 20 }}>
+            <div style={{ fontWeight: 700, marginBottom: 2 }}>{p.d.label}</div>
+            <div>Participación <b>{p.d.pct}%</b></div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function IngresosPage() {
@@ -324,6 +389,10 @@ export default function IngresosPage() {
   const mesesConDatos = resumenMeses.filter(r => r.total > 0);
   const mesAlto = mesesConDatos.length ? mesesConDatos.reduce((a, b) => (b.total > a.total ? b : a)) : null;
   const mesBajo = mesesConDatos.length ? mesesConDatos.reduce((a, b) => (b.total < a.total ? b : a)) : null;
+  // Participación por mes (solo meses con dato) para la gráfica de abajo.
+  const participData = resumenMeses
+    .filter(r => r.participMes !== null)
+    .map(r => ({ label: r.label, pct: r.participMes }));
 
   // ── Sparkline data ────────────────────────────────────────────────────────
   // Card 1: last 6 domingo totals (chronological)
@@ -706,28 +775,43 @@ export default function IngresosPage() {
           })}
         </div>
 
-        {/* Line chart */}
-        <div className="card" style={{ padding: '20px 20px 16px' }}>
-          <div className="card-head" style={{ marginBottom: 16 }}>
-            <div>
-              <h3 className="card-title">{chartTitle}</h3>
-              <div className="card-sub">{chartSub}</div>
+        {/* Columna derecha: gráfica de ingresos + gráfica de participación */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+          {/* Line chart — ingresos */}
+          <div className="card" style={{ padding: '20px 20px 16px' }}>
+            <div className="card-head" style={{ marginBottom: 16 }}>
+              <div>
+                <h3 className="card-title">{chartTitle}</h3>
+                <div className="card-sub">{chartSub}</div>
+              </div>
+              {mesSeleccionado && (
+                <button
+                  onClick={() => setMesSelec(null)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    background: 'none', border: '1px solid var(--border)',
+                    borderRadius: 6, padding: '4px 10px',
+                    fontSize: 12, color: 'var(--muted)', cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >
+                  ← Ver todos los meses
+                </button>
+              )}
             </div>
-            {mesSeleccionado && (
-              <button
-                onClick={() => setMesSelec(null)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  background: 'none', border: '1px solid var(--border)',
-                  borderRadius: 6, padding: '4px 10px',
-                  fontSize: 12, color: 'var(--muted)', cursor: 'pointer', whiteSpace: 'nowrap',
-                }}
-              >
-                ← Ver todos los meses
-              </button>
-            )}
+            <LineChart data={chartData} slim={isMobile} />
           </div>
-          <LineChart data={chartData} slim={isMobile} />
+
+          {/* Line chart — participación por mes */}
+          <div className="card" style={{ padding: '20px 20px 16px' }}>
+            <div className="card-head" style={{ marginBottom: 16 }}>
+              <div>
+                <h3 className="card-title">Participación por mes {year}</h3>
+                <div className="card-sub">% de asistentes que dieron ofrenda · promedio de cada mes</div>
+              </div>
+            </div>
+            <ParticipChart data={participData} slim={isMobile} />
+          </div>
         </div>
       </div>
 
