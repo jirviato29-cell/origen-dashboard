@@ -529,7 +529,7 @@ export default function IngresosPage() {
           </div>
           {!isMobile && (
             <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
-              <b style={{ color: 'var(--black)' }}>{ofrendas.length}</b>
+              <span><b style={{ color: 'var(--black)' }}>{ofrendas.length}</b> domingos</span>
               <span style={{ color: 'var(--border)' }}>·</span>
               <span>{year}</span>
             </div>
