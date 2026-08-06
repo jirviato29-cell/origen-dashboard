@@ -129,14 +129,15 @@ function StatusBadge({ status, diffD }) {
   );
 }
 
-// ── Date block (day + month of fecha_vencimiento) ──────────────────────────
-function DateBlock({ fechaVenc }) {
+// ── Date block (día + mes de la fecha del gasto) ───────────────────────────
+const esPdf = (url) => typeof url === 'string' && url.toLowerCase().includes('.pdf');
+function DateBlock({ fecha }) {
   const base = {
     width: 52, flexShrink: 0, textAlign: 'center',
     background: 'var(--surface-3)', border: '1px solid var(--border)',
     borderRadius: 9, padding: '7px 0 8px',
   };
-  if (!fechaVenc) {
+  if (!fecha) {
     return (
       <div style={base}>
         <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--muted)', lineHeight: 1 }}>—</div>
@@ -144,7 +145,7 @@ function DateBlock({ fechaVenc }) {
       </div>
     );
   }
-  const d = new Date(toISODate(fechaVenc) + 'T00:00:00');
+  const d = new Date(toISODate(fecha) + 'T00:00:00');
   return (
     <div style={base}>
       <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.03em', color: NAVY, lineHeight: 1 }}>
@@ -153,6 +154,25 @@ function DateBlock({ fechaVenc }) {
       <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: GRAY, marginTop: 3 }}>
         {d.toLocaleDateString('es-MX', { month: 'short' }).replace('.', '').toUpperCase()}
       </div>
+    </div>
+  );
+}
+
+// ── Miniaturas del comprobante / foto de lo comprado ───────────────────────
+// Al hacer click en la fila (o en una miniatura) se abre el detalle con las
+// imágenes en grande (GastoDetalleModal).
+function Miniaturas({ gasto }) {
+  const urls = [gasto.comprobante_url, gasto.comprobante_url_2].filter(Boolean);
+  if (urls.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+      {urls.map((url, i) => (
+        esPdf(url) ? (
+          <div key={i} title="Ver comprobante" style={{ width: 40, height: 40, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>📄</div>
+        ) : (
+          <img key={i} src={url} alt="comprobante" title="Ver comprobante" loading="lazy" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 7, border: '1px solid var(--border)', display: 'block', flexShrink: 0 }} />
+        )
+      ))}
     </div>
   );
 }
@@ -415,7 +435,7 @@ export default function GastosPorPagarPage() {
                     <>
                       {/* Móvil fila 1: fecha + monto + editar */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <DateBlock fechaVenc={g.fecha_vencimiento} />
+                        <DateBlock fecha={g.fecha} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{
                             fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em', color: RED,
@@ -463,6 +483,8 @@ export default function GastosPorPagarPage() {
                           {cat}
                         </span>
                       </div>
+                      {/* Móvil: miniaturas del comprobante / foto */}
+                      <Miniaturas gasto={g} />
                       {/* Móvil fila 5: eliminar + marcar pagado */}
                       {canWrite && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -529,7 +551,7 @@ export default function GastosPorPagarPage() {
                   ) : (
                     <>
                       {/* Escritorio: layout horizontal original */}
-                      <DateBlock fechaVenc={g.fecha_vencimiento} />
+                      <DateBlock fecha={g.fecha} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 5 }}>{g.concepto}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
@@ -543,6 +565,7 @@ export default function GastosPorPagarPage() {
                             {cat}
                           </span>
                         </div>
+                        <Miniaturas gasto={g} />
                       </div>
                       <StatusBadge status={g._status} diffD={g._diffD} />
                       <span style={{
