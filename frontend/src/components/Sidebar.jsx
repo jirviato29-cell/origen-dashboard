@@ -290,12 +290,12 @@ export default function Sidebar({ onClose }) {
       <div className="sidebar-footer">
         <button
           onClick={handleLogout}
-          className="nav-item"
+          className="sidebar-logout"
           title="Cerrar sesión"
           aria-label="Cerrar sesión"
         >
-          <span className="nav-icon"><I.back size={18} /></span>
-          <span className="nav-label">Salir</span>
+          <I.back size={17} />
+          <span>Salir</span>
         </button>
       </div>
     </aside>

@@ -204,10 +204,25 @@ body {
 .nav-item.action .nav-badge { background: var(--black); color: var(--white); }
 
 .sidebar-footer {
-  margin-top: auto; padding-top: 14px;
-  border-top: 1px solid rgba(255,255,255,0.10);
+  margin-top: auto;            /* hasta abajo */
+  margin-bottom: -8px;         /* pegado al borde inferior (gana terreno) */
+  padding-top: 8px;
   display: flex; align-items: center; gap: 10px;
 }
+/* Botón "salir" con la tipografía de la marca (display, minúsculas, redondeado) */
+.sidebar-logout {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 12px; border: 0; border-radius: 11px; cursor: pointer;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.82);
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 700; letter-spacing: -0.015em;
+  text-transform: lowercase;
+  transition: background .13s, color .13s, transform .13s;
+}
+.sidebar-logout:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.sidebar-logout:active { transform: scale(0.98); }
+.sidebar-logout svg { opacity: 0.8; flex-shrink: 0; }
 .avatar {
   width: 34px; height: 34px; border-radius: 50%;
   background: #FF6B2B; color: #FFFFFF;
