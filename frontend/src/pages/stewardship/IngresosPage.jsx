@@ -423,7 +423,7 @@ export default function IngresosPage() {
                 <div style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   <span>Participación <b style={{ color: 'var(--black)' }}>{participacionUltimo}%</b></span>
                   <span style={{ color: 'var(--border)' }}>·</span>
-                  <span><b style={{ color: 'var(--black)' }}>{uSobres}</b> de <b style={{ color: 'var(--black)' }}>{uDenom}</b> asistentes</span>
+                  <span style={{ color: 'var(--black)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{uSobres}/{uDenom}</span>
                 </div>
               )}
             </div>
