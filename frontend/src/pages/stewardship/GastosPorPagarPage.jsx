@@ -27,11 +27,6 @@ const GRAY_SOFT  = '#EEF1F5';
 function fmt(n) {
   return '$' + Math.round(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
 }
-function fmtK(n) {
-  if (n >= 1000) return '$' + (n / 1000).toFixed(0) + 'k';
-  return fmt(n);
-}
-
 // ── Status classification ──────────────────────────────────────────────────
 function todayLocal() {
   const d = new Date();
@@ -159,32 +154,6 @@ function DateBlock({ fechaVenc }) {
         {d.toLocaleDateString('es-MX', { month: 'short' }).replace('.', '').toUpperCase()}
       </div>
     </div>
-  );
-}
-
-// ── Donut SVG (pure SVG, no Recharts) ─────────────────────────────────────
-function DonutSVG({ segments, total }) {
-  const R    = 51.5;
-  const CIRC = 2 * Math.PI * R;
-  let offset = 0;
-  return (
-    <svg width="120" height="120" viewBox="0 0 120 120">
-      <g transform="rotate(-90 60 60)" fill="none" strokeWidth="17">
-        <circle cx="60" cy="60" r={R} stroke={NAVY_SOFT} />
-        {segments.filter(s => s.total > 0).map(s => {
-          const dash = total > 0 ? (s.total / total) * CIRC : 0;
-          const thisOffset = -offset;
-          offset += dash;
-          return (
-            <circle key={s.cat} cx="60" cy="60" r={R}
-              stroke={CAT_COLORS[s.cat] || NAVY_500}
-              strokeDasharray={`${dash.toFixed(2)} ${CIRC.toFixed(2)}`}
-              strokeDashoffset={thisOffset.toFixed(2)}
-            />
-          );
-        })}
-      </g>
-    </svg>
   );
 }
 
@@ -353,16 +322,6 @@ export default function GastosPorPagarPage() {
   const totalGdl           = pagadosGdl.reduce((s, g) => s + Number(g.monto), 0);
   const totalDonacion      = pagadosDonacion.reduce((s, g) => s + Number(g.monto), 0);
 
-  // Donut segments by categoria
-  const catMap = {};
-  pendientes.forEach(g => {
-    const cat = g.categoria_nombre ?? g.categoria ?? 'Otro';
-    catMap[cat] = (catMap[cat] || 0) + Number(g.monto);
-  });
-  const catSegments = Object.entries(catMap)
-    .map(([cat, total]) => ({ cat, total }))
-    .sort((a, b) => b.total - a.total);
-
   // Paid history
   const sortedPagados   = [...pagadosAll].sort((a, b) => b.fecha.localeCompare(a.fecha));
   const totalPagadosAll = pagadosAll.reduce((s, g) => s + Number(g.monto), 0);
@@ -410,42 +369,6 @@ export default function GastosPorPagarPage() {
           value={fmt(totalDonacion)} valueColor={NAVY}
           foot={<><b style={{ color: NAVY }}>{pagadosDonacion.length}</b> {pagadosDonacion.length === 1 ? 'pago' : 'pagos'} · {year}</>}
         />
-      </div>
-
-      {/* ── Analítica: Antigüedad + Dona ──────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14, alignItems: 'stretch' }}>
-
-        {/* Pendiente por categoría */}
-        <div className="card">
-          <div className="card-head">
-            <div>
-              <h3 className="card-title">Pendiente por categoría</h3>
-              <div className="card-sub">{catSegments.length} {catSegments.length === 1 ? 'categoría' : 'categorías'}</div>
-            </div>
-          </div>
-          {catSegments.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '28px 0 12px' }}>Sin datos.</p>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 16 }}>
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <DonutSVG segments={catSegments} total={totalPendiente} />
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em', color: NAVY, lineHeight: 1 }}>{fmtK(totalPendiente)}</div>
-                  <div style={{ fontSize: 10, color: GRAY, fontWeight: 600, marginTop: 2 }}>total</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flex: 1 }}>
-                {catSegments.map(c => (
-                  <div key={c.cat} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: 3, background: CAT_COLORS[c.cat] || NAVY_500, flexShrink: 0 }} />
-                    <span style={{ fontSize: 12.5, color: 'var(--ink-2)', fontWeight: 500, flex: 1 }}>{c.cat}</span>
-                    <span style={{ fontSize: 12.5, color: NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(c.total)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ── Pendientes ────────────────────────────────────────────────────── */}
