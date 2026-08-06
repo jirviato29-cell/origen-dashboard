@@ -110,17 +110,6 @@ export default function Layout() {
 
   const campusActivo = localStorage.getItem('campus_activo') || 'ags';
 
-  // Logo "origen" recoloreado con el color de cada campus, para mostrarlo en el
-  // topbar en lugar del título. (El voluntario en móvil usa un topbar oscuro, así
-  // que ahí se conserva el texto para que no se pierda el logo oscuro.)
-  const TOPBAR_LOGO = {
-    ags: '/assets/origen-ags-color.png',
-    gdl: '/assets/origen-gdl-color.png',
-    mid: '/assets/origen-mid-color.png',
-  };
-  const topbarLogo = TOPBAR_LOGO[campusActivo] || TOPBAR_LOGO.ags;
-  const usarLogoTopbar = role !== ROLES.VOLUNTARIO;
-
   return (
     <div className="app" data-campus={campusActivo} data-role={role} style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
@@ -165,19 +154,10 @@ export default function Layout() {
                 <span>{userName ? `Buen día, ${userName}` : 'Origen Aguascalientes'}</span>
                 {info.title && <><span className="sep">/</span><span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>{info.title}</span></>}
               </div>
-              {usarLogoTopbar ? (
-                <img
-                  src={topbarLogo}
-                  alt="Origen"
-                  className="topbar-logo"
-                  style={{ height: 30, width: 'auto', display: 'block', marginTop: 2 }}
-                />
-              ) : (
-                <h1 className="page-title"
-                  style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                  {info.title || 'Origen Campus Ags'}
-                </h1>
-              )}
+              <h1 className="page-title"
+                style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                {info.title || 'Origen Campus Ags'}
+              </h1>
             </div>
           </div>
 
