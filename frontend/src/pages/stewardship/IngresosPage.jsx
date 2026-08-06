@@ -319,6 +319,12 @@ export default function IngresosPage() {
     };
   });
 
+  // Promedio de ofrenda por domingo + mes más alto / más bajo del año.
+  const promedioOfrenda = ofrendas.length ? acumuladoAnio / ofrendas.length : 0;
+  const mesesConDatos = resumenMeses.filter(r => r.total > 0);
+  const mesAlto = mesesConDatos.length ? mesesConDatos.reduce((a, b) => (b.total > a.total ? b : a)) : null;
+  const mesBajo = mesesConDatos.length ? mesesConDatos.reduce((a, b) => (b.total < a.total ? b : a)) : null;
+
   // ── Sparkline data ────────────────────────────────────────────────────────
   // Card 1: last 6 domingo totals (chronological)
   const spark1 = sorted.slice(0, 6).reverse().map(d => Number(d.total_ofrenda));
@@ -539,6 +545,26 @@ export default function IngresosPage() {
 
       {/* ── Method totals (3-col) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+
+        {/* Promedio de ofrenda */}
+        <div className="card" style={{ padding: '16px 18px' }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>
+            Promedio de ofrenda
+          </div>
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--black)', fontVariantNumeric: 'tabular-nums', marginBottom: 12 }}>
+            <span style={{ fontSize: 18, opacity: 0.6 }}>$</span>{fmtNum(Math.round(promedioOfrenda))}
+          </div>
+          <div style={{ paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {mesAlto ? (
+              <>
+                <span>Mes más alto: <b style={{ color: 'var(--black)' }}>{mesAlto.label}</b> · ${fmtNum(mesAlto.total)}</span>
+                <span>Mes más bajo: <b style={{ color: 'var(--black)' }}>{mesBajo.label}</b> · ${fmtNum(mesBajo.total)}</span>
+              </>
+            ) : (
+              <span>Sin datos aún</span>
+            )}
+          </div>
+        </div>
 
         {/* Efectivo */}
         <div className="card" style={{ padding: '16px 18px' }}>
