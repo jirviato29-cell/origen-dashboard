@@ -9,7 +9,6 @@ import useBienvenidaData, { EDICIONES } from './useBienvenidaData';
 const NAVY_900 = '#112540';
 const NAVY_700 = '#244169';
 const NAVY_600 = '#305181';
-const NAVY_300 = '#9CB0CC';
 const NAVY_100 = '#DCE4EF';
 const ORANGE_600 = '#E0561B';
 const ORANGE_500 = '#FF6B2B';
@@ -162,9 +161,6 @@ export default function BienvenidaCasaPage() {
             <h2 style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-.03em', lineHeight: 1.15 }}>
               Bienvenida a Casa
             </h2>
-            <p style={{ fontSize: 13, color: NAVY_300, marginTop: 8, marginBottom: 0, maxWidth: 480 }}>
-              Lleva el registro de quienes visitan la iglesia por primera vez o de forma recurrente.
-            </p>
           </div>
           {canWrite && (
             <button onClick={openNew} style={{
