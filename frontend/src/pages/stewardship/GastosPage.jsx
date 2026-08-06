@@ -133,6 +133,7 @@ export default function GastosPage() {
   const isMobile = useIsMobile();
 
   const [gastos, setGastos]            = useState([]);
+  const [porPagar, setPorPagar]        = useState([]);
   const [loading, setLoading]          = useState(true);
   const [mesSeleccionado, setMesSelec] = useState(null);
   const [mesTabla, setMesTabla]        = useState('todos');
@@ -163,9 +164,12 @@ export default function GastosPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    gastosApi.getAll({ year, pagado: 'true' })
-      .then(res => { if (!cancelled) setGastos(res.data || []); })
-      .catch(() => { if (!cancelled) setGastos([]); })
+    Promise.all([
+      gastosApi.getAll({ year, pagado: 'true' }),
+      gastosApi.getAll({ year, pagado: 'false' }),
+    ])
+      .then(([rp, ru]) => { if (!cancelled) { setGastos(rp.data || []); setPorPagar(ru.data || []); } })
+      .catch(() => { if (!cancelled) { setGastos([]); setPorPagar([]); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [year, refreshKey, localKey]);
@@ -177,6 +181,12 @@ export default function GastosPage() {
   const gastosMesArr  = gastos.filter(g => g.fecha.startsWith(mes));
   const totalMes      = gastosMesArr.reduce((s, g) => s + Number(g.monto), 0);
   const acumuladoAnio = gastos.reduce((s, g) => s + Number(g.monto), 0);
+
+  // Mes actual incluyendo también los gastos por pagar (no solo los pagados).
+  const porPagarMesArr    = porPagar.filter(g => g.fecha.startsWith(mes));
+  const porPagarMesTotal  = porPagarMesArr.reduce((s, g) => s + Number(g.monto), 0);
+  const totalMesTodo      = totalMes + porPagarMesTotal;
+  const countMesTodo      = gastosMesArr.length + porPagarMesArr.length;
 
   // Promedio mensual (meses con al menos 1 gasto)
   const mesesConGastos = [...new Set(gastos.map(g => g.fecha.slice(0, 7)))];
@@ -298,15 +308,18 @@ export default function GastosPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1,
-              color: gastosMesArr.length === 0 ? 'var(--muted)' : 'var(--danger)', fontVariantNumeric: 'tabular-nums' }}>
-              <span style={{ fontSize: 18, fontWeight: 600, marginRight: 1, color: gastosMesArr.length === 0 ? 'var(--muted)' : 'var(--danger)', opacity: 0.7 }}>$</span>
-              {fmtNum(totalMes)}
+              color: countMesTodo === 0 ? 'var(--muted)' : 'var(--danger)', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 18, fontWeight: 600, marginRight: 1, color: countMesTodo === 0 ? 'var(--muted)' : 'var(--danger)', opacity: 0.7 }}>$</span>
+              {fmtNum(totalMesTodo)}
             </div>
             <Sparkline values={spark2.length >= 2 ? spark2 : null} color="var(--danger)"
               dashed={spark2.length < 2} />
           </div>
-          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 8 }}>
-            <span>{gastosMesArr.length} {gastosMesArr.length === 1 ? 'gasto' : 'gastos'} registrados</span>
+          <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span>{countMesTodo} {countMesTodo === 1 ? 'gasto registrado' : 'gastos registrados'} (pagados y por pagar)</span>
+            {porPagarMesTotal > 0 && (
+              <span>Por pagar: <b style={{ color: 'var(--danger)' }}>${fmtNum(porPagarMesTotal)}</b></span>
+            )}
           </div>
         </div>
 
