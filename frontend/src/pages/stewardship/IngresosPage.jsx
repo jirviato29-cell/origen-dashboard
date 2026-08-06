@@ -459,8 +459,9 @@ export default function IngresosPage() {
             </div>
           </div>
           {!isMobile && (
-            <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', gap: 12 }}>
+            <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 5 }}>
               <span>Total de ofrendas del año: <b style={{ color: 'var(--black)' }}>{totalOfrendasAnio}</b></span>
+              <span>Total de asistentes del año: <b style={{ color: 'var(--black)' }}>{totalDenomAnio}</b></span>
             </div>
           )}
         </div>
