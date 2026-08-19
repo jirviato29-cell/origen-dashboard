@@ -69,6 +69,19 @@ const CSS = `
 .ag-resumen{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 .ag-barra{ display:flex; height:10px; border-radius:99px; overflow:hidden; margin-top:12px; background:var(--surface-3); }
 
+/* Historial: la misma barra de proporción, pero dentro de una fila. */
+.ag-barra-fila{ margin-top:0; height:8px; width:110px; flex:none; }
+.ag-prop{ display:flex; align-items:center; gap:10px; justify-content:flex-end; }
+.ag-prop-pct{ font-size:11.5px; font-weight:600; color:var(--muted); white-space:nowrap; }
+
+/* Historial en móvil: una tarjeta por domingo, sin scroll horizontal. */
+.ag-hist-cards{ display:flex; flex-direction:column; gap:10px; }
+.ag-hist-card{ border:1px solid var(--border); border-radius:var(--r-md); padding:12px 14px; }
+.ag-hist-fecha{ font-size:13px; font-weight:700; color:var(--ink); }
+.ag-hist-nums{ display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin:8px 0 10px; font-variant-numeric:tabular-nums; }
+.ag-hist-nums b{ font-weight:700; }
+.ag-hist-card .ag-barra-fila{ width:auto; flex:1; }
+
 .ag-vacio{ text-align:center; padding:40px 20px; }
 .ag-vacio-icono{
   width:52px; height:52px; border-radius:50%; margin:0 auto 14px;
@@ -171,6 +184,15 @@ export default function AsistenciaGeneroPage() {
   const aTotal   = aHombres + aMujeres;
   const aPctH    = pctDe(aHombres, aTotal);
   const aPctM    = aTotal > 0 ? 100 - aPctH : 0;
+
+  // ── Historial: descendente por fecha (conDesglose ya viene así) ─────────
+  const historial = conDesglose.map(r => {
+    const h = suma(r, 'h');
+    const m = suma(r, 'm');
+    const t = h + m;
+    const pctH = pctDe(h, t);
+    return { fecha: r.fecha, h, m, t, pctH, pctM: t > 0 ? 100 - pctH : 0 };
+  });
 
   // ── Tendencia: ascendente por fecha ─────────────────────────────────────
   const datosGrafica = [...conDesglose].reverse().map(r => ({
@@ -310,6 +332,67 @@ export default function AsistenciaGeneroPage() {
           Basado en {conDesglose.length} de {records.length} {records.length === 1 ? 'domingo registrado' : 'domingos registrados'}.
           Los nuevos no entran en el total ni en los porcentajes: ya están incluidos en Adultos.
         </p>
+      </div>
+
+      {/* ── Historial de domingos ────────────────────────────────────────── */}
+      <div className="ag-card">
+        <div className="ag-head">
+          <div>
+            <h3 className="ag-title">Historial de domingos con desglose</h3>
+            <p className="ag-sub">Del más reciente al más antiguo</p>
+          </div>
+        </div>
+
+        {/* En móvil la fila no cabe en cuatro columnas más la barra: se
+            colapsa a una tarjeta por domingo en vez de scroll horizontal. */}
+        {isMobile ? (
+          <div className="ag-hist-cards">
+            {historial.map(d => (
+              <div className="ag-hist-card" key={d.fecha}>
+                <div className="ag-hist-fecha">{fmtFecha(d.fecha)}</div>
+                <div className="ag-hist-nums">
+                  <span><b style={{ color: HOMBRES }}>{d.h}</b> hombres</span>
+                  <span><b style={{ color: MUJERES }}>{d.m}</b> mujeres</span>
+                  <span><b style={{ color: 'var(--ink)' }}>{d.t}</b> total</span>
+                </div>
+                <div className="ag-prop">
+                  <div className="ag-barra ag-barra-fila" role="presentation">
+                    <span style={{ width: `${d.pctH}%`, background: HOMBRES }} />
+                    <span style={{ width: `${d.pctM}%`, background: MUJERES }} />
+                  </div>
+                  <span className="ag-prop-pct">{d.pctH}% / {d.pctM}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <table className="ag-tabla">
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Hombres</th><th>Mujeres</th><th>Total</th><th>Proporción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historial.map(d => (
+                <tr key={d.fecha}>
+                  <td className="ag-cat">{fmtFecha(d.fecha)}</td>
+                  <td>{d.h}</td>
+                  <td>{d.m}</td>
+                  <td style={{ fontWeight: 700 }}>{d.t}</td>
+                  <td>
+                    <div className="ag-prop">
+                      <div className="ag-barra ag-barra-fila" role="presentation">
+                        <span style={{ width: `${d.pctH}%`, background: HOMBRES }} />
+                        <span style={{ width: `${d.pctM}%`, background: MUJERES }} />
+                      </div>
+                      <span className="ag-prop-pct">{d.pctH}% / {d.pctM}%</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
