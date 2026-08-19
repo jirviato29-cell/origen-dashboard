@@ -45,3 +45,64 @@ export const TIPO_CELL_BG = {
   'Kids':               'rgba(132,204,22,0.08)',
   'Santuario':          'rgba(14,165,233,0.08)',
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Derivación de la paleta de un tipo a partir de su color sólido.
+// El gestor de tipos del modal solo captura UN color (`color`); los tonos
+// restantes (texto, chip y fondo de celda) se calculan aquí para que cualquier
+// tipo creado desde gestión pinte el calendario igual que los tipos base.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// '#abc' | '#aabbcc' → {r,g,b} (null si no es un hex válido)
+function hexARgb(hex) {
+  if (typeof hex !== 'string') return null;
+  let h = hex.trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  if (h.length !== 6 || /[^0-9a-f]/i.test(h)) return null;
+  const n = parseInt(h, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+const aHex = ({ r, g, b }) =>
+  '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('').toUpperCase();
+
+// Luminancia percibida (0 = negro, 1 = blanco).
+const luminancia = ({ r, g, b }) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+// Tono oscuro para texto: baja el color hasta que contrasta sobre fondo claro.
+export function tipoColorOscuro(hex) {
+  const rgb = hexARgb(hex);
+  if (!rgb) return null;
+  let { r, g, b } = rgb;
+  for (let i = 0; i < 10 && luminancia({ r, g, b }) > 0.40; i++) {
+    r *= 0.85; g *= 0.85; b *= 0.85;
+  }
+  return aHex({ r, g, b });
+}
+
+// Fondo semitransparente para chips/pills.
+export function tipoColorFondo(hex, alfa = 0.16) {
+  const rgb = hexARgb(hex);
+  if (!rgb) return null;
+  return `rgba(${rgb.r},${rgb.g},${rgb.b},${alfa})`;
+}
+
+// Fondo pastel opaco para el cuadro del día en el calendario.
+export function tipoColorCelda(hex, peso = 0.12) {
+  const rgb = hexARgb(hex);
+  if (!rgb) return null;
+  const mezcla = (v) => 255 - (255 - v) * peso;
+  return aHex({ r: mezcla(rgb.r), g: mezcla(rgb.g), b: mezcla(rgb.b) });
+}
+
+// Paleta completa a partir del color registrado en gestión.
+export function derivarColoresTipo(hex) {
+  const rgb = hexARgb(hex);
+  if (!rgb) return null;
+  return {
+    color:      hex,
+    color_dark: tipoColorOscuro(hex),
+    bg:         tipoColorFondo(hex),
+    cell_bg:    tipoColorCelda(hex),
+  };
+}
