@@ -480,9 +480,14 @@ export default function CalendarioPage() {
                   const isToday         = iso === todayISO;
                   const isSelected      = iso !== null && iso === selectedDay;
                   const isPast          = iso !== null && iso <= todayISO;
-                  const tiposEnCelda    = new Set(dayEvts.map(ev => ev.tipo));
-                  if (esDomingo) tiposEnCelda.add('Servicio dominical');
-                  const tipoPrioritario = TIPO_PRIORIDAD.find(t => tiposEnCelda.has(t));
+                  const tiposEnCelda    = dayEvts.map(ev => ev.tipo).filter(Boolean);
+                  // El tipo que pinta la celda: los tipos base mantienen su
+                  // orden histórico y cualquier otro (creado desde gestión)
+                  // usa el del primer evento del día. Sin evento, el domingo.
+                  const tipoPrioritario =
+                    TIPO_PRIORIDAD.find(t => tiposEnCelda.includes(t)) ||
+                    tiposEnCelda.find(t => tipoCellBg[t]) ||
+                    (esDomingo ? 'Servicio dominical' : null);
 
                   let cellBg;
                   if (!day) {
@@ -490,7 +495,7 @@ export default function CalendarioPage() {
                   } else if (isPast) {
                     cellBg = GRAY_100;
                   } else if (tipoPrioritario) {
-                    cellBg = tipoCellBg[tipoPrioritario];
+                    cellBg = tipoCellBg[tipoPrioritario] || 'white';
                   } else {
                     cellBg = 'white';
                   }
