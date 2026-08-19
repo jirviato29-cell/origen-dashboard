@@ -82,6 +82,34 @@ const CSS = `
 .ag-hist-h{ color:#2E6FB7; }
 .ag-hist-m{ color:#D96BA0; }
 
+/* Historial: cuadrícula. Todo va bajo .ag-tabla-hist para que la tabla de
+   desglose por categoría, que comparte .ag-tabla, se quede como está.
+   Los grises salen de los tokens del sistema (campusTema solo define el
+   primario y el acento), así que se ven igual en ags, gdl y mid. */
+.ag-hist-wrap{
+  border:1px solid var(--border); border-radius:var(--r-md);
+  overflow:hidden;   /* recorta las esquinas de la primera y última fila */
+}
+.ag-tabla-hist thead th{ background:var(--surface-2); }
+.ag-tabla-hist thead th.ag-grupo{ background:var(--surface-3); }
+.ag-tabla-hist thead tr:last-child th,
+.ag-tabla-hist thead th[rowspan]{ border-bottom:1.5px solid var(--border-strong); }
+.ag-tabla-hist tbody td{ padding-top:13px; padding-bottom:13px; border-bottom:1px solid var(--border); }
+.ag-tabla-hist tbody tr:last-child td{ border-bottom:none; }
+.ag-tabla-hist tbody tr:nth-child(even) td{ background:var(--surface-2); }
+.ag-tabla-hist tbody tr:hover td{ background:var(--surface-3); }
+
+/* Separadores entre bloques. Las columnas del cuerpo son:
+   1 fecha · 2-3 adultos H/M · 4-5 niños H/M · 6-7 bebés H/M · 8 total · 9 proporción,
+   así que la línea abre cada bloque y nunca parte un par H/M. */
+.ag-tabla-hist tbody td:nth-child(2),
+.ag-tabla-hist tbody td:nth-child(4),
+.ag-tabla-hist tbody td:nth-child(6),
+.ag-tabla-hist tbody td:nth-child(8),
+.ag-tabla-hist tbody td:nth-child(9),
+.ag-tabla-hist thead tr:first-child th:nth-child(n+2),
+.ag-tabla-hist thead tr:last-child th:nth-child(odd){ border-left:1px solid var(--border-strong); }
+
 /* Historial en móvil: una tarjeta por domingo, sin scroll horizontal. */
 .ag-hist-cards{ display:flex; flex-direction:column; gap:10px; }
 .ag-hist-card{ border:1px solid var(--border); border-radius:var(--r-md); padding:12px 14px; }
@@ -89,11 +117,13 @@ const CSS = `
 .ag-hist-nums{ display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin:8px 0 10px; font-variant-numeric:tabular-nums; }
 .ag-hist-nums b{ font-weight:700; }
 .ag-hist-grupos{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0; }
-.ag-hist-grupo{ background:var(--surface-2); border-radius:var(--r-sm,8px); padding:7px 8px; }
+.ag-hist-grupo{ background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-sm,8px); padding:7px 8px; }
 .ag-hist-grupo-lbl{ font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
-.ag-hist-grupo-val{ font-size:13px; font-weight:700; margin-top:3px; font-variant-numeric:tabular-nums; }
-.ag-hist-grupo-val span{ font-size:9.5px; font-weight:600; }
-.ag-hist-total{ font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+/* H y M apilados: a 390px "H 102 M 126" en una línea se parte a la mitad. */
+.ag-hist-grupo-val{ display:flex; flex-direction:column; gap:2px; margin-top:4px;
+  font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.ag-hist-total{ font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;
+  border-top:1px solid var(--border); padding-top:9px; }
 .ag-hist-total b{ color:var(--ink); font-weight:700; }
 .ag-hist-card .ag-barra-fila{ width:auto; flex:1; }
 
@@ -378,11 +408,8 @@ export default function AsistenciaGeneroPage() {
                     <div className="ag-hist-grupo" key={g.key}>
                       <div className="ag-hist-grupo-lbl">{g.label}</div>
                       <div className="ag-hist-grupo-val">
-                        <span className="ag-hist-h">H</span>{' '}
-                        <span className="ag-hist-h">{g.h}</span>
-                        {'  '}
-                        <span className="ag-hist-m">M</span>{' '}
-                        <span className="ag-hist-m">{g.m}</span>
+                        <span className="ag-hist-h">H {g.h}</span>
+                        <span className="ag-hist-m">M {g.m}</span>
                       </div>
                     </div>
                   ))}
@@ -401,7 +428,8 @@ export default function AsistenciaGeneroPage() {
             ))}
           </div>
         ) : (
-          <table className="ag-tabla">
+          <div className="ag-hist-wrap">
+          <table className="ag-tabla ag-tabla-hist">
             <thead>
               <tr>
                 <th rowSpan={2}>Fecha</th>
@@ -439,6 +467,7 @@ export default function AsistenciaGeneroPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
