@@ -74,12 +74,27 @@ const CSS = `
 .ag-prop{ display:flex; align-items:center; gap:10px; justify-content:flex-end; }
 .ag-prop-pct{ font-size:11.5px; font-weight:600; color:var(--muted); white-space:nowrap; }
 
+/* Historial: encabezado de dos niveles (grupo arriba, H/M debajo). El
+   text-align a la izquierda de .ag-tabla th:first-child solo debe aplicar a
+   la primera columna real, no al "H" que abre el segundo renglón. */
+.ag-tabla th.ag-grupo{ text-align:center; border-bottom:none; padding-bottom:2px; }
+.ag-tabla th.ag-hm{ text-align:right; padding-top:2px; }
+.ag-hist-h{ color:#2E6FB7; }
+.ag-hist-m{ color:#D96BA0; }
+
 /* Historial en móvil: una tarjeta por domingo, sin scroll horizontal. */
 .ag-hist-cards{ display:flex; flex-direction:column; gap:10px; }
 .ag-hist-card{ border:1px solid var(--border); border-radius:var(--r-md); padding:12px 14px; }
 .ag-hist-fecha{ font-size:13px; font-weight:700; color:var(--ink); }
 .ag-hist-nums{ display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin:8px 0 10px; font-variant-numeric:tabular-nums; }
 .ag-hist-nums b{ font-weight:700; }
+.ag-hist-grupos{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0; }
+.ag-hist-grupo{ background:var(--surface-2); border-radius:var(--r-sm,8px); padding:7px 8px; }
+.ag-hist-grupo-lbl{ font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.ag-hist-grupo-val{ font-size:13px; font-weight:700; margin-top:3px; font-variant-numeric:tabular-nums; }
+.ag-hist-grupo-val span{ font-size:9.5px; font-weight:600; }
+.ag-hist-total{ font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.ag-hist-total b{ color:var(--ink); font-weight:700; }
 .ag-hist-card .ag-barra-fila{ width:auto; flex:1; }
 
 .ag-vacio{ text-align:center; padding:40px 20px; }
@@ -186,12 +201,20 @@ export default function AsistenciaGeneroPage() {
   const aPctM    = aTotal > 0 ? 100 - aPctH : 0;
 
   // ── Historial: descendente por fecha (conDesglose ya viene así) ─────────
+  // En esta tabla los voluntarios se funden dentro de adultos: no llevan
+  // columna propia. El total es el mismo de siempre (sin nuevos).
   const historial = conDesglose.map(r => {
+    const grupos = [
+      { key: 'adultos', label: 'Adultos', h: (r.adultos_h || 0) + (r.voluntarios_h || 0),
+                                          m: (r.adultos_m || 0) + (r.voluntarios_m || 0) },
+      { key: 'ninos',   label: 'Niños',   h: r.ninos_h || 0, m: r.ninos_m || 0 },
+      { key: 'bebes',   label: 'Bebés',   h: r.bebes_h || 0, m: r.bebes_m || 0 },
+    ];
     const h = suma(r, 'h');
     const m = suma(r, 'm');
     const t = h + m;
     const pctH = pctDe(h, t);
-    return { fecha: r.fecha, h, m, t, pctH, pctM: t > 0 ? 100 - pctH : 0 };
+    return { fecha: r.fecha, grupos, h, m, t, pctH, pctM: t > 0 ? 100 - pctH : 0 };
   });
 
   // ── Tendencia: ascendente por fecha ─────────────────────────────────────
@@ -350,10 +373,22 @@ export default function AsistenciaGeneroPage() {
             {historial.map(d => (
               <div className="ag-hist-card" key={d.fecha}>
                 <div className="ag-hist-fecha">{fmtFecha(d.fecha)}</div>
-                <div className="ag-hist-nums">
-                  <span><b style={{ color: HOMBRES }}>{d.h}</b> hombres</span>
-                  <span><b style={{ color: MUJERES }}>{d.m}</b> mujeres</span>
-                  <span><b style={{ color: 'var(--ink)' }}>{d.t}</b> total</span>
+                <div className="ag-hist-grupos">
+                  {d.grupos.map(g => (
+                    <div className="ag-hist-grupo" key={g.key}>
+                      <div className="ag-hist-grupo-lbl">{g.label}</div>
+                      <div className="ag-hist-grupo-val">
+                        <span className="ag-hist-h">H</span>{' '}
+                        <span className="ag-hist-h">{g.h}</span>
+                        {'  '}
+                        <span className="ag-hist-m">M</span>{' '}
+                        <span className="ag-hist-m">{g.m}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="ag-hist-total" style={{ marginBottom: 10 }}>
+                  Total <b>{d.t}</b>
                 </div>
                 <div className="ag-prop">
                   <div className="ag-barra ag-barra-fila" role="presentation">
@@ -369,15 +404,27 @@ export default function AsistenciaGeneroPage() {
           <table className="ag-tabla">
             <thead>
               <tr>
-                <th>Fecha</th><th>Hombres</th><th>Mujeres</th><th>Total</th><th>Proporción</th>
+                <th rowSpan={2}>Fecha</th>
+                <th className="ag-grupo" colSpan={2}>Adultos</th>
+                <th className="ag-grupo" colSpan={2}>Niños</th>
+                <th className="ag-grupo" colSpan={2}>Bebés</th>
+                <th rowSpan={2}>Total</th>
+                <th rowSpan={2}>Proporción</th>
+              </tr>
+              <tr>
+                <th className="ag-hm ag-hist-h">H</th><th className="ag-hm ag-hist-m">M</th>
+                <th className="ag-hm ag-hist-h">H</th><th className="ag-hm ag-hist-m">M</th>
+                <th className="ag-hm ag-hist-h">H</th><th className="ag-hm ag-hist-m">M</th>
               </tr>
             </thead>
             <tbody>
               {historial.map(d => (
                 <tr key={d.fecha}>
                   <td className="ag-cat">{fmtFecha(d.fecha)}</td>
-                  <td>{d.h}</td>
-                  <td>{d.m}</td>
+                  {d.grupos.map(g => [
+                    <td className="ag-hist-h" key={`${g.key}-h`}>{g.h}</td>,
+                    <td className="ag-hist-m" key={`${g.key}-m`}>{g.m}</td>,
+                  ])}
                   <td style={{ fontWeight: 700 }}>{d.t}</td>
                   <td>
                     <div className="ag-prop">
