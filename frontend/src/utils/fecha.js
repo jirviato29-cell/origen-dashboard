@@ -31,3 +31,15 @@ export function mesNombre(isoMes) {
   return new Date(isoMes + '-01T00:00:00').toLocaleDateString('es-MX', { month: 'long' })
     .replace(/^\w/, c => c.toUpperCase());
 }
+
+// Fecha de HOY en la zona de México (America/Mexico_City), como YYYY-MM-DD.
+// El navegador puede estar en otra zona: con `new Date()` a secas, de noche o
+// de madrugada el día se adelanta o se atrasa. El locale 'en-CA' ya formatea
+// como YYYY-MM-DD, así que no hay que recomponer nada.
+const FMT_MX = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit',
+});
+
+export function hoyMexico() {
+  return FMT_MX.format(new Date());
+}
