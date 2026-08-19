@@ -23,6 +23,7 @@ import StewardshipDashboard from './pages/stewardship/StewardshipDashboard';
 import OfrendasEspecialesPage from './pages/stewardship/OfrendasEspecialesPage';
 import OfrendasEspecialesDetallePage from './pages/stewardship/OfrendasEspecialesDetallePage';
 import AsistenciaViewPage from './pages/stewardship/AsistenciaViewPage';
+import AsistenciaGeneroPage from './pages/stewardship/AsistenciaGeneroPage';
 import PuntoEncuentroViewPage from './pages/stewardship/PuntoEncuentroViewPage';
 import GastosEventosPage from './pages/stewardship/GastosEventosPage';
 import ConfiguracionPage from './pages/stewardship/ConfiguracionPage';
@@ -109,6 +110,7 @@ function AppRoutes() {
         <Route path="gastos"           element={<StewardshipGastosPage />} />
         <Route path="balance"          element={<StewardshipBalancePage />} />
         <Route path="asistencia"              element={<AsistenciaViewPage />} />
+        <Route path="asistencia-genero"       element={<AsistenciaGeneroPage />} />
         <Route path="punto-encuentro"         element={<PuntoEncuentroViewPage />} />
         <Route path="bienvenida-a-casa"       element={<BienvenidaCasaPage />} />
         <Route path="calendario"              element={<CalendarioPage />} />
@@ -124,6 +126,7 @@ function AppRoutes() {
         <Route path="estadisticas" element={<Navigate to="/anfitriones/asistencia" replace />} />
         <Route path="historial"    element={<Navigate to="/anfitriones/asistencia" replace />} />
         <Route path="asistencia"        element={<AsistenciaViewPage />} />
+        <Route path="asistencia-genero" element={<AsistenciaGeneroPage />} />
         <Route path="voluntarios"       element={<VoluntariosPage />} />
         <Route path="calendario"        element={<CalendarioPage />} />
         <Route path="bienvenida-a-casa" element={<Navigate to="/anfitriones/asistencia" replace />} />
@@ -137,6 +140,7 @@ function AppRoutes() {
         <Route path="gastos-eventos"     element={<GastosEventosPage />} />
         <Route path="bienvenida-a-casa"  element={<BienvenidaCasaPage />} />
         <Route path="asistencia"         element={<AsistenciaViewPage />} />
+        <Route path="asistencia-genero"  element={<AsistenciaGeneroPage />} />
         <Route path="calendario"         element={<CalendarioPage />} />
       </Route>
 
@@ -150,6 +154,7 @@ function AppRoutes() {
         <Route path="gastos-por-pagar" element={<StewardshipGastosPorPagarPage />} />
         <Route path="balance"          element={<StewardshipBalancePage />} />
         <Route path="asistencia"         element={<AsistenciaViewPage />} />
+        <Route path="asistencia-genero"  element={<AsistenciaGeneroPage />} />
         <Route path="punto-encuentro"    element={<PuntoEncuentroViewPage />} />
         <Route path="gastos-eventos"     element={<GastosEventosPage />} />
         <Route path="bienvenida-a-casa"  element={<BienvenidaCasaPage />} />

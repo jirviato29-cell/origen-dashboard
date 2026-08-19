@@ -13,29 +13,52 @@ function getLastSunday() {
   return d.toISOString().slice(0, 10);
 }
 
-const EMPTY = { fecha: '', adultos: '', voluntarios: '', ninos: '', bebes: '', nuevos: '' };
-
+// Cada categoría se captura desglosada por género. Los registros viejos no
+// tienen desglose: en ese caso se conserva su total plano (ver `base`).
 const CAMPOS = [
-  { key: 'adultos',     label: 'Adultos',     sub: 'Mayores de 18 años' },
-  { key: 'voluntarios', label: 'Voluntarios', sub: 'Servidores activos hoy' },
-  { key: 'ninos',       label: 'Niños',       sub: '3 a 12 años · Origen Kids' },
-  { key: 'bebes',       label: 'Bebés',       sub: '0 a 2 años' },
-  { key: 'nuevos',      label: 'Nuevos',      sub: 'Visitantes nuevos' },
+  { key: 'adultos',     label: 'Adultos',     sub: 'Mayores de 18 años',       h: 'Hombres', m: 'Mujeres' },
+  { key: 'voluntarios', label: 'Voluntarios', sub: 'Servidores activos hoy',   h: 'Hombres', m: 'Mujeres' },
+  { key: 'ninos',       label: 'Niños',       sub: '3 a 12 años · Origen Kids', h: 'Niños',  m: 'Niñas'   },
+  { key: 'bebes',       label: 'Bebés',       sub: '0 a 2 años',                h: 'Niños',  m: 'Niñas'   },
+  { key: 'nuevos',      label: 'Nuevos',      sub: 'Visitantes nuevos',        h: 'Hombres', m: 'Mujeres' },
 ];
+
+// Categorías que suman al total: los nuevos NO, ya vienen contados en adultos.
+const CAMPOS_DEL_TOTAL = ['adultos', 'voluntarios', 'ninos', 'bebes'];
+
+const EMPTY = CAMPOS.reduce(
+  (acc, { key }) => ({ ...acc, [`${key}_h`]: '', [`${key}_m`]: '' }),
+  { fecha: '' }
+);
+const BASE_CERO = CAMPOS.reduce((acc, { key }) => ({ ...acc, [key]: 0 }), {});
 
 export default function GlobalAsistenciaStewModal() {
   const { open, closeModal, record, triggerRefresh } = useAsistenciaStewModal();
   const isEdit = !!record?.id;
 
   const [form, setForm]     = useState(EMPTY);
+  // Totales planos del registro cargado. Sirven para NO perderlos si se edita
+  // un registro viejo (sin desglose) y se guarda sin capturar hombres/mujeres.
+  const [base, setBase]     = useState(BASE_CERO);
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
 
-  const total =
-    (Number(form.adultos)     || 0) +
-    (Number(form.voluntarios) || 0) +
-    (Number(form.ninos)       || 0) +
-    (Number(form.bebes)       || 0);
+  // Una categoría está desglosada en el form si se escribió hombres o mujeres.
+  const tieneDesglose = (key) => form[`${key}_h`] !== '' || form[`${key}_m`] !== '';
+
+  // Subtotal de la fila: el desglose capturado o, si no hay, el total previo.
+  const subtotal = (key) => (
+    tieneDesglose(key)
+      ? (Number(form[`${key}_h`]) || 0) + (Number(form[`${key}_m`]) || 0)
+      : (Number(base[key]) || 0)
+  );
+
+  const total = CAMPOS_DEL_TOTAL.reduce((acc, key) => acc + subtotal(key), 0);
+
+  // El registro que se edita no traía desglose en ninguna categoría.
+  const sinDesglosePrevio = isEdit && CAMPOS.every(
+    ({ key }) => record[`${key}_h`] == null && record[`${key}_m`] == null
+  );
 
   useEffect(() => {
     if (open) {
@@ -44,16 +67,15 @@ export default function GlobalAsistenciaStewModal() {
       // error llega algo que no es un registro (p. ej. un evento de click), no
       // intentamos hacer .slice sobre una fecha undefined y NO truena.
       if (record?.id) {
-        setForm({
-          fecha:       (record.fecha || '').slice(0, 10),
-          adultos:     String(record.adultos     ?? ''),
-          voluntarios: String(record.voluntarios ?? ''),
-          ninos:       String(record.ninos       ?? ''),
-          bebes:       String(record.bebes       ?? ''),
-          nuevos:      String(record.nuevos      ?? ''),
-        });
+        setForm(CAMPOS.reduce((acc, { key }) => ({
+          ...acc,
+          [`${key}_h`]: record[`${key}_h`] == null ? '' : String(record[`${key}_h`]),
+          [`${key}_m`]: record[`${key}_m`] == null ? '' : String(record[`${key}_m`]),
+        }), { fecha: (record.fecha || '').slice(0, 10) }));
+        setBase(CAMPOS.reduce((acc, { key }) => ({ ...acc, [key]: record[key] ?? 0 }), {}));
       } else {
         setForm({ ...EMPTY, fecha: getLastSunday() });
+        setBase(BASE_CERO);
       }
     }
   }, [open, record]);
@@ -70,14 +92,16 @@ export default function GlobalAsistenciaStewModal() {
     if (!form.fecha) return;
     setSaving(true);
     try {
-      const body = {
-        fecha:       form.fecha,
-        adultos:     Number(form.adultos)     || 0,
-        voluntarios: Number(form.voluntarios) || 0,
-        ninos:       Number(form.ninos)       || 0,
-        bebes:       Number(form.bebes)       || 0,
-        nuevos:      Number(form.nuevos)      || 0,
-      };
+      // Por categoría: si se capturó desglose se manda (el backend calcula el
+      // total desde ahí); si no, se manda el total previo tal cual para no
+      // borrar lo que ya estaba registrado.
+      const body = CAMPOS.reduce((acc, { key }) => (
+        tieneDesglose(key)
+          ? { ...acc, [`${key}_h`]: Number(form[`${key}_h`]) || 0,
+                      [`${key}_m`]: Number(form[`${key}_m`]) || 0 }
+          : { ...acc, [key]: Number(base[key]) || 0 }
+      ), { fecha: form.fecha });
+
       if (isEdit) {
         await asistenciaApi.update(record.id, body);
       } else {
@@ -93,6 +117,15 @@ export default function GlobalAsistenciaStewModal() {
   };
 
   if (!open) return null;
+
+  const labelCategoria = {
+    display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--muted)',
+    textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5,
+  };
+  const labelGenero = {
+    display: 'block', fontSize: 10.5, fontWeight: 600, color: 'var(--muted)',
+    marginBottom: 3,
+  };
 
   return (
     <div
@@ -140,25 +173,55 @@ export default function GlobalAsistenciaStewModal() {
                 />
               </div>
 
-              {/* Campos numéricos */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
-                {CAMPOS.map(({ key, label, sub }) => (
+              {sinDesglosePrevio && (
+                <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: 0, lineHeight: 1.4 }}>
+                  Este registro se capturó sin desglose por género. Si dejas hombres y
+                  mujeres vacíos, se conservan los totales actuales.
+                </p>
+              )}
+
+              {/* Campos por categoría: hombres, mujeres y subtotal */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {CAMPOS.map(({ key, label, sub, h, m }) => (
                   <div key={key}>
-                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                    <label style={labelCategoria}>
                       {label}
                       <span style={{ display: 'block', fontSize: 10.5, fontWeight: 400, color: 'var(--muted)', textTransform: 'none', letterSpacing: 0, marginTop: 1 }}>
                         {sub}
                       </span>
                     </label>
-                    <input
-                      type="number"
-                      className="input"
-                      min="0"
-                      placeholder="0"
-                      value={form[key]}
-                      onChange={e => set(key, e.target.value)}
-                      style={{ width: '100%' }}
-                    />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 52px', gap: 8, alignItems: 'end' }}>
+                      <div>
+                        <span style={labelGenero}>{h}</span>
+                        <input
+                          type="number"
+                          className="input"
+                          min="0"
+                          placeholder="0"
+                          value={form[`${key}_h`]}
+                          onChange={e => set(`${key}_h`, e.target.value)}
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                      <div>
+                        <span style={labelGenero}>{m}</span>
+                        <input
+                          type="number"
+                          className="input"
+                          min="0"
+                          placeholder="0"
+                          value={form[`${key}_m`]}
+                          onChange={e => set(`${key}_m`, e.target.value)}
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                      <div style={{
+                        fontSize: 15, fontWeight: 700, color: 'var(--ink)', textAlign: 'right',
+                        fontVariantNumeric: 'tabular-nums', paddingBottom: 10,
+                      }}>
+                        = {subtotal(key)}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

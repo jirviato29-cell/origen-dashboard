@@ -29,6 +29,7 @@ const navByRole = {
       { to: '/pastor/balance',              label: 'Finanzas',             icon: I.scale },
       { to: '/pastor/ofrendas-especiales', label: 'Ofrendas especiales',  icon: I.coin },
       { to: '/pastor/asistencia',          label: 'Asistencia',           icon: I.users },
+      { to: '/pastor/asistencia-genero',   label: 'Asistencia por género', icon: I.percent },
       { to: '/pastor/punto-encuentro',     label: 'Punto de Encuentro', icon: I.pin },
       { to: '/pastor/bienvenida-a-casa',   label: 'Bienvenida a Casa',  icon: I.home },
       { to: '/pastor/calendario',          label: 'Calendario',         icon: I.calendar },
@@ -37,6 +38,7 @@ const navByRole = {
   [ROLES.ANFITRIONES]: [
     { group: 'Comunidad', items: [
       { to: '/anfitriones/asistencia',  label: 'Asistencia',            icon: I.users },
+      { to: '/anfitriones/asistencia-genero', label: 'Asistencia por género', icon: I.percent },
       { to: '/anfitriones/voluntarios', label: 'Directorio voluntarios', icon: I.users },
       { to: '/anfitriones/calendario',  label: 'Calendario',            icon: I.calendar },
     ]},
@@ -48,6 +50,7 @@ const navByRole = {
       { to: '/punto_encuentro/bienvenida-a-casa',  label: 'Bienvenida a Casa',  icon: I.home },
       { to: '/punto_encuentro/calendario',         label: 'Calendario',         icon: I.calendar },
       { to: '/punto_encuentro/asistencia',         label: 'Asistencia',         icon: I.users },
+      { to: '/punto_encuentro/asistencia-genero',  label: 'Asistencia por género', icon: I.percent },
     ]},
   ],
   [ROLES.STEWARDSHIP]: [
@@ -67,6 +70,7 @@ const navByRole = {
         ],
       },
       { to: '/stewardship/asistencia',        label: 'Asistencia',              icon: I.users },
+      { to: '/stewardship/asistencia-genero', label: 'Asistencia por género',   icon: I.percent },
       { to: '/stewardship/punto-encuentro',   label: 'Punto de Encuentro',     icon: I.pin },
       { to: '/stewardship/gastos-eventos',    label: 'Gastos de eventos',      icon: I.receipt },
       { to: '/stewardship/bienvenida-a-casa', label: 'Bienvenida a Casa',      icon: I.home },
