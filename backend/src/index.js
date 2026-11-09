@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 
 const campusMiddleware           = require('./middleware/campus');
+const requireAuth                = require('./middleware/requireAuth');
 const campusRouter               = require('./routes/campus');
 const authRouter          = require('./routes/auth');
 const authVoluntarioRouter = require('./routes/authVoluntario');
@@ -95,20 +96,21 @@ app.use('/api/voluntario/disponibilidad', voluntarioDisponibilidadRouter);
 app.use('/api/voluntario/puestos', voluntarioPuestosRouter);
 
 
-app.use('/api/ingresos',   ingresosRouter);
-app.use('/api/gastos',     gastosRouter);
-app.use('/api/gastos-eventos', gastosEventosRouter);
-app.use('/api/categorias', categoriasRouter);
-app.use('/api/dashboard',  dashboardRouter);
+// Finanzas: exigen sesión (cualquier rol).
+app.use('/api/ingresos',   requireAuth, ingresosRouter);
+app.use('/api/gastos',     requireAuth, gastosRouter);
+app.use('/api/gastos-eventos', requireAuth, gastosEventosRouter);
+app.use('/api/categorias', requireAuth, categoriasRouter);
+app.use('/api/dashboard',  requireAuth, dashboardRouter);
 app.use('/api/asistencia', asistenciaRouter);
-app.use('/api/ofrendas',   ofrendasRouter);
+app.use('/api/ofrendas',   requireAuth, ofrendasRouter);
 app.use('/api/eventos',        eventosRouter);
 app.use('/api/comprobantes',          comprobantesRouter);
 app.use('/api/calendario',           calendarioRouter);
 app.use('/api/servicios-dominicales', serviciosDominicalesRouter);
 app.use('/api/participantes',         participantesRouter);
-app.use('/api/abonos',               abonosRouter);
-app.use('/api/cortes',               cortesRouter);
+app.use('/api/abonos',               requireAuth, abonosRouter);
+app.use('/api/cortes',               requireAuth, cortesRouter);
 app.use('/api/visitantes',              visitantesRouter);
 app.use('/api/ofrendas-especiales',    ofrendasEspecialesRouter);
 app.use('/api/tipos-evento',           tiposEventoRouter);

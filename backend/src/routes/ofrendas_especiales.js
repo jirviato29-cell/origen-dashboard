@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const pool = require('../db/pool');
 const supabase = require('../utils/supabaseClient');
+const requireAuth = require('../middleware/requireAuth');
 
 const METODOS = ['efectivo', 'terminal', 'transferencia'];
 
@@ -25,12 +26,6 @@ const uploadTalon = multer({
       : cb(new Error('Tipo no permitido. Solo imágenes JPG, PNG o WEBP.'));
   },
 });
-
-// campusMiddleware ya verificó el JWT, si venía uno válido.
-function requireAuth(req, res, next) {
-  if (!req.authUsuario) return res.status(401).json({ error: 'No autorizado' });
-  next();
-}
 
 function recibirTalon(req, res, next) {
   uploadTalon.single('file')(req, res, (err) => {
