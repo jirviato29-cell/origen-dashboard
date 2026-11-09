@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ofrendasEspecialesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -50,7 +50,89 @@ function Estado({ registro }) {
   );
 }
 
-function Modal({ open, onClose, children }) {
+const TALON_TIPOS = ['image/jpeg', 'image/png', 'image/webp'];
+const TALON_LADO_MAX = 1600;
+const TALON_CALIDAD = 0.85;
+const TALON_MAX_BYTES = 5 * 1024 * 1024;
+const MODAL_ANCHO_TALON = 920;
+
+const botonSecundario = {
+  padding: '8px 14px', borderRadius: 8, border: `1px solid ${BORDER}`,
+  background: 'none', fontSize: 13, fontWeight: 600, color: MUTED,
+  cursor: 'pointer', fontFamily: 'var(--font-ui)',
+};
+
+const cuadroStyle = { border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, minWidth: 0 };
+
+const tituloCuadroStyle = { margin: '0 0 14px', fontSize: 14, fontWeight: 700, color: NAVY };
+
+const columnasTalon = (apilar) => ({
+  display: 'grid', gap: 16, marginBottom: 16,
+  gridTemplateColumns: apilar ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))',
+});
+
+function cargarImagen(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen.')); };
+    img.src = url;
+  });
+}
+
+// Reduce la foto a 1600 px en el lado mayor y la convierte a JPEG.
+async function prepararTalon(file) {
+  if (!TALON_TIPOS.includes(file.type)) throw new Error('Solo se permiten imágenes JPG, PNG o WEBP.');
+  const img = await cargarImagen(file);
+  const escala = Math.min(1, TALON_LADO_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.naturalWidth * escala);
+  canvas.height = Math.round(img.naturalHeight * escala);
+  const ctx = canvas.getContext('2d');
+  // JPEG no tiene transparencia: sin este fondo, un PNG transparente saldría negro.
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', TALON_CALIDAD));
+  if (!blob) throw new Error('No se pudo procesar la imagen.');
+  if (blob.size > TALON_MAX_BYTES) throw new Error('La foto supera 5 MB aun después de reducirla. Elige otra.');
+  return blob;
+}
+
+function MarcoTalon({ src, texto, onClick }) {
+  const Marco = onClick ? 'button' : 'div';
+  return (
+    <Marco
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      style={{
+        width: '100%', aspectRatio: '16 / 7', boxSizing: 'border-box', padding: 0,
+        border: `1.5px dashed ${BORDER}`, borderRadius: 8, background: SURFACE2,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+        color: MUTED, fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-ui)',
+        cursor: onClick ? 'pointer' : 'default',
+      }}
+    >
+      {src
+        ? <img src={src} alt="Talón" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+        : <span>{texto}</span>}
+    </Marco>
+  );
+}
+
+function DatoTalon({ label, children }) {
+  return (
+    <div style={{ marginBottom: 12, overflowWrap: 'anywhere' }}>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 14, color: NAVY }}>{children}</div>
+    </div>
+  );
+}
+
+function Modal({ open, onClose, children, ancho = 460 }) {
   if (!open) return null;
   return (
     <div
@@ -64,7 +146,7 @@ function Modal({ open, onClose, children }) {
     >
       <div style={{
         background: SURFACE, borderRadius: 16, padding: '28px 28px 24px',
-        width: '100%', maxWidth: 460,
+        width: '100%', maxWidth: ancho,
         maxHeight: 'calc(100vh - 32px)', overflowY: 'auto', boxSizing: 'border-box',
         boxShadow: '0 16px 48px rgba(0,0,0,0.18)',
       }}>
@@ -100,6 +182,7 @@ export default function OfrendasEspecialesDetallePage() {
   const { role } = useAuth();
   const navigate  = useNavigate();
   const isMobile  = useIsMobile();
+  const apilarTalon = useIsMobile(769); // hasta 768 px, inclusive
   const base       = '/' + role;
 
   const [ofrenda,    setOfrenda]    = useState(null);
@@ -114,6 +197,30 @@ export default function OfrendasEspecialesDetallePage() {
   const [form,       setForm]       = useState(FORM_VACIO);
   const [saving,     setSaving]     = useState(false);
   const [formError,  setFormError]  = useState('');
+
+  // Talón dentro del modal registrar / editar
+  const [talonPanel,      setTalonPanel]      = useState(false);
+  const [talonArchivo,    setTalonArchivo]    = useState(null);  // foto nueva, aún sin subir
+  const [talonPreview,    setTalonPreview]    = useState(null);
+  const [talonUrl,        setTalonUrl]        = useState(null);  // foto ya guardada
+  const [talonQuitar,     setTalonQuitar]     = useState(false); // se aplica al Guardar
+  const [talonCargando,   setTalonCargando]   = useState(false);
+  const [talonProcesando, setTalonProcesando] = useState(false);
+  const [talonAviso,      setTalonAviso]      = useState('');
+  const [subiendo,        setSubiendo]        = useState(false);
+  const [avisoGuardado,   setAvisoGuardado]   = useState('');
+  const talonInputRef = useRef(null);
+  // Invalida respuestas tardías: evita mostrar la foto de otro registro.
+  const talonPeticion = useRef(0);
+
+  // Ventana de solo lectura del talón
+  const [verRegistro, setVerRegistro] = useState(null);
+  const [verUrl,      setVerUrl]      = useState(null);
+  const [verError,    setVerError]    = useState('');
+
+  useEffect(() => () => {
+    if (talonPreview) URL.revokeObjectURL(talonPreview);
+  }, [talonPreview]);
 
   // Modal confirmar borrar
   const [borrarId,   setBorrarId]   = useState(null);
@@ -140,14 +247,28 @@ export default function OfrendasEspecialesDetallePage() {
 
   useEffect(() => { cargar(); }, [cargar]);
 
+  const reiniciarTalon = () => {
+    talonPeticion.current += 1;
+    setTalonPanel(false);
+    setTalonArchivo(null);
+    setTalonPreview(null);
+    setTalonUrl(null);
+    setTalonQuitar(false);
+    setTalonCargando(false);
+    setTalonProcesando(false);
+    setTalonAviso('');
+  };
+
   const abrirCrear = () => {
     setEditando(null);
     setForm(FORM_VACIO);
     setFormError('');
+    reiniciarTalon();
     setModalOpen(true);
   };
 
   const abrirEditar = (reg) => {
+    reiniciarTalon();
     setEditando(reg);
     setForm({
       nombre_persona: reg.nombre_persona,
@@ -162,7 +283,71 @@ export default function OfrendasEspecialesDetallePage() {
     setModalOpen(true);
   };
 
-  const cerrarModal = () => { setModalOpen(false); setEditando(null); };
+  const cerrarModal = () => { setModalOpen(false); setEditando(null); reiniciarTalon(); };
+
+  const abrirPanelTalon = async () => {
+    setTalonPanel(true);
+    if (!editando?.tiene_talon) return;
+    const peticion = ++talonPeticion.current;
+    setTalonCargando(true);
+    try {
+      const res = await ofrendasEspecialesApi.getTalon(editando.id);
+      if (peticion === talonPeticion.current) setTalonUrl(res.data.url);
+    } catch {
+      if (peticion === talonPeticion.current) setTalonAviso('No se pudo cargar el talón.');
+    } finally {
+      if (peticion === talonPeticion.current) setTalonCargando(false);
+    }
+  };
+
+  const elegirTalon = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permite volver a elegir el mismo archivo
+    if (!file) return;
+    const peticion = ++talonPeticion.current;
+    setTalonCargando(false);
+    setTalonAviso('');
+    setTalonProcesando(true);
+    try {
+      const blob = await prepararTalon(file);
+      if (peticion !== talonPeticion.current) return;
+      setTalonArchivo(blob);
+      setTalonPreview(URL.createObjectURL(blob));
+      setTalonUrl(null);
+      setTalonQuitar(false);
+    } catch (err) {
+      if (peticion === talonPeticion.current) setTalonAviso(err.message);
+    } finally {
+      if (peticion === talonPeticion.current) setTalonProcesando(false);
+    }
+  };
+
+  const quitarTalon = () => {
+    setTalonArchivo(null);
+    setTalonPreview(null);
+    setTalonUrl(null);
+    setTalonAviso('');
+    setTalonQuitar(Boolean(editando?.tiene_talon));
+  };
+
+  const abrirVerTalon = async (reg) => {
+    const peticion = ++talonPeticion.current;
+    setVerRegistro(reg);
+    setVerUrl(null);
+    setVerError('');
+    try {
+      const res = await ofrendasEspecialesApi.getTalon(reg.id);
+      if (peticion === talonPeticion.current) setVerUrl(res.data.url);
+    } catch {
+      if (peticion === talonPeticion.current) setVerError('No se pudo cargar el talón.');
+    }
+  };
+
+  const cerrarVerTalon = () => {
+    talonPeticion.current += 1;
+    setVerRegistro(null);
+    setVerUrl(null);
+  };
 
   const guardar = async () => {
     if (!form.nombre_persona.trim()) { setFormError('Nombre requerido.'); return; }
@@ -175,6 +360,7 @@ export default function OfrendasEspecialesDetallePage() {
     if (form.pagado && !METODOS.includes(form.metodo)) { setFormError('Elige un método de pago.'); return; }
     setSaving(true);
     setFormError('');
+    let rid = editando?.id;
     try {
       const body = {
         nombre_persona: form.nombre_persona.trim(),
@@ -188,16 +374,43 @@ export default function OfrendasEspecialesDetallePage() {
       if (editando) {
         await ofrendasEspecialesApi.updateRegistro(editando.id, body);
       } else {
-        await ofrendasEspecialesApi.createRegistro(id, body);
+        const res = await ofrendasEspecialesApi.createRegistro(id, body);
+        rid = res.data.id;
       }
-      setModalOpen(false);
-      cargar();
     } catch (e) {
       setFormError(e?.response?.data?.error || 'Error al guardar.');
-    } finally {
       setSaving(false);
+      return;
     }
+
+    // El registro ya existe: si falla la foto se conserva y se reintenta desde Editar.
+    let aviso = '';
+    if (talonArchivo) {
+      setSubiendo(true);
+      try {
+        await ofrendasEspecialesApi.subirTalon(rid, talonArchivo);
+      } catch {
+        aviso = 'El registro se guardó, pero no se pudo subir el talón';
+      }
+      setSubiendo(false);
+    } else if (talonQuitar && editando?.tiene_talon) {
+      try {
+        await ofrendasEspecialesApi.deleteTalon(rid);
+      } catch {
+        aviso = 'El registro se guardó, pero no se pudo quitar el talón';
+      }
+    }
+
+    setSaving(false);
+    cerrarModal();
+    setAvisoGuardado(aviso);
+    cargar();
   };
+
+  const talonVisible = talonPreview || talonUrl;
+  let talonTexto = 'Subir foto del talón';
+  if (talonProcesando) talonTexto = 'Preparando foto…';
+  else if (talonCargando) talonTexto = 'Cargando…';
 
   const confirmarBorrar = async () => {
     setBorrando(true);
@@ -347,6 +560,11 @@ export default function OfrendasEspecialesDetallePage() {
                   <div>Fecha de entrega: {fmtDate(r.fecha_entrega)}</div>
                   <div><Estado registro={r} /></div>
                 </div>
+                {r.tiene_talon && (
+                  <button onClick={() => abrirVerTalon(r)} style={{ ...botonSecundario, marginBottom: 10 }}>
+                    Ver talón
+                  </button>
+                )}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => abrirEditar(r)} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -369,10 +587,10 @@ export default function OfrendasEspecialesDetallePage() {
         ) : (
           // Desktop table
           <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', minWidth: 980, borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: SURFACE2 }}>
-                {['Nombre / Familia', 'WhatsApp', 'Email', 'Compromiso', 'Fecha de entrega', 'Estado', ''].map((h, i) => (
+                {['Nombre / Familia', 'WhatsApp', 'Email', 'Compromiso', 'Fecha de entrega', 'Estado', 'Talón', ''].map((h, i) => (
                   <th key={i} style={{
                     padding: '11px 14px', textAlign: i === 3 ? 'right' : 'left',
                     fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase',
@@ -397,6 +615,13 @@ export default function OfrendasEspecialesDetallePage() {
                   </td>
                   <td style={{ padding: '13px 14px', fontSize: 13.5, color: MUTED, whiteSpace: 'nowrap' }}>{fmtDate(r.fecha_entrega)}</td>
                   <td style={{ padding: '13px 14px', whiteSpace: 'nowrap' }}><Estado registro={r} /></td>
+                  <td style={{ padding: '13px 14px', fontSize: 13.5, color: MUTED }}>
+                    {r.tiene_talon ? (
+                      <button onClick={() => abrirVerTalon(r)} style={{ ...botonSecundario, padding: '4px 10px', fontSize: 12 }}>
+                        Ver
+                      </button>
+                    ) : '—'}
+                  </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
                     <div style={{ display: 'inline-flex', gap: 8 }}>
                       <button onClick={() => abrirEditar(r)} style={{
@@ -424,7 +649,7 @@ export default function OfrendasEspecialesDetallePage() {
       </div>
 
       {/* Modal registrar / editar */}
-      <Modal open={modalOpen} onClose={cerrarModal}>
+      <Modal open={modalOpen} onClose={cerrarModal} ancho={talonPanel ? MODAL_ANCHO_TALON : undefined}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: NAVY }}>
             {editando ? 'Editar registro' : 'Registrar ofrenda'}
@@ -433,6 +658,11 @@ export default function OfrendasEspecialesDetallePage() {
             <I.x size={20} />
           </button>
         </div>
+
+        {/* La estructura no cambia al abrir el talón para no remontar los campos */}
+        <div style={talonPanel ? columnasTalon(apilarTalon) : undefined}>
+        <div style={talonPanel ? cuadroStyle : undefined}>
+        {talonPanel && <h4 style={tituloCuadroStyle}>Datos</h4>}
 
         <Field label="Nombre / Familia">
           <input
@@ -514,6 +744,43 @@ export default function OfrendasEspecialesDetallePage() {
             </div>
           </Field>
         )}
+        </div>
+
+        {talonPanel && (
+          <div style={cuadroStyle}>
+            <h4 style={tituloCuadroStyle}>Talón</h4>
+            <input
+              ref={talonInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={elegirTalon}
+              style={{ display: 'none' }}
+            />
+            <MarcoTalon
+              src={talonVisible}
+              texto={talonTexto}
+              onClick={talonVisible ? undefined : () => talonInputRef.current?.click()}
+            />
+            {talonVisible && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button type="button" onClick={() => talonInputRef.current?.click()} style={botonSecundario}>
+                  Cambiar foto
+                </button>
+                <button type="button" onClick={quitarTalon} style={botonSecundario}>
+                  Quitar
+                </button>
+              </div>
+            )}
+            {talonAviso && <div style={{ fontSize: 12.5, color: RED, marginTop: 10 }}>{talonAviso}</div>}
+          </div>
+        )}
+        </div>
+
+        {!talonPanel && (
+          <button type="button" onClick={abrirPanelTalon} style={{ ...botonSecundario, marginBottom: 16 }}>
+            {editando?.tiene_talon ? 'Ver talón' : 'Agregar talón'}
+          </button>
+        )}
 
         {formError && <div style={{ fontSize: 12.5, color: RED, marginBottom: 14 }}>{formError}</div>}
 
@@ -525,14 +792,49 @@ export default function OfrendasEspecialesDetallePage() {
           }}>
             Cancelar
           </button>
-          <button onClick={guardar} disabled={saving} style={{
+          <button onClick={guardar} disabled={saving || talonProcesando} style={{
             padding: '9px 20px', borderRadius: 8, border: 'none',
             background: ACCENT, color: '#fff',
-            fontSize: 13.5, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
-            opacity: saving ? 0.7 : 1, fontFamily: 'var(--font-ui)',
+            fontSize: 13.5, fontWeight: 700, cursor: saving || talonProcesando ? 'not-allowed' : 'pointer',
+            opacity: saving || talonProcesando ? 0.7 : 1, fontFamily: 'var(--font-ui)',
           }}>
-            {saving ? 'Guardando…' : 'Guardar'}
+            {subiendo ? 'Subiendo…' : saving ? 'Guardando…' : 'Guardar'}
           </button>
+        </div>
+      </Modal>
+
+      {/* Ventana de solo lectura del talón */}
+      <Modal open={verRegistro !== null} onClose={cerrarVerTalon} ancho={MODAL_ANCHO_TALON}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: NAVY }}>Talón</h3>
+          <button onClick={cerrarVerTalon} style={{ background: 'none', border: 'none', cursor: 'pointer', color: MUTED, display: 'flex' }}>
+            <I.x size={20} />
+          </button>
+        </div>
+        {verRegistro && (
+          <div style={{ ...columnasTalon(apilarTalon), marginBottom: 0 }}>
+            <div style={cuadroStyle}>
+              <h4 style={tituloCuadroStyle}>Datos</h4>
+              <DatoTalon label="Nombre / Familia">{verRegistro.nombre_persona}</DatoTalon>
+              <DatoTalon label="Email">{verRegistro.email || '—'}</DatoTalon>
+              <DatoTalon label="WhatsApp">{verRegistro.whatsapp || '—'}</DatoTalon>
+              <DatoTalon label="Compromiso">{fmt(verRegistro.cantidad)}</DatoTalon>
+              <DatoTalon label="Fecha de entrega">{fmtDate(verRegistro.fecha_entrega)}</DatoTalon>
+              <DatoTalon label="Estado"><Estado registro={verRegistro} /></DatoTalon>
+            </div>
+            <div style={cuadroStyle}>
+              <h4 style={tituloCuadroStyle}>Talón</h4>
+              <MarcoTalon src={verUrl} texto={verError || 'Cargando…'} />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Aviso tras guardar, cuando la foto no se pudo procesar */}
+      <Modal open={Boolean(avisoGuardado)} onClose={() => setAvisoGuardado('')}>
+        <p style={{ margin: '0 0 20px', fontSize: 14.5, fontWeight: 600, color: NAVY }}>{avisoGuardado}</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={() => setAvisoGuardado('')} style={botonSecundario}>Entendido</button>
         </div>
       </Modal>
 

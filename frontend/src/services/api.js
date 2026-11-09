@@ -187,6 +187,13 @@ const realOfrendasEspecialesApi = {
   createRegistro: (id, data)  => http.post(`/ofrendas-especiales/${id}/registros`, data),
   updateRegistro: (rid, data) => http.patch(`/ofrendas-especiales/registros/${rid}`, data),
   deleteRegistro: (rid)       => http.delete(`/ofrendas-especiales/registros/${rid}`),
+  subirTalon: (rid, imagen) => {
+    const fd = new FormData();
+    fd.append('file', imagen, 'talon.jpg');
+    return http.post(`/ofrendas-especiales/registros/${rid}/talon`, fd);
+  },
+  getTalon:    (rid) => http.get(`/ofrendas-especiales/registros/${rid}/talon`),
+  deleteTalon: (rid) => http.delete(`/ofrendas-especiales/registros/${rid}/talon`),
 };
 
 // ─── Voluntarios ──────────────────────────────────────────────────────────────
