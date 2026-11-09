@@ -6,6 +6,9 @@ const supabase = require('../utils/supabaseClient');
 
 const METODOS = ['efectivo', 'terminal', 'transferencia'];
 
+// Los mismos roles que tienen esta pantalla en el frontend.
+const ROLES_PERMITIDOS = ['pastor', 'stewardship'];
+
 // Bucket privado: se accede solo desde aquí con service role y URLs firmadas.
 const BUCKET_TALONES = 'talones-ofrendas';
 const TALON_TIPOS = ['image/jpeg', 'image/png', 'image/webp'];
@@ -66,8 +69,14 @@ const texto = (v) => String(v ?? '').trim();
 const cantidadValida = (v) => Number.isFinite(Number(v)) && Number(v) > 0;
 const fechaValida = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
 
-// Todo este router exige sesión: expone nombres, contactos y montos.
+// Todo este router exige sesión y rol: expone nombres, contactos y montos.
 router.use(requireAuth);
+router.use((req, res, next) => {
+  if (!ROLES_PERMITIDOS.includes(req.authUsuario.rol)) {
+    return res.status(403).json({ error: 'Sin permiso para ofrendas especiales' });
+  }
+  next();
+});
 
 // GET /api/ofrendas-especiales
 router.get('/', async (req, res) => {
