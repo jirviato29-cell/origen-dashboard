@@ -66,6 +66,9 @@ const texto = (v) => String(v ?? '').trim();
 const cantidadValida = (v) => Number.isFinite(Number(v)) && Number(v) > 0;
 const fechaValida = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
 
+// Todo este router exige sesión: expone nombres, contactos y montos.
+router.use(requireAuth);
+
 // GET /api/ofrendas-especiales
 router.get('/', async (req, res) => {
   try {
@@ -175,7 +178,7 @@ router.delete('/registros/:rid', async (req, res) => {
 });
 
 // POST /api/ofrendas-especiales/registros/:rid/talon
-router.post('/registros/:rid/talon', requireAuth, recibirTalon, async (req, res) => {
+router.post('/registros/:rid/talon', recibirTalon, async (req, res) => {
   try {
     const registro = await buscarRegistroTalon(req.params.rid, req.campus);
     if (!registro) return res.status(404).json({ error: 'Registro no encontrado' });
@@ -210,7 +213,7 @@ router.post('/registros/:rid/talon', requireAuth, recibirTalon, async (req, res)
 });
 
 // GET /api/ofrendas-especiales/registros/:rid/talon
-router.get('/registros/:rid/talon', requireAuth, async (req, res) => {
+router.get('/registros/:rid/talon', async (req, res) => {
   try {
     const registro = await buscarRegistroTalon(req.params.rid, req.campus);
     if (!registro?.talon_path) return res.status(404).json({ error: 'Talón no encontrado' });
@@ -226,7 +229,7 @@ router.get('/registros/:rid/talon', requireAuth, async (req, res) => {
 });
 
 // DELETE /api/ofrendas-especiales/registros/:rid/talon
-router.delete('/registros/:rid/talon', requireAuth, async (req, res) => {
+router.delete('/registros/:rid/talon', async (req, res) => {
   try {
     const registro = await buscarRegistroTalon(req.params.rid, req.campus);
     if (!registro?.talon_path) return res.status(404).json({ error: 'Talón no encontrado' });
@@ -245,6 +248,12 @@ router.delete('/registros/:rid/talon', requireAuth, async (req, res) => {
 // GET /api/ofrendas-especiales/:id/registros
 router.get('/:id/registros', async (req, res) => {
   try {
+    const { rows: ofrendaRows } = await pool.query(
+      'SELECT id FROM ofrendas_especiales WHERE id=$1 AND campus=$2',
+      [req.params.id, req.campus]
+    );
+    if (!ofrendaRows.length) return res.status(404).json({ error: 'Ofrenda especial no encontrada' });
+
     const { rows: registros } = await pool.query(
       `SELECT oer.* FROM ofrendas_especiales_registros oer
        JOIN ofrendas_especiales oe ON oe.id = oer.ofrenda_id
