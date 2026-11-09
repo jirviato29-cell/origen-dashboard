@@ -1,8 +1,66 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const pool = require('../db/pool');
+const supabase = require('../utils/supabaseClient');
 
 const METODOS = ['efectivo', 'terminal', 'transferencia'];
+
+// Bucket privado: se accede solo desde aquí con service role y URLs firmadas.
+const BUCKET_TALONES = 'talones-ofrendas';
+const TALON_TIPOS = ['image/jpeg', 'image/png', 'image/webp'];
+const TALON_MAX_BYTES = 5 * 1024 * 1024;
+const TALON_URL_SEGUNDOS = 5 * 60;
+
+const uploadTalon = multer({
+  storage: multer.memoryStorage(),
+  // multer rechaza al ALCANZAR el límite; +1 para aceptar exactamente 5 MB.
+  limits: { fileSize: TALON_MAX_BYTES + 1 },
+  fileFilter: (_req, file, cb) => {
+    TALON_TIPOS.includes(file.mimetype)
+      ? cb(null, true)
+      : cb(new Error('Tipo no permitido. Solo imágenes JPG, PNG o WEBP.'));
+  },
+});
+
+// campusMiddleware ya verificó el JWT, si venía uno válido.
+function requireAuth(req, res, next) {
+  if (!req.authUsuario) return res.status(401).json({ error: 'No autorizado' });
+  next();
+}
+
+function recibirTalon(req, res, next) {
+  uploadTalon.single('file')(req, res, (err) => {
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE' ? 'La imagen supera el límite de 5 MB.' : err.message;
+      return res.status(400).json({ error: msg });
+    }
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ninguna imagen.' });
+    next();
+  });
+}
+
+async function buscarRegistroTalon(rid, campus) {
+  const { rows } = await pool.query(
+    'SELECT id, talon_path FROM ofrendas_especiales_registros WHERE id = $1 AND campus = $2',
+    [rid, campus]
+  );
+  return rows[0] || null;
+}
+
+async function borrarArchivoTalon(path) {
+  const { error } = await supabase.storage.from(BUCKET_TALONES).remove([path]);
+  if (error) throw error;
+}
+
+// Para limpiezas que no deben hacer fallar la operación principal.
+async function borrarArchivoTalonConLog(path) {
+  try {
+    await borrarArchivoTalon(path);
+  } catch (err) {
+    console.error(`No se pudo borrar el talón ${path}:`, err.message);
+  }
+}
 
 const texto = (v) => String(v ?? '').trim();
 const cantidadValida = (v) => Number.isFinite(Number(v)) && Number(v) > 0;
@@ -105,11 +163,80 @@ router.patch('/registros/:rid', async (req, res) => {
 router.delete('/registros/:rid', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'DELETE FROM ofrendas_especiales_registros WHERE id=$1 AND campus=$2 RETURNING id',
+      'DELETE FROM ofrendas_especiales_registros WHERE id=$1 AND campus=$2 RETURNING id, talon_path',
       [req.params.rid, req.campus]
     );
     if (!rows.length) return res.status(404).json({ error: 'Registro no encontrado' });
+    if (rows[0].talon_path) await borrarArchivoTalonConLog(rows[0].talon_path);
     res.json({ deleted: rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/ofrendas-especiales/registros/:rid/talon
+router.post('/registros/:rid/talon', requireAuth, recibirTalon, async (req, res) => {
+  try {
+    const registro = await buscarRegistroTalon(req.params.rid, req.campus);
+    if (!registro) return res.status(404).json({ error: 'Registro no encontrado' });
+
+    const path = `${req.campus}/${registro.id}-${Date.now()}.jpg`;
+    const { error: uploadErr } = await supabase.storage
+      .from(BUCKET_TALONES)
+      .upload(path, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+    if (uploadErr) throw uploadErr;
+
+    let actualizado;
+    try {
+      const { rows } = await pool.query(
+        'UPDATE ofrendas_especiales_registros SET talon_path = $1 WHERE id = $2 AND campus = $3 RETURNING id',
+        [path, registro.id, req.campus]
+      );
+      actualizado = rows.length > 0;
+    } catch (err) {
+      await borrarArchivoTalonConLog(path);
+      throw err;
+    }
+    if (!actualizado) {
+      await borrarArchivoTalonConLog(path);
+      return res.status(404).json({ error: 'Registro no encontrado' });
+    }
+
+    if (registro.talon_path) await borrarArchivoTalonConLog(registro.talon_path);
+    res.status(201).json({ tiene_talon: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/ofrendas-especiales/registros/:rid/talon
+router.get('/registros/:rid/talon', requireAuth, async (req, res) => {
+  try {
+    const registro = await buscarRegistroTalon(req.params.rid, req.campus);
+    if (!registro?.talon_path) return res.status(404).json({ error: 'Talón no encontrado' });
+
+    const { data, error } = await supabase.storage
+      .from(BUCKET_TALONES)
+      .createSignedUrl(registro.talon_path, TALON_URL_SEGUNDOS);
+    if (error) throw error;
+    res.json({ url: data.signedUrl });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/ofrendas-especiales/registros/:rid/talon
+router.delete('/registros/:rid/talon', requireAuth, async (req, res) => {
+  try {
+    const registro = await buscarRegistroTalon(req.params.rid, req.campus);
+    if (!registro?.talon_path) return res.status(404).json({ error: 'Talón no encontrado' });
+
+    await borrarArchivoTalon(registro.talon_path);
+    await pool.query(
+      'UPDATE ofrendas_especiales_registros SET talon_path = NULL WHERE id = $1 AND campus = $2',
+      [registro.id, req.campus]
+    );
+    res.json({ tiene_talon: false });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -132,7 +259,9 @@ router.get('/:id/registros', async (req, res) => {
       m,
       pagados.filter(r => r.metodo === m).reduce((s, r) => s + Number(r.cantidad), 0),
     ]));
-    res.json({ data: registros, total, subtotales });
+    // La ruta interna del archivo no sale de aquí; el cliente solo sabe si hay talón.
+    const data = registros.map(({ talon_path, ...r }) => ({ ...r, tiene_talon: Boolean(talon_path) }));
+    res.json({ data, total, subtotales });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
