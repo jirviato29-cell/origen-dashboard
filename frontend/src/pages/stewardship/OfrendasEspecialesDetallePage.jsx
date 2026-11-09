@@ -6,7 +6,6 @@ import { I } from '../../components/Icons';
 import { useIsMobile } from '../../utils/useIsMobile';
 
 const ACCENT  = '#FF6B2B';
-const GREEN   = '#15915A';
 const NAVY    = '#112540';
 const MUTED   = '#6B6B6B';
 const BORDER  = '#E5E5E5';
@@ -28,9 +27,27 @@ function fmtDate(iso) {
   return isNaN(d) ? s : d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function hoy() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const FORM_VACIO = {
+  nombre_persona: '', email: '', whatsapp: '', cantidad: '',
+  fecha_entrega: '', pagado: false, metodo: '',
+};
+
+const opcionStyle = (activo) => ({
+  flex: 1, padding: '9px 6px', borderRadius: 8,
+  border: `1.5px solid ${activo ? ACCENT : BORDER}`,
+  background: activo ? '#FFF4EE' : 'none',
+  color: activo ? ACCENT : MUTED,
+  fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
+  cursor: 'pointer', transition: 'all 0.12s',
+});
+
+function Estado({ registro }) {
+  const pagadoLabel = ['Pagado', METODO_LABEL[registro.metodo] || registro.metodo].filter(Boolean).join(' · ');
+  return (
+    <span style={{ fontSize: 13, fontWeight: 700, color: registro.pagado ? 'var(--good)' : ACCENT }}>
+      {registro.pagado ? pagadoLabel : 'Pendiente'}
+    </span>
+  );
 }
 
 function Modal({ open, onClose, children }) {
@@ -48,6 +65,7 @@ function Modal({ open, onClose, children }) {
       <div style={{
         background: SURFACE, borderRadius: 16, padding: '28px 28px 24px',
         width: '100%', maxWidth: 460,
+        maxHeight: 'calc(100vh - 32px)', overflowY: 'auto', boxSizing: 'border-box',
         boxShadow: '0 16px 48px rgba(0,0,0,0.18)',
       }}>
         {children}
@@ -87,12 +105,13 @@ export default function OfrendasEspecialesDetallePage() {
   const [ofrenda,    setOfrenda]    = useState(null);
   const [registros,  setRegistros]  = useState([]);
   const [total,      setTotal]      = useState(0);
+  const [subtotales, setSubtotales] = useState({});
   const [loading,    setLoading]    = useState(true);
 
   // Modal registrar / editar
   const [modalOpen,  setModalOpen]  = useState(false);
   const [editando,   setEditando]   = useState(null); // null = crear, objeto = editar
-  const [form,       setForm]       = useState({ nombre_persona: '', cantidad: '', metodo: 'efectivo', fecha: hoy() });
+  const [form,       setForm]       = useState(FORM_VACIO);
   const [saving,     setSaving]     = useState(false);
   const [formError,  setFormError]  = useState('');
 
@@ -111,6 +130,7 @@ export default function OfrendasEspecialesDetallePage() {
       setOfrenda(found || null);
       setRegistros(detRes.data?.data || []);
       setTotal(Number(detRes.data?.total) || 0);
+      setSubtotales(detRes.data?.subtotales || {});
     } catch {
       // silencioso
     } finally {
@@ -122,7 +142,7 @@ export default function OfrendasEspecialesDetallePage() {
 
   const abrirCrear = () => {
     setEditando(null);
-    setForm({ nombre_persona: '', cantidad: '', metodo: 'efectivo', fecha: hoy() });
+    setForm(FORM_VACIO);
     setFormError('');
     setModalOpen(true);
   };
@@ -131,9 +151,12 @@ export default function OfrendasEspecialesDetallePage() {
     setEditando(reg);
     setForm({
       nombre_persona: reg.nombre_persona,
+      email: reg.email || '',
+      whatsapp: reg.whatsapp || '',
       cantidad: String(reg.cantidad),
-      metodo: reg.metodo,
-      fecha: String(reg.fecha).slice(0, 10),
+      fecha_entrega: reg.fecha_entrega ? String(reg.fecha_entrega).slice(0, 10) : '',
+      pagado: Boolean(reg.pagado),
+      metodo: reg.metodo || '',
     });
     setFormError('');
     setModalOpen(true);
@@ -143,16 +166,24 @@ export default function OfrendasEspecialesDetallePage() {
 
   const guardar = async () => {
     if (!form.nombre_persona.trim()) { setFormError('Nombre requerido.'); return; }
-    if (!form.cantidad || isNaN(Number(form.cantidad))) { setFormError('Cantidad inválida.'); return; }
-    if (!form.fecha) { setFormError('Fecha requerida.'); return; }
+    // Al editar, un registro antiguo puede no tener estos datos.
+    const exigir = (campo) => !editando || Boolean(editando[campo]);
+    if (exigir('email') && !form.email.trim()) { setFormError('Email requerido.'); return; }
+    if (exigir('whatsapp') && !form.whatsapp.trim()) { setFormError('WhatsApp requerido.'); return; }
+    if (!(Number(form.cantidad) > 0)) { setFormError('El compromiso debe ser mayor a 0.'); return; }
+    if (exigir('fecha_entrega') && !form.fecha_entrega) { setFormError('Fecha de entrega requerida.'); return; }
+    if (form.pagado && !METODOS.includes(form.metodo)) { setFormError('Elige un método de pago.'); return; }
     setSaving(true);
     setFormError('');
     try {
       const body = {
         nombre_persona: form.nombre_persona.trim(),
+        email: form.email.trim(),
+        whatsapp: form.whatsapp.trim(),
         cantidad: Number(form.cantidad),
-        metodo: form.metodo,
-        fecha: form.fecha,
+        fecha_entrega: form.fecha_entrega,
+        pagado: form.pagado,
+        ...(form.pagado ? { metodo: form.metodo } : {}),
       };
       if (editando) {
         await ofrendasEspecialesApi.updateRegistro(editando.id, body);
@@ -186,15 +217,12 @@ export default function OfrendasEspecialesDetallePage() {
   }
 
   // ── Desglose por método (debe sumar exactamente el total) ────────────────────
-  // efectivo/terminal/transferencia salen del campo `metodo` de cada registro.
-  // `otros` absorbe cualquier registro con método fuera de los 3 (null/raro) para
+  // El total y los subtotales del backend cuentan solo registros pagados.
+  // `otros` absorbe cualquier pagado con método fuera de los 3 (null/raro) para
   // que el desglose SIEMPRE sume el total y no se "pierda" dinero.
-  const sumaPorMetodo = (metodo) => registros
-    .filter(r => r.metodo === metodo)
-    .reduce((s, r) => s + Number(r.cantidad), 0);
-  const desgEfectivo      = sumaPorMetodo('efectivo');
-  const desgTerminal      = sumaPorMetodo('terminal');
-  const desgTransferencia = sumaPorMetodo('transferencia');
+  const desgEfectivo      = Number(subtotales.efectivo) || 0;
+  const desgTerminal      = Number(subtotales.terminal) || 0;
+  const desgTransferencia = Number(subtotales.transferencia) || 0;
   const desgOtros         = total - desgEfectivo - desgTerminal - desgTransferencia;
 
   const desglose = [
@@ -311,13 +339,13 @@ export default function OfrendasEspecialesDetallePage() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: NAVY }}>{r.nombre_persona}</div>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: GREEN, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmt(r.cantidad)}</div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: NAVY, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmt(r.cantidad)}</div>
                 </div>
-                <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 10 }}>
-                  <span style={{ background: '#EEF1F5', borderRadius: 6, padding: '2px 8px', marginRight: 8, fontWeight: 600 }}>
-                    {METODO_LABEL[r.metodo] || r.metodo}
-                  </span>
-                  {fmtDate(r.fecha)}
+                <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 3, overflowWrap: 'anywhere' }}>
+                  <div>WhatsApp: {r.whatsapp || '—'}</div>
+                  <div>Email: {r.email || '—'}</div>
+                  <div>Fecha de entrega: {fmtDate(r.fecha_entrega)}</div>
+                  <div><Estado registro={r} /></div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => abrirEditar(r)} style={{
@@ -340,12 +368,13 @@ export default function OfrendasEspecialesDetallePage() {
           </div>
         ) : (
           // Desktop table
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: SURFACE2 }}>
-                {['Nombre', 'Cantidad', 'Método', 'Fecha', ''].map((h, i) => (
+                {['Nombre / Familia', 'WhatsApp', 'Email', 'Compromiso', 'Fecha de entrega', 'Estado', ''].map((h, i) => (
                   <th key={i} style={{
-                    padding: '11px 20px', textAlign: i === 1 ? 'right' : 'left',
+                    padding: '11px 14px', textAlign: i === 3 ? 'right' : 'left',
                     fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase',
                     letterSpacing: '.07em', color: MUTED,
                     borderBottom: `1px solid ${BORDER}`,
@@ -358,22 +387,17 @@ export default function OfrendasEspecialesDetallePage() {
             <tbody>
               {registros.map((r, idx) => (
                 <tr key={r.id} style={{ borderBottom: idx < registros.length - 1 ? `1px solid ${BORDER}` : 'none' }}>
-                  <td style={{ padding: '13px 20px', fontSize: 14, fontWeight: 600, color: NAVY }}>
+                  <td style={{ padding: '13px 14px', fontSize: 14, fontWeight: 600, color: NAVY }}>
                     {r.nombre_persona}
                   </td>
-                  <td style={{ padding: '13px 20px', textAlign: 'right', fontSize: 16, fontWeight: 800, color: GREEN, fontVariantNumeric: 'tabular-nums' }}>
+                  <td style={{ padding: '13px 14px', fontSize: 13.5, color: MUTED, whiteSpace: 'nowrap' }}>{r.whatsapp || '—'}</td>
+                  <td style={{ padding: '13px 14px', fontSize: 13.5, color: MUTED, overflowWrap: 'anywhere' }}>{r.email || '—'}</td>
+                  <td style={{ padding: '13px 14px', textAlign: 'right', fontSize: 16, fontWeight: 800, color: NAVY, fontVariantNumeric: 'tabular-nums' }}>
                     {fmt(r.cantidad)}
                   </td>
-                  <td style={{ padding: '13px 20px' }}>
-                    <span style={{
-                      background: '#EEF1F5', borderRadius: 6,
-                      padding: '3px 10px', fontSize: 12.5, fontWeight: 600, color: '#305181',
-                    }}>
-                      {METODO_LABEL[r.metodo] || r.metodo}
-                    </span>
-                  </td>
-                  <td style={{ padding: '13px 20px', fontSize: 13.5, color: MUTED }}>{fmtDate(r.fecha)}</td>
-                  <td style={{ padding: '13px 16px', textAlign: 'right' }}>
+                  <td style={{ padding: '13px 14px', fontSize: 13.5, color: MUTED, whiteSpace: 'nowrap' }}>{fmtDate(r.fecha_entrega)}</td>
+                  <td style={{ padding: '13px 14px', whiteSpace: 'nowrap' }}><Estado registro={r} /></td>
+                  <td style={{ padding: '13px 14px', textAlign: 'right' }}>
                     <div style={{ display: 'inline-flex', gap: 8 }}>
                       <button onClick={() => abrirEditar(r)} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -395,6 +419,7 @@ export default function OfrendasEspecialesDetallePage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -409,17 +434,37 @@ export default function OfrendasEspecialesDetallePage() {
           </button>
         </div>
 
-        <Field label="Nombre de la persona">
+        <Field label="Nombre / Familia">
           <input
             autoFocus
             value={form.nombre_persona}
             onChange={e => { setForm(f => ({ ...f, nombre_persona: e.target.value })); setFormError(''); }}
-            placeholder="Nombre y apellido"
+            placeholder="Nombre o familia"
             style={inputStyle}
           />
         </Field>
 
-        <Field label="Cantidad">
+        <Field label="Email">
+          <input
+            type="email"
+            value={form.email}
+            onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setFormError(''); }}
+            placeholder="correo@ejemplo.com"
+            style={inputStyle}
+          />
+        </Field>
+
+        <Field label="WhatsApp">
+          <input
+            type="tel"
+            value={form.whatsapp}
+            onChange={e => { setForm(f => ({ ...f, whatsapp: e.target.value })); setFormError(''); }}
+            placeholder="10 dígitos"
+            style={inputStyle}
+          />
+        </Field>
+
+        <Field label="Mi compromiso total">
           <input
             type="number"
             min="0"
@@ -431,35 +476,44 @@ export default function OfrendasEspecialesDetallePage() {
           />
         </Field>
 
-        <Field label="Método de pago">
+        <Field label="Fecha en que lo entregaré">
+          <input
+            type="date"
+            value={form.fecha_entrega}
+            onChange={e => { setForm(f => ({ ...f, fecha_entrega: e.target.value })); setFormError(''); }}
+            style={inputStyle}
+          />
+        </Field>
+
+        <Field label="Pagado">
           <div style={{ display: 'flex', gap: 8 }}>
-            {METODOS.map(m => (
+            {[{ valor: false, label: 'No' }, { valor: true, label: 'Sí' }].map(op => (
               <button
-                key={m}
-                onClick={() => setForm(f => ({ ...f, metodo: m }))}
-                style={{
-                  flex: 1, padding: '9px 6px', borderRadius: 8,
-                  border: `1.5px solid ${form.metodo === m ? ACCENT : BORDER}`,
-                  background: form.metodo === m ? '#FFF4EE' : 'none',
-                  color: form.metodo === m ? ACCENT : MUTED,
-                  fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.12s',
-                }}
+                key={op.label}
+                onClick={() => { setForm(f => ({ ...f, pagado: op.valor })); setFormError(''); }}
+                style={opcionStyle(form.pagado === op.valor)}
               >
-                {METODO_LABEL[m]}
+                {op.label}
               </button>
             ))}
           </div>
         </Field>
 
-        <Field label="Fecha">
-          <input
-            type="date"
-            value={form.fecha}
-            onChange={e => { setForm(f => ({ ...f, fecha: e.target.value })); setFormError(''); }}
-            style={inputStyle}
-          />
-        </Field>
+        {form.pagado && (
+          <Field label="Método de pago">
+            <div style={{ display: 'flex', gap: 8 }}>
+              {METODOS.map(m => (
+                <button
+                  key={m}
+                  onClick={() => { setForm(f => ({ ...f, metodo: m })); setFormError(''); }}
+                  style={opcionStyle(form.metodo === m)}
+                >
+                  {METODO_LABEL[m]}
+                </button>
+              ))}
+            </div>
+          </Field>
+        )}
 
         {formError && <div style={{ fontSize: 12.5, color: RED, marginBottom: 14 }}>{formError}</div>}
 
